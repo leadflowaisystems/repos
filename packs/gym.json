@@ -1,0 +1,485 @@
+{
+  "id": "gym",
+  "label": "Gym / Fitness Studio",
+  "description": "Gyms, fitness studios, CrossFit boxes, yoga and dance studios, personal-training centres.",
+  "headlineKpi": {
+    "key": "new_reviews_per_week",
+    "label": "New reviews per week",
+    "help": "Gym enquiries convert on recent social proof. Reviews from the last 90 days matter far more than the lifetime total.",
+    "goodDirection": "up"
+  },
+  "issueTaxonomy": [
+    {
+      "key": "equipment_condition",
+      "label": "Broken or insufficient equipment",
+      "severity": "high",
+      "action": "Publish a repair log at the entrance: what is out of service, and the date it returns. Fix the machine named most often first.",
+      "hints": [
+        "broken",
+        "not working",
+        "out of order",
+        "old machine",
+        "kharab",
+        "खराब",
+        "बंद",
+        "टूटा",
+        "broken equipment",
+        "equipment is broken",
+        "equipment not working",
+        "treadmill not working",
+        "treadmill was broken",
+        "dumbbells missing",
+        "needs maintenance",
+        "no maintenance",
+        "never repaired",
+        "not repaired",
+        "मशीन खराब",
+        "मशीन बंद",
+        "मशीन तुटली"
+      ],
+      "replyPhrase": "equipment being out of action",
+      "replyPhraseHinglish": "machine kharab hone",
+      "replyPhraseMarathi": "मशीन बंद असल्याबद्दल"
+    },
+    {
+      "key": "crowding",
+      "label": "Overcrowding at peak hours",
+      "severity": "high",
+      "action": "Publish live peak-hour occupancy at the desk and cap peak-slot sign-ups for the busiest hour.",
+      "hints": [
+        "crowded",
+        "too many people",
+        "waiting for machine",
+        "no space",
+        "bheed",
+        "गर्दी",
+        "जागा नाही",
+        "भीड",
+        "crowded at peak",
+        "too crowded",
+        "rush at peak"
+      ],
+      "replyPhrase": "how packed it gets at peak times",
+      "replyPhraseHinglish": "peak time par hui bheed",
+      "replyPhraseMarathi": "गर्दीच्या वेळेतील अडचणीबद्दल"
+    },
+    {
+      "key": "trainer_availability",
+      "label": "Trainer absent or inattentive",
+      "severity": "high",
+      "action": "Roster a named floor trainer for every hour the gym is open and put the roster on the wall.",
+      "hints": [
+        "no trainer",
+        "not available",
+        "no guidance",
+        "ignored",
+        "trainer was not",
+        "trainer never",
+        "no coach",
+        "trainer ignored",
+        "no one to guide",
+        "trainer nahi",
+        "no personal training",
+        "ट्रेनर नाही",
+        "ट्रेनर नसतो",
+        "मार्गदर्शन नाही",
+        "कोच नाही"
+      ],
+      "replyPhrase": "not getting the guidance you needed",
+      "replyPhraseHinglish": "sahi guidance na milne",
+      "replyPhraseMarathi": "योग्य मार्गदर्शन न मिळाल्याबद्दल"
+    },
+    {
+      "key": "cleanliness",
+      "label": "Cleanliness / changing rooms",
+      "severity": "high",
+      "action": "Add an hourly cleaning sign-off for the floor, washroom and changing room, visible to members.",
+      "hints": [
+        "dirty",
+        "unclean",
+        "smell",
+        "ganda",
+        "गंदा",
+        "घाण",
+        "dirty washroom",
+        "washroom was dirty",
+        "toilet was dirty",
+        "changing room was dirty",
+        "dirty changing room",
+        "shower not working",
+        "poor hygiene",
+        "no hygiene",
+        "smells of sweat",
+        "sweat smell",
+        "safai nahi",
+        "सफाई नाही",
+        "स्वच्छता नाही"
+      ],
+      "replyPhrase": "the state of the changing rooms",
+      "replyPhraseHinglish": "changing room ki safai",
+      "replyPhraseMarathi": "चेंजिंग रूमच्या स्वच्छतेबद्दल"
+    },
+    {
+      "key": "membership_billing",
+      "label": "Membership / refund disputes",
+      "severity": "high",
+      "action": "Give every member a written copy of the freeze, transfer and refund terms at signup, and stop verbal-only promises.",
+      "hints": [
+        "refund",
+        "money back",
+        "रिफंड",
+        "no refund",
+        "refund not",
+        "charged again",
+        "charged extra",
+        "auto debit without",
+        "renewed without asking",
+        "membership not cancelled",
+        "cancelled but charged",
+        "paise wapas nahi",
+        "पैसे परत नाही",
+        "फी जास्त",
+        "बिल चुकीचे"
+      ],
+      "replyPhrase": "the problem with your membership",
+      "replyPhraseHinglish": "membership mein hui gadbad",
+      "replyPhraseMarathi": "मेंबरशिपमधील गोंधळाबद्दल"
+    },
+    {
+      "key": "ac_ventilation",
+      "label": "AC / ventilation / temperature",
+      "severity": "medium",
+      "action": "Service the AC and add exhaust in the busiest zone; log temperature at peak hour for a week.",
+      "hints": [
+        "ac not",
+        "stuffy",
+        "no air",
+        "suffocating",
+        "गर्मी",
+        "उकाडा",
+        "too hot",
+        "very hot inside",
+        "fan not working",
+        "no fan",
+        "no ventilation",
+        "poor ventilation",
+        "एसी बंद",
+        "एसी चालत नाही",
+        "हवा नाही"
+      ],
+      "replyPhrase": "how stuffy it gets on the floor",
+      "replyPhraseHinglish": "hall mein hui ghutan",
+      "replyPhraseMarathi": "हॉलमधील उकाड्याबद्दल"
+    },
+    {
+      "key": "staff_behaviour",
+      "label": "Front-desk / staff behaviour",
+      "severity": "medium",
+      "action": "Brief the desk on how to handle a freeze, cancellation and complaint without escalating.",
+      "hints": [
+        "rude",
+        "attitude",
+        "unprofessional",
+        "misbehav",
+        "उद्धट",
+        "staff was rude",
+        "staff were rude",
+        "staff are rude",
+        "bad behaviour",
+        "bad behavior",
+        "rude behaviour",
+        "वाईट वागणूक",
+        "उद्धट वागणूक"
+      ],
+      "replyPhrase": "the way you were dealt with at the desk",
+      "replyPhraseHinglish": "desk par hue vyavhaar",
+      "replyPhraseMarathi": "डेस्कवरील वागणुकीबद्दल"
+    },
+    {
+      "key": "overcommitted_sales",
+      "label": "Sales promises not kept",
+      "severity": "high",
+      "action": "Remove every claim from the sales pitch that is not written in the membership form.",
+      "hints": [
+        "promised",
+        "not as promised",
+        "false",
+        "misleading",
+        "lied",
+        "vaada",
+        "वादा",
+        "सांगितले होते",
+        "झूठ",
+        "pushy sales",
+        "sales promise",
+        "promised but"
+      ],
+      "replyPhrase": "being told one thing and finding another",
+      "replyPhraseHinglish": "joining ke waqt kahi gayi baat alag nikalne",
+      "replyPhraseMarathi": "सांगितलेले आणि प्रत्यक्षातील फरकाबद्दल"
+    },
+    {
+      "key": "class_schedule",
+      "label": "Classes cancelled or changed",
+      "severity": "medium",
+      "action": "Fix the class timetable for a month and notify members in advance of any change.",
+      "hints": [
+        "cancelled",
+        "canceled",
+        "timing changed",
+        "class was cancelled",
+        "classes cancelled",
+        "class timing changed",
+        "schedule keeps changing",
+        "zumba was cancelled",
+        "yoga class cancelled",
+        "batch changed",
+        "no classes",
+        "क्लास रद्द",
+        "क्लास बंद",
+        "वेळापत्रक बदलले",
+        "बॅच बदलला",
+        "समय बदल"
+      ],
+      "replyPhrase": "classes not running as scheduled",
+      "replyPhraseHinglish": "class time par na hone",
+      "replyPhraseMarathi": "क्लास वेळेवर न झाल्याबद्दल"
+    },
+    {
+      "key": "parking_access",
+      "label": "Parking / access",
+      "severity": "low",
+      "action": "Publish parking guidance on the listing and at the entrance.",
+      "hints": [
+        "no space to park",
+        "no parking",
+        "parking problem",
+        "nowhere to park",
+        "parking nahi",
+        "पार्किंग नाही",
+        "जागा नाही",
+        "गाडी लावायला जागा"
+      ],
+      "replyPhrase": "how hard it is to park",
+      "replyPhraseHinglish": "parking mein hui dikkat",
+      "replyPhraseMarathi": "पार्किंगमधील अडचणीबद्दल"
+    }
+  ],
+  "praiseTaxonomy": [
+    {
+      "key": "trainer_quality",
+      "label": "Trainer knowledge and attention",
+      "hints": [
+        "guidance",
+        "form correction",
+        "knowledgeable",
+        "motivating",
+        "supportive",
+        "मार्गदर्शन",
+        "प्रेरणा",
+        "trainer was good",
+        "trainer was great",
+        "trainer was excellent",
+        "good trainer",
+        "great trainer",
+        "best trainer",
+        "trainers are good",
+        "trainers are great"
+      ],
+      "replyPhrase": "your trainer knows what they are doing",
+      "replyPhraseHinglish": "trainer ko apna kaam aata hai",
+      "replyPhraseMarathi": "ट्रेनरला त्यांचे काम चांगले येते"
+    },
+    {
+      "key": "equipment_quality",
+      "label": "Good equipment",
+      "hints": [
+        "well maintained",
+        "new machines",
+        "variety"
+      ],
+      "replyPhrase": "the equipment is up to scratch",
+      "replyPhraseHinglish": "equipment theek thaak hai",
+      "replyPhraseMarathi": "उपकरणे चांगली आहेत"
+    },
+    {
+      "key": "cleanliness_praise",
+      "label": "Clean facility",
+      "hints": [
+        "clean",
+        "hygienic",
+        "well maintained",
+        "neat",
+        "स्वच्छ",
+        "साफ",
+        "नीटनेटके"
+      ],
+      "replyPhrase": "the place is kept clean",
+      "replyPhraseHinglish": "jagah saaf rakhi jaati hai",
+      "replyPhraseMarathi": "जागा स्वच्छ ठेवली जाते"
+    },
+    {
+      "key": "atmosphere",
+      "label": "Motivating atmosphere",
+      "hints": [
+        "atmosphere",
+        "vibe",
+        "energy",
+        "motivating",
+        "community",
+        "friendly crowd",
+        "ऊर्जा"
+      ],
+      "replyPhrase": "the floor has a good atmosphere",
+      "replyPhraseHinglish": "floor ka mahaul acha hai",
+      "replyPhraseMarathi": "जिमचे वातावरण चांगले आहे"
+    },
+    {
+      "key": "value_pricing",
+      "label": "Fair membership pricing",
+      "hints": [
+        "affordable",
+        "reasonable",
+        "worth",
+        "value",
+        "वाजवी",
+        "किफायती",
+        "योग्य दर"
+      ],
+      "replyPhrase": "the membership feels worth it",
+      "replyPhraseHinglish": "membership paise vasool lagti hai",
+      "replyPhraseMarathi": "मेंबरशिप योग्य वाटते"
+    },
+    {
+      "key": "results",
+      "label": "Visible results",
+      "hints": [
+        "lost weight",
+        "results",
+        "transformation",
+        "gained",
+        "improved",
+        "fitter",
+        "फरक"
+      ],
+      "replyPhrase": "you are seeing results",
+      "replyPhraseHinglish": "aapko result dikh raha hai",
+      "replyPhraseMarathi": "तुम्हाला परिणाम दिसत आहेत"
+    },
+    {
+      "key": "timings",
+      "label": "Convenient timings",
+      "hints": [
+        "early morning",
+        "late night",
+        "flexible",
+        "open till",
+        "सोयीचे"
+      ],
+      "replyPhrase": "the timings work for you",
+      "replyPhraseHinglish": "timings aapke liye theek baithti hain",
+      "replyPhraseMarathi": "वेळा तुम्हाला सोयीच्या वाटतात"
+    }
+  ],
+  "voicePreset": {
+    "formality": "FRIENDLY",
+    "languageMix": "HINGLISH",
+    "greeting": "Thanks for the honest feedback.",
+    "signOff": "— Team {{businessName}}",
+    "preferredWords": [
+      "members",
+      "floor",
+      "trainer",
+      "we will fix this",
+      "thank you for flagging"
+    ],
+    "bannedWords": [
+      "guaranteed results",
+      "lose 10 kg in",
+      "transformation guaranteed",
+      "we will delete",
+      "change your rating"
+    ],
+    "emojiPolicy": "MINIMAL",
+    "exampleReplies": [
+      "Thanks for flagging the machine. It should not have stayed out of service that long. Please speak to the floor manager so we can tell you exactly when it is back.",
+      "Great to hear the trainers are helping. Passing this to the floor team."
+    ]
+  },
+  "staffAskScript": {
+    "when": "After a member completes a milestone session or renews, at the front desk.",
+    "line": "If the gym has been working for you, an honest review really helps other people decide. The QR at the desk takes a minute.",
+    "hinglishLine": "Agar gym aapke liye theek chal raha hai, toh ek honest review dusron ko decide karne mein help karta hai. Desk par QR hai, ek minute.",
+    "marathiLine": "जिम तुमच्यासाठी उपयुक्त ठरत असेल, तर प्रामाणिक अभिप्राय इतरांना निर्णय घ्यायला मदत करतो. डेस्कवरचा QR एक मिनिट घेतो.",
+    "doNot": [
+      "Never offer free days, discounts or protein samples for a review.",
+      "Never ask only members who look satisfied.",
+      "Never write a review on a member's phone.",
+      "Never ask a member to delete or edit a review."
+    ]
+  },
+  "profileGapChecks": [
+    {
+      "key": "hours_missing",
+      "label": "Opening hours missing or wrong"
+    },
+    {
+      "key": "photos_stale",
+      "label": "No recent photos of the floor and equipment"
+    },
+    {
+      "key": "services_missing",
+      "label": "Membership options / classes not listed"
+    },
+    {
+      "key": "no_replies",
+      "label": "Reviews left without a reply"
+    },
+    {
+      "key": "pricing_absent",
+      "label": "No price indication anywhere public"
+    },
+    {
+      "key": "phone_wrong",
+      "label": "Phone number wrong or unmonitored"
+    },
+    {
+      "key": "no_directions",
+      "label": "Parking or entrance not described"
+    }
+  ],
+  "contentTemplates": [
+    {
+      "key": "reply_negative_equipment",
+      "label": "Reply — broken equipment",
+      "body": "Thanks for flagging this. Equipment being out of service for that long is on us. Please speak to the floor manager — we will tell you exactly when it is back.\n\n— Team {{businessName}}"
+    },
+    {
+      "key": "reply_positive",
+      "label": "Reply — positive review",
+      "body": "Thank you — the floor team will be glad to read this. See you at the next session.\n\n— Team {{businessName}}"
+    },
+    {
+      "key": "counter_card_headline",
+      "label": "Front-desk card headline",
+      "body": "Is the gym working for you?"
+    },
+    {
+      "key": "counter_card_subhead",
+      "label": "Front-desk card subhead",
+      "body": "Scan and tell us honestly — it takes a minute."
+    }
+  ],
+  "kit": {
+    "assetLabel": "front-desk card",
+    "placement": "At the front desk, beside the sign-in register.",
+    "moment": "After a member completes a milestone session, or when they renew.",
+    "headline": "Is the gym working for you?",
+    "subhead": "Scan and tell us honestly — it takes a minute.",
+    "qrCaption": "Scan to share your honest review",
+    "askMessage": "Thanks for training with {{businessName}}. If the gym has been working for you, an honest review really helps other people decide: {{reviewUrl}}",
+    "askMessageHinglish": "{{businessName}} me train karne ke liye shukriya. Agar gym aapke liye theek chal raha hai, toh ek honest review dusron ko decide karne me help karta hai: {{reviewUrl}}",
+    "askMessageMarathi": "{{businessName}} मध्ये सराव केल्याबद्दल धन्यवाद. जिम तुमच्यासाठी उपयुक्त ठरत असेल, तर प्रामाणिक अभिप्राय इतरांना मदत करतो: {{reviewUrl}}",
+    "thankYou": "Thank you — the floor team will be glad to read this."
+  }
+}

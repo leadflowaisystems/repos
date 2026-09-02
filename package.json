@@ -1,0 +1,51 @@
+{
+  "name": "repos",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RepOS - local-first internal agency operating system for a done-for-you Customer Intelligence service.",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "scripts": {
+    "dev": "next dev -H :: -p 3000",
+    "build": "next build",
+    "start": "next start -H :: -p 3000",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:push": "node scripts/ensure-env.mjs && prisma db push",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "node scripts/ensure-env.mjs && prisma db push --force-reset --accept-data-loss && npm run db:seed",
+    "setup": "node scripts/ensure-env.mjs && prisma generate && prisma db push && npm run db:seed",
+    "verify": "npm run typecheck && npm run lint && npm run test",
+    "predev": "node scripts/ensure-env.mjs"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3",
+    "clsx": "2.1.1",
+    "next": "15.5.25",
+    "playwright-core": "1.62.1",
+    "qrcode": "1.5.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "3.3.7",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "22.20.1",
+    "@types/qrcode": "1.5.5",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "eslint": "9.39.5",
+    "eslint-config-next": "15.5.25",
+    "prisma": "6.19.3",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
+  }
+}

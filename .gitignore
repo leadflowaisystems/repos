@@ -1,0 +1,34 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Local-first data. Never commit the operator's real client data.
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/uploads/
+data/exports/
+
+# Secrets
+.env
+.env.local
+.env.*.local
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+.vscode/
+.idea/
+
+# Test / tooling caches
+coverage/
+.vitest/
+*.tsbuildinfo
+
+# Test databases
+data/.test/

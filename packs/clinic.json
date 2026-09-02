@@ -1,0 +1,561 @@
+{
+  "id": "clinic",
+  "label": "Clinic / Healthcare",
+  "description": "Single or multi-doctor clinics, dental, physio, diagnostics, day-care centres.",
+  "headlineKpi": {
+    "key": "new_reviews_per_week",
+    "label": "New reviews per week",
+    "help": "Steady, honest review flow is the strongest local signal for a clinic. Track the rate, not the total.",
+    "goodDirection": "up"
+  },
+  "issueTaxonomy": [
+    {
+      "key": "wait_time",
+      "label": "Long waiting time",
+      "severity": "high",
+      "action": "Fix the waiting-time expectation: publish a realistic slot length, and have reception tell each patient the expected wait on arrival.",
+      "hints": [
+        "wait",
+        "waiting",
+        "waited",
+        "queue",
+        "long time",
+        "delay",
+        "delayed",
+        "late",
+        "intezaar",
+        "intzar",
+        "der",
+        "bahut time",
+        "kaafi time",
+        "time lagta",
+        "उशीर",
+        "प्रतीक्षा",
+        "इंतजार",
+        "देरी",
+        "वेळ जास्त",
+        "वेळ लागला",
+        "खूप वेळ",
+        "वाट पाहावी",
+        "वाट बघावी",
+        "उशीर झाला"
+      ],
+      "replyPhrase": "the wait past your appointment time",
+      "replyPhraseHinglish": "lambe intezaar",
+      "replyPhraseMarathi": "झालेल्या उशिराबद्दल"
+    },
+    {
+      "key": "appointment_scheduling",
+      "label": "Appointment / booking problems",
+      "severity": "high",
+      "action": "Tighten the booking flow: confirm every appointment on the channel it was made, and re-confirm on the morning of the visit.",
+      "hints": [
+        "reschedul",
+        "no confirmation",
+        "double book",
+        "appointment nahi",
+        "वेळ मिळाली नाही",
+        "appointment was cancelled",
+        "appointment cancelled",
+        "cancelled my appointment",
+        "cancelled without",
+        "no slot",
+        "slot not available",
+        "no appointment available",
+        "could not get an appointment",
+        "couldn't get an appointment",
+        "booking problem",
+        "अपॉइंटमेंट मिळाली नाही",
+        "अपॉइंटमेंट रद्द",
+        "बुकिंग रद्द",
+        "अपॉइंटमेंट नाही"
+      ],
+      "replyPhrase": "the trouble getting your appointment sorted",
+      "replyPhraseHinglish": "appointment mein hui pareshani",
+      "replyPhraseMarathi": "अपॉइंटमेंटमध्ये झालेल्या गैरसोयीबद्दल"
+    },
+    {
+      "key": "billing_clarity",
+      "label": "Unclear or unexpected billing",
+      "severity": "high",
+      "action": "Give a written estimate before treatment starts and repeat the total out loud before payment.",
+      "hints": [
+        "expensive",
+        "costly",
+        "overcharge",
+        "hidden",
+        "extra money",
+        "mehnga",
+        "zyada charge",
+        "महाग",
+        "जास्त पैसे",
+        "wrong bill",
+        "bill was wrong",
+        "billing error",
+        "extra charge",
+        "charged extra",
+        "charged more",
+        "unexpected bill",
+        "bill zyada",
+        "extra paise",
+        "billing was confusing",
+        "billing is confusing",
+        "bill was confusing",
+        "confusing bill",
+        "unclear bill",
+        "bill was unclear",
+        "bill was not explained",
+        "billing was wrong",
+        "billing is wrong",
+        "wrong billing",
+        "billing was incorrect",
+        "billing mistake",
+        "बिल चुकीचे",
+        "बिल जास्त",
+        "जास्त बिल",
+        "पैसे जास्त घेतले",
+        "अतिरिक्त शुल्क"
+      ],
+      "replyPhrase": "the confusion over the bill",
+      "replyPhraseHinglish": "bill mein hue confusion",
+      "replyPhraseMarathi": "बिलाबाबत झालेल्या गोंधळाबद्दल"
+    },
+    {
+      "key": "staff_behaviour",
+      "label": "Reception / staff behaviour",
+      "severity": "high",
+      "action": "Run a short front-desk script drill: greeting, expected wait, and how to answer a frustrated patient.",
+      "hints": [
+        "rude",
+        "attitude",
+        "unprofessional",
+        "shouted",
+        "misbehav",
+        "badtameez",
+        "tameez",
+        "उद्धट",
+        "bad behaviour",
+        "bad behavior",
+        "rude behaviour",
+        "poor behaviour",
+        "staff was rude",
+        "staff were rude",
+        "staff are rude",
+        "reception was rude",
+        "receptionist was rude",
+        "shrugged",
+        "no one at the desk",
+        "nobody at the desk",
+        "वाईट वागणूक",
+        "उद्धट वागणूक",
+        "वाईट व्यवहार",
+        "स्टाफ उद्धट"
+      ],
+      "replyPhrase": "the way you were spoken to at the desk",
+      "replyPhraseHinglish": "counter par hue vyavhaar",
+      "replyPhraseMarathi": "काउंटरवरील वागणुकीबद्दल"
+    },
+    {
+      "key": "cleanliness",
+      "label": "Cleanliness / hygiene",
+      "severity": "high",
+      "action": "Add a visible hourly cleaning checklist in the waiting area and washroom.",
+      "hints": [
+        "dirty",
+        "unclean",
+        "smell",
+        "unhygienic",
+        "dusty",
+        "ganda",
+        "गंदा",
+        "अस्वच्छ",
+        "घाण",
+        "poor hygiene",
+        "no hygiene",
+        "bad hygiene",
+        "hygiene issue",
+        "dirty washroom",
+        "washroom was dirty",
+        "washroom not clean",
+        "toilet was dirty",
+        "toilet not clean",
+        "safai nahi",
+        "सफाई नाही",
+        "सफाई नव्हती",
+        "स्वच्छता नाही"
+      ],
+      "replyPhrase": "the state of the clinic when you visited",
+      "replyPhraseHinglish": "safai ki kami",
+      "replyPhraseMarathi": "स्वच्छतेच्या कमतरतेबद्दल"
+    },
+    {
+      "key": "consultation_rush",
+      "label": "Consultation felt rushed",
+      "severity": "high",
+      "action": "Protect a fixed minimum consultation length and end every consult with a one-line summary of the plan.",
+      "hints": [
+        "rushed",
+        "hurry",
+        "hurried",
+        "no time",
+        "two minutes",
+        "didn't listen",
+        "did not listen",
+        "not explain",
+        "jaldi",
+        "sunna nahi",
+        "समजावले नाही",
+        "घाई",
+        "जल्दी",
+        "सुना नहीं"
+      ],
+      "replyPhrase": "feeling rushed during your consultation",
+      "replyPhraseHinglish": "consultation mein hui jaldbaazi",
+      "replyPhraseMarathi": "तपासणीत झालेल्या घाईबद्दल"
+    },
+    {
+      "key": "followup_communication",
+      "label": "Poor follow-up / report delays",
+      "severity": "medium",
+      "action": "Set a promised turnaround for reports and send a status message if it will slip.",
+      "hints": [
+        "no response",
+        "not reply",
+        "no callback",
+        "उत्तर नाही",
+        "जवाब नहीं",
+        "no report",
+        "report not",
+        "report was delayed",
+        "still waiting for the report",
+        "no follow up",
+        "never followed up",
+        "no followup",
+        "test result not",
+        "रिपोर्ट मिळाला नाही",
+        "रिपोर्ट उशीरा",
+        "फोन आला नाही"
+      ],
+      "replyPhrase": "not hearing back from us",
+      "replyPhraseHinglish": "humari taraf se jawab na milne",
+      "replyPhraseMarathi": "आमच्याकडून उत्तर न मिळाल्याबद्दल"
+    },
+    {
+      "key": "treatment_outcome",
+      "label": "Concern about treatment outcome",
+      "severity": "high",
+      "action": "Escalate offline: review the specific case privately with the doctor before any public reply.",
+      "hints": [
+        "no relief",
+        "not cured",
+        "worse",
+        "wrong diagnosis",
+        "misdiagnos",
+        "side effect",
+        "pain still",
+        "fayda nahi",
+        "aaram nahi",
+        "आराम नाही",
+        "फायदा नाही",
+        "चुकीचे"
+      ],
+      "replyPhrase": "how things have gone since your visit",
+      "replyPhraseHinglish": "visit ke baad hui pareshani",
+      "replyPhraseMarathi": "भेटीनंतर झालेल्या त्रासाबद्दल"
+    },
+    {
+      "key": "parking_access",
+      "label": "Parking / access difficulty",
+      "severity": "low",
+      "action": "Add clear parking directions to the listing and to every appointment confirmation.",
+      "hints": [
+        "hard to find",
+        "no lift",
+        "no parking",
+        "parking problem",
+        "nowhere to park",
+        "hard to park",
+        "parking nahi",
+        "too many stairs",
+        "only stairs",
+        "gaadi kahan",
+        "पार्किंग नाही",
+        "पार्किंगची अडचण",
+        "जागा नाही",
+        "लिफ्ट नाही",
+        "फक्त जिना"
+      ],
+      "replyPhrase": "how hard it was to park and get in",
+      "replyPhraseHinglish": "parking mein hui dikkat",
+      "replyPhraseMarathi": "पार्किंगमध्ये झालेल्या अडचणीबद्दल"
+    },
+    {
+      "key": "phone_unreachable",
+      "label": "Phone not answered",
+      "severity": "medium",
+      "action": "Assign a named person to the clinic phone during opening hours and log missed calls daily.",
+      "hints": [
+        "phone not",
+        "call not",
+        "never picks",
+        "unreachable",
+        "not answering",
+        "phone nahi",
+        "फोन उचलत नाही",
+        "फोन नहीं उठाया",
+        "संपर्क होत नाही",
+        "संपर्क झाला नाही"
+      ],
+      "replyPhrase": "not being able to reach us on the phone",
+      "replyPhraseHinglish": "phone par sampark na ho paane",
+      "replyPhraseMarathi": "फोनवर संपर्क न झाल्याबद्दल"
+    }
+  ],
+  "praiseTaxonomy": [
+    {
+      "key": "doctor_care",
+      "label": "Doctor's care and explanation",
+      "hints": [
+        "explained",
+        "caring",
+        "listened",
+        "kind",
+        "acha samjhaya",
+        "समजावून",
+        "छान",
+        "अच्छे",
+        "doctor was good",
+        "doctor was very good",
+        "doctor was great",
+        "doctor was excellent",
+        "doctor was amazing",
+        "good doctor",
+        "great doctor",
+        "excellent doctor",
+        "best doctor"
+      ],
+      "replyPhrase": "the doctor took the time to explain things",
+      "replyPhraseHinglish": "doctor ne sab kuch aaram se samjhaya",
+      "replyPhraseMarathi": "डॉक्टरांनी सर्व नीट समजावून सांगितले"
+    },
+    {
+      "key": "staff_friendly",
+      "label": "Friendly, helpful staff",
+      "hints": [
+        "friendly",
+        "helpful",
+        "polite",
+        "supportive",
+        "cooperative",
+        "मदत",
+        "नम्र",
+        "अच्छा व्यवहार",
+        "staff was good",
+        "staff were good",
+        "staff are good",
+        "staff was great",
+        "staff were great",
+        "staff are great",
+        "staff was lovely",
+        "staff were lovely",
+        "staff are lovely",
+        "staff is lovely",
+        "staff is good",
+        "staff is great"
+      ],
+      "replyPhrase": "the team looked after you",
+      "replyPhraseHinglish": "team ne aapka acche se dhyan rakha",
+      "replyPhraseMarathi": "टीमने तुमची चांगली काळजी घेतली"
+    },
+    {
+      "key": "clean_facility",
+      "label": "Clean, well-kept clinic",
+      "hints": [
+        "clean",
+        "neat",
+        "hygienic",
+        "well maintained",
+        "spotless",
+        "safai",
+        "स्वच्छ",
+        "साफ",
+        "नीटनेटके"
+      ],
+      "replyPhrase": "the clinic felt clean and well kept",
+      "replyPhraseHinglish": "clinic saaf suthra laga",
+      "replyPhraseMarathi": "क्लिनिक स्वच्छ वाटले"
+    },
+    {
+      "key": "short_wait",
+      "label": "Little or no waiting",
+      "hints": [
+        "no wait",
+        "on time",
+        "quick",
+        "prompt",
+        "immediately",
+        "jaldi mila",
+        "वेळेवर",
+        "लगेच",
+        "समय पर"
+      ],
+      "replyPhrase": "you were seen on time",
+      "replyPhraseHinglish": "aapko samay par dekha gaya",
+      "replyPhraseMarathi": "तुम्हाला वेळेवर पाहिले गेले"
+    },
+    {
+      "key": "fair_pricing",
+      "label": "Fair, transparent pricing",
+      "hints": [
+        "reasonable",
+        "affordable",
+        "fair price",
+        "not expensive",
+        "transparent",
+        "value",
+        "वाजवी",
+        "योग्य दर",
+        "किफायती"
+      ],
+      "replyPhrase": "the pricing was clear and fair",
+      "replyPhraseHinglish": "kharcha saaf aur uchit raha",
+      "replyPhraseMarathi": "खर्च स्पष्ट आणि योग्य होता"
+    },
+    {
+      "key": "good_outcome",
+      "label": "Good treatment result",
+      "hints": [
+        "relief",
+        "cured",
+        "better now",
+        "recovered",
+        "improved",
+        "worked",
+        "aaram mila",
+        "fayda",
+        "आराम",
+        "बरे वाटले",
+        "फायदा"
+      ],
+      "replyPhrase": "you are feeling better",
+      "replyPhraseHinglish": "aap ab behtar mehsoos kar rahe hain",
+      "replyPhraseMarathi": "तुम्हाला आता बरे वाटत आहे"
+    },
+    {
+      "key": "modern_equipment",
+      "label": "Modern equipment / facilities",
+      "hints": [
+        "modern",
+        "latest",
+        "well equipped",
+        "आधुनिक"
+      ],
+      "replyPhrase": "the facilities were up to standard",
+      "replyPhraseHinglish": "suvidhaayein theek thaak lagin",
+      "replyPhraseMarathi": "सुविधा चांगल्या वाटल्या"
+    }
+  ],
+  "voicePreset": {
+    "formality": "FORMAL",
+    "languageMix": "ENGLISH",
+    "greeting": "Thank you for taking the time to share this.",
+    "signOff": "— Team {{businessName}}",
+    "preferredWords": [
+      "care",
+      "comfort",
+      "appointment",
+      "consultation",
+      "follow-up",
+      "we will look into this"
+    ],
+    "bannedWords": [
+      "cure",
+      "guaranteed",
+      "100% safe",
+      "no side effects",
+      "best doctor in the city",
+      "permanent cure"
+    ],
+    "emojiPolicy": "NONE",
+    "exampleReplies": [
+      "Thank you for sharing this. We are sorry the wait was longer than expected. Please call the clinic and ask for the manager so we can look at your visit specifically.",
+      "Thank you for the kind words. We will pass this on to the team."
+    ]
+  },
+  "staffAskScript": {
+    "when": "At discharge or at the billing counter, after the patient says they feel looked after.",
+    "line": "If today's visit was helpful, would you mind sharing your honest experience? There is a QR code at the counter — it takes about a minute.",
+    "hinglishLine": "Agar aaj ka visit theek raha ho, toh apna honest feedback share kar dijiye. Counter par QR code hai, ek minute lagega.",
+    "marathiLine": "आजची भेट उपयुक्त वाटली असेल, तर तुमचा प्रामाणिक अनुभव नोंदवाल का? काउंटरवर QR कोड आहे, एक मिनिट लागेल.",
+    "doNot": [
+      "Never offer a discount, gift, free consult or any reward for a review.",
+      "Never ask only the happy patients — offer the same QR to everyone.",
+      "Never fill in or dictate a review for a patient.",
+      "Never ask a patient to change or delete a review."
+    ]
+  },
+  "profileGapChecks": [
+    {
+      "key": "hours_missing",
+      "label": "Opening hours missing or outdated"
+    },
+    {
+      "key": "photos_stale",
+      "label": "No recent photos of the clinic"
+    },
+    {
+      "key": "services_missing",
+      "label": "Services / specialities not listed"
+    },
+    {
+      "key": "doctor_profile_missing",
+      "label": "Doctor names and qualifications not visible"
+    },
+    {
+      "key": "no_replies",
+      "label": "Reviews left without a reply"
+    },
+    {
+      "key": "phone_wrong",
+      "label": "Phone number wrong or unmonitored"
+    },
+    {
+      "key": "no_directions",
+      "label": "Parking / entrance directions not mentioned"
+    }
+  ],
+  "contentTemplates": [
+    {
+      "key": "reply_negative_wait",
+      "label": "Reply — long wait",
+      "body": "Thank you for telling us. A longer wait than we promised is on us, not on you. Please call the clinic and ask for the manager, mentioning the day of your visit, so we can look at what happened.\n\n— Team {{businessName}}"
+    },
+    {
+      "key": "reply_positive",
+      "label": "Reply — positive review",
+      "body": "Thank you for taking the time to write this. We will share it with the team — it means a lot.\n\n— Team {{businessName}}"
+    },
+    {
+      "key": "counter_card_headline",
+      "label": "Counter card headline",
+      "body": "Was today's visit helpful?"
+    },
+    {
+      "key": "counter_card_subhead",
+      "label": "Counter card subhead",
+      "body": "Scan and tell us honestly. It takes a minute."
+    }
+  ],
+  "kit": {
+    "assetLabel": "counter card",
+    "placement": "At the billing counter, facing patients as they settle up.",
+    "moment": "At discharge or billing, once the patient says they feel looked after.",
+    "headline": "Was today’s visit helpful?",
+    "subhead": "Scan and tell us honestly. It takes a minute.",
+    "qrCaption": "Scan to share your experience",
+    "askMessage": "Thank you for visiting {{businessName}}. If today’s visit was helpful, would you share your honest experience? It takes about a minute: {{reviewUrl}}",
+    "askMessageHinglish": "Aapka {{businessName}} aane ke liye dhanyawaad. Agar aaj ka visit theek raha ho, toh apna honest feedback share kar dijiye — ek minute lagega: {{reviewUrl}}",
+    "askMessageMarathi": "{{businessName}} ला भेट दिल्याबद्दल धन्यवाद. आजची भेट उपयुक्त वाटली असेल, तर तुमचा प्रामाणिक अनुभव नोंदवाल का? एक मिनिट लागेल: {{reviewUrl}}",
+    "thankYou": "Thank you — we read every one of these."
+  }
+}

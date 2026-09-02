@@ -1,0 +1,450 @@
+{
+  "id": "real_estate",
+  "label": "Real Estate / Property",
+  "description": "Property brokers, real-estate agencies, rental consultants, small developers with a local office.",
+  "headlineKpi": {
+    "key": "new_reviews_per_week",
+    "label": "New reviews per week",
+    "help": "Property is a trust purchase with long gaps between deals. A slow, steady review trickle beats a burst once a year.",
+    "goodDirection": "up"
+  },
+  "issueTaxonomy": [
+    {
+      "key": "listing_accuracy",
+      "label": "Listing did not match reality",
+      "severity": "high",
+      "action": "Photograph every property yourself on the day it is listed, and remove any listing you have not personally verified this month.",
+      "hints": [
+        "photos different",
+        "not as shown",
+        "misleading",
+        "fake listing",
+        "wrong size",
+        "different property",
+        "not available",
+        "galat",
+        "चुकीचे",
+        "गलत जानकारी",
+        "फोटो वेगळे",
+        "दाखवले तसे नाही"
+      ],
+      "replyPhrase": "the property not matching what was shown",
+      "replyPhraseHinglish": "property waisi na nikalne jaisi dikhayi gayi thi",
+      "replyPhraseMarathi": "दाखवल्याप्रमाणे मालमत्ता नसल्याबद्दल"
+    },
+    {
+      "key": "responsiveness",
+      "label": "Slow or no response",
+      "severity": "high",
+      "action": "Commit to a same-day first reply on every enquiry, and log any enquiry not answered within four working hours.",
+      "hints": [
+        "no response",
+        "not reply",
+        "never called",
+        "no callback",
+        "ignored",
+        "phone not",
+        "unresponsive",
+        "jawab nahi",
+        "उत्तर नाही",
+        "फोन उचलत नाही",
+        "जवाब नहीं"
+      ],
+      "replyPhrase": "not hearing back quickly enough",
+      "replyPhraseHinglish": "jawab time par na milne",
+      "replyPhraseMarathi": "वेळेवर उत्तर न मिळाल्याबद्दल"
+    },
+    {
+      "key": "hidden_charges",
+      "label": "Hidden brokerage / charges",
+      "severity": "high",
+      "action": "State the full brokerage and any additional charge in writing before the first site visit.",
+      "hints": [
+        "hidden charge",
+        "extra money",
+        "asked more",
+        "छुपे शुल्क",
+        "extra brokerage",
+        "high brokerage",
+        "more brokerage",
+        "hidden commission",
+        "extra charges",
+        "hidden charges",
+        "extra paise",
+        "दलाली जास्त",
+        "जास्त कमिशन",
+        "जास्त पैसे मागितले"
+      ],
+      "replyPhrase": "charges you were not told about upfront",
+      "replyPhraseHinglish": "pehle se na bataye gaye kharche",
+      "replyPhraseMarathi": "आधी न सांगितलेल्या खर्चाबद्दल"
+    },
+    {
+      "key": "site_visit_experience",
+      "label": "Site visit problems",
+      "severity": "medium",
+      "action": "Confirm site-visit time and address the evening before, and never schedule a visit without the key in hand.",
+      "hints": [
+        "did not turn up",
+        "no show",
+        "waited",
+        "owner not",
+        "cancelled visit",
+        "आले नाहीत",
+        "नहीं आया",
+        "site visit was cancelled",
+        "no one came for the site visit",
+        "no keys",
+        "keys were not",
+        "forgot the keys",
+        "साइट भेट रद्द",
+        "भेटीसाठी आले नाहीत"
+      ],
+      "replyPhrase": "how the site visit went",
+      "replyPhraseHinglish": "site visit ke anubhav",
+      "replyPhraseMarathi": "साइट भेटीच्या अनुभवाबद्दल"
+    },
+    {
+      "key": "documentation_delay",
+      "label": "Documentation / paperwork delays",
+      "severity": "high",
+      "action": "Give a written checklist of documents and a dated timeline at agreement stage, and update it weekly.",
+      "hints": [
+        "delay",
+        "pending",
+        "देरी",
+        "agreement was delayed",
+        "documents were delayed",
+        "paperwork is pending",
+        "registration delayed",
+        "noc pending",
+        "still waiting for the documents",
+        "कागदपत्रे उशिरा",
+        "करार उशिरा",
+        "दस्तऐवज प्रलंबित"
+      ],
+      "replyPhrase": "the paperwork taking longer than it should",
+      "replyPhraseHinglish": "kaagzi kaam mein hui deri",
+      "replyPhraseMarathi": "कागदपत्रांच्या उशिराबद्दल"
+    },
+    {
+      "key": "pressure_tactics",
+      "label": "Pressure / pushy selling",
+      "severity": "high",
+      "action": "Remove urgency claims from the pitch entirely, and never quote a deadline you cannot show in writing.",
+      "hints": [
+        "pressur",
+        "forced",
+        "pushy",
+        "hurry",
+        "insisted",
+        "जबरदस्ती",
+        "दबाव",
+        "घाई",
+        "created urgency",
+        "token amount pressure"
+      ],
+      "replyPhrase": "feeling pushed to decide quickly",
+      "replyPhraseHinglish": "jaldi faisla lene ka dabaav",
+      "replyPhraseMarathi": "लवकर निर्णय घेण्याच्या दबावाबद्दल"
+    },
+    {
+      "key": "token_refund",
+      "label": "Token / advance not refunded",
+      "severity": "high",
+      "action": "Escalate offline immediately. Put the token refund terms in writing before accepting any advance.",
+      "hints": [
+        "refund",
+        "money not returned",
+        "रिफंड",
+        "token not refunded",
+        "token amount not returned",
+        "advance not returned",
+        "advance not refunded",
+        "deposit not returned",
+        "booking amount not returned",
+        "टोकन परत नाही",
+        "आगाऊ रक्कम परत नाही",
+        "पैसे परत नाही"
+      ],
+      "replyPhrase": "the delay in returning your money",
+      "replyPhraseHinglish": "paise wapas milne mein hui deri",
+      "replyPhraseMarathi": "पैसे परत मिळण्यास झालेल्या उशिराबद्दल"
+    },
+    {
+      "key": "post_deal_support",
+      "label": "Disappeared after the deal",
+      "severity": "medium",
+      "action": "Schedule one follow-up call at 7 days and one at 30 days after possession for every closed deal.",
+      "hints": [
+        "after deal",
+        "stopped responding",
+        "no support",
+        "not helping now",
+        "after payment",
+        "करारानंतर",
+        "नंतर संपर्क",
+        "बाद में"
+      ],
+      "replyPhrase": "the drop in contact after the deal",
+      "replyPhraseHinglish": "deal ke baad sampark kam hone",
+      "replyPhraseMarathi": "व्यवहारानंतर संपर्क कमी झाल्याबद्दल"
+    },
+    {
+      "key": "professionalism",
+      "label": "Professionalism / behaviour",
+      "severity": "medium",
+      "action": "Set a fixed intro script and dress-and-punctuality standard for every site visit.",
+      "hints": [
+        "rude",
+        "unprofessional",
+        "attitude",
+        "late",
+        "misbehav",
+        "उद्धट",
+        "bad behaviour",
+        "bad behavior",
+        "rude behaviour",
+        "वाईट वागणूक",
+        "उद्धट वागणूक"
+      ],
+      "replyPhrase": "the way you were dealt with",
+      "replyPhraseHinglish": "vyavhaar",
+      "replyPhraseMarathi": "वागणुकीबद्दल"
+    },
+    {
+      "key": "unclear_pricing",
+      "label": "Price kept changing",
+      "severity": "medium",
+      "action": "Quote the all-in price in writing at first contact and do not revise it without a written reason.",
+      "hints": [
+        "price changed",
+        "increased",
+        "different price",
+        "दर बदलला",
+        "than quoted",
+        "quoted a different",
+        "different from the quoted",
+        "किंमत बदलली",
+        "किंमत वेगळी"
+      ],
+      "replyPhrase": "the price changing on you",
+      "replyPhraseHinglish": "daam badalte rehne",
+      "replyPhraseMarathi": "किंमत बदलत राहिल्याबद्दल"
+    }
+  ],
+  "praiseTaxonomy": [
+    {
+      "key": "transparency",
+      "label": "Honest and transparent",
+      "hints": [
+        "honest",
+        "transparent",
+        "no hidden",
+        "upfront",
+        "genuine",
+        "trustworthy",
+        "प्रामाणिक",
+        "पारदर्शक",
+        "ईमानदार"
+      ],
+      "replyPhrase": "the process was straight with you",
+      "replyPhraseHinglish": "poori baat saaf saaf rakhi gayi",
+      "replyPhraseMarathi": "सर्व व्यवहार पारदर्शक ठेवला गेला"
+    },
+    {
+      "key": "responsiveness_praise",
+      "label": "Quick, reliable responses",
+      "hints": [
+        "responsive",
+        "quick reply",
+        "always available",
+        "prompt",
+        "picks up",
+        "त्वरित",
+        "लगेच उत्तर",
+        "जल्दी जवाब"
+      ],
+      "replyPhrase": "you could always get hold of us",
+      "replyPhraseHinglish": "aapko hamesha sampark mil gaya",
+      "replyPhraseMarathi": "तुम्हाला नेहमी संपर्क मिळाला"
+    },
+    {
+      "key": "market_knowledge",
+      "label": "Strong local market knowledge",
+      "hints": [
+        "knowledge",
+        "knows the area",
+        "advice",
+        "guidance",
+        "expert",
+        "suggested",
+        "सल्ला"
+      ],
+      "replyPhrase": "the local advice was useful",
+      "replyPhraseHinglish": "ilaake ki salah kaam aayi",
+      "replyPhraseMarathi": "भागाची माहिती उपयोगी पडली"
+    },
+    {
+      "key": "options_shown",
+      "label": "Showed relevant options",
+      "hints": [
+        "showed",
+        "shortlist",
+        "matched",
+        "दाखवले"
+      ],
+      "replyPhrase": "the options shown were the right ones",
+      "replyPhraseHinglish": "sahi options dikhaye gaye",
+      "replyPhraseMarathi": "योग्य पर्याय दाखवले गेले"
+    },
+    {
+      "key": "paperwork_help",
+      "label": "Help with paperwork",
+      "hints": [
+        "loan",
+        "helped with",
+        "मदत"
+      ],
+      "replyPhrase": "the paperwork was made easier",
+      "replyPhraseHinglish": "kaagzi kaam aasaan kar diya gaya",
+      "replyPhraseMarathi": "कागदपत्रांचे काम सोपे केले गेले"
+    },
+    {
+      "key": "no_pressure",
+      "label": "No pressure",
+      "hints": [
+        "no pressure",
+        "patient",
+        "not pushy",
+        "took time",
+        "comfortable",
+        "दबाव नाही",
+        "घाई नाही",
+        "आराम से"
+      ],
+      "replyPhrase": "you were given room to decide",
+      "replyPhraseHinglish": "aapko soch samajh kar faisla lene diya gaya",
+      "replyPhraseMarathi": "तुम्हाला विचार करून निर्णय घेऊ दिला गेला"
+    },
+    {
+      "key": "fair_brokerage",
+      "label": "Fair brokerage",
+      "hints": [
+        "fair",
+        "reasonable brokerage",
+        "worth",
+        "no extra",
+        "वाजवी",
+        "योग्य दलाली",
+        "उचित"
+      ],
+      "replyPhrase": "the brokerage felt fair",
+      "replyPhraseHinglish": "brokerage uchit lagi",
+      "replyPhraseMarathi": "दलाली योग्य वाटली"
+    }
+  ],
+  "voicePreset": {
+    "formality": "FORMAL",
+    "languageMix": "MIXED",
+    "greeting": "Thank you for the feedback.",
+    "signOff": "— {{businessName}}",
+    "preferredWords": [
+      "site visit",
+      "in writing",
+      "documentation",
+      "timeline",
+      "we will look into this"
+    ],
+    "bannedWords": [
+      "guaranteed appreciation",
+      "assured returns",
+      "guaranteed possession",
+      "100% legal clear",
+      "we will delete",
+      "change your rating"
+    ],
+    "emojiPolicy": "NONE",
+    "exampleReplies": [
+      "Thank you for raising this. An enquiry going unanswered is not acceptable on our side. Please call the office and ask for the manager so we can check what happened with your enquiry.",
+      "Thank you for writing this — glad the process was straightforward."
+    ]
+  },
+  "staffAskScript": {
+    "when": "After handover or agreement signing, once the client confirms the process went smoothly.",
+    "line": "If the process worked for you, an honest review helps the next family decide who to trust. The QR on this card takes a minute.",
+    "hinglishLine": "Agar process theek raha ho, toh ek honest review agle family ko trust decide karne mein help karta hai. Is card ka QR ek minute lega.",
+    "marathiLine": "प्रक्रिया सुरळीत झाली असेल, तर प्रामाणिक अभिप्राय पुढच्या कुटुंबाला विश्वास ठरवायला मदत करतो. या कार्डवरचा QR एक मिनिट घेतो.",
+    "doNot": [
+      "Never offer a brokerage discount or any benefit in exchange for a review.",
+      "Never ask only the clients whose deals closed well.",
+      "Never write a review on a client's phone.",
+      "Never ask a client to remove or edit a review.",
+      "Never mention a property address, deal value or client name in a public reply."
+    ]
+  },
+  "profileGapChecks": [
+    {
+      "key": "hours_missing",
+      "label": "Office hours missing or wrong"
+    },
+    {
+      "key": "services_missing",
+      "label": "Services and areas covered not listed"
+    },
+    {
+      "key": "photos_stale",
+      "label": "No recent office or property photos"
+    },
+    {
+      "key": "no_replies",
+      "label": "Reviews left without a reply"
+    },
+    {
+      "key": "rera_absent",
+      "label": "Registration / licence details not shown publicly"
+    },
+    {
+      "key": "phone_wrong",
+      "label": "Phone number wrong or unmonitored"
+    },
+    {
+      "key": "no_directions",
+      "label": "Office location hard to find"
+    }
+  ],
+  "contentTemplates": [
+    {
+      "key": "reply_negative_response",
+      "label": "Reply — unanswered enquiry",
+      "body": "Thank you for raising this. An enquiry going unanswered is not acceptable on our side. Please call the office and ask for the manager so we can check exactly what happened with yours.\n\n— {{businessName}}"
+    },
+    {
+      "key": "reply_positive",
+      "label": "Reply — positive review",
+      "body": "Thank you for writing this. Glad the process was straightforward — do reach out if anything comes up later.\n\n— {{businessName}}"
+    },
+    {
+      "key": "counter_card_headline",
+      "label": "Handover card headline",
+      "body": "How did the process go?"
+    },
+    {
+      "key": "counter_card_subhead",
+      "label": "Handover card subhead",
+      "body": "Scan and share your honest experience. One minute."
+    }
+  ],
+  "kit": {
+    "assetLabel": "handover card",
+    "placement": "Handed over with the agreement folder or at key handover.",
+    "moment": "After handover or agreement signing, once the client confirms it went smoothly.",
+    "headline": "How did the process go?",
+    "subhead": "Scan and share your honest experience. One minute.",
+    "qrCaption": "Scan to share your honest experience",
+    "askMessage": "Thank you for working with {{businessName}}. If the process worked for you, an honest review helps the next family decide who to trust: {{reviewUrl}}",
+    "askMessageHinglish": "{{businessName}} ke saath kaam karne ke liye dhanyawaad. Agar process theek raha ho, toh ek honest review agle family ko trust decide karne me help karta hai: {{reviewUrl}}",
+    "askMessageMarathi": "{{businessName}} सोबत काम केल्याबद्दल धन्यवाद. प्रक्रिया सुरळीत झाली असेल, तर प्रामाणिक अभिप्राय पुढच्या कुटुंबाला मदत करतो: {{reviewUrl}}",
+    "thankYou": "Thank you — do reach out if anything comes up later."
+  }
+}

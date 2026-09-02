@@ -1,0 +1,467 @@
+{
+  "id": "wedding_vendor",
+  "label": "Wedding Vendor",
+  "description": "Wedding photographers, decorators, caterers, planners, makeup artists, banquet and event vendors.",
+  "headlineKpi": {
+    "key": "new_reviews_per_week",
+    "label": "New reviews per week",
+    "help": "Wedding buyers read the most recent season only. Reviews older than one season carry very little weight.",
+    "goodDirection": "up"
+  },
+  "issueTaxonomy": [
+    {
+      "key": "delivery_delay",
+      "label": "Final delivery delayed",
+      "severity": "high",
+      "action": "Put a dated delivery commitment in every contract and send a written status update at the halfway point.",
+      "hints": [
+        "delay",
+        "delayed",
+        "still waiting",
+        "not delivered",
+        "photos not",
+        "video not",
+        "der",
+        "उशीर",
+        "मिळाले नाही",
+        "देरी",
+        "नहीं मिला",
+        "album not delivered",
+        "still waiting for the album",
+        "after months",
+        "several months",
+        "many months"
+      ],
+      "replyPhrase": "how long you have been waiting for the final files",
+      "replyPhraseHinglish": "final files milne mein hui deri",
+      "replyPhraseMarathi": "अंतिम फाइल्स मिळण्यास झालेल्या उशिराबद्दल"
+    },
+    {
+      "key": "quality_vs_sample",
+      "label": "Output did not match the samples shown",
+      "severity": "high",
+      "action": "Show only work your current team actually shot or produced, and name the lead person assigned to the booking in the contract.",
+      "hints": [
+        "not like sample",
+        "different quality",
+        "not as shown",
+        "expected better",
+        "disappointed",
+        "जैसा दिखाया",
+        "not like the portfolio",
+        "different from the portfolio",
+        "poor quality",
+        "quality was not",
+        "bad quality",
+        "गुणवत्ता कमी",
+        "गुणवत्ता चांगली नाही",
+        "अपेक्षेपेक्षा कमी",
+        "दाखवले त्यापेक्षा वेगळे"
+      ],
+      "replyPhrase": "the work not matching what you were shown",
+      "replyPhraseHinglish": "kaam waisa na hone jaisa dikhaya gaya tha",
+      "replyPhraseMarathi": "दाखवल्याप्रमाणे काम न झाल्याबद्दल"
+    },
+    {
+      "key": "team_substitution",
+      "label": "Different team turned up on the day",
+      "severity": "high",
+      "action": "Name the exact lead crew in the contract and get written consent before any substitution.",
+      "hints": [
+        "different photographer",
+        "someone else came",
+        "team changed",
+        "junior",
+        "not the person",
+        "substitute",
+        "टीम बदलली",
+        "कोई और",
+        "दुसरा फोटोग्राफर",
+        "दुसरी टीम"
+      ],
+      "replyPhrase": "a different team turning up on the day",
+      "replyPhraseHinglish": "din par doosri team aane",
+      "replyPhraseMarathi": "दिवशी दुसरी टीम आल्याबद्दल"
+    },
+    {
+      "key": "communication",
+      "label": "Poor communication before the event",
+      "severity": "high",
+      "action": "Schedule one written check-in at booking, one at minus 30 days and one at minus 3 days for every event.",
+      "hints": [
+        "no response",
+        "not reply",
+        "no updates",
+        "hard to reach",
+        "ignored",
+        "phone not",
+        "उत्तर नाही",
+        "जवाब नहीं",
+        "फोन नहीं",
+        "संपर्क होत नाही"
+      ],
+      "replyPhrase": "how hard it was to reach us",
+      "replyPhraseHinglish": "sampark mein hui dikkat",
+      "replyPhraseMarathi": "संपर्कात आलेल्या अडचणीबद्दल"
+    },
+    {
+      "key": "hidden_costs",
+      "label": "Costs added later",
+      "severity": "high",
+      "action": "Itemise every inclusion and exclusion in the quote, and refuse to add a charge that is not in the signed contract.",
+      "hints": [
+        "extra charge",
+        "hidden cost",
+        "asked more",
+        "overcharge",
+        "छुपे शुल्क",
+        "जास्त पैसे",
+        "additional charge",
+        "additional cost",
+        "more than the quotation",
+        "different from the quotation",
+        "extra paise",
+        "अतिरिक्त शुल्क",
+        "अतिरिक्त पैसे"
+      ],
+      "replyPhrase": "costs that came up later",
+      "replyPhraseHinglish": "baad mein aaye extra kharche",
+      "replyPhraseMarathi": "नंतर आलेल्या अतिरिक्त खर्चाबद्दल"
+    },
+    {
+      "key": "punctuality",
+      "label": "Late arrival on the day",
+      "severity": "high",
+      "action": "Require the crew to arrive one hour before call time and confirm arrival to the client by message.",
+      "hints": [
+        "late",
+        "came late",
+        "not on time",
+        "missed the",
+        "delay on the day",
+        "der se",
+        "उशीरा",
+        "वेळेवर नाही",
+        "देर से"
+      ],
+      "replyPhrase": "arriving later than we should have",
+      "replyPhraseHinglish": "der se pahunchne",
+      "replyPhraseMarathi": "उशिरा पोहोचल्याबद्दल"
+    },
+    {
+      "key": "coverage_gaps",
+      "label": "Missed key moments / coverage gaps",
+      "severity": "high",
+      "action": "Agree a written shot or coverage list with the client at minus 7 days and assign one person to tick it off live.",
+      "hints": [
+        "missed",
+        "did not cover",
+        "no photos of",
+        "missing moments",
+        "skipped",
+        "छूट गया",
+        "फोटो राहिले",
+        "क्षण राहिले",
+        "मिस झाले"
+      ],
+      "replyPhrase": "the moments that were missed",
+      "replyPhraseHinglish": "chhoot gaye moments",
+      "replyPhraseMarathi": "निसटलेल्या क्षणांबद्दल"
+    },
+    {
+      "key": "professionalism",
+      "label": "Behaviour on the day",
+      "severity": "medium",
+      "action": "Brief the crew on guest conduct and dress code, and name one on-site lead who owns all client contact.",
+      "hints": [
+        "rude",
+        "unprofessional",
+        "attitude",
+        "argued",
+        "misbehav",
+        "उद्धट",
+        "bad behaviour",
+        "bad behavior",
+        "rude behaviour",
+        "वाईट वागणूक",
+        "उद्धट वागणूक"
+      ],
+      "replyPhrase": "how the team behaved on the day",
+      "replyPhraseHinglish": "din par team ke vyavhaar",
+      "replyPhraseMarathi": "त्या दिवशीच्या टीमच्या वागणुकीबद्दल"
+    },
+    {
+      "key": "revisions_refused",
+      "label": "Edits / revisions refused",
+      "severity": "medium",
+      "action": "State the number of included revisions in the contract and honour them without argument.",
+      "hints": [
+        "refused",
+        "no correction",
+        "no revisions",
+        "revisions refused",
+        "refused to edit",
+        "refused any changes",
+        "would not make changes",
+        "rejected our request",
+        "बदल करायला नकार",
+        "दुरुस्ती नाकारली",
+        "संशोधन नाकारले"
+      ],
+      "replyPhrase": "the changes you asked for not being made",
+      "replyPhraseHinglish": "maange gaye badlaav na hone",
+      "replyPhraseMarathi": "मागितलेले बदल न झाल्याबद्दल"
+    },
+    {
+      "key": "advance_refund",
+      "label": "Advance not refunded on cancellation",
+      "severity": "high",
+      "action": "Escalate offline immediately. Put the cancellation and refund slab in writing before accepting any advance.",
+      "hints": [
+        "refund",
+        "money not returned",
+        "रिफंड",
+        "advance not returned",
+        "advance not refunded",
+        "deposit not returned",
+        "booking amount not returned",
+        "cancelled but no refund",
+        "आगाऊ रक्कम परत नाही",
+        "पैसे परत नाही",
+        "रद्द केल्यावर परत नाही"
+      ],
+      "replyPhrase": "the delay in returning your advance",
+      "replyPhraseHinglish": "advance wapas milne mein hui deri",
+      "replyPhraseMarathi": "आगाऊ रक्कम परत मिळण्यास झालेल्या उशिराबद्दल"
+    }
+  ],
+  "praiseTaxonomy": [
+    {
+      "key": "output_quality",
+      "label": "Excellent final output",
+      "hints": [
+        "beautiful",
+        "amazing photos",
+        "stunning",
+        "loved the album",
+        "decor was",
+        "excellent work",
+        "सुंदर",
+        "छान",
+        "उत्कृष्ट",
+        "शानदार",
+        "work was excellent",
+        "work was great",
+        "great work",
+        "photos were great",
+        "photos were good",
+        "photos were amazing",
+        "photos are beautiful",
+        "album was beautiful"
+      ],
+      "replyPhrase": "you are happy with how the work turned out",
+      "replyPhraseHinglish": "kaam aapko pasand aaya",
+      "replyPhraseMarathi": "काम तुम्हाला आवडले"
+    },
+    {
+      "key": "team_conduct",
+      "label": "Professional, calm team",
+      "hints": [
+        "professional",
+        "calm",
+        "handled",
+        "smooth",
+        "polite",
+        "well managed",
+        "coordinated",
+        "व्यवस्थित",
+        "शांत",
+        "नियोजन"
+      ],
+      "replyPhrase": "the team handled the day well",
+      "replyPhraseHinglish": "team ne din acche se sambhala",
+      "replyPhraseMarathi": "टीमने दिवस चांगला सांभाळला"
+    },
+    {
+      "key": "communication_praise",
+      "label": "Clear communication",
+      "hints": [
+        "updates",
+        "responsive",
+        "always reachable",
+        "explained",
+        "जवाब"
+      ],
+      "replyPhrase": "you were kept in the loop",
+      "replyPhraseHinglish": "aapko har update milta raha",
+      "replyPhraseMarathi": "तुम्हाला सर्व माहिती मिळत राहिली"
+    },
+    {
+      "key": "punctuality_praise",
+      "label": "On time",
+      "hints": [
+        "on time",
+        "punctual",
+        "arrived early",
+        "no delay",
+        "वेळेवर",
+        "समय पर",
+        "आधीच"
+      ],
+      "replyPhrase": "we were there on time",
+      "replyPhraseHinglish": "hum time par pahunche",
+      "replyPhraseMarathi": "आम्ही वेळेवर पोहोचलो"
+    },
+    {
+      "key": "flexibility",
+      "label": "Flexible and accommodating",
+      "hints": [
+        "flexible",
+        "accommodating",
+        "adjusted",
+        "last minute",
+        "helped",
+        "समायोजन",
+        "मदत",
+        "एडजस्ट"
+      ],
+      "replyPhrase": "we could work around you",
+      "replyPhraseHinglish": "hum aapke hisaab se adjust kar paaye",
+      "replyPhraseMarathi": "आम्ही तुमच्यानुसार जुळवून घेऊ शकलो"
+    },
+    {
+      "key": "value_pricing",
+      "label": "Fair pricing for the work",
+      "hints": [
+        "reasonable",
+        "worth every",
+        "value",
+        "affordable",
+        "no hidden",
+        "वाजवी",
+        "किफायती",
+        "योग्य दर"
+      ],
+      "replyPhrase": "it felt worth what you paid",
+      "replyPhraseHinglish": "kharche ke hisaab se theek laga",
+      "replyPhraseMarathi": "खर्चाच्या मानाने योग्य वाटले"
+    },
+    {
+      "key": "delivery_speed",
+      "label": "Delivered on time",
+      "hints": [
+        "delivered on time",
+        "quick delivery",
+        "got the album",
+        "as promised",
+        "वेळेत मिळाले",
+        "समय पर मिला"
+      ],
+      "replyPhrase": "everything reached you on time",
+      "replyPhraseHinglish": "sab kuch time par pahunch gaya",
+      "replyPhraseMarathi": "सर्व वेळेवर पोहोचले"
+    }
+  ],
+  "voicePreset": {
+    "formality": "FRIENDLY",
+    "languageMix": "MIXED",
+    "greeting": "Thank you for taking the time to write this.",
+    "signOff": "— {{businessName}}",
+    "preferredWords": [
+      "team",
+      "timeline",
+      "in writing",
+      "delivery",
+      "we will make this right"
+    ],
+    "bannedWords": [
+      "guaranteed",
+      "unlimited",
+      "we will delete",
+      "change your rating",
+      "no extra cost ever"
+    ],
+    "emojiPolicy": "MINIMAL",
+    "exampleReplies": [
+      "Thank you for telling us. A delivery running past the date we committed is on us. Please message the office directly and we will give you a firm date in writing.",
+      "Thank you — it was a privilege to be part of the day."
+    ]
+  },
+  "staffAskScript": {
+    "when": "At final delivery, once the client has seen and approved the finished work.",
+    "line": "If we did right by you, an honest review helps the next couple choose with confidence. The QR on the delivery card takes a minute.",
+    "hinglishLine": "Agar humne aapke liye theek kaam kiya ho, toh ek honest review agle couple ko confidence dene mein help karta hai. Delivery card ka QR ek minute lega.",
+    "marathiLine": "आमचं काम तुम्हाला आवडलं असेल, तर प्रामाणिक अभिप्राय पुढच्या जोडप्याला आत्मविश्वासाने निवडायला मदत करतो. डिलिव्हरी कार्डवरचा QR एक मिनिट घेतो.",
+    "doNot": [
+      "Never offer a discount, free prints or extra edits in exchange for a review.",
+      "Never ask only the clients whose events went perfectly.",
+      "Never write a review on a client's phone.",
+      "Never ask a client to remove or edit a review.",
+      "Never post or mention client photos, names or venue details in a public reply."
+    ]
+  },
+  "profileGapChecks": [
+    {
+      "key": "hours_missing",
+      "label": "Contact hours missing or wrong"
+    },
+    {
+      "key": "services_missing",
+      "label": "Packages / services not listed"
+    },
+    {
+      "key": "photos_stale",
+      "label": "Portfolio not updated this season"
+    },
+    {
+      "key": "no_replies",
+      "label": "Reviews left without a reply"
+    },
+    {
+      "key": "pricing_absent",
+      "label": "No price range indicated anywhere public"
+    },
+    {
+      "key": "phone_wrong",
+      "label": "Phone number wrong or unmonitored"
+    },
+    {
+      "key": "service_area_missing",
+      "label": "Cities / travel coverage not stated"
+    }
+  ],
+  "contentTemplates": [
+    {
+      "key": "reply_negative_delay",
+      "label": "Reply — delivery delay",
+      "body": "Thank you for telling us. A delivery running past the date we committed is on us. Please message the office directly and we will give you a firm date in writing.\n\n— {{businessName}}"
+    },
+    {
+      "key": "reply_positive",
+      "label": "Reply — positive review",
+      "body": "Thank you — it was a privilege to be part of your day. Wishing you both the very best.\n\n— {{businessName}}"
+    },
+    {
+      "key": "counter_card_headline",
+      "label": "Delivery card headline",
+      "body": "Did we do right by you?"
+    },
+    {
+      "key": "counter_card_subhead",
+      "label": "Delivery card subhead",
+      "body": "Scan and share your honest experience. One minute."
+    }
+  ],
+  "kit": {
+    "assetLabel": "delivery card",
+    "placement": "Included with the final delivery — album box, USB pouch or handover folder.",
+    "moment": "At final delivery, once the client has seen and approved the finished work.",
+    "headline": "Did we do right by you?",
+    "subhead": "Scan and share your honest experience. One minute.",
+    "qrCaption": "Scan to share your honest experience",
+    "askMessage": "Thank you for trusting {{businessName}} with your day. If we did right by you, an honest review helps the next couple choose with confidence: {{reviewUrl}}",
+    "askMessageHinglish": "{{businessName}} par bharosa karne ke liye dhanyawaad. Agar humne aapke liye theek kaam kiya ho, toh ek honest review agle couple ko confidence deta hai: {{reviewUrl}}",
+    "askMessageMarathi": "{{businessName}} वर विश्वास ठेवल्याबद्दल धन्यवाद. आमचं काम आवडलं असेल, तर प्रामाणिक अभिप्राय पुढच्या जोडप्याला मदत करतो: {{reviewUrl}}",
+    "thankYou": "Thank you — it was a privilege to be part of your day."
+  }
+}

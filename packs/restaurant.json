@@ -1,0 +1,561 @@
+{
+  "id": "restaurant",
+  "label": "Restaurant / Cafe",
+  "description": "Dine-in restaurants, cafes, bakeries, cloud kitchens with a physical counter.",
+  "headlineKpi": {
+    "key": "new_reviews_per_week",
+    "label": "New reviews per week",
+    "help": "Restaurants live on recency. A listing that stopped collecting reviews reads as closed.",
+    "goodDirection": "up"
+  },
+  "issueTaxonomy": [
+    {
+      "key": "food_quality",
+      "label": "Food quality / taste",
+      "severity": "high",
+      "action": "Re-standardise the two dishes named most often: fix the recipe card, weigh portions, and taste-check at the pass for one week.",
+      "hints": [
+        "tasteless",
+        "bland",
+        "stale",
+        "cold food",
+        "oily",
+        "burnt",
+        "raw",
+        "bekar",
+        "बेचव",
+        "थंड",
+        "बासी",
+        "no taste",
+        "poor quality",
+        "bad quality",
+        "quality was bad",
+        "quality has gone",
+        "khana bekar",
+        "khana thanda",
+        "swad nahi",
+        "khane mein",
+        "food was cold",
+        "food came cold",
+        "food arrived cold",
+        "food was stale",
+        "food was bland",
+        "food was oily",
+        "चव नाही",
+        "चव खराब",
+        "स्वाद नहीं",
+        "खाना खराब",
+        "खाना थंड"
+      ],
+      "replyPhrase": "the food not being up to standard",
+      "replyPhraseHinglish": "khane ki quality",
+      "replyPhraseMarathi": "जेवणाच्या दर्जाबद्दल"
+    },
+    {
+      "key": "service_speed",
+      "label": "Slow service",
+      "severity": "high",
+      "action": "Set a target ticket time per course and post it in the kitchen; assign one person to track tables waiting over that time.",
+      "hints": [
+        "slow",
+        "waiting",
+        "waited",
+        "took forever",
+        "late",
+        "delay",
+        "45 minutes",
+        "one hour",
+        "der",
+        "bahut time",
+        "उशीर",
+        "देरी",
+        "इंतजार",
+        "वेळ जास्त",
+        "वेळ लागला",
+        "खूप वेळ"
+      ],
+      "replyPhrase": "how long you waited to be served",
+      "replyPhraseHinglish": "service mein lage waqt",
+      "replyPhraseMarathi": "सेवेला लागलेल्या वेळेबद्दल"
+    },
+    {
+      "key": "order_accuracy",
+      "label": "Wrong or missing items",
+      "severity": "high",
+      "action": "Add a repeat-back step: the server reads the full order back before sending it, and the pass checks the ticket before it leaves.",
+      "hints": [
+        "wrong order",
+        "missing",
+        "forgot",
+        "not what i ordered",
+        "different dish",
+        "order galat",
+        "galat",
+        "चुकीचे",
+        "चूक",
+        "गलत ऑर्डर",
+        "नहीं आया"
+      ],
+      "replyPhrase": "getting the wrong order",
+      "replyPhraseHinglish": "galat order aane",
+      "replyPhraseMarathi": "चुकीची ऑर्डर आल्याबद्दल"
+    },
+    {
+      "key": "staff_behaviour",
+      "label": "Staff behaviour / attentiveness",
+      "severity": "high",
+      "action": "Assign every table an owner for the whole visit, and brief staff on how to handle a complaint at the table.",
+      "hints": [
+        "rude",
+        "attitude",
+        "ignored",
+        "no attention",
+        "unprofessional",
+        "misbehav",
+        "badtameez",
+        "उद्धट",
+        "waiter was rude",
+        "rude waiter",
+        "waiter forgot",
+        "waiter did not",
+        "waiter didn't",
+        "waiter ignored",
+        "server was rude",
+        "no one came to the table",
+        "वाईट वागणूक",
+        "उद्धट वागणूक",
+        "वेटर उद्धट"
+      ],
+      "replyPhrase": "the way the staff dealt with you",
+      "replyPhraseHinglish": "staff ke vyavhaar",
+      "replyPhraseMarathi": "स्टाफच्या वागणुकीबद्दल"
+    },
+    {
+      "key": "cleanliness",
+      "label": "Cleanliness / hygiene",
+      "severity": "high",
+      "action": "Add a visible washroom and table-turn cleaning checklist signed off every hour.",
+      "hints": [
+        "dirty",
+        "unclean",
+        "smell",
+        "flies",
+        "insect",
+        "cockroach",
+        "ganda",
+        "गंदा",
+        "घाण",
+        "माशी",
+        "poor hygiene",
+        "no hygiene",
+        "hygiene issue",
+        "dirty washroom",
+        "washroom was dirty",
+        "toilet was dirty",
+        "safai nahi",
+        "a fly in",
+        "सफाई नाही",
+        "स्वच्छता नाही"
+      ],
+      "replyPhrase": "the cleanliness of the place",
+      "replyPhraseHinglish": "safai ki kami",
+      "replyPhraseMarathi": "स्वच्छतेच्या कमतरतेबद्दल"
+    },
+    {
+      "key": "pricing_value",
+      "label": "Pricing / value for money",
+      "severity": "medium",
+      "action": "Publish clear portion sizes and prices on the menu, and remove any charge that is not printed.",
+      "hints": [
+        "expensive",
+        "costly",
+        "overpriced",
+        "not worth",
+        "mehnga",
+        "महाग",
+        "महंगा",
+        "not value for money",
+        "no value for money",
+        "extra charge",
+        "charged extra",
+        "service charge added",
+        "overcharged",
+        "paise waste",
+        "किंमत जास्त",
+        "पैसे वाया"
+      ],
+      "replyPhrase": "feeling the bill was not worth it",
+      "replyPhraseHinglish": "bill paise vasool na lagne",
+      "replyPhraseMarathi": "बिल योग्य न वाटल्याबद्दल"
+    },
+    {
+      "key": "wait_for_table",
+      "label": "Long wait for a table",
+      "severity": "medium",
+      "action": "Introduce a written waitlist with a quoted time, and honour the quote or comp nothing but apologise clearly.",
+      "hints": [
+        "no table",
+        "waiting for table",
+        "queue",
+        "crowded",
+        "table nahi",
+        "गर्दी",
+        "रांग",
+        "जगह नहीं",
+        "table not available",
+        "had to wait for a table",
+        "no reservation",
+        "reservation was not",
+        "despite the reservation",
+        "टेबल मिळाले नाही",
+        "टेबलसाठी वाट"
+      ],
+      "replyPhrase": "the wait for a table",
+      "replyPhraseHinglish": "table ke liye karna pade intezaar",
+      "replyPhraseMarathi": "टेबलसाठी झालेल्या प्रतीक्षेबद्दल"
+    },
+    {
+      "key": "ambience_noise",
+      "label": "Ambience / noise / seating",
+      "severity": "low",
+      "action": "Fix the specific physical complaint named most often (AC, seating, music volume) before adding anything new.",
+      "hints": [
+        "noisy",
+        "noise",
+        "loud",
+        "ac not",
+        "cramped",
+        "uncomfortable",
+        "गर्मी",
+        "गोंगाट",
+        "loud music",
+        "music was too loud",
+        "cramped seating",
+        "seating was cramped",
+        "uncomfortable seating",
+        "too hot inside",
+        "no ac",
+        "खूप आवाज",
+        "आवाज जास्त",
+        "जागा कमी"
+      ],
+      "replyPhrase": "how uncomfortable it was to sit and eat",
+      "replyPhraseHinglish": "baithne mein hui asuvidha",
+      "replyPhraseMarathi": "बसण्यात झालेल्या गैरसोयीबद्दल"
+    },
+    {
+      "key": "delivery_packaging",
+      "label": "Delivery / packaging problems",
+      "severity": "medium",
+      "action": "Switch to leak-proof packaging for the items named, and seal every bag with a tamper sticker.",
+      "hints": [
+        "spilled",
+        "leaked",
+        "delivery was late",
+        "late delivery",
+        "delivery delayed",
+        "poor packaging",
+        "bad packaging",
+        "packaging was",
+        "packing was bad",
+        "parcel was",
+        "पॅकिंग खराब",
+        "डिलिव्हरी उशीरा",
+        "पार्सल गळत"
+      ],
+      "replyPhrase": "the state your order arrived in",
+      "replyPhraseHinglish": "order ki packing aur haalat",
+      "replyPhraseMarathi": "ऑर्डरच्या पॅकिंग आणि अवस्थेबद्दल"
+    },
+    {
+      "key": "billing_issue",
+      "label": "Billing errors / hidden charges",
+      "severity": "medium",
+      "action": "Print every charge on the bill and train staff to explain the service charge before it appears.",
+      "hints": [
+        "overcharge",
+        "extra charge",
+        "service charge",
+        "wrong bill",
+        "जास्त पैसे",
+        "गलत बिल",
+        "bill was wrong",
+        "billing error",
+        "added to the bill",
+        "extra in the bill",
+        "billing was confusing",
+        "bill was confusing",
+        "confusing bill",
+        "unclear bill",
+        "bill was unclear",
+        "billing was wrong",
+        "billing is wrong",
+        "wrong billing",
+        "billing was incorrect",
+        "billing mistake",
+        "बिल चुकीचे",
+        "जास्त बिल"
+      ],
+      "replyPhrase": "the problem with your bill",
+      "replyPhraseHinglish": "bill mein hui gadbad",
+      "replyPhraseMarathi": "बिलातील चुकीबद्दल"
+    }
+  ],
+  "praiseTaxonomy": [
+    {
+      "key": "food_taste",
+      "label": "Food taste and quality",
+      "hints": [
+        "delicious",
+        "tasty",
+        "yummy",
+        "authentic",
+        "fresh",
+        "flavour",
+        "flavor",
+        "best food",
+        "mast",
+        "swad",
+        "चवदार",
+        "चव",
+        "स्वादिष्ट",
+        "मस्त",
+        "food was excellent",
+        "food was great",
+        "food was good",
+        "good food",
+        "great food",
+        "excellent food",
+        "loved the food",
+        "biryani was outstanding",
+        "khana accha",
+        "accha khana",
+        "khana badhiya",
+        "khana mast",
+        "food was tasty",
+        "food was delicious"
+      ],
+      "replyPhrase": "the food hit the spot",
+      "replyPhraseHinglish": "khana pasand aaya",
+      "replyPhraseMarathi": "जेवण आवडले"
+    },
+    {
+      "key": "service_quality",
+      "label": "Attentive service",
+      "hints": [
+        "attentive",
+        "quick service",
+        "prompt",
+        "helpful staff",
+        "courteous",
+        "अच्छी सेवा",
+        "service was good",
+        "service was great",
+        "service was excellent",
+        "good service",
+        "great service",
+        "excellent service"
+      ],
+      "replyPhrase": "you were looked after properly",
+      "replyPhraseHinglish": "aapka acche se dhyan rakha gaya",
+      "replyPhraseMarathi": "तुमची चांगली काळजी घेतली गेली"
+    },
+    {
+      "key": "ambience",
+      "label": "Ambience and decor",
+      "hints": [
+        "vibe",
+        "cosy",
+        "cozy",
+        "beautiful",
+        "peaceful",
+        "lovely ambience",
+        "great ambience",
+        "nice ambience",
+        "good ambience",
+        "ambience was great",
+        "ambience was lovely",
+        "lovely ambiance",
+        "great ambiance",
+        "nice ambiance"
+      ],
+      "replyPhrase": "you enjoyed the atmosphere",
+      "replyPhraseHinglish": "mahaul aapko pasand aaya",
+      "replyPhraseMarathi": "वातावरण तुम्हाला आवडले"
+    },
+    {
+      "key": "value_for_money",
+      "label": "Good value for money",
+      "hints": [
+        "value for money",
+        "affordable",
+        "reasonable",
+        "worth",
+        "generous",
+        "वाजवी",
+        "किफायती",
+        "पैसा वसूल"
+      ],
+      "replyPhrase": "it felt worth the money",
+      "replyPhraseHinglish": "paise vasool lage",
+      "replyPhraseMarathi": "पैसे योग्य खर्च झाले असे वाटले"
+    },
+    {
+      "key": "cleanliness_praise",
+      "label": "Clean and well-kept",
+      "hints": [
+        "clean",
+        "hygienic",
+        "neat",
+        "well maintained",
+        "स्वच्छ",
+        "साफ",
+        "नीटनेटके"
+      ],
+      "replyPhrase": "the place felt clean",
+      "replyPhraseHinglish": "jagah saaf suthri lagi",
+      "replyPhraseMarathi": "जागा स्वच्छ वाटली"
+    },
+    {
+      "key": "staff_warmth",
+      "label": "Warm, welcoming staff",
+      "hints": [
+        "friendly",
+        "welcoming",
+        "polite",
+        "warm",
+        "hospitality",
+        "smiling",
+        "आपुलकी",
+        "नम्र",
+        "अच्छा व्यवहार",
+        "staff was good",
+        "staff were good",
+        "staff are good",
+        "staff was great",
+        "staff were great",
+        "staff are great",
+        "staff was lovely",
+        "staff were lovely",
+        "staff are lovely",
+        "staff is lovely",
+        "staff is good",
+        "staff is great"
+      ],
+      "replyPhrase": "the team made you feel welcome",
+      "replyPhraseHinglish": "team ne aapka swaagat acche se kiya",
+      "replyPhraseMarathi": "टीमने तुमचे चांगले स्वागत केले"
+    },
+    {
+      "key": "menu_variety",
+      "label": "Menu variety",
+      "hints": [
+        "variety"
+      ],
+      "replyPhrase": "there was plenty to choose from",
+      "replyPhraseHinglish": "choose karne ko kaafi kuch tha",
+      "replyPhraseMarathi": "निवडण्यासाठी भरपूर पर्याय होते"
+    }
+  ],
+  "voicePreset": {
+    "formality": "FRIENDLY",
+    "languageMix": "HINGLISH",
+    "greeting": "Thanks for eating with us and for writing in.",
+    "signOff": "— {{businessName}}",
+    "preferredWords": [
+      "kitchen",
+      "team",
+      "next visit",
+      "we will fix this",
+      "thank you for telling us"
+    ],
+    "bannedWords": [
+      "free meal",
+      "complimentary if you",
+      "we will delete",
+      "update your rating",
+      "change your review"
+    ],
+    "emojiPolicy": "MINIMAL",
+    "exampleReplies": [
+      "Thanks for telling us — a cold main course is not what we want to send out. Please share the day and table with the manager on our counter number so we can trace it in the kitchen.",
+      "Really glad the biryani hit the spot. Passing this to the kitchen team."
+    ]
+  },
+  "staffAskScript": {
+    "when": "When clearing the table after the guest has finished and said they enjoyed the meal.",
+    "line": "Glad you enjoyed it. If you have a minute, there is a QR on the table card — your honest feedback really helps us.",
+    "hinglishLine": "Khushi hui aapko pasand aaya. Ek minute ho toh table card par QR hai — aapka honest feedback bahut help karta hai.",
+    "marathiLine": "आवडलं हे ऐकून छान वाटलं. एक मिनिट असेल तर टेबल कार्डवर QR आहे — तुमचा प्रामाणिक अभिप्राय खूप मदत करतो.",
+    "doNot": [
+      "Never offer a discount, free dish or dessert in exchange for a review.",
+      "Never show the QR only to guests who looked happy.",
+      "Never write a review on a guest's phone.",
+      "Never ask a guest to take down a bad review."
+    ]
+  },
+  "profileGapChecks": [
+    {
+      "key": "hours_missing",
+      "label": "Opening hours missing or wrong"
+    },
+    {
+      "key": "menu_missing",
+      "label": "Menu not uploaded or outdated"
+    },
+    {
+      "key": "photos_stale",
+      "label": "No recent food or interior photos"
+    },
+    {
+      "key": "no_replies",
+      "label": "Reviews left without a reply"
+    },
+    {
+      "key": "attributes_missing",
+      "label": "Dine-in / takeaway / delivery attributes not set"
+    },
+    {
+      "key": "phone_wrong",
+      "label": "Phone number wrong or unmonitored"
+    },
+    {
+      "key": "no_directions",
+      "label": "Parking or entrance not described"
+    }
+  ],
+  "contentTemplates": [
+    {
+      "key": "reply_negative_food",
+      "label": "Reply — food complaint",
+      "body": "Thank you for telling us, and sorry this one missed. That is not the standard we want on the pass. Please call the restaurant and mention the day and dish so we can trace it in the kitchen.\n\n— {{businessName}}"
+    },
+    {
+      "key": "reply_positive",
+      "label": "Reply — positive review",
+      "body": "Thank you — this made the kitchen's day. See you on your next visit.\n\n— {{businessName}}"
+    },
+    {
+      "key": "counter_card_headline",
+      "label": "Table card headline",
+      "body": "How was the food today?"
+    },
+    {
+      "key": "counter_card_subhead",
+      "label": "Table card subhead",
+      "body": "Scan and tell us honestly — good or bad."
+    }
+  ],
+  "kit": {
+    "assetLabel": "table card",
+    "placement": "On each table, and one at the billing counter.",
+    "moment": "When clearing the table, after the guest has finished the meal.",
+    "headline": "How was the food today?",
+    "subhead": "Scan and tell us honestly — good or bad.",
+    "qrCaption": "Scan to tell us how it was",
+    "askMessage": "Thanks for eating at {{businessName}}. If you have a minute, tell us honestly how it was — it genuinely helps the kitchen: {{reviewUrl}}",
+    "askMessageHinglish": "{{businessName}} me khaane ke liye shukriya. Ek minute ho toh honest feedback de dijiye — kitchen ko bahut help karta hai: {{reviewUrl}}",
+    "askMessageMarathi": "{{businessName}} मध्ये जेवल्याबद्दल धन्यवाद. एक मिनिट असेल तर प्रामाणिक अभिप्राय द्या — स्वयंपाकघराला खूप मदत होते: {{reviewUrl}}",
+    "thankYou": "Thank you — this goes straight to the kitchen team."
+  }
+}

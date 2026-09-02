@@ -1,0 +1,486 @@
+{
+  "id": "coaching",
+  "label": "Coaching / Tuition Centre",
+  "description": "Tuition classes, test-prep institutes, skill academies, language and music schools.",
+  "headlineKpi": {
+    "key": "new_reviews_per_week",
+    "label": "New reviews per week",
+    "help": "Parents shortlist on recent, specific reviews. Admission season swings hard on the last 60 days of proof.",
+    "goodDirection": "up"
+  },
+  "issueTaxonomy": [
+    {
+      "key": "teaching_quality",
+      "label": "Teaching quality / doubt clearing",
+      "severity": "high",
+      "action": "Add a fixed weekly doubt-clearing slot per batch and record attendance of the faculty member who takes it.",
+      "hints": [
+        "not explained",
+        "poor teaching",
+        "doesn't teach",
+        "समजत नाही",
+        "पढ़ाया नहीं",
+        "teaching is not",
+        "teacher does not",
+        "teacher did not",
+        "faculty is not",
+        "doubts not cleared",
+        "doubt not cleared",
+        "concepts not clear",
+        "concept not clear",
+        "nahi shikav",
+        "नीट शिकवत नाही",
+        "शिकवत नाही",
+        "शिक्षक नीट नाही",
+        "पढ़ाई अच्छी नहीं"
+      ],
+      "replyPhrase": "the teaching not being what you expected",
+      "replyPhraseHinglish": "padhai ke standard",
+      "replyPhraseMarathi": "शिकवण्याच्या दर्जाबद्दल"
+    },
+    {
+      "key": "faculty_turnover",
+      "label": "Teachers changed mid-course",
+      "severity": "high",
+      "action": "Commit the named faculty per batch in writing at admission, and inform parents in advance of any change.",
+      "hints": [
+        "teacher changed",
+        "new teacher",
+        "faculty left",
+        "different teacher",
+        "replaced",
+        "शिक्षक बदलले",
+        "टीचर बदल",
+        "फैकल्टी बदल"
+      ],
+      "replyPhrase": "teachers changing mid-course",
+      "replyPhraseHinglish": "beech course mein teacher badalne",
+      "replyPhraseMarathi": "कोर्समध्ये शिक्षक बदलल्याबद्दल"
+    },
+    {
+      "key": "batch_size",
+      "label": "Batch too large / no attention",
+      "severity": "high",
+      "action": "Cap the batch size you advertise and stop admitting past that cap, even in season.",
+      "hints": [
+        "too many students",
+        "crowded",
+        "batch size",
+        "no individual attention",
+        "60 students",
+        "गर्दी",
+        "मुलं जास्त",
+        "ध्यान नहीं",
+        "बॅच मोठा",
+        "बॅचमध्ये गर्दी"
+      ],
+      "replyPhrase": "the batch being too large for proper attention",
+      "replyPhraseHinglish": "batch bade hone se dhyan na milne",
+      "replyPhraseMarathi": "बॅच मोठा असल्याने लक्ष न दिल्याबद्दल"
+    },
+    {
+      "key": "fee_transparency",
+      "label": "Fee / refund disputes",
+      "severity": "high",
+      "action": "Give every parent a written fee and refund schedule at admission, and stop collecting anything not on that sheet.",
+      "hints": [
+        "refund",
+        "money back",
+        "extra charge",
+        "material charge",
+        "hidden",
+        "रिफंड",
+        "fees increased",
+        "fee was increased",
+        "extra fees",
+        "no refund of fees",
+        "fees wapas nahi",
+        "फी जास्त",
+        "फी वाढवली",
+        "अतिरिक्त शुल्क",
+        "पैसे परत नाही"
+      ],
+      "replyPhrase": "the confusion over fees",
+      "replyPhraseHinglish": "fees ko lekar hue confusion",
+      "replyPhraseMarathi": "फीबाबत झालेल्या गोंधळाबद्दल"
+    },
+    {
+      "key": "communication_parents",
+      "label": "Poor communication with parents",
+      "severity": "medium",
+      "action": "Send a fixed monthly progress note per student and hold one parent meeting per term.",
+      "hints": [
+        "no update",
+        "not informed",
+        "no response",
+        "never told",
+        "माहिती नाही",
+        "जानकारी नहीं",
+        "poor communication",
+        "no communication",
+        "never informed the parents",
+        "no parent meeting",
+        "parents were not informed",
+        "संपर्क नाही",
+        "पालकांना कळवले नाही"
+      ],
+      "replyPhrase": "not being kept informed",
+      "replyPhraseHinglish": "jaankari time par na milne",
+      "replyPhraseMarathi": "वेळेवर माहिती न मिळाल्याबद्दल"
+    },
+    {
+      "key": "schedule_reliability",
+      "label": "Classes cancelled or rescheduled",
+      "severity": "medium",
+      "action": "Publish the term timetable up front and give 24-hour notice for any change, with a make-up slot.",
+      "hints": [
+        "cancelled",
+        "canceled",
+        "class off",
+        "timing changed",
+        "irregular",
+        "postponed",
+        "रद्द",
+        "समय बदल",
+        "क्लास रद्द",
+        "वेळापत्रक बदलले"
+      ],
+      "replyPhrase": "classes being cancelled or moved",
+      "replyPhraseHinglish": "class cancel hone",
+      "replyPhraseMarathi": "क्लास रद्द झाल्याबद्दल"
+    },
+    {
+      "key": "results_claims",
+      "label": "Results not as promised",
+      "severity": "high",
+      "action": "Remove every result claim you cannot evidence, and never promise a rank, score or selection.",
+      "hints": [
+        "promised",
+        "not as promised",
+        "false claim",
+        "misleading",
+        "vaada",
+        "वादा",
+        "दावा",
+        "no results",
+        "results did not",
+        "marks did not improve",
+        "no selection",
+        "rank not",
+        "no rank",
+        "निकाल चांगला नाही",
+        "निकाल लागला नाही"
+      ],
+      "replyPhrase": "the results not matching what was promised",
+      "replyPhraseHinglish": "result waise na aane jaise kahe gaye the",
+      "replyPhraseMarathi": "सांगितल्याप्रमाणे निकाल न आल्याबद्दल"
+    },
+    {
+      "key": "facility_condition",
+      "label": "Classroom condition / facilities",
+      "severity": "medium",
+      "action": "Fix the specific physical complaint named most often (fans, seating, washroom, light) before adding new batches.",
+      "hints": [
+        "dirty",
+        "गंदा",
+        "classroom was dirty",
+        "small classroom",
+        "crowded classroom",
+        "fan not working",
+        "no fan",
+        "ac not working",
+        "no ac",
+        "too hot",
+        "seating is uncomfortable",
+        "broken bench",
+        "dirty washroom",
+        "washroom was dirty",
+        "toilet was dirty",
+        "वर्ग लहान",
+        "बाक तुटलेले",
+        "पंखा बंद",
+        "स्वच्छता नाही"
+      ],
+      "replyPhrase": "the state of the classroom",
+      "replyPhraseHinglish": "classroom ki haalat",
+      "replyPhraseMarathi": "वर्गाच्या अवस्थेबद्दल"
+    },
+    {
+      "key": "study_material",
+      "label": "Study material quality / delays",
+      "severity": "medium",
+      "action": "Hand over the full material set on day one of the batch, or state the delivery date in writing.",
+      "hints": [
+        "not provided",
+        "late material",
+        "no material",
+        "material not provided",
+        "notes were not",
+        "poor notes",
+        "books not provided",
+        "bad photocopy",
+        "photocopy quality",
+        "साहित्य मिळाले नाही",
+        "नोट्स मिळाल्या नाहीत",
+        "पुस्तक मिळाले नाही",
+        "मटेरियल उशीरा"
+      ],
+      "replyPhrase": "the study material",
+      "replyPhraseHinglish": "study material",
+      "replyPhraseMarathi": "अभ्यास साहित्याबद्दल"
+    },
+    {
+      "key": "safety_discipline",
+      "label": "Safety / discipline concerns",
+      "severity": "high",
+      "action": "Escalate offline immediately: handle privately with the parent before any public reply.",
+      "hints": [
+        "unsafe",
+        "bullying",
+        "shouted",
+        "beaten",
+        "misbehav",
+        "harass",
+        "मारले",
+        "गैरवर्तन",
+        "असुरक्षित",
+        "not safe",
+        "safety issue",
+        "no discipline",
+        "poor discipline",
+        "सुरक्षा नाही",
+        "सुरक्षित नाही"
+      ],
+      "replyPhrase": "concerns about how things are run",
+      "replyPhraseHinglish": "vyavastha ko lekar hui chinta",
+      "replyPhraseMarathi": "व्यवस्थेबाबतच्या काळजीबद्दल"
+    }
+  ],
+  "praiseTaxonomy": [
+    {
+      "key": "teaching_quality_praise",
+      "label": "Strong teaching",
+      "hints": [
+        "explains well",
+        "concept",
+        "clarity",
+        "excellent faculty",
+        "good teacher",
+        "छान शिकवतात",
+        "अच्छा पढ़ाते",
+        "समजते",
+        "teaching was good",
+        "teaching is good",
+        "teaching was excellent",
+        "great teacher",
+        "excellent teacher",
+        "best teacher",
+        "teachers are good",
+        "faculty is good",
+        "faculty was good"
+      ],
+      "replyPhrase": "the teaching is working for you",
+      "replyPhraseHinglish": "padhai aapke liye kaam kar rahi hai",
+      "replyPhraseMarathi": "शिकवणे तुमच्यासाठी उपयोगी ठरत आहे"
+    },
+    {
+      "key": "individual_attention",
+      "label": "Individual attention",
+      "hints": [
+        "individual attention",
+        "personal",
+        "doubt",
+        "one on one",
+        "small batch",
+        "वैयक्तिक लक्ष",
+        "ध्यान देते"
+      ],
+      "replyPhrase": "the attention has been personal",
+      "replyPhraseHinglish": "har student par alag dhyan diya gaya",
+      "replyPhraseMarathi": "प्रत्येकाकडे स्वतंत्र लक्ष दिले गेले"
+    },
+    {
+      "key": "results_praise",
+      "label": "Improvement in results",
+      "hints": [
+        "marks improved",
+        "scored",
+        "passed",
+        "rank",
+        "improvement",
+        "निकाल सुधारला",
+        "मार्क वाढले",
+        "सुधार"
+      ],
+      "replyPhrase": "the marks are moving in the right direction",
+      "replyPhraseHinglish": "marks behtar ho rahe hain",
+      "replyPhraseMarathi": "गुण सुधारत आहेत"
+    },
+    {
+      "key": "faculty_support",
+      "label": "Supportive, approachable faculty",
+      "hints": [
+        "supportive",
+        "approachable",
+        "friendly teacher",
+        "motivating",
+        "patient",
+        "मदत",
+        "प्रोत्साहन",
+        "सहकार्य"
+      ],
+      "replyPhrase": "the faculty have been approachable",
+      "replyPhraseHinglish": "teachers approachable rahe",
+      "replyPhraseMarathi": "शिक्षक मदतीसाठी उपलब्ध राहिले"
+    },
+    {
+      "key": "study_material_praise",
+      "label": "Good study material",
+      "hints": [
+        "well prepared",
+        "test series",
+        "practice papers",
+        "पेपर"
+      ],
+      "replyPhrase": "the material has been useful",
+      "replyPhraseHinglish": "material kaam aaya",
+      "replyPhraseMarathi": "साहित्य उपयोगी पडले"
+    },
+    {
+      "key": "discipline",
+      "label": "Discipline and regularity",
+      "hints": [
+        "disciplined",
+        "regular",
+        "punctual",
+        "organised",
+        "organized",
+        "शिस्त",
+        "नियमित",
+        "वेळेवर"
+      ],
+      "replyPhrase": "the classes run properly",
+      "replyPhraseHinglish": "classes theek se chalti hain",
+      "replyPhraseMarathi": "वर्ग नीट चालतात"
+    },
+    {
+      "key": "fee_value",
+      "label": "Fair fees",
+      "hints": [
+        "affordable",
+        "reasonable fees",
+        "worth",
+        "value",
+        "वाजवी",
+        "किफायती",
+        "योग्य फी"
+      ],
+      "replyPhrase": "the fees feel fair",
+      "replyPhraseHinglish": "fees uchit lagti hai",
+      "replyPhraseMarathi": "फी योग्य वाटते"
+    }
+  ],
+  "voicePreset": {
+    "formality": "FORMAL",
+    "languageMix": "MIXED",
+    "greeting": "Thank you for the feedback.",
+    "signOff": "— {{businessName}}",
+    "preferredWords": [
+      "batch",
+      "faculty",
+      "parent meeting",
+      "progress",
+      "we will look into this"
+    ],
+    "bannedWords": [
+      "guaranteed rank",
+      "guaranteed selection",
+      "100% result",
+      "assured admission",
+      "we will delete",
+      "change your rating"
+    ],
+    "emojiPolicy": "NONE",
+    "exampleReplies": [
+      "Thank you for raising this. Doubt sessions should be running every week without exception. Please call the centre and ask for the academic coordinator so we can check this batch specifically.",
+      "Thank you — we will share this with the faculty."
+    ]
+  },
+  "staffAskScript": {
+    "when": "At a parent meeting or after a term result is handed over, at the front desk.",
+    "line": "If the classes have been useful, an honest review from a parent helps other families decide. The QR at the desk takes a minute.",
+    "hinglishLine": "Agar classes useful rahi hain, toh ek honest parent review dusre families ko decide karne mein help karta hai. Desk par QR hai, ek minute.",
+    "marathiLine": "वर्ग उपयुक्त ठरले असतील, तर पालकांचा प्रामाणिक अभिप्राय इतर कुटुंबांना निर्णय घ्यायला मदत करतो. डेस्कवरचा QR एक मिनिट घेतो.",
+    "doNot": [
+      "Never offer a fee discount, free test series or material in exchange for a review.",
+      "Never ask only the parents of high scorers.",
+      "Never write a review on a parent's phone.",
+      "Never ask anyone to remove or edit a review.",
+      "Never mention a student's name, marks or rank in a public reply."
+    ]
+  },
+  "profileGapChecks": [
+    {
+      "key": "hours_missing",
+      "label": "Batch timings missing or outdated"
+    },
+    {
+      "key": "courses_missing",
+      "label": "Courses / batches not listed"
+    },
+    {
+      "key": "photos_stale",
+      "label": "No recent photos of classrooms"
+    },
+    {
+      "key": "no_replies",
+      "label": "Reviews left without a reply"
+    },
+    {
+      "key": "faculty_missing",
+      "label": "Faculty credentials not visible"
+    },
+    {
+      "key": "phone_wrong",
+      "label": "Phone number wrong or unmonitored"
+    },
+    {
+      "key": "no_directions",
+      "label": "Entrance or floor not described"
+    }
+  ],
+  "contentTemplates": [
+    {
+      "key": "reply_negative_teaching",
+      "label": "Reply — teaching concern",
+      "body": "Thank you for raising this. Doubt sessions should run every week without exception. Please call the centre and ask for the academic coordinator, mentioning the batch, so we can check it specifically.\n\n— {{businessName}}"
+    },
+    {
+      "key": "reply_positive",
+      "label": "Reply — positive review",
+      "body": "Thank you for writing this. We will share it with the faculty team.\n\n— {{businessName}}"
+    },
+    {
+      "key": "counter_card_headline",
+      "label": "Front-desk card headline",
+      "body": "How are the classes going?"
+    },
+    {
+      "key": "counter_card_subhead",
+      "label": "Front-desk card subhead",
+      "body": "Scan and share your honest feedback. One minute."
+    }
+  ],
+  "kit": {
+    "assetLabel": "front-desk card",
+    "placement": "At the front desk and in the parent waiting area.",
+    "moment": "At a parent meeting, or when a term result is handed over.",
+    "headline": "How are the classes going?",
+    "subhead": "Scan and share your honest feedback. One minute.",
+    "qrCaption": "Scan to share your honest feedback",
+    "askMessage": "Thank you for choosing {{businessName}}. If the classes have been useful, an honest review from a parent helps other families decide: {{reviewUrl}}",
+    "askMessageHinglish": "{{businessName}} chunne ke liye dhanyawaad. Agar classes useful rahi hain, toh ek honest parent review dusre families ko decide karne me help karta hai: {{reviewUrl}}",
+    "askMessageMarathi": "{{businessName}} निवडल्याबद्दल धन्यवाद. वर्ग उपयुक्त ठरले असतील, तर पालकांचा प्रामाणिक अभिप्राय इतर कुटुंबांना मदत करतो: {{reviewUrl}}",
+    "thankYou": "Thank you — we will share this with the faculty team."
+  }
+}

@@ -1,0 +1,521 @@
+{
+  "id": "salon",
+  "label": "Salon / Spa",
+  "description": "Hair salons, unisex salons, beauty parlours, spas, nail and skin studios.",
+  "headlineKpi": {
+    "key": "new_reviews_per_week",
+    "label": "New reviews per week",
+    "help": "Salons are chosen on recent proof. A stream of fresh, honest reviews beats a high but stale rating.",
+    "goodDirection": "up"
+  },
+  "issueTaxonomy": [
+    {
+      "key": "service_result",
+      "label": "Unhappy with the result",
+      "severity": "high",
+      "action": "Add a two-minute consultation before every chemical or cutting service: agree the result in words and show a reference, then confirm before starting.",
+      "hints": [
+        "bad cut",
+        "botched",
+        "not what i asked",
+        "uneven",
+        "damaged hair",
+        "ruined",
+        "galat",
+        "kharab",
+        "बिघडले",
+        "खराब",
+        "चुकीचे",
+        "बाल खराब",
+        "bad haircut",
+        "haircut was bad",
+        "ruined my hair",
+        "hair was ruined",
+        "colour was wrong",
+        "color was wrong",
+        "colour came out",
+        "not what i wanted"
+      ],
+      "replyPhrase": "how your hair turned out",
+      "replyPhraseHinglish": "baalon ke result",
+      "replyPhraseMarathi": "केसांच्या रिझल्टबद्दल"
+    },
+    {
+      "key": "appointment_scheduling",
+      "label": "Appointment / waiting problems",
+      "severity": "high",
+      "action": "Stop double-booking the same stylist: block realistic service durations and confirm every appointment the day before.",
+      "hints": [
+        "no confirmation",
+        "appointment was cancelled",
+        "cancelled my appointment",
+        "past my appointment",
+        "late for my appointment",
+        "booking problem",
+        "no slot",
+        "slot not available",
+        "could not get an appointment",
+        "अपॉइंटमेंट रद्द",
+        "अपॉइंटमेंट मिळाली नाही",
+        "बुकिंग रद्द"
+      ],
+      "replyPhrase": "the trouble with your appointment",
+      "replyPhraseHinglish": "appointment mein hui gadbad",
+      "replyPhraseMarathi": "अपॉइंटमेंटमधील गोंधळाबद्दल"
+    },
+    {
+      "key": "pricing_transparency",
+      "label": "Price quoted vs price charged",
+      "severity": "high",
+      "action": "Quote the full price in writing before starting, including any add-on, and never add a charge mid-service.",
+      "hints": [
+        "expensive",
+        "charged more",
+        "hidden charge",
+        "overcharge",
+        "mehnga",
+        "महाग",
+        "जास्त पैसे",
+        "than quoted",
+        "than the price quoted",
+        "price was different",
+        "price changed",
+        "charged extra",
+        "extra charge",
+        "wrong bill",
+        "extra paise",
+        "किंमत वेगळी",
+        "जास्त किंमत",
+        "सांगितलेली किंमत"
+      ],
+      "replyPhrase": "being charged more than you were quoted",
+      "replyPhraseHinglish": "bataye gaye daam se zyada charge hone",
+      "replyPhraseMarathi": "सांगितलेल्यापेक्षा जास्त पैसे घेतल्याबद्दल"
+    },
+    {
+      "key": "staff_behaviour",
+      "label": "Staff behaviour / attitude",
+      "severity": "high",
+      "action": "Brief the floor on a fixed greeting and handover script, and name one person responsible for each client visit.",
+      "hints": [
+        "rude",
+        "attitude",
+        "ignored",
+        "unprofessional",
+        "misbehav",
+        "उद्धट",
+        "bad behaviour",
+        "bad behavior",
+        "rude behaviour",
+        "staff was rude",
+        "staff were rude",
+        "staff are rude",
+        "वाईट वागणूक",
+        "उद्धट वागणूक",
+        "वाईट व्यवहार"
+      ],
+      "replyPhrase": "the way you were spoken to",
+      "replyPhraseHinglish": "staff ke vyavhaar",
+      "replyPhraseMarathi": "स्टाफच्या वागणुकीबद्दल"
+    },
+    {
+      "key": "hygiene",
+      "label": "Hygiene / tool cleanliness",
+      "severity": "high",
+      "action": "Sanitise tools in front of the client and keep a visible sterilisation log at each station.",
+      "hints": [
+        "dirty",
+        "unclean",
+        "not sanitised",
+        "not sanitized",
+        "smell",
+        "infection",
+        "गंदा",
+        "घाण",
+        "dirty towel",
+        "same towel",
+        "towel was not",
+        "poor hygiene",
+        "no hygiene",
+        "hygiene issue",
+        "safai nahi",
+        "सफाई नाही",
+        "स्वच्छता नाही",
+        "टॉवेल घाण",
+        "तोच टॉवेल"
+      ],
+      "replyPhrase": "the cleanliness of the tools and towels",
+      "replyPhraseHinglish": "tools aur towel ki safai",
+      "replyPhraseMarathi": "साधने आणि टॉवेलच्या स्वच्छतेबद्दल"
+    },
+    {
+      "key": "upselling_pressure",
+      "label": "Pushy upselling",
+      "severity": "medium",
+      "action": "Ban mid-service upselling: offer add-ons once, at consultation, and never while the client is in the chair.",
+      "hints": [
+        "forced",
+        "pushed",
+        "upsell",
+        "pressur",
+        "kept insisting",
+        "जबरदस्ती",
+        "दबाव",
+        "tried to sell",
+        "kept trying to sell",
+        "sell me",
+        "pushed a package",
+        "forced package",
+        "pushed membership",
+        "membership pushed",
+        "पॅकेज घ्यायला लावले",
+        "पॅकेजसाठी जबरदस्ती"
+      ],
+      "replyPhrase": "feeling pushed into extras you did not want",
+      "replyPhraseHinglish": "extra package ke liye dabaav",
+      "replyPhraseMarathi": "अतिरिक्त पॅकेजच्या आग्रहाबद्दल"
+    },
+    {
+      "key": "product_quality",
+      "label": "Product quality concerns",
+      "severity": "medium",
+      "action": "Show the product brand and expiry to the client before use for any chemical service.",
+      "hints": [
+        "cheap product",
+        "duplicate",
+        "expired",
+        "chemical",
+        "allergy",
+        "reaction",
+        "एलर्जी",
+        "cheap products",
+        "duplicate product",
+        "expired product",
+        "product was bad",
+        "local product",
+        "fake product",
+        "cheap brand",
+        "प्रॉडक्ट खराब",
+        "स्वस्त प्रॉडक्ट",
+        "डुप्लिकेट प्रॉडक्ट"
+      ],
+      "replyPhrase": "the products used on you",
+      "replyPhraseHinglish": "istemaal kiye gaye products",
+      "replyPhraseMarathi": "वापरलेल्या उत्पादनांबद्दल"
+    },
+    {
+      "key": "wait_time",
+      "label": "Long wait despite appointment",
+      "severity": "medium",
+      "action": "Track actual start time against booked time for one week and cut the number of parallel bookings per stylist.",
+      "hints": [
+        "waited",
+        "waiting",
+        "long time",
+        "delay",
+        "late start",
+        "der",
+        "उशीर",
+        "देरी",
+        "वाट पाहावी",
+        "वाट बघावी",
+        "वेळ जास्त",
+        "वेळ लागला",
+        "खूप वेळ",
+        "उशीर झाला"
+      ],
+      "replyPhrase": "the wait even though you had booked",
+      "replyPhraseHinglish": "booking ke baad bhi karna pade intezaar",
+      "replyPhraseMarathi": "बुकिंग असूनही झालेल्या उशिराबद्दल"
+    },
+    {
+      "key": "cleanliness_space",
+      "label": "Salon cleanliness / condition",
+      "severity": "medium",
+      "action": "Reset the floor between clients: sweep, wipe the station, and change the cape and towel every time.",
+      "hints": [
+        "dirty floor",
+        "hair everywhere",
+        "messy",
+        "unclean salon",
+        "घाण",
+        "अस्वच्छ",
+        "गंदा",
+        "dirty washroom",
+        "washroom was dirty",
+        "washroom not clean",
+        "toilet was dirty",
+        "toilet not clean"
+      ],
+      "replyPhrase": "the state of the salon when you visited",
+      "replyPhraseHinglish": "salon ki safai",
+      "replyPhraseMarathi": "सलूनच्या स्वच्छतेबद्दल"
+    },
+    {
+      "key": "phone_unreachable",
+      "label": "Phone / booking channel unresponsive",
+      "severity": "low",
+      "action": "Assign one person to the salon phone during opening hours and return every missed call the same day.",
+      "hints": [
+        "phone not",
+        "call not",
+        "no reply",
+        "never picks",
+        "not answering",
+        "फोन उचलत नाही",
+        "फोन नहीं उठाया",
+        "जवाब नहीं"
+      ],
+      "replyPhrase": "not being able to get through to us",
+      "replyPhraseHinglish": "phone par sampark na ho paane",
+      "replyPhraseMarathi": "फोनवर संपर्क न झाल्याबद्दल"
+    }
+  ],
+  "praiseTaxonomy": [
+    {
+      "key": "stylist_skill",
+      "label": "Stylist skill and result",
+      "hints": [
+        "great cut",
+        "skilled",
+        "expert",
+        "loved my hair",
+        "छान",
+        "सुंदर",
+        "मस्त",
+        "अच्छा किया",
+        "stylist was good",
+        "stylist was great",
+        "stylist was excellent",
+        "good haircut",
+        "great haircut",
+        "haircut was good",
+        "haircut was great",
+        "hair looks great",
+        "hair looks good",
+        "loved my haircut",
+        "loved the haircut",
+        "happy with my haircut",
+        "happy with the haircut"
+      ],
+      "replyPhrase": "your stylist got it right",
+      "replyPhraseHinglish": "stylist ne bilkul waise hi kiya jaisa aap chahte the",
+      "replyPhraseMarathi": "स्टायलिस्टने तुम्हाला हवे तसेच केले"
+    },
+    {
+      "key": "staff_warmth",
+      "label": "Warm, patient staff",
+      "hints": [
+        "friendly",
+        "polite",
+        "patient",
+        "listened",
+        "welcoming",
+        "comfortable",
+        "नम्र",
+        "आपुलकी",
+        "अच्छा व्यवहार",
+        "staff was good",
+        "staff were good",
+        "staff are good",
+        "staff was great",
+        "staff were great",
+        "staff are great",
+        "staff was lovely",
+        "staff were lovely",
+        "staff are lovely",
+        "staff is lovely",
+        "staff is good",
+        "staff is great"
+      ],
+      "replyPhrase": "the team made you feel welcome",
+      "replyPhraseHinglish": "team ne aapko comfortable mehsoos karaya",
+      "replyPhraseMarathi": "टीमने तुम्हाला आपुलकीने वागवले"
+    },
+    {
+      "key": "hygiene_praise",
+      "label": "Clean and hygienic",
+      "hints": [
+        "clean",
+        "hygienic",
+        "sanitised",
+        "sanitized",
+        "neat",
+        "well maintained",
+        "स्वच्छ",
+        "साफ",
+        "नीटनेटके"
+      ],
+      "replyPhrase": "the salon felt clean and hygienic",
+      "replyPhraseHinglish": "salon saaf aur hygienic laga",
+      "replyPhraseMarathi": "सलून स्वच्छ वाटले"
+    },
+    {
+      "key": "ambience",
+      "label": "Relaxing ambience",
+      "hints": [
+        "relaxing",
+        "calm",
+        "peaceful",
+        "शांत"
+      ],
+      "replyPhrase": "the place felt relaxing",
+      "replyPhraseHinglish": "mahaul relaxing laga",
+      "replyPhraseMarathi": "वातावरण आरामदायी वाटले"
+    },
+    {
+      "key": "value_pricing",
+      "label": "Fair pricing",
+      "hints": [
+        "reasonable",
+        "affordable",
+        "worth",
+        "value",
+        "not expensive",
+        "वाजवी",
+        "किफायती",
+        "योग्य दर"
+      ],
+      "replyPhrase": "the pricing felt fair",
+      "replyPhraseHinglish": "daam uchit lage",
+      "replyPhraseMarathi": "दर योग्य वाटले"
+    },
+    {
+      "key": "punctuality",
+      "label": "On-time appointments",
+      "hints": [
+        "on time",
+        "no waiting",
+        "punctual",
+        "quick",
+        "prompt",
+        "वेळेवर",
+        "समय पर",
+        "लगेच"
+      ],
+      "replyPhrase": "you were seen on time",
+      "replyPhraseHinglish": "aapko samay par liya gaya",
+      "replyPhraseMarathi": "तुम्हाला वेळेवर घेतले गेले"
+    },
+    {
+      "key": "consultation",
+      "label": "Good consultation / advice",
+      "hints": [
+        "suggested",
+        "advice",
+        "consultation",
+        "explained",
+        "guided",
+        "recommendation",
+        "सल्ला",
+        "समजावून",
+        "सुझाव"
+      ],
+      "replyPhrase": "you were properly listened to first",
+      "replyPhraseHinglish": "pehle aapki baat dhyan se suni gayi",
+      "replyPhraseMarathi": "आधी तुमचे म्हणणे नीट ऐकले गेले"
+    }
+  ],
+  "voicePreset": {
+    "formality": "FRIENDLY",
+    "languageMix": "HINGLISH",
+    "greeting": "Thank you for the honest feedback.",
+    "signOff": "— Team {{businessName}}",
+    "preferredWords": [
+      "consultation",
+      "stylist",
+      "next visit",
+      "we will make it right",
+      "thank you for telling us"
+    ],
+    "bannedWords": [
+      "free service",
+      "guaranteed results",
+      "permanent",
+      "we will delete",
+      "change your rating",
+      "no side effects"
+    ],
+    "emojiPolicy": "MINIMAL",
+    "exampleReplies": [
+      "Thank you for telling us — the result should have matched what you asked for. Please call the salon and ask for the manager so we can look at it with you.",
+      "So glad you loved it. Passing this on to the team."
+    ]
+  },
+  "staffAskScript": {
+    "when": "At the billing counter, once the client has seen the finished result in the mirror.",
+    "line": "If you are happy with how it turned out, would you mind sharing an honest review? The QR at the counter takes a minute.",
+    "hinglishLine": "Agar aapko result pasand aaya ho, toh ek honest review share kar dijiye. Counter ka QR ek minute lega.",
+    "marathiLine": "निकाल आवडला असेल तर तुमचा प्रामाणिक अभिप्राय द्याल का? काउंटरवरचा QR एक मिनिट घेतो.",
+    "doNot": [
+      "Never offer a discount, free add-on or loyalty points for a review.",
+      "Never show the QR only to clients who seemed pleased.",
+      "Never type a review on a client's phone.",
+      "Never ask a client to remove or edit a review."
+    ]
+  },
+  "profileGapChecks": [
+    {
+      "key": "hours_missing",
+      "label": "Opening hours missing or wrong"
+    },
+    {
+      "key": "services_missing",
+      "label": "Service list and price range not published"
+    },
+    {
+      "key": "photos_stale",
+      "label": "No recent work photos"
+    },
+    {
+      "key": "no_replies",
+      "label": "Reviews left without a reply"
+    },
+    {
+      "key": "booking_link_missing",
+      "label": "No booking method visible on the listing"
+    },
+    {
+      "key": "phone_wrong",
+      "label": "Phone number wrong or unmonitored"
+    },
+    {
+      "key": "no_directions",
+      "label": "Parking or entrance not described"
+    }
+  ],
+  "contentTemplates": [
+    {
+      "key": "reply_negative_result",
+      "label": "Reply — unhappy with result",
+      "body": "Thank you for telling us. What you asked for and what you got should have matched, and they did not. Please call the salon and ask for the manager so we can look at it with you directly.\n\n— Team {{businessName}}"
+    },
+    {
+      "key": "reply_positive",
+      "label": "Reply — positive review",
+      "body": "Thank you — this means a lot to the team. See you next time.\n\n— Team {{businessName}}"
+    },
+    {
+      "key": "counter_card_headline",
+      "label": "Counter card headline",
+      "body": "Happy with how it turned out?"
+    },
+    {
+      "key": "counter_card_subhead",
+      "label": "Counter card subhead",
+      "body": "Scan and tell us honestly. One minute."
+    }
+  ],
+  "kit": {
+    "assetLabel": "counter card",
+    "placement": "At the billing counter, where clients can see it while paying.",
+    "moment": "At billing, once the client has seen the finished result in the mirror.",
+    "headline": "Happy with how it turned out?",
+    "subhead": "Scan and tell us honestly. One minute.",
+    "qrCaption": "Scan to share your honest review",
+    "askMessage": "Thank you for visiting {{businessName}}. If you are happy with how it turned out, would you share an honest review? It takes a minute: {{reviewUrl}}",
+    "askMessageHinglish": "{{businessName}} aane ke liye dhanyawaad. Agar aapko result pasand aaya ho, toh ek honest review share kar dijiye — ek minute lagega: {{reviewUrl}}",
+    "askMessageMarathi": "{{businessName}} ला भेट दिल्याबद्दल धन्यवाद. निकाल आवडला असेल तर तुमचा प्रामाणिक अभिप्राय द्याल का? एक मिनिट लागेल: {{reviewUrl}}",
+    "thankYou": "Thank you — the team will be glad to read this."
+  }
+}
