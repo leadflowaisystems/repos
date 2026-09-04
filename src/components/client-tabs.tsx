@@ -13,8 +13,10 @@ export function ClientTabs({ clientId }: { clientId: string }) {
   const tabs = [
     { href: base, label: 'Overview', exact: true },
     { href: `${base}/feedback`, label: 'Feedback', exact: false },
+    { href: `${base}/qr`, label: 'Feedback QR', exact: false },
     { href: `${base}/snapshots`, label: 'Snapshots', exact: false },
     { href: `${base}/minutes`, label: 'Minutes', exact: false },
+    { href: `${base}/context`, label: 'Business context', exact: false },
     { href: `${base}/kit`, label: 'Print kit', exact: false },
     { href: `${base}/profile`, label: 'Profile', exact: false },
   ];

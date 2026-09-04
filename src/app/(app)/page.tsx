@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import {
   Card,
   CardBody,
@@ -36,9 +37,12 @@ export default async function CommandCentrePage() {
 
   const urgent = board.cards.filter((card) => card.band === 'NOW');
   const soon = board.cards.filter((card) => card.band === 'SOON');
-  const rest = board.cards.filter(
-    (card) => card.band !== 'NOW' && card.band !== 'SOON',
-  );
+  const rest = board.cards.filter((card) => card.band === 'WHEN_FREE');
+  // Clients with nothing waiting used to be rendered as full cards under a
+  // heading that said "lower priority", so fourteen calm businesses meant
+  // fourteen cards each saying nothing is flagging. They are named, not
+  // detailed (M17).
+  const calm = board.cards.filter((card) => card.band === 'NOTHING');
 
   const headline =
     board.totals.clients === 0
@@ -105,15 +109,17 @@ export default async function CommandCentrePage() {
             />
             <Stat
               label="Replies to prepare"
-              value={formatNumber(board.totals.awaitingDraft)}
+              value={formatNumber(board.totals.awaitingDraft + board.totals.needsYou)}
               hint={
                 board.totals.needsYou > 0
-                  ? `${board.totals.needsYou} need your own words`
+                  ? `${board.totals.needsYou} of them need your own words`
                   : board.totals.awaitingDraft === 0
                     ? 'All prepared'
                     : 'One click each'
               }
-              tone={board.totals.awaitingDraft > 0 ? 'warn' : 'good'}
+              tone={
+                board.totals.awaitingDraft + board.totals.needsYou > 0 ? 'warn' : 'good'
+              }
             />
             <Stat
               label="Too early to judge"
@@ -157,6 +163,27 @@ export default async function CommandCentrePage() {
                 {rest.map((card) => (
                   <CommandCard key={card.clientId} card={card} />
                 ))}
+              </Section>
+            ) : null}
+
+            {calm.length > 0 ? (
+              <Section
+                title={BAND_LABELS.NOTHING}
+                description="Nothing is waiting on you for these. They are listed so you can see they were looked at."
+              >
+                <Card>
+                  <CardBody className="flex flex-wrap gap-x-5 gap-y-2">
+                    {calm.map((card) => (
+                      <Link
+                        key={card.clientId}
+                        href={`/clients/${card.clientId}`}
+                        className="text-[13px] text-ink-700 underline-offset-2 hover:underline"
+                      >
+                        {card.businessName}
+                      </Link>
+                    ))}
+                  </CardBody>
+                </Card>
               </Section>
             ) : null}
           </div>

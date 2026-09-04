@@ -1,4 +1,4 @@
-// RepOS — local-first SQLite schema.
+// RepOS — PostgreSQL schema (M20; SQLite through M19).
 //
 // PII RULE (see COMPLIANCE.md):
 //   Contact fields exist ONLY for the business owner/operator we contract with.
@@ -10,8 +10,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 // ---------------------------------------------------------------------------
@@ -51,6 +52,35 @@ model Client {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
+  /// The owner's private address for their own workspace (M16).
+  ///
+  /// Unguessable and separate from `id` on purpose: the client id appears all
+  /// over the operator's screens and in links, and a cuid is a sortable
+  /// timestamp, not a secret. This is the same 110-bit token shape the
+  /// customer feedback page uses. Regenerating it revokes the old link.
+  /// Nullable so existing rows load; created on demand, never reused.
+  portalToken   String?   @unique
+  portalTokenAt DateTime?
+  /// When the operator recorded that they actually sent the owner their link
+  /// (M17). Distinct from portalTokenAt, which only records that RepOS minted
+  /// one — a token existing is not a business being onboarded.
+  portalLinkSentAt DateTime?
+
+  /// M20 - subscription state, deliberately separate from `status`.
+  ///
+  /// `status` is the operator's sales pipeline (PROSPECT / ACTIVE / PAUSED)
+  /// and has meant that since M1. This is whether the account is entitled to
+  /// the product: TRIAL, ACTIVE, PAUSED, CANCELLED. Keeping them apart means
+  /// a paused subscription does not rewrite the operator's pipeline notes,
+  /// and billing can be attached later without touching either.
+  subscriptionStatus String @default("TRIAL")
+
+  /// M20 - when the owner finished the self-serve setup wizard.
+  ///
+  /// Not `onboardingDate`, which is the operator's record of when they took
+  /// the business on. This one is the owner's own progress through signup.
+  setupCompletedAt DateTime?
+
   voiceProfile VoiceProfile?
   policy       BusinessPolicy?
   kitConfig    KitConfig?
@@ -60,9 +90,204 @@ model Client {
   minutes      Minute[]
   feedback     ReviewItem[]
   improvements ImprovementAction[]
+  context      BusinessContext[]
+  gateway      FeedbackGateway?
+  memberships  Membership[]
+  invitations  Invitation[]
 
   @@index([status])
   @@index([vertical])
+  @@index([subscriptionStatus])
+}
+
+// ---------------------------------------------------------------------------
+// M20 - identity, membership and roles
+// ---------------------------------------------------------------------------
+
+/// A person who can sign in.
+///
+/// Separate from Client on purpose. A Client is a business; a User is a human,
+/// and one human may look after two salons while another looks after one. The
+/// link between them is Membership, which is also where the role lives.
+///
+/// PII RULE, unchanged from M1: this is an OPERATOR or BUSINESS OWNER, never
+/// an end customer. Customers stay anonymous and never get an account.
+model User {
+  id    String  @id @default(cuid())
+  /// Stored lowercased and trimmed. The only identifier a person types.
+  email String  @unique
+  name  String?
+
+  /// The Supabase Auth user id (`auth.users.id`) this person signs in as.
+  ///
+  /// There is deliberately no password column here and no second sign-in path.
+  /// Supabase Auth is the single canonical identity system: RepOS never sees,
+  /// stores, hashes or compares a password, so a stolen copy of this database
+  /// contains no secret to steal. Null only for a row created ahead of its
+  /// account - an invitation that has not been accepted yet.
+  authProviderId String? @unique
+
+  /// RepOS staff. Deliberately NOT a Membership row: an admin does not belong
+  /// to one business, they oversee all of them, and modelling that as a
+  /// membership would mean inventing a fake tenant to hang it from.
+  isPlatformAdmin Boolean @default(false)
+
+  /// ACTIVE | SUSPENDED. A suspended user keeps their memberships and their
+  /// history; they simply cannot sign in.
+  status String @default("ACTIVE")
+
+  emailVerifiedAt DateTime?
+  lastSignInAt    DateTime?
+
+  /// Bumped to invalidate every session this user currently holds.
+  ///
+  /// Sessions are signed cookies rather than rows, which cannot be deleted
+  /// server-side. Carrying this number in the cookie and comparing it on every
+  /// request gives the one thing a stateless session otherwise lacks: a way to
+  /// throw someone out after a password change or a suspension.
+  sessionVersion Int @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Membership[]
+  invitesSent Invitation[]         @relation("InvitedBy")
+
+  @@index([isPlatformAdmin])
+  @@index([status])
+}
+
+/// One person's access to one business, and what they may do there.
+///
+/// This row IS the authorization. Nothing in RepOS may decide that a user can
+/// see a client because an id appeared in a URL; it decides because a
+/// membership exists, is ACTIVE, and carries a role that permits it.
+model Membership {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// BUSINESS_OWNER | BUSINESS_STAFF. Platform admin is not a role here; it
+  /// is a property of the person, not of their relationship to one business.
+  role String @default("BUSINESS_STAFF")
+
+  /// ACTIVE | SUSPENDED. Suspending is reversible; deleting is not, and an
+  /// owner who removes someone by mistake should not lose the record of it.
+  status String @default("ACTIVE")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, clientId])
+  @@index([clientId, status])
+  @@index([userId, status])
+}
+
+/// An invitation to join one business.
+///
+/// Created by an operator or a business owner. Like a reset token, only the
+/// hash is stored. An invitation names the role it grants, so accepting one
+/// can never quietly award more access than the inviter chose.
+model Invitation {
+  id String @id @default(cuid())
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// Lowercased. The invitation is for this address and no other.
+  email String
+  role  String @default("BUSINESS_STAFF")
+
+  tokenHash String   @unique
+  expiresAt DateTime
+
+  invitedById String?
+  invitedBy   User?   @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  acceptedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([clientId, acceptedAt])
+  @@index([email])
+}
+
+// ---------------------------------------------------------------------------
+// M14 — Customer feedback gateway: the public front door, one per client
+// ---------------------------------------------------------------------------
+
+/// The public feedback page for one business.
+///
+/// A customer's phone sees the public token and nothing else: not the client
+/// id, not a name in the address, not a counter. The token is random, stable
+/// for the life of the client, and resolves to exactly one business.
+///
+/// PII RULE: there is deliberately no column here, or on ReviewItem, for a
+/// customer's name, phone, email, address or network address. A submission is
+/// the words and the rating, nothing about the person.
+model FeedbackGateway {
+  id       String @id @default(cuid())
+  clientId String @unique
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// Unguessable, non-identifying. The only thing printed inside the QR.
+  publicToken String @unique
+
+  /// Off means the page shows "not active" and stores nothing.
+  enabled Boolean @default(true)
+
+  /// Operator-supplied public review link, offered to EVERY customer after
+  /// they send feedback — never selectively. Stored string; never fetched.
+  publicReviewUrl String @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// M13 — Business context: what the owner told RepOS about their business
+// ---------------------------------------------------------------------------
+
+/// One thing the owner told RepOS about how their business works, what
+/// matters to them, or what RepOS should not suggest. Operational memory only:
+/// never a customer record, never a person's contact details. Kept apart from
+/// customer evidence by construction — the provenance column says where each
+/// line came from, and nothing here is ever counted as a customer saying it.
+model BusinessContext {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// PRIORITY | FOCUS | OPERATING | CONSTRAINT | TRIED | DEFINITION | ANSWER
+  kind String
+  /// OWNER_TOLD_US | DERIVED_FROM_ACTION | DERIVED_FROM_FEEDBACK
+  provenance String @default("OWNER_TOLD_US")
+  /// The statement, in the owner's words.
+  text String
+
+  /// Optional: the pack theme this explains, so it can sit beside the evidence.
+  themeKey String?
+  /// CONSTRAINT only: STAFF | DISCOUNT | PRICE | SPEND | OTHER.
+  constraintKey String?
+  /// ANSWER only: which owner question this answers (the theme it was asked for).
+  questionKey String?
+  /// TRIED only: the formal improvement action this refers to, when one exists.
+  actionId String?
+
+  /// When the owner told us. Not when the row was typed, if they differ.
+  recordedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  /// Set when the owner says it is no longer true. Retired context is kept,
+  /// never shown as current.
+  retiredAt   DateTime?
+  retiredNote String    @default("")
+
+  @@index([clientId, kind])
+  @@index([clientId, retiredAt])
 }
 
 model VoiceProfile {
@@ -195,6 +420,19 @@ model ReviewItem {
   /// Deterministic hash of the normalised text, used to skip obvious duplicates
   /// within a client. Not fuzzy: identical text after normalisation, or nothing.
   fingerprint String @default("")
+
+  /// M19 — the structured signal from the feedback gateway.
+  ///
+  /// A JSON object of stable dimension keys to a 1-5 rating, e.g.
+  /// {"food":5,"service":2}. Empty for pasted feedback, for anything from
+  /// before M19, and for a customer who only left an overall rating. The keys
+  /// come from the client's vertical pack, never from display labels.
+  dimensionsJson String @default("{}")
+
+  /// M19 — the quick options a customer tapped, as stable keys, e.g.
+  /// ["service_slow"]. Additional evidence; never a substitute for what M6
+  /// reads out of the words.
+  signalsJson    String @default("[]")
 
   sentiment       String  @default("UNCLASSIFIED") // set by the analysis layer
   issueTags       String  @default("[]")

@@ -16,6 +16,7 @@ import {
   type Insight,
 } from '@/lib/intelligence/engine';
 import { categoryLabel, isForwardLooking } from '@/lib/minutes/service';
+import { listClientSetup } from '@/lib/clients/service';
 import { MIN_FEEDBACK_TO_MEASURE } from '@/lib/improve/measure';
 import { evidenceDateOf, toActionRecord } from '@/lib/improve/service';
 import { measurementWindowStart } from '@/lib/improve/model';
@@ -154,6 +155,7 @@ type FeedbackRow = {
   responseAction: string;
   draftStatus: string;
   draftVersion: number;
+  handledAt: Date | null;
   id: string;
 };
 
@@ -193,7 +195,7 @@ function feedbackFor(rows: FeedbackRow[], coverage: ReplyCoverage): BoardFeedbac
     total: rows.length,
     unread: rows.length - analysed,
     analysed,
-    needsYou: coverage.needsYou,
+    needsYou: coverage.youOutstanding,
     awaitingDraft: coverage.awaitingDraft,
     draftsReady: coverage.drafted,
     handled: coverage.handled,
@@ -314,7 +316,10 @@ function lowDataFor(feedback: BoardFeedback): CommandCard['lowData'] {
   if (feedback.analysed === 0) {
     return {
       missing: 'Nothing read yet',
-      why: `${feedback.total} pieces of feedback are waiting to be read.`,
+      why:
+        feedback.total === 1
+          ? '1 piece of feedback is waiting to be read.'
+          : `${feedback.total} pieces of feedback are waiting to be read.`,
       supersedes: ['unread_feedback'],
     };
   }
@@ -344,9 +349,14 @@ export async function getBoard(
 ): Promise<Board> {
   const clients = await db.client.findMany({
     where: { archivedAt: null },
-    select: { id: true, businessName: true, vertical: true, updatedAt: true },
+    select: { id: true, businessName: true, vertical: true, status: true },
     orderBy: { businessName: 'asc' },
   });
+
+  const setupByClient = await listClientSetup(
+    db,
+    clients.map((c) => c.id),
+  );
 
   if (clients.length === 0) {
     return {
@@ -405,6 +415,7 @@ export async function getBoard(
         responseAction: true,
         draftStatus: true,
         draftVersion: true,
+        handledAt: true,
       },
     }),
     db.minute.findMany({
@@ -491,10 +502,18 @@ export async function getBoard(
       ...clientFeedback.map((row) => row.createdAt),
     );
 
+    const setup = setupByClient.get(client.id);
     const priority = prioritise({
       clientId: client.id,
       businessName: client.businessName,
       status: card.status,
+      clientStatus: client.status,
+      setup: {
+        gatewayLive: setup?.gatewayLive ?? false,
+        gatewayPaused: setup?.gatewayPaused ?? false,
+        cardsOnSite: setup?.cardsOnSite ?? false,
+        ownerLinkSent: setup?.ownerLinkSent ?? false,
+      },
       topSignalDetail: card.signals[0]?.detail ?? null,
       trendDeclining: pulse.available && pulse.direction === 'DECLINING',
       topIssue: topIssue
@@ -503,6 +522,8 @@ export async function getBoard(
       feedback: {
         total: boardFeedback.total,
         unread: boardFeedback.unread,
+        // Outstanding, not the population: an item the operator has finished
+        // with must stop asking (M17).
         needsYou: boardFeedback.needsYou,
         awaitingDraft: boardFeedback.awaitingDraft,
         draftsReady: boardFeedback.draftsReady,

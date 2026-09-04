@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { getPackOrFallback, listPacks, _resetPackCache } from '@/lib/packs';
-import type { ThemeSummary, ThemeSummaryRow } from '@/lib/feedback/analysis';
+import type {
+  DimensionSummaryRow,
+  ThemeSummary,
+  ThemeSummaryRow,
+} from '@/lib/feedback/analysis';
 import type { Pulse, PulsePeriod } from '@/lib/health/health';
 import {
   HEADLINE_LIMIT,
@@ -50,8 +54,9 @@ function themes(
   praises: ThemeSummaryRow[],
   issues: ThemeSummaryRow[],
   analysedCount: number,
+  dimensions: DimensionSummaryRow[] = [],
 ): ThemeSummary {
-  return { praises, issues, analysedCount };
+  return { praises, issues, analysedCount, dimensions };
 }
 
 /** A snapshot period as the pulse engine builds one. */

@@ -1,5 +1,5 @@
 import type { Pack } from '@/lib/packs';
-import type { ThemeSummary, ThemeSummaryRow } from '@/lib/feedback/analysis';
+import { LOW_RATING_AT, type ThemeSummary, type ThemeSummaryRow } from '@/lib/feedback/analysis';
 import type { Pulse, PulsePeriod, ThemeCount } from '@/lib/health/health';
 import {
   TIER_LIMITED_MIN,
@@ -111,6 +111,12 @@ export const SIGNAL_WEIGHTS = {
   growing: 15,
   /** Praised by more than twice the floor: a genuine strength. */
   strength: 10,
+  /**
+   * Customers who never wrote a word still rated this part of the business
+   * poorly (M19). Weighted below a written complaint on purpose: a tap says
+   * something is wrong, words say what.
+   */
+  rated_low: 12,
 } as const;
 
 export type SignalKey = Exclude<keyof typeof SIGNAL_WEIGHTS, 'mention_cap'>;
@@ -405,10 +411,17 @@ export function comparisonWindowFrom(pulse: Pulse): ComparisonWindow {
     previous.feedbackCount < MIN_PERIOD_FEEDBACK_TO_COMPARE ||
     current.feedbackCount < MIN_PERIOD_FEEDBACK_TO_COMPARE
   ) {
-    const reason =
-      `Too little feedback attached to compare theme by theme: ${previous.feedbackCount} at ` +
-      `${previous.label} and ${current.feedbackCount} at ${current.label} ` +
-      `(${MIN_PERIOD_FEEDBACK_TO_COMPARE} needed on both sides).`;
+    // "0 at Check-in 1 and 0 at Check-in 2" told an owner with 261 comments
+    // that RepOS had nothing, which reads as broken rather than careful. A
+    // check-in only covers the feedback that arrived up to its own date, so
+    // when both sides are empty the honest answer is that everything has
+    // arrived since — and the fix is another check-in, not more feedback (M18).
+    const bothEmpty = previous.feedbackCount === 0 && current.feedbackCount === 0;
+    const reason = bothEmpty
+      ? `Your check-ins of ${previous.label} and ${current.label} have no feedback between them to compare — everything read so far arrived afterwards. The next check-in will bring it into the comparison.`
+      : `Too little feedback between your check-ins to compare topic by topic: ${previous.feedbackCount} at ` +
+        `${previous.label} and ${current.feedbackCount} at ${current.label} ` +
+        `(${MIN_PERIOD_FEEDBACK_TO_COMPARE} needed on both sides).`;
     return { ...NO_WINDOW(reason), ...base, available: false, reason, note: reason };
   }
 
@@ -556,11 +569,26 @@ function signal(key: SignalKey, reason: string, weight?: number): IntelligenceSi
  * the rank is their sum and nothing else. Read the reasons out loud and you
  * have explained the ordering completely.
  */
+/**
+ * The tapped evidence for one theme (M19).
+ *
+ * Kept apart from the written mentions all the way through, and worded apart
+ * too: "rated it 3 or below" is what happened, "said the wait was long" is
+ * not. Nobody who only tapped is ever quoted.
+ */
+export type RatedEvidence = {
+  label: string;
+  rated: number;
+  low: number;
+  average: number | null;
+};
+
 export function signalsFor(
   sentiment: Sentiment,
   theme: { label: string; count: number; severity: 'low' | 'medium' | 'high' },
   movement: ThemeMovement,
   verticalLabel: string,
+  rated: RatedEvidence | null = null,
 ): IntelligenceSignal[] {
   const out: IntelligenceSignal[] = [];
 
@@ -612,6 +640,18 @@ export function signalsFor(
   ) {
     out.push(
       signal('strength', 'Praised often enough to be a genuine strength worth protecting.'),
+    );
+  }
+
+  // The same floor a written theme has to clear. Ratings are easier to give
+  // than words, so letting them in on weaker evidence would quietly lower the
+  // bar for everything RepOS reports.
+  if (sentiment === 'ISSUE' && rated && rated.low >= MIN_MENTIONS_TO_NAME) {
+    out.push(
+      signal(
+        'rated_low',
+        `${customers(rated.low)} of the ${rated.rated} who rated ${rated.label.toLowerCase()} put it at ${LOW_RATING_AT} or below.`,
+      ),
     );
   }
 
@@ -705,6 +745,8 @@ function buildInsightFor(args: {
   verticalLabel: string;
   movement: ThemeMovement;
   window: ComparisonWindow;
+  /** The tapped evidence for this theme, when the vertical asks about it. */
+  rated?: RatedEvidence | null;
 }): Insight {
   const { clientId, kind, sentiment, theme, analysed, movement, window } = args;
 
@@ -714,7 +756,7 @@ function buildInsightFor(args: {
     itemIds: args.itemIds,
     scope: `across the ${reviews(analysed)} read so far`,
   };
-  const signals = signalsFor(sentiment, theme, movement, args.verticalLabel);
+  const signals = signalsFor(sentiment, theme, movement, args.verticalLabel, args.rated ?? null);
   const confidence = confidenceFor(theme.count, analysed);
 
   return {
@@ -829,6 +871,20 @@ export function buildIntelligence(input: IntelligenceInput): ClientIntelligence 
   const verticalLabel = input.pack.label;
   const window = comparisonWindowFrom(input.pulse);
 
+  // A theme is corroborated by the question the pack points at it, and only
+  // for complaints: the vertical's questions ask what went wrong, so a high
+  // rating is the absence of a problem rather than evidence of praise.
+  const ratedFor = (themeKey: string): RatedEvidence | null => {
+    const dimension = input.themes.dimensions.find((d) => d.themeKey === themeKey);
+    if (!dimension || dimension.rated === 0) return null;
+    return {
+      label: dimension.label,
+      rated: dimension.rated,
+      low: dimension.low,
+      average: dimension.average,
+    };
+  };
+
   const make = (
     kind: InsightKind,
     sentiment: Sentiment,
@@ -846,6 +902,7 @@ export function buildIntelligence(input: IntelligenceInput): ClientIntelligence 
       verticalLabel,
       movement: movementFor(input.pulse, window, sentiment, row.key, row.label),
       window,
+      rated: sentiment === 'ISSUE' ? ratedFor(row.key) : null,
     });
 
   // ---- A + B: what customers love, and what they are unhappy about --------

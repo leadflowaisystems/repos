@@ -212,10 +212,15 @@ export function CommandCard({ card }: { card: CommandCardData }) {
           Minutes
         </Link>
         <Link href={`${base}/snapshots`} className="text-ink-600 hover:underline">
-          Snapshots
+          Check-ins
+        </Link>
+        {/* The primary customer-voice channel had no route from the board at
+            all, while the printed kit did (M17). */}
+        <Link href={`${base}/qr`} className="text-ink-600 hover:underline">
+          Feedback QR
         </Link>
         <Link href={`${base}/kit`} className="text-ink-600 hover:underline">
-          Kit
+          Cards
         </Link>
       </div>
     </article>

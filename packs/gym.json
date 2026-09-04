@@ -39,7 +39,16 @@
       ],
       "replyPhrase": "equipment being out of action",
       "replyPhraseHinglish": "machine kharab hone",
-      "replyPhraseMarathi": "मशीन बंद असल्याबद्दल"
+      "replyPhraseMarathi": "मशीन बंद असल्याबद्दल",
+      "counterpart": "equipment_quality",
+      "askOwner": {
+        "question": "What is the equipment problem mostly?",
+        "options": [
+          "Machines out of order",
+          "Not enough of the popular ones",
+          "Worn or old equipment"
+        ]
+      }
     },
     {
       "key": "crowding",
@@ -61,7 +70,16 @@
       ],
       "replyPhrase": "how packed it gets at peak times",
       "replyPhraseHinglish": "peak time par hui bheed",
-      "replyPhraseMarathi": "गर्दीच्या वेळेतील अडचणीबद्दल"
+      "replyPhraseMarathi": "गर्दीच्या वेळेतील अडचणीबद्दल",
+      "askOwner": {
+        "question": "When is it most crowded?",
+        "options": [
+          "Weekday mornings",
+          "Weekday evenings",
+          "Weekends"
+        ]
+      },
+      "actionNeeds": []
     },
     {
       "key": "trainer_availability",
@@ -87,7 +105,20 @@
       ],
       "replyPhrase": "not getting the guidance you needed",
       "replyPhraseHinglish": "sahi guidance na milne",
-      "replyPhraseMarathi": "योग्य मार्गदर्शन न मिळाल्याबद्दल"
+      "replyPhraseMarathi": "योग्य मार्गदर्शन न मिळाल्याबद्दल",
+      "counterpart": "trainer_quality",
+      "askOwner": {
+        "question": "When are trainers hardest to find?",
+        "options": [
+          "Peak hours",
+          "Early or late in the day",
+          "Weekends"
+        ]
+      },
+      "actionNeeds": [
+        "STAFF"
+      ],
+      "alternativeAction": "Post a trainer timetable at the desk so members know which hours are covered, and stagger breaks off peak."
     },
     {
       "key": "cleanliness",
@@ -117,7 +148,8 @@
       ],
       "replyPhrase": "the state of the changing rooms",
       "replyPhraseHinglish": "changing room ki safai",
-      "replyPhraseMarathi": "चेंजिंग रूमच्या स्वच्छतेबद्दल"
+      "replyPhraseMarathi": "चेंजिंग रूमच्या स्वच्छतेबद्दल",
+      "counterpart": "cleanliness_praise"
     },
     {
       "key": "membership_billing",
@@ -143,7 +175,8 @@
       ],
       "replyPhrase": "the problem with your membership",
       "replyPhraseHinglish": "membership mein hui gadbad",
-      "replyPhraseMarathi": "मेंबरशिपमधील गोंधळाबद्दल"
+      "replyPhraseMarathi": "मेंबरशिपमधील गोंधळाबद्दल",
+      "counterpart": "value_pricing"
     },
     {
       "key": "ac_ventilation",
@@ -169,7 +202,11 @@
       ],
       "replyPhrase": "how stuffy it gets on the floor",
       "replyPhraseHinglish": "hall mein hui ghutan",
-      "replyPhraseMarathi": "हॉलमधील उकाड्याबद्दल"
+      "replyPhraseMarathi": "हॉलमधील उकाड्याबद्दल",
+      "actionNeeds": [
+        "SPEND"
+      ],
+      "alternativeAction": "Log the temperature in the busiest zone at peak hours for a week, and move the fans to where it reads highest."
     },
     {
       "key": "staff_behaviour",
@@ -243,7 +280,8 @@
       ],
       "replyPhrase": "classes not running as scheduled",
       "replyPhraseHinglish": "class time par na hone",
-      "replyPhraseMarathi": "क्लास वेळेवर न झाल्याबद्दल"
+      "replyPhraseMarathi": "क्लास वेळेवर न झाल्याबद्दल",
+      "counterpart": "timings"
     },
     {
       "key": "parking_access",
@@ -407,15 +445,17 @@
     ]
   },
   "staffAskScript": {
-    "when": "After a member completes a milestone session or renews, at the front desk.",
-    "line": "If the gym has been working for you, an honest review really helps other people decide. The QR at the desk takes a minute.",
-    "hinglishLine": "Agar gym aapke liye theek chal raha hai, toh ek honest review dusron ko decide karne mein help karta hai. Desk par QR hai, ek minute.",
-    "marathiLine": "जिम तुमच्यासाठी उपयुक्त ठरत असेल, तर प्रामाणिक अभिप्राय इतरांना निर्णय घ्यायला मदत करतो. डेस्कवरचा QR एक मिनिट घेतो.",
+    "when": "At the front desk, for every member you speak to — not only after a good session.",
+    "line": "There is a QR at the desk. Tell us honestly how the gym is working for you — including what is not working. It takes a minute and comes straight to us.",
+    "hinglishLine": "Desk par QR hai. Honestly bataiye gym kaisa chal raha hai — jo theek nahi hai woh bhi. Ek minute lagta hai aur seedha humein aata hai.",
+    "marathiLine": "डेस्कवर QR आहे. जिम कसं चाललंय ते प्रामाणिकपणे सांगा — जे नीट नाही तेही. एक मिनिट लागतो आणि थेट आमच्याकडे येतं.",
     "doNot": [
       "Never offer free days, discounts or protein samples for a review.",
       "Never ask only members who look satisfied.",
       "Never write a review on a member's phone.",
-      "Never ask a member to delete or edit a review."
+      "Never ask a member to delete or edit a review.",
+      "Never wait until someone looks happy — offer the QR to everyone, every time.",
+      "Never ask a customer to leave a public review as a condition of anything."
     ]
   },
   "profileGapChecks": [
@@ -473,13 +513,151 @@
   "kit": {
     "assetLabel": "front-desk card",
     "placement": "At the front desk, beside the sign-in register.",
-    "moment": "After a member completes a milestone session, or when they renew.",
+    "moment": "At the front desk, for every member you speak to — not only after a good session.",
     "headline": "Is the gym working for you?",
     "subhead": "Scan and tell us honestly — it takes a minute.",
     "qrCaption": "Scan to share your honest review",
-    "askMessage": "Thanks for training with {{businessName}}. If the gym has been working for you, an honest review really helps other people decide: {{reviewUrl}}",
-    "askMessageHinglish": "{{businessName}} me train karne ke liye shukriya. Agar gym aapke liye theek chal raha hai, toh ek honest review dusron ko decide karne me help karta hai: {{reviewUrl}}",
-    "askMessageMarathi": "{{businessName}} मध्ये सराव केल्याबद्दल धन्यवाद. जिम तुमच्यासाठी उपयुक्त ठरत असेल, तर प्रामाणिक अभिप्राय इतरांना मदत करतो: {{reviewUrl}}",
+    "askMessage": "Thanks for training with {{businessName}}. If the gym has been working for you, an honest review really helps other people decide: {{feedbackUrl}}",
+    "askMessageHinglish": "{{businessName}} me train karne ke liye shukriya. Agar gym aapke liye theek chal raha hai, toh ek honest review dusron ko decide karne me help karta hai: {{feedbackUrl}}",
+    "askMessageMarathi": "{{businessName}} मध्ये सराव केल्याबद्दल धन्यवाद. जिम तुमच्यासाठी उपयुक्त ठरत असेल, तर प्रामाणिक अभिप्राय इतरांना मदत करतो: {{feedbackUrl}}",
     "thankYou": "Thank you — the floor team will be glad to read this."
+  },
+  "gateway": {
+    "headline": "How is the gym working for you?",
+    "prompt": "Tell us what is working, or what we could do better.",
+    "placeholder": "Trainers, equipment, the floor, timings — anything at all.",
+    "thankYou": "Thank you. The floor team reads all of this.",
+    "printLine": "Honest feedback keeps the floor running well for everyone.",
+    "dimensions": [
+      {
+        "key": "equipment",
+        "label": "Equipment",
+        "themeKey": "equipment_condition",
+        "improvePrompt": "What was the problem?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "out_of_order",
+            "label": "Something was out of order"
+          },
+          {
+            "key": "worn",
+            "label": "Worn out"
+          },
+          {
+            "key": "not_enough",
+            "label": "Not enough of it"
+          },
+          {
+            "key": "weights_missing",
+            "label": "Weights missing or misplaced"
+          }
+        ]
+      },
+      {
+        "key": "cleanliness",
+        "label": "Cleanliness",
+        "themeKey": "cleanliness",
+        "improvePrompt": "What did you notice?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "equipment_dirty",
+            "label": "Equipment not wiped down"
+          },
+          {
+            "key": "washroom",
+            "label": "The washroom"
+          },
+          {
+            "key": "changing_room",
+            "label": "The changing room"
+          },
+          {
+            "key": "floor",
+            "label": "The floor area"
+          }
+        ]
+      },
+      {
+        "key": "trainers",
+        "label": "Trainers and staff",
+        "themeKey": "trainer_availability",
+        "improvePrompt": "What happened?",
+        "goodPrompt": "Who helped you well?",
+        "signals": [
+          {
+            "key": "none_around",
+            "label": "No trainer around"
+          },
+          {
+            "key": "no_guidance",
+            "label": "No guidance on form"
+          },
+          {
+            "key": "manner",
+            "label": "Manner of the staff"
+          },
+          {
+            "key": "sales_pressure",
+            "label": "Pushed to buy something"
+          }
+        ]
+      },
+      {
+        "key": "crowding",
+        "label": "How busy it was",
+        "themeKey": "crowding",
+        "improvePrompt": "What did that affect?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "waited_machines",
+            "label": "Waited for machines"
+          },
+          {
+            "key": "no_space",
+            "label": "No space to train"
+          },
+          {
+            "key": "peak_hours",
+            "label": "Only at peak hours"
+          },
+          {
+            "key": "classes_full",
+            "label": "Classes were full"
+          }
+        ]
+      },
+      {
+        "key": "facilities",
+        "label": "Changing rooms and facilities",
+        "themeKey": "ac_ventilation",
+        "improvePrompt": "What was the problem?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "too_hot",
+            "label": "Too hot or stuffy"
+          },
+          {
+            "key": "lockers",
+            "label": "Lockers"
+          },
+          {
+            "key": "showers",
+            "label": "Showers"
+          },
+          {
+            "key": "water",
+            "label": "Drinking water"
+          },
+          {
+            "key": "parking",
+            "label": "Parking"
+          }
+        ]
+      }
+    ]
   }
 }

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { PrintNowButton } from '@/components/copy-button';
 import { prisma } from '@/lib/db';
 import { getKitView } from '@/lib/kit/service';
+import { requestOrigin } from '@/lib/gateway/origin';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ export default async function PrintKitPage({
   params: Promise<{ clientId: string }>;
 }) {
   const { clientId } = await params;
-  const kit = await getKitView(prisma, clientId);
+  const kit = await getKitView(prisma, clientId, { requestOrigin: await requestOrigin() });
   if (!kit) notFound();
 
   const { content, qr } = kit;

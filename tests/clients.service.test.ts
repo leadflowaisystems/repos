@@ -89,7 +89,7 @@ describe('createClient', () => {
     const content = buildKitContent({
       pack: pack as NonNullable<typeof pack>,
       businessName: 'Corner Cafe',
-      reviewUrl: 'https://example.com/r',
+      feedbackUrl: 'https://repos.example.com/feedback/gp7f8yv6f9zyauwhvxxysm',
     });
 
     // Blank overrides resolve to the vertical's own wording and the real name.
@@ -109,7 +109,7 @@ describe('createClient', () => {
     const result = await create({ vertical: 'not_a_real_vertical' });
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.errors.vertical).toContain('/packs');
+    expect(result.errors.vertical).toMatch(/business type/i);
     expect(await db.client.count()).toBe(0);
   });
 

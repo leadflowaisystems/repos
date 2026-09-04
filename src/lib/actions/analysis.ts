@@ -1,11 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { analyseClientFeedback } from '@/lib/feedback/analysis';
 import { triageClientFeedback } from '@/lib/feedback/replies';
-import { bool, str } from './shared';
+import { bool } from './shared';
+import { tenantGate } from '@/lib/auth/guard';
 
 /**
  * Reading a client's feedback.
@@ -18,7 +19,11 @@ import { bool, str } from './shared';
 const MAX_PER_RUN = 200;
 
 export async function analyseFeedbackAction(form: FormData): Promise<void> {
-  const clientId = str(form, 'clientId');
+  const gate = await tenantGate(form, 'MEMBER');
+  // A denial here is a 404, not a message: "not yours" and "not real"
+  // must look identical to anyone trying ids.
+  if (!gate.ok) notFound();
+  const { clientId } = gate;
   if (!clientId) return;
 
   const result = await analyseClientFeedback(prisma, clientId, {

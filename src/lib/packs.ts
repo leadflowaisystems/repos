@@ -17,6 +17,37 @@ const taxonomyEntrySchema = z.object({
   action: z.string().optional(),
   hints: z.array(z.string()).default([]),
   /**
+   * The praise theme that is the other face of this complaint (M12).
+   *
+   * "Long waiting time" and "Little or no waiting" are one experience seen
+   * from two sides, and an owner should not have to notice that themselves.
+   * Declared here — never guessed by code — on ISSUE entries only, naming a
+   * key in the same pack's praiseTaxonomy. Optional: most themes have none.
+   */
+  counterpart: z.string().optional(),
+  /**
+   * What the pack's advice needs from the business (M13): STAFF, DISCOUNT,
+   * PRICE or SPEND. When the owner has told RepOS one of these is off the
+   * table, the advice is flagged and `alternativeAction` offered instead.
+   * Declared here, per theme, never guessed from the wording.
+   */
+  actionNeeds: z.array(z.enum(['STAFF', 'DISCOUNT', 'PRICE', 'SPEND'])).default([]),
+  /** The pack's fallback advice when `actionNeeds` cannot be met. Optional. */
+  alternativeAction: z.string().optional(),
+  /**
+   * One question worth asking the owner when this complaint leads (M12).
+   *
+   * The feedback says customers wait; it rarely says where. The answer
+   * changes what to fix, so RepOS asks — once, with simple choices — rather
+   * than guessing. ISSUE entries only. Optional.
+   */
+  askOwner: z
+    .object({
+      question: z.string().min(1),
+      options: z.array(z.string().min(1)).min(2).max(4),
+    })
+    .optional(),
+  /**
    * How to name this theme inside a reply to a customer (M7).
    *
    * `label` is a category name for the operator's screens — "Appointment /
@@ -35,6 +66,33 @@ const taxonomyEntrySchema = z.object({
   replyPhraseHinglish: z.string().optional(),
   /** The same phrase in Marathi. Optional. */
   replyPhraseMarathi: z.string().optional(),
+});
+
+/**
+ * One thing a customer is asked about, and the ways it commonly goes wrong.
+ *
+ * `key` is what gets stored and what the intelligence engine reads; `label` is
+ * what the customer sees and may be reworded freely without orphaning a single
+ * stored rating. `themeKey` names the issue this dimension is evidence for, so
+ * a low rating strengthens a theme the engine already knows about rather than
+ * introducing a parallel vocabulary of its own.
+ */
+const packDimensionSchema = z.object({
+  key: z.string().min(1),
+  label: z.string().min(1),
+  /** An `issueTaxonomy` key in this same pack. */
+  themeKey: z.string().default(''),
+  /** Asked when the rating is low. Never phrased as an accusation. */
+  improvePrompt: z.string().default(''),
+  /** Asked when the rating is high — praise is worth as much detail. */
+  goodPrompt: z.string().default(''),
+  /**
+   * Tappable specifics offered after a low rating. Not a list of complaints:
+   * a customer picks one because it is quicker than typing, and may pick none.
+   */
+  signals: z
+    .array(z.object({ key: z.string().min(1), label: z.string().min(1) }))
+    .default([]),
 });
 
 const packSchema = z.object({
@@ -96,11 +154,42 @@ const packSchema = z.object({
       thankYou: z.string().default(''),
     })
     .optional(),
+  /**
+   * Customer feedback page wording for this vertical (M14).
+   *
+   * There is ONE feedback page. These few lines are the only thing about it
+   * that differs between a clinic and a cafe. Optional: a pack without it
+   * gets the universal wording from `src/lib/gateway/copy.ts`. Nothing here
+   * may mention ratings, stars, reviews or platforms — the page asks the
+   * same question of every customer and steers nobody.
+   */
+  gateway: z
+    .object({
+      headline: z.string().default(''),
+      prompt: z.string().default(''),
+      placeholder: z.string().default(''),
+      thankYou: z.string().default(''),
+      printLine: z.string().default(''),
+      /**
+       * What this vertical asks a customer to rate, in the order asked (M19).
+       *
+       * Writing is the slowest thing a customer can be asked for, and most
+       * will not do it. These few taps are what makes an unwritten visit
+       * legible: five ratings say which part of the business was the problem
+       * even when nobody types a word. Empty for a pack that has not been
+       * given a set — then the page asks the overall question and stops.
+       */
+      dimensions: z.array(packDimensionSchema).default([]),
+    })
+    .optional(),
 });
 
 export type TaxonomyEntry = z.infer<typeof taxonomyEntrySchema>;
 export type Pack = z.infer<typeof packSchema>;
 export type PackKit = NonNullable<Pack['kit']>;
+export type PackGateway = NonNullable<Pack['gateway']>;
+export type PackDimension = z.infer<typeof packDimensionSchema>;
+export type PackSignal = PackDimension['signals'][number];
 
 const PACKS_DIR = join(process.cwd(), 'packs');
 

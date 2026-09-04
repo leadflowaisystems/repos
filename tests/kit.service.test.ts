@@ -7,7 +7,21 @@ import {
   saveReviewLink,
   setKitInstalled,
 } from '@/lib/kit/service';
+import { getGatewayView, savePublicBaseUrl, savePublicReviewUrl } from '@/lib/gateway/service';
 import { createTestDb, resetDb, validClientInput } from './helpers/test-db';
+
+/**
+ * THE PRINTED KIT (M3, rebuilt around the feedback gateway in M17).
+ *
+ * Until M17 the kit's QR encoded whatever public review link the operator had
+ * pasted in, while the words printed above it said "tell us honestly — good or
+ * bad". A customer read a promise of a private channel and was handed a public
+ * one, and a business with no public listing could not print a card at all.
+ *
+ * These tests hold the corrected rule: there is ONE address on every printed
+ * piece RepOS produces, it is the client's own feedback page, and a public
+ * review link is optional and never the QR.
+ */
 
 let db: PrismaClient;
 
@@ -17,19 +31,18 @@ beforeAll(() => {
 
 beforeEach(async () => {
   await resetDb(db);
+  await savePublicBaseUrl(db, BASE);
 });
 
 afterAll(async () => {
   await db.$disconnect();
 });
 
+const BASE = 'https://repos.example.com';
 const URL_OK = 'https://example.com/review/sunrise';
 
 async function makeClient(vertical: string, businessName: string) {
-  const result = await createClient(
-    db,
-    validClientInput({ vertical, businessName }),
-  );
+  const result = await createClient(db, validClientInput({ vertical, businessName }));
   if (!result.ok) throw new Error(`setup failed: ${result.message}`);
   return result.data.id;
 }
@@ -49,16 +62,73 @@ function config(overrides: Record<string, unknown> = {}) {
 
 // ---------------------------------------------------------------------------
 
-describe('kit view — missing link state', () => {
-  it('reports NEEDS ONE THING for a brand new client', async () => {
-    const id = await makeClient('clinic', 'Sunrise Clinic');
+describe('the card carries the feedback page, and only that', () => {
+  it('is ready to print the moment the client exists', async () => {
+    // No public review link, no listing, no account anywhere.
+    const id = await makeClient('restaurant', 'Corner Cafe');
     const view = await getKitView(db, id);
 
-    expect(view).not.toBeNull();
+    expect(view?.readiness.ready).toBe(true);
+    expect(view?.readiness.label).toBe('READY');
+    expect(view?.qr.ok).toBe(true);
+  });
+
+  it('encodes this client’s own feedback address', async () => {
+    const id = await makeClient('restaurant', 'Corner Cafe');
+    const view = await getKitView(db, id);
+    const gateway = await getGatewayView(db, id, { requestOrigin: null });
+
+    expect(view?.content.feedbackUrl).toBe(gateway?.feedbackUrl);
+    expect(view?.content.feedbackUrl?.startsWith(`${BASE}/feedback/`)).toBe(true);
+    if (view?.qr.ok) expect(view.qr.url).toBe(gateway?.feedbackUrl);
+  });
+
+  it('encodes the same address as the feedback card and the on-screen QR', async () => {
+    // Four surfaces, one URL: the operator's QR tab, the printed feedback card,
+    // the printed kit, and the downloadable image all come from these two.
+    const id = await makeClient('salon', 'Glow Salon');
+    const kit = await getKitView(db, id);
+    const gateway = await getGatewayView(db, id, { requestOrigin: null });
+
+    expect(kit?.qr.ok && gateway?.qr).toBeTruthy();
+    if (kit?.qr.ok) expect(kit.qr.url).toBe(gateway?.qr?.url);
+  });
+
+  it('never encodes the public review link, even when one is saved', async () => {
+    const id = await makeClient('clinic', 'Sunrise Clinic');
+    await savePublicReviewUrl(db, id, URL_OK);
+    const view = await getKitView(db, id);
+
+    expect(view?.content.publicReviewUrl).toBe(URL_OK);
+    if (view?.qr.ok) {
+      expect(view.qr.url).not.toBe(URL_OK);
+      expect(view.qr.url).toContain('/feedback/');
+    }
+  });
+
+  it('points every copyable message at the feedback page', async () => {
+    const id = await makeClient('restaurant', 'Corner Cafe');
+    await savePublicReviewUrl(db, id, URL_OK);
+    const view = await getKitView(db, id);
+
+    expect(view?.content.messages.length).toBeGreaterThan(0);
+    for (const message of view!.content.messages) {
+      expect(message.body).toContain('/feedback/');
+      expect(message.body).not.toContain(URL_OK);
+      expect(message.body).not.toContain('{{');
+    }
+  });
+
+  it('produces no QR at all when the installation has no address', async () => {
+    // A printed card cannot be recalled, so RepOS would rather print nothing.
+    const id = await makeClient('gym', 'FitZone Gym');
+    await savePublicBaseUrl(db, '');
+    const view = await getKitView(db, id);
+
     expect(view?.readiness.ready).toBe(false);
-    expect(view?.readiness.label).toBe('NEEDS ONE THING');
-    expect(view?.readiness.blockers[0]?.key).toBe('reviewUrl');
+    expect(view?.readiness.blockers[0]?.key).toBe('feedbackUrl');
     expect(view?.qr.ok).toBe(false);
+    expect(view?.addressError).not.toBeNull();
   });
 
   it('still produces full vertical copy so the operator can preview it', async () => {
@@ -68,7 +138,6 @@ describe('kit view — missing link state', () => {
     expect(view?.content.headline).toBe('How was the food today?');
     expect(view?.content.assetLabel).toBe('table card');
     expect(view?.content.messages.length).toBeGreaterThan(0);
-    expect(view?.content.reviewUrl).toBeNull();
   });
 
   it('returns null for an unknown client instead of throwing', async () => {
@@ -76,209 +145,128 @@ describe('kit view — missing link state', () => {
   });
 });
 
-describe('kit view — supplied link state', () => {
-  it('becomes READY and renders a QR once a link is saved', async () => {
+// ---------------------------------------------------------------------------
+
+describe('the optional public review link is one value everywhere', () => {
+  it('shows on the kit when it was saved on the Feedback QR page', async () => {
+    const id = await makeClient('clinic', 'Sunrise Clinic');
+    await savePublicReviewUrl(db, id, URL_OK);
+
+    expect((await getKitView(db, id))?.content.publicReviewUrl).toBe(URL_OK);
+  });
+
+  it('reaches the customer’s thank-you page when it was saved on the kit', async () => {
     const id = await makeClient('clinic', 'Sunrise Clinic');
     const saved = await saveReviewLink(db, id, URL_OK);
     expect(saved.ok).toBe(true);
 
-    const view = await getKitView(db, id);
-    expect(view?.readiness.ready).toBe(true);
-    expect(view?.readiness.label).toBe('READY');
-    expect(view?.qr.ok).toBe(true);
-    if (view?.qr.ok) {
-      expect(view.qr.svg.startsWith('<svg')).toBe(true);
-      expect(view.qr.url).toBe(URL_OK);
-    }
+    const gateway = await getGatewayView(db, id, { requestOrigin: null });
+    expect(gateway?.publicReviewUrl).toBe(URL_OK);
   });
 
-  it('reuses the review link already on the client record', async () => {
-    const result = await createClient(
-      db,
-      validClientInput({ reviewLinkUrl: URL_OK }),
-    );
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-
-    // No kit-specific setup at all, yet the kit is ready: the operator is never
-    // asked for the same URL twice.
-    const view = await getKitView(db, result.data.id);
-    expect(view?.readiness.ready).toBe(true);
-    expect(view?.qr.ok).toBe(true);
-  });
-
-  it('keeps the client record in step when the link is set from the kit', async () => {
-    const id = await makeClient('salon', 'Glow Salon');
+  it('disappears from both screens when it is cleared from either', async () => {
+    const id = await makeClient('clinic', 'Sunrise Clinic');
     await saveReviewLink(db, id, URL_OK);
+    await savePublicReviewUrl(db, id, '');
 
-    const client = await db.client.findUniqueOrThrow({ where: { id } });
-    expect(client.reviewLinkUrl).toBe(URL_OK);
+    expect((await getKitView(db, id))?.content.publicReviewUrl).toBeNull();
+    expect((await getGatewayView(db, id, { requestOrigin: null }))?.publicReviewUrl).toBe('');
   });
 
-  it('rejects an unsafe link and stores nothing', async () => {
+  it('refuses a RepOS address, so the two paths cannot be crossed', async () => {
     const id = await makeClient('clinic', 'Sunrise Clinic');
-    const result = await saveReviewLink(db, id, 'javascript:alert(1)');
+    const gateway = await getGatewayView(db, id, { requestOrigin: null });
 
+    const result = await saveReviewLink(db, id, gateway!.feedbackUrl);
     expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.errors.qrTargetUrl).toContain('https://');
-    expect(await db.kitConfig.count({ where: { qrTargetUrl: { not: '' } } })).toBe(0);
   });
 
-  it('rejects a link that is not a link at all', async () => {
-    const id = await makeClient('clinic', 'Sunrise Clinic');
-    expect((await saveReviewLink(db, id, 'my review page')).ok).toBe(false);
-  });
+  it('says nothing about a public option when there is no link', async () => {
+    const id = await makeClient('gym', 'FitZone Gym');
+    const view = await getKitView(db, id);
 
-  it('reports an unknown client instead of throwing', async () => {
-    expect((await saveReviewLink(db, 'nope', URL_OK)).ok).toBe(false);
+    expect(view?.content.publicReviewUrl).toBeNull();
+    expect(view?.content.publicReviewNote).toBeNull();
   });
 });
 
-describe('kit configuration', () => {
-  it('saves operator overrides and reflects them in the content', async () => {
-    const id = await makeClient('clinic', 'Sunrise Dental Clinic');
-    const result = await saveKitConfig(
+// ---------------------------------------------------------------------------
+
+describe('kit settings', () => {
+  it('saves the operator’s wording and keeps the card printable', async () => {
+    const id = await makeClient('clinic', 'Sunrise Clinic');
+    const saved = await saveKitConfig(
       db,
       id,
-      config({
-        displayName: 'Sunrise Dental',
-        headline: 'How was your visit today?',
-        brandPrimary: '#123456',
-      }),
+      config({ displayName: 'Sunrise', headline: 'How did we do?' }),
     );
-    expect(result.ok).toBe(true);
+    expect(saved.ok).toBe(true);
 
     const view = await getKitView(db, id);
-    expect(view?.content.displayName).toBe('Sunrise Dental');
-    expect(view?.content.headline).toBe('How was your visit today?');
-    expect(view?.brandPrimary).toBe('#123456');
-    expect(view?.content.messages[0]?.body).toContain('Sunrise Dental');
+    expect(view?.content.displayName).toBe('Sunrise');
+    expect(view?.content.headline).toBe('How did we do?');
+    expect(view?.readiness.ready).toBe(true);
   });
 
-  it('falls back to vertical defaults when overrides are blank', async () => {
-    const id = await makeClient('salon', 'Glow Salon');
-    await saveKitConfig(db, id, config());
-
-    const view = await getKitView(db, id);
-    expect(view?.content.headline).toBe('Happy with how it turned out?');
-    expect(view?.content.displayName).toBe('Glow Salon');
-  });
-
-  it('rejects a malformed brand colour', async () => {
+  it('rejects a colour that is not a colour', async () => {
     const id = await makeClient('clinic', 'Sunrise Clinic');
-    const result = await saveKitConfig(db, id, config({ brandPrimary: 'blue' }));
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.errors.brandPrimary).toContain('hex');
+    const saved = await saveKitConfig(db, id, config({ brandPrimary: 'not-a-colour' }));
+    expect(saved.ok).toBe(false);
+    if (!saved.ok) expect(saved.errors.brandPrimary).toBeTruthy();
   });
 
-  it('rejects a malformed destination but accepts a deliberately blank one', async () => {
+  it('records and clears the on-site date', async () => {
     const id = await makeClient('clinic', 'Sunrise Clinic');
-    expect((await saveKitConfig(db, id, config({ qrTargetUrl: 'nope' }))).ok).toBe(false);
-    expect((await saveKitConfig(db, id, config({ qrTargetUrl: '' }))).ok).toBe(true);
-  });
-
-  it('normalises the stored URL so QR and copy-link always agree', async () => {
-    const id = await makeClient('clinic', 'Sunrise Clinic');
-    await saveKitConfig(db, id, config({ qrTargetUrl: '  https://example.com/r  ' }));
-
-    const stored = await db.kitConfig.findUniqueOrThrow({ where: { clientId: id } });
-    expect(stored.qrTargetUrl).toBe('https://example.com/r');
-
-    const view = await getKitView(db, id);
-    if (view?.qr.ok) expect(view.qr.url).toBe(stored.qrTargetUrl);
-  });
-});
-
-describe('kit installed tracking', () => {
-  it('records and clears the installed date', async () => {
-    const id = await makeClient('clinic', 'Sunrise Clinic');
-    const when = new Date('2026-03-01T00:00:00.000Z');
-
-    await setKitInstalled(db, id, true, when);
-    expect((await getKitView(db, id))?.kitInstalledDate?.toISOString()).toBe(
-      when.toISOString(),
-    );
+    await setKitInstalled(db, id, true);
+    expect((await getKitView(db, id))?.kitInstalledDate).not.toBeNull();
 
     await setKitInstalled(db, id, false);
     expect((await getKitView(db, id))?.kitInstalledDate).toBeNull();
   });
+
+  it('tells the operator when the feedback page is paused', async () => {
+    const id = await makeClient('clinic', 'Sunrise Clinic');
+    await db.feedbackGateway.update({ where: { clientId: id }, data: { enabled: false } });
+
+    const view = await getKitView(db, id);
+    expect(view?.gatewayPaused).toBe(true);
+    // The cards still print — the operator is told, not blocked.
+    expect(view?.readiness.ready).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------
-// Universal architecture: three real verticals, one code path.
-// ---------------------------------------------------------------------------
 
-describe('same workflow across clinic, salon and restaurant', () => {
-  const VERTICALS = [
-    { vertical: 'clinic', name: 'Sunrise Clinic', expectHeadline: 'Was today’s visit helpful?', asset: 'counter card' },
-    { vertical: 'salon', name: 'Glow Salon', expectHeadline: 'Happy with how it turned out?', asset: 'counter card' },
-    { vertical: 'restaurant', name: 'Corner Cafe', expectHeadline: 'How was the food today?', asset: 'table card' },
-  ];
+describe('one client can never reach another client’s card', () => {
+  it('gives every client its own feedback address', async () => {
+    const cafe = await makeClient('restaurant', 'Corner Cafe');
+    const salon = await makeClient('salon', 'Glow Salon');
 
-  it('takes every vertical through create -> add link -> ready kit identically', async () => {
-    for (const spec of VERTICALS) {
-      await resetDb(db);
+    const cafeView = await getKitView(db, cafe);
+    const salonView = await getKitView(db, salon);
 
-      // 1. Create the client — same service call for every vertical.
-      const id = await makeClient(spec.vertical, spec.name);
-
-      // 2. Brand new client: not ready, one thing missing.
-      const before = await getKitView(db, id);
-      expect(before?.readiness.label, spec.vertical).toBe('NEEDS ONE THING');
-
-      // 3. Add the link — same service call for every vertical.
-      expect((await saveReviewLink(db, id, URL_OK)).ok, spec.vertical).toBe(true);
-
-      // 4. Ready, with a QR — same service call for every vertical.
-      const after = await getKitView(db, id);
-      expect(after?.readiness.ready, spec.vertical).toBe(true);
-      expect(after?.qr.ok, spec.vertical).toBe(true);
-
-      // 5. …but the content is the trade's own language.
-      expect(after?.content.headline, spec.vertical).toBe(spec.expectHeadline);
-      expect(after?.content.assetLabel, spec.vertical).toBe(spec.asset);
-      expect(after?.verticalLabel, spec.vertical).toBeTruthy();
+    expect(cafeView?.content.feedbackUrl).not.toBe(salonView?.content.feedbackUrl);
+    if (cafeView?.qr.ok && salonView?.qr.ok) {
+      expect(cafeView.qr.url).not.toBe(salonView.qr.url);
     }
   });
 
-  it('produces different copy but an identical result shape', async () => {
-    const views = [];
-    for (const spec of VERTICALS) {
-      await resetDb(db);
-      const id = await makeClient(spec.vertical, spec.name);
-      await saveReviewLink(db, id, URL_OK);
-      views.push(await getKitView(db, id));
-    }
+  it('keeps one client’s public review link off another client’s card', async () => {
+    const cafe = await makeClient('restaurant', 'Corner Cafe');
+    const salon = await makeClient('salon', 'Glow Salon');
+    await savePublicReviewUrl(db, cafe, URL_OK);
 
-    const shapes = views.map((v) => Object.keys(v ?? {}).sort().join(','));
-    expect(new Set(shapes).size).toBe(1); // one shape
-
-    const headlines = views.map((v) => v?.content.headline);
-    expect(new Set(headlines).size).toBe(3); // three voices
+    expect((await getKitView(db, salon))?.content.publicReviewUrl).toBeNull();
   });
 
-  it('stores no customer personal data for any vertical', async () => {
-    for (const spec of VERTICALS) {
-      await resetDb(db);
-      const id = await makeClient(spec.vertical, spec.name);
-      await saveReviewLink(db, id, URL_OK);
+  it('gives every client its own vertical wording', async () => {
+    const cafe = await makeClient('restaurant', 'Corner Cafe');
+    const clinic = await makeClient('clinic', 'Sunrise Clinic');
 
-      const view = await getKitView(db, id);
-      const blob = JSON.stringify(view).toLowerCase();
-      expect(blob, spec.vertical).not.toMatch(/\b\d{10}\b/);
-      expect(blob, spec.vertical).not.toContain('customername');
-      expect(blob, spec.vertical).not.toContain('customerphone');
-    }
-  });
+    const cafeView = await getKitView(db, cafe);
+    const clinicView = await getKitView(db, clinic);
 
-  it('is deterministic — reading the same stored kit twice matches exactly', async () => {
-    const id = await makeClient('restaurant', 'Corner Cafe');
-    await saveReviewLink(db, id, URL_OK);
-
-    const first = await getKitView(db, id);
-    const second = await getKitView(db, id);
-    expect(JSON.stringify(second)).toBe(JSON.stringify(first));
+    expect(cafeView?.content.headline).not.toBe(clinicView?.content.headline);
+    expect(cafeView?.content.assetLabel).toBe('table card');
   });
 });

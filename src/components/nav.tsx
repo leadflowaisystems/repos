@@ -9,6 +9,7 @@ const ITEMS = [
   { href: '/', label: 'Dashboard' },
   { href: '/clients', label: 'Clients' },
   { href: '/minutes', label: 'Minutes' },
+  { href: '/settings', label: 'Settings' },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {
@@ -16,7 +17,14 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function Nav({ aiNote }: { aiNote: string }) {
+export function Nav({
+  aiNote,
+  signOut,
+}: {
+  aiNote: string;
+  /** Rendered by the layout, so the sign-out action stays server-side. */
+  signOut?: React.ReactNode;
+}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -62,6 +70,7 @@ export function Nav({ aiNote }: { aiNote: string }) {
           className="border-b border-ink-200 bg-white px-4 py-3 md:hidden"
         >
           <div className="space-y-1">{links}</div>
+          {signOut ? <div className="mt-2 border-t border-ink-100 pt-2">{signOut}</div> : null}
         </nav>
       ) : null}
 
@@ -73,6 +82,7 @@ export function Nav({ aiNote }: { aiNote: string }) {
           </Link>
         </div>
         <nav className="flex-1 space-y-1 px-3">{links}</nav>
+        {signOut ? <div className="px-3 pb-2">{signOut}</div> : null}
         <div className="border-t border-ink-100 px-5 py-4">
           <p className="text-[11px] leading-relaxed text-ink-400">{aiNote}</p>
         </div>

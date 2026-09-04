@@ -10,6 +10,9 @@ import {
   type KitReadiness,
 } from './content';
 import { generateQrSvg, type QrResult } from './qr';
+import { ensureGateway, getPublicBaseUrl } from '@/lib/gateway/service';
+import { feedbackUrl as buildFeedbackUrl } from '@/lib/gateway/token';
+import { resolvePublicBaseUrl } from '@/lib/config/public-url';
 
 /**
  * Feedback kit service.
@@ -69,6 +72,13 @@ export type KitView = {
   content: KitContent;
   readiness: KitReadiness;
   qr: QrResult;
+  /**
+   * Set when RepOS cannot say what address a customer would open, so no card
+   * can be printed yet. Plain language, for the operator.
+   */
+  addressError: string | null;
+  /** True when this client's feedback page is switched off. */
+  gatewayPaused: boolean;
   brandPrimary: string;
   brandSecondary: string;
   /** Raw stored values, for populating the settings form. */
@@ -86,6 +96,7 @@ const DEFAULT_SECONDARY = '#C9A227';
 export async function getKitView(
   db: PrismaClient,
   clientId: string,
+  options: { requestOrigin?: string | null } = {},
 ): Promise<KitView | null> {
   const client = await db.client.findUnique({
     where: { id: clientId },
@@ -103,13 +114,29 @@ export async function getKitView(
   const pack = getPackOrFallback(client.vertical);
   const stored = client.kitConfig;
 
-  // If the operator already recorded a review link on the client record, use it
-  // as the kit destination rather than asking for the same URL twice.
-  const qrTargetUrl =
-    (stored?.qrTargetUrl ?? '').trim() || (client.reviewLinkUrl ?? '').trim();
+  // The one address every printed piece carries: this client's own feedback
+  // page, built from the same gateway token and the same installation address
+  // the QR tab and the feedback card use. There is no second URL to keep in
+  // step, because there is no second URL.
+  const gateway = await ensureGateway(db, clientId);
+  const address = resolvePublicBaseUrl({
+    setting: await getPublicBaseUrl(db),
+    requestOrigin: options.requestOrigin ?? null,
+  });
+  const feedbackUrl =
+    gateway && address.ok ? buildFeedbackUrl(address.url, gateway.publicToken) : '';
+
+  // The optional public review link has one home: the gateway row, which is
+  // what the customer's thank-you page actually reads. The two older columns
+  // are read only as a fallback for clients set up before the gateway existed,
+  // so the operator can never see two different answers on two screens.
+  const publicReviewUrl =
+    (gateway?.publicReviewUrl ?? '').trim() ||
+    (stored?.qrTargetUrl ?? '').trim() ||
+    (client.reviewLinkUrl ?? '').trim();
 
   const config: KitConfigInput = {
-    qrTargetUrl,
+    qrTargetUrl: publicReviewUrl,
     displayName: stored?.displayName ?? '',
     headline: stored?.headline ?? '',
     subhead: stored?.subhead ?? '',
@@ -122,7 +149,8 @@ export async function getKitView(
     pack,
     businessName: client.businessName,
     displayName: config.displayName,
-    reviewUrl: config.qrTargetUrl,
+    feedbackUrl,
+    publicReviewUrl,
     headline: config.headline,
     subhead: config.subhead,
     footerNote: config.footerNote,
@@ -137,9 +165,11 @@ export async function getKitView(
     content,
     readiness: computeReadiness({
       businessName: client.businessName,
-      reviewUrl: config.qrTargetUrl,
+      feedbackUrl,
     }),
-    qr: await generateQrSvg(config.qrTargetUrl),
+    qr: await generateQrSvg(feedbackUrl),
+    addressError: address.ok ? null : address.reason,
+    gatewayPaused: gateway ? !gateway.enabled : false,
     brandPrimary: config.brandPrimary,
     brandSecondary: config.brandSecondary,
     config,
@@ -199,19 +229,40 @@ export async function saveKitConfig(
     },
   });
 
-  return ok({
-    clientId,
-    ready: computeReadiness({
-      businessName: client.businessName,
-      reviewUrl: data.qrTargetUrl,
-    }).ready,
-  });
+  // The public review link the operator just typed is the same one the
+  // customer's thank-you page offers, so it is written to the gateway as well.
+  // Two screens, one value.
+  await syncPublicReviewUrl(db, clientId, normalisedUrl.ok ? normalisedUrl.url : '');
+
+  return ok({ clientId, ready: true });
 }
 
 /**
- * Fast path used by the "add your link" state: saves only the destination and
- * leaves every other setting on its vertical default. This is what keeps a new
- * client one field away from a printable kit.
+ * Keeps the optional public review link identical wherever it is edited.
+ *
+ * The kit page and the Feedback QR page both offer this field. Before M17 they
+ * wrote to different columns, so the card could point one way and the
+ * thank-you page another. Now either screen writes both.
+ */
+async function syncPublicReviewUrl(
+  db: PrismaClient,
+  clientId: string,
+  url: string,
+): Promise<void> {
+  await db.feedbackGateway.updateMany({
+    where: { clientId },
+    data: { publicReviewUrl: url },
+  });
+  await db.client.update({ where: { id: clientId }, data: { reviewLinkUrl: url || null } });
+}
+
+/**
+ * Fast path for adding the OPTIONAL public review link.
+ *
+ * It is not what makes a kit printable — the card carries the RepOS feedback
+ * page, which every client has from the moment they are created. This only
+ * decides whether customers are offered a public review after they have
+ * already had their say.
  */
 export async function saveReviewLink(
   db: PrismaClient,
@@ -224,7 +275,20 @@ export async function saveReviewLink(
   });
   if (!client) return err('That client no longer exists.');
 
-  const check = checkReviewUrl(rawUrl);
+  // Blank clears it. The card does not depend on this link, so removing it has
+  // to be as easy as adding it (M17).
+  const value = rawUrl.trim();
+  if (value.length === 0) {
+    await db.kitConfig.upsert({
+      where: { clientId },
+      create: { clientId, qrTargetUrl: '' },
+      update: { qrTargetUrl: '' },
+    });
+    await syncPublicReviewUrl(db, clientId, '');
+    return ok({ clientId });
+  }
+
+  const check = checkReviewUrl(value);
   if (!check.ok) {
     return err('That link cannot be used.', { qrTargetUrl: check.reason });
   }
@@ -234,12 +298,7 @@ export async function saveReviewLink(
     create: { clientId, qrTargetUrl: check.url },
     update: { qrTargetUrl: check.url },
   });
-
-  // Keep the client record in step so the operator never types this twice.
-  await db.client.update({
-    where: { id: clientId },
-    data: { reviewLinkUrl: check.url },
-  });
+  await syncPublicReviewUrl(db, clientId, check.url);
 
   return ok({ clientId });
 }

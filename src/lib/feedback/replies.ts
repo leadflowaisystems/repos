@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { getPackOrFallback, type Pack } from '@/lib/packs';
 import { parseJson } from '@/lib/format';
+import { hasReplyChannel } from '@/lib/feedback/service';
 import { aiStatus } from '@/lib/ai';
 import { draftReplyWithAi } from '@/lib/ai/draft-reply';
 import type { NormalizedTheme } from '@/lib/analysis/normalize';
@@ -130,6 +131,7 @@ export async function triageClientFeedback(
       analysisVersion: true,
       triageVersion: true,
       responseAction: true,
+      source: true,
     },
   });
 
@@ -153,6 +155,8 @@ export async function triageClientFeedback(
       themes: parseJson<NormalizedTheme[]>(row.themesJson, []),
       pack: bundle.pack,
       now,
+      // Private feedback from the QR page has nobody to reply to (M14).
+      replyChannel: hasReplyChannel(row.source),
     });
 
     await db.reviewItem.update({
@@ -211,6 +215,11 @@ export type DraftOptions = {
 
 /** Statuses that represent the operator's own work. Never overwritten. */
 const OPERATOR_OWNED = new Set(['EDITED', 'HANDLED']);
+
+/** The operator's work, whether it shows as a status or as a handled date. */
+function operatorOwned(row: { draftStatus: string; handledAt: Date | null }): boolean {
+  return OPERATOR_OWNED.has(row.draftStatus) || row.handledAt !== null;
+}
 
 function buildContext(
   bundle: ClientBundle,
@@ -272,6 +281,7 @@ export async function draftClientReplies(
       responseAction: true,
       draftStatus: true,
       draftVersion: true,
+      handledAt: true,
     },
   });
 
@@ -285,7 +295,7 @@ export async function draftClientReplies(
   });
 
   const pending = eligible.filter((row) => {
-    if (OPERATOR_OWNED.has(row.draftStatus)) return false;
+    if (operatorOwned(row)) return false;
     if (options.force) return true;
     if (row.draftStatus === 'READY') return row.draftVersion < DRAFT_VERSION;
     return true; // NONE or FAILED
@@ -549,12 +559,17 @@ export async function setHandled(
   });
   if (!row) return err('That feedback item no longer exists.');
 
+  // Handled is recorded in ONE field: handledAt (M17).
+  //
+  // It used to also rewrite draftStatus, which meant reopening an item RepOS
+  // had written every word of relabelled it "EDITED" — the operator's own
+  // wording — and permanently exempted it from being rewritten under newer
+  // rules. One mis-click was silently unrecoverable. Leaving draftStatus alone
+  // keeps "who wrote this" and "am I finished with it" as the separate facts
+  // they are.
   await db.reviewItem.update({
     where: { id: row.id },
-    data: {
-      draftStatus: handled ? 'HANDLED' : row.draftText ? 'EDITED' : 'NONE',
-      handledAt: handled ? (options.now ?? new Date()) : null,
-    },
+    data: { handledAt: handled ? (options.now ?? new Date()) : null },
   });
 
   return ok({ handled });
@@ -572,6 +587,19 @@ export type ReplyCoverage = {
   optional: number;
   needsYou: number;
   noReplyNeeded: number;
+  /**
+   * The same two counts with the ones the operator has finished taken out
+   * (M17).
+   *
+   * `needsReply` and `needsYou` describe what triage decided and never move,
+   * which is the right number for a filter chip and the wrong one for a
+   * headline: an operator who drafted, copied and marked twelve replies
+   * watched "Needs a reply: 12" sit there unchanged. Worse, the owner's portal
+   * already dropped handled items from its own count, so the two sides of the
+   * product disagreed about the same work.
+   */
+  replyOutstanding: number;
+  youOutstanding: number;
   drafted: number;
   edited: number;
   handled: number;
@@ -594,6 +622,7 @@ export async function getReplyCoverage(
       responseAction: true,
       draftStatus: true,
       draftVersion: true,
+      handledAt: true,
     },
   });
   return replyCoverageOf(rows);
@@ -607,7 +636,17 @@ export type ReplyCoverageRow = {
   responseAction: string;
   draftStatus: string;
   draftVersion: number;
+  /** Set when the operator said they dealt with it. */
+  handledAt: Date | null;
 };
+
+/** The one definition of "the operator has finished with this one". */
+export function isHandled(row: {
+  draftStatus: string;
+  handledAt: Date | null;
+}): boolean {
+  return row.draftStatus === 'HANDLED' || row.handledAt !== null;
+}
 
 /**
  * The same coverage from rows already in memory.
@@ -627,7 +666,7 @@ export function replyCoverageOf(rows: ReplyCoverageRow[]): ReplyCoverage {
   const awaitingDraft = rows.filter(
     (r) =>
       r.responseAction === 'REPLY_RECOMMENDED' &&
-      !OPERATOR_OWNED.has(r.draftStatus) &&
+      !operatorOwned(r) &&
       (r.draftStatus !== 'READY' || r.draftVersion < DRAFT_VERSION),
   ).length;
 
@@ -638,13 +677,17 @@ export function replyCoverageOf(rows: ReplyCoverageRow[]): ReplyCoverage {
     optional: count((r) => r.responseAction === 'REPLY_OPTIONAL'),
     needsYou: count((r) => r.responseAction === 'NEEDS_HUMAN'),
     noReplyNeeded: count((r) => r.responseAction === 'NO_RESPONSE_NEEDED'),
+    replyOutstanding: count(
+      (r) => r.responseAction === 'REPLY_RECOMMENDED' && !isHandled(r),
+    ),
+    youOutstanding: count((r) => r.responseAction === 'NEEDS_HUMAN' && !isHandled(r)),
     // Version-aware: a draft written under older rules is not a draft the
     // operator can rely on, and the headline must not claim otherwise.
     drafted: count(
       (r) => r.draftStatus === 'READY' && r.draftVersion >= DRAFT_VERSION,
     ),
     edited: count((r) => r.draftStatus === 'EDITED'),
-    handled: count((r) => r.draftStatus === 'HANDLED'),
+    handled: count(isHandled),
     failed: count((r) => r.draftStatus === 'FAILED'),
     awaitingDraft,
     upToDate: awaitingDraft === 0,

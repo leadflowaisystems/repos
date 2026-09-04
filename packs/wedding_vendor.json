@@ -298,7 +298,7 @@
     },
     {
       "key": "punctuality_praise",
-      "label": "On time",
+      "label": "Punctuality",
       "hints": [
         "on time",
         "punctual",
@@ -314,7 +314,7 @@
     },
     {
       "key": "flexibility",
-      "label": "Flexible and accommodating",
+      "label": "Flexibility and willingness to accommodate",
       "hints": [
         "flexible",
         "accommodating",
@@ -348,7 +348,7 @@
     },
     {
       "key": "delivery_speed",
-      "label": "Delivered on time",
+      "label": "On-time delivery",
       "hints": [
         "delivered on time",
         "quick delivery",
@@ -388,16 +388,18 @@
     ]
   },
   "staffAskScript": {
-    "when": "At final delivery, once the client has seen and approved the finished work.",
-    "line": "If we did right by you, an honest review helps the next couple choose with confidence. The QR on the delivery card takes a minute.",
-    "hinglishLine": "Agar humne aapke liye theek kaam kiya ho, toh ek honest review agle couple ko confidence dene mein help karta hai. Delivery card ka QR ek minute lega.",
-    "marathiLine": "आमचं काम तुम्हाला आवडलं असेल, तर प्रामाणिक अभिप्राय पुढच्या जोडप्याला आत्मविश्वासाने निवडायला मदत करतो. डिलिव्हरी कार्डवरचा QR एक मिनिट घेतो.",
+    "when": "At final delivery, for every client — including anyone who raised something along the way.",
+    "line": "There is a QR on the delivery card. Tell us honestly how we did, including anything we should have done better. It comes straight to us.",
+    "hinglishLine": "Delivery card par QR hai. Honestly bataiye humne kaisa kaam kiya — jo behtar ho sakta tha woh bhi. Seedha humein aata hai.",
+    "marathiLine": "डिलिव्हरी कार्डवर QR आहे. आम्ही कसं काम केलं ते प्रामाणिकपणे सांगा — जे अधिक चांगलं करता आलं असतं तेही. ते थेट आमच्याकडे येतं.",
     "doNot": [
       "Never offer a discount, free prints or extra edits in exchange for a review.",
       "Never ask only the clients whose events went perfectly.",
       "Never write a review on a client's phone.",
       "Never ask a client to remove or edit a review.",
-      "Never post or mention client photos, names or venue details in a public reply."
+      "Never post or mention client photos, names or venue details in a public reply.",
+      "Never wait until someone looks happy — offer the QR to everyone, every time.",
+      "Never ask a customer to leave a public review as a condition of anything."
     ]
   },
   "profileGapChecks": [
@@ -455,13 +457,147 @@
   "kit": {
     "assetLabel": "delivery card",
     "placement": "Included with the final delivery — album box, USB pouch or handover folder.",
-    "moment": "At final delivery, once the client has seen and approved the finished work.",
+    "moment": "At final delivery, for every client — including anyone who raised something along the way.",
     "headline": "Did we do right by you?",
     "subhead": "Scan and share your honest experience. One minute.",
     "qrCaption": "Scan to share your honest experience",
-    "askMessage": "Thank you for trusting {{businessName}} with your day. If we did right by you, an honest review helps the next couple choose with confidence: {{reviewUrl}}",
-    "askMessageHinglish": "{{businessName}} par bharosa karne ke liye dhanyawaad. Agar humne aapke liye theek kaam kiya ho, toh ek honest review agle couple ko confidence deta hai: {{reviewUrl}}",
-    "askMessageMarathi": "{{businessName}} वर विश्वास ठेवल्याबद्दल धन्यवाद. आमचं काम आवडलं असेल, तर प्रामाणिक अभिप्राय पुढच्या जोडप्याला मदत करतो: {{reviewUrl}}",
+    "askMessage": "Thank you for trusting {{businessName}} with your day. If we did right by you, an honest review helps the next couple choose with confidence: {{feedbackUrl}}",
+    "askMessageHinglish": "{{businessName}} par bharosa karne ke liye dhanyawaad. Agar humne aapke liye theek kaam kiya ho, toh ek honest review agle couple ko confidence deta hai: {{feedbackUrl}}",
+    "askMessageMarathi": "{{businessName}} वर विश्वास ठेवल्याबद्दल धन्यवाद. आमचं काम आवडलं असेल, तर प्रामाणिक अभिप्राय पुढच्या जोडप्याला मदत करतो: {{feedbackUrl}}",
     "thankYou": "Thank you — it was a privilege to be part of your day."
+  },
+  "gateway": {
+    "headline": "How did we do on the day?",
+    "prompt": "Tell us what went well, or what we could have done better.",
+    "placeholder": "The planning, the day itself, the delivery — anything at all.",
+    "thankYou": "Thank you. It was a privilege to be part of your day.",
+    "printLine": "Honest feedback helps us do right by the next couple.",
+    "dimensions": [
+      {
+        "key": "quality",
+        "label": "The work itself",
+        "themeKey": "quality_vs_sample",
+        "improvePrompt": "What did not match what you expected?",
+        "goodPrompt": "Anything worth passing on?",
+        "signals": [
+          {
+            "key": "not_like_sample",
+            "label": "Not like the sample shown"
+          },
+          {
+            "key": "missed_things",
+            "label": "Missed things I asked for"
+          },
+          {
+            "key": "uneven",
+            "label": "Quality was uneven"
+          },
+          {
+            "key": "revisions",
+            "label": "Changes were refused"
+          }
+        ]
+      },
+      {
+        "key": "communication",
+        "label": "Communication",
+        "themeKey": "communication",
+        "improvePrompt": "What happened?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "no_reply",
+            "label": "Messages went unanswered"
+          },
+          {
+            "key": "chased",
+            "label": "I had to keep chasing"
+          },
+          {
+            "key": "plans_changed",
+            "label": "Plans changed without telling me"
+          },
+          {
+            "key": "unclear_scope",
+            "label": "Never clear what was included"
+          }
+        ]
+      },
+      {
+        "key": "punctuality",
+        "label": "Being on time",
+        "themeKey": "punctuality",
+        "improvePrompt": "What ran late?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "arrived_late",
+            "label": "Arrived late"
+          },
+          {
+            "key": "delivery_late",
+            "label": "Delivery was late"
+          },
+          {
+            "key": "left_early",
+            "label": "Left before the end"
+          },
+          {
+            "key": "setup_late",
+            "label": "Setup was not ready"
+          }
+        ]
+      },
+      {
+        "key": "team",
+        "label": "The team on the day",
+        "themeKey": "team_substitution",
+        "improvePrompt": "What happened?",
+        "goodPrompt": "Who did a good job?",
+        "signals": [
+          {
+            "key": "different_people",
+            "label": "Not the people I was promised"
+          },
+          {
+            "key": "short_staffed",
+            "label": "Fewer people than agreed"
+          },
+          {
+            "key": "conduct",
+            "label": "How the team behaved"
+          },
+          {
+            "key": "no_lead",
+            "label": "Nobody seemed in charge"
+          }
+        ]
+      },
+      {
+        "key": "value",
+        "label": "Value for the price",
+        "themeKey": "hidden_costs",
+        "improvePrompt": "What felt off about the price?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "extra_charges",
+            "label": "Charges I was not told about"
+          },
+          {
+            "key": "more_than_quoted",
+            "label": "More than the quote"
+          },
+          {
+            "key": "advance_terms",
+            "label": "Advance or refund terms"
+          },
+          {
+            "key": "not_included",
+            "label": "Things I assumed were included"
+          }
+        ]
+      }
+    ]
   }
 }

@@ -18,10 +18,14 @@ import {
 import { DraftRepliesButton } from '@/components/forms/reply-panel';
 import { prisma } from '@/lib/db';
 import {
+  countClientFeedback,
   getFeedbackStats,
   listClientFeedback,
   sourceOptions,
 } from '@/lib/feedback/service';
+
+/** Feedback rows per page in the operator's queue (M18). */
+const FEEDBACK_PAGE_SIZE = 50;
 import { getAnalysisCoverage, getThemeSummary } from '@/lib/feedback/analysis';
 import { getReplyCoverage } from '@/lib/feedback/replies';
 import { responseActionLabel } from '@/lib/reply/triage';
@@ -61,7 +65,11 @@ export default async function FeedbackPage({
   const actionFilter = query.action ?? null;
   const draftFilter = query.draft ?? null;
 
-  const [stats, coverage, replies, themes, items] = await Promise.all([
+  // The operator's queue is a page, not the whole pile (M18). At 640 items
+  // this response was 694KB, most of it comments nobody scrolled to.
+  const page = Math.max(Number.parseInt(query.page ?? '', 10) || 1, 1);
+
+  const [stats, coverage, replies, themes, items, matching] = await Promise.all([
     getFeedbackStats(prisma, id),
     getAnalysisCoverage(prisma, id),
     getReplyCoverage(prisma, id),
@@ -76,11 +84,21 @@ export default async function FeedbackPage({
       draftStatus: draftFilter,
       // Working a reply queue means the most demanding item should lead.
       byPriority: actionFilter !== null || draftFilter !== null,
-      limit: 300,
+      limit: FEEDBACK_PAGE_SIZE * page,
+    }),
+    countClientFeedback(prisma, id, {
+      stars: Number.isFinite(starFilter) ? starFilter : null,
+      source: sourceFilter,
+      sentiment: sentimentFilter,
+      themeKey: themeFilter,
+      analysed: needsFilter ? false : null,
+      responseAction: actionFilter,
+      draftStatus: draftFilter,
     }),
   ]);
 
   const filtered = items;
+  const hasMore = items.length < matching;
 
   const imported = query.imported ? Number.parseInt(query.imported, 10) : null;
   const read = query.read ? Number.parseInt(query.read, 10) : null;
@@ -105,6 +123,11 @@ export default async function FeedbackPage({
     const qs = p.toString();
     return qs ? `${base}?${qs}` : base;
   };
+
+  // What the operator is looking at right now, so an item can send them back
+  // to it. Without this, filtering to "Reply recommended (12)" and opening the
+  // first one loses the filter twelve times over.
+  const queue = href({}).split('?')[1] ?? '';
 
   const filtering =
     starFilter !== null ||
@@ -211,27 +234,32 @@ export default async function FeedbackPage({
               }
             />
             <Stat
-              label="Needs a reply"
+              label="Still to handle"
+              // Outstanding work, not what triage decided (M17). This used to
+              // show the population count, so it stayed at 12 after all twelve
+              // had been drafted, copied and marked handled.
               value={
-                replies.needsTriage > 0 ? '—' : formatNumber(replies.needsReply)
+                replies.needsTriage > 0
+                  ? '—'
+                  : formatNumber(replies.replyOutstanding + replies.youOutstanding)
               }
               hint={
                 replies.needsTriage > 0
                   ? `${replies.needsTriage} still to sort`
-                  : replies.needsYou > 0
-                    ? `${replies.needsYou} for you personally`
+                  : replies.youOutstanding > 0
+                    ? `${replies.youOutstanding} need your own words`
                     : replies.awaitingDraft > 0
                       ? `${replies.awaitingDraft} without a suggestion yet`
-                      : replies.needsReply > 0
-                        ? 'All have a suggestion'
-                        : 'Nothing waiting'
+                      : replies.replyOutstanding > 0
+                        ? 'All have a suggestion, ready to copy'
+                        : `Nothing waiting${replies.handled > 0 ? ` · ${replies.handled} done` : ''}`
               }
               tone={
-                replies.needsTriage > 0 || replies.needsYou > 0
+                replies.needsTriage > 0 ||
+                replies.youOutstanding > 0 ||
+                replies.awaitingDraft > 0
                   ? 'warn'
-                  : replies.awaitingDraft > 0
-                    ? 'warn'
-                    : 'good'
+                  : 'good'
               }
             />
           </div>
@@ -395,20 +423,22 @@ export default async function FeedbackPage({
                 </p>
               ) : (
                 <>
-                  {filtering ? (
+                  {filtering || hasMore ? (
                     <p className="text-[12px] text-ink-500">
-                      {themeLabel ? `Reviews mentioning “${themeLabel}”. ` : ''}
-                      Showing {filtered.length} of {stats.total}.{' '}
-                      <Link href={base} className="underline underline-offset-2">
-                        Clear filters
-                      </Link>
+                      {themeLabel ? `Feedback mentioning “${themeLabel}”. ` : ''}
+                      Showing {filtered.length} of {matching}.{' '}
+                      {filtering ? (
+                        <Link href={base} className="underline underline-offset-2">
+                          Clear filters
+                        </Link>
+                      ) : null}
                     </p>
                   ) : null}
                   <ul className="divide-y divide-ink-100">
                     {filtered.map((item) => (
                       <li key={item.id}>
                         <Link
-                          href={`${base}/${item.id}`}
+                          href={`${base}/${item.id}${queue ? `?from=${encodeURIComponent(queue)}` : ''}`}
                           className="-mx-2 flex items-start gap-3 rounded-lg px-2 py-3 hover:bg-ink-50"
                         >
                           <RatingPill stars={item.stars} />
@@ -465,6 +495,16 @@ export default async function FeedbackPage({
                       </li>
                     ))}
                   </ul>
+                  {hasMore ? (
+                    <div className="border-t border-ink-100 pt-4">
+                      <Link
+                        href={href({ page: String(page + 1) })}
+                        className="inline-block rounded-lg border border-ink-300 px-4 py-2 text-[13px] font-medium text-ink-900 hover:border-ink-900"
+                      >
+                        Show {Math.min(FEEDBACK_PAGE_SIZE, matching - filtered.length)} more
+                      </Link>
+                    </div>
+                  ) : null}
                 </>
               )}
             </CardBody>

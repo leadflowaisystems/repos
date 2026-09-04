@@ -498,13 +498,29 @@ describe('the operator stays in control', () => {
 
     await setHandled(db, clientId, itemId, true, { now: NOW });
     let row = await db.reviewItem.findUnique({ where: { id: itemId } });
-    expect(row?.draftStatus).toBe('HANDLED');
     expect(row?.handledAt).not.toBeNull();
 
     await setHandled(db, clientId, itemId, false);
     row = await db.reviewItem.findUnique({ where: { id: itemId } });
-    expect(row?.draftStatus).not.toBe('HANDLED');
     expect(row?.handledAt).toBeNull();
+  });
+
+  it('does not relabel RepOS’s own wording as the operator’s on reopen', async () => {
+    // Reopening used to set draftStatus to EDITED whenever draft text existed,
+    // so one mis-click permanently claimed RepOS's words as the operator's and
+    // exempted them from ever being rewritten.
+    const clientId = await makeClient();
+    await prepare(clientId, CLINIC_BATCH);
+    await draftClientReplies(db, clientId, OFFLINE);
+    const itemId = await firstDrafted(clientId);
+
+    const before = await db.reviewItem.findUnique({ where: { id: itemId } });
+    await setHandled(db, clientId, itemId, true, { now: NOW });
+    await setHandled(db, clientId, itemId, false);
+    const after = await db.reviewItem.findUnique({ where: { id: itemId } });
+
+    expect(after?.draftStatus).toBe(before?.draftStatus);
+    expect(after?.draftText).toBe(before?.draftText);
   });
 
   it('leaves a handled item alone on the next batch run', async () => {
@@ -512,11 +528,29 @@ describe('the operator stays in control', () => {
     await prepare(clientId, CLINIC_BATCH);
     await draftClientReplies(db, clientId, OFFLINE);
     const itemId = await firstDrafted(clientId);
+    const original = (await db.reviewItem.findUnique({ where: { id: itemId } }))?.draftText;
     await setHandled(db, clientId, itemId, true, { now: NOW });
 
     await draftClientReplies(db, clientId, { ...OFFLINE, force: true });
     const row = await db.reviewItem.findUnique({ where: { id: itemId } });
-    expect(row?.draftStatus).toBe('HANDLED');
+    expect(row?.handledAt).not.toBeNull();
+    expect(row?.draftText).toBe(original);
+  });
+
+  it('stops counting an item once the operator has finished with it', async () => {
+    const clientId = await makeClient();
+    await prepare(clientId, CLINIC_BATCH);
+    await draftClientReplies(db, clientId, OFFLINE);
+    const itemId = await firstDrafted(clientId);
+
+    const before = await getReplyCoverage(db, clientId);
+    await setHandled(db, clientId, itemId, true, { now: NOW });
+    const after = await getReplyCoverage(db, clientId);
+
+    // Triage's own answer does not move; the outstanding work does.
+    expect(after.needsReply).toBe(before.needsReply);
+    expect(after.replyOutstanding).toBe(before.replyOutstanding - 1);
+    expect(after.handled).toBe(before.handled + 1);
   });
 });
 

@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import {
   createFeedbackItem,
@@ -16,6 +16,7 @@ import {
   text,
   type ActionState,
 } from './shared';
+import { tenantGate } from '@/lib/auth/guard';
 
 /**
  * Feedback intake actions.
@@ -35,8 +36,9 @@ export async function importFeedbackAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const clientId = str(form, 'clientId');
-  if (!clientId) return failure('Missing client id.');
+  const gate = await tenantGate(form, 'MEMBER');
+  if (!gate.ok) return gate.state;
+  const { clientId } = gate;
 
   const result = await importFeedbackBatch(prisma, clientId, {
     raw: text(form, 'raw'),
@@ -58,8 +60,9 @@ export async function addFeedbackItemAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const clientId = str(form, 'clientId');
-  if (!clientId) return failure('Missing client id.');
+  const gate = await tenantGate(form, 'MEMBER');
+  if (!gate.ok) return gate.state;
+  const { clientId } = gate;
 
   const result = await createFeedbackItem(prisma, clientId, {
     text: text(form, 'text'),
@@ -74,7 +77,11 @@ export async function addFeedbackItemAction(
 }
 
 export async function deleteFeedbackItemAction(form: FormData): Promise<void> {
-  const clientId = str(form, 'clientId');
+  const gate = await tenantGate(form, 'OWNER');
+  // A denial here is a 404, not a message: "not yours" and "not real"
+  // must look identical to anyone trying ids.
+  if (!gate.ok) notFound();
+  const { clientId } = gate;
   const itemId = str(form, 'itemId');
   if (!clientId || !itemId) return;
 

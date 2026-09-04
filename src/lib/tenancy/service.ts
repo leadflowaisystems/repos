@@ -1,0 +1,179 @@
+import type { PrismaClient } from '@prisma/client';
+
+/**
+ * TENANT RESOLUTION (M20).
+ *
+ * One rule, and everything else follows from it:
+ *
+ *   A client id that arrived from a browser is a REQUEST, never a PERMISSION.
+ *
+ * A URL, a form field and a hidden input can all say `clientId=abc`. None of
+ * them is evidence of anything. The only evidence is a Membership row joining
+ * the authenticated person to that business, and the only authenticated person
+ * is the one Supabase Auth verified. So the chain runs one way and one way
+ * only:
+ *
+ *   Supabase session -> auth user id -> User.authProviderId -> Membership -> Client
+ *
+ * Everything in this module is a pure function of an Actor, which is loaded
+ * once per request. That keeps the decision in one place, makes every branch
+ * testable without a browser or an identity provider, and means a new server
+ * action cannot accidentally invent its own weaker rule.
+ */
+
+export const ROLE_OWNER = 'BUSINESS_OWNER';
+export const ROLE_STAFF = 'BUSINESS_STAFF';
+
+export type Role = typeof ROLE_OWNER | typeof ROLE_STAFF;
+
+export const ACTIVE = 'ACTIVE';
+
+export type ActorMembership = {
+  clientId: string;
+  role: string;
+  status: string;
+};
+
+/** Everything a request may know about who is asking. Loaded once, then read. */
+export type Actor = {
+  userId: string;
+  email: string;
+  /** RepOS staff. Never settable by a signup, an invitation or a form. */
+  isPlatformAdmin: boolean;
+  status: string;
+  memberships: ActorMembership[];
+};
+
+/**
+ * The person behind a verified Supabase identity, or nothing.
+ *
+ * Nothing means: no such user, or a suspended one. A suspended account keeps
+ * its rows and its history — it simply stops being an actor.
+ */
+export async function loadActor(
+  db: PrismaClient,
+  authProviderId: string | null | undefined,
+): Promise<Actor | null> {
+  const id = (authProviderId ?? '').trim();
+  if (id.length === 0) return null;
+
+  const user = await db.user.findUnique({
+    where: { authProviderId: id },
+    select: {
+      id: true,
+      email: true,
+      isPlatformAdmin: true,
+      status: true,
+      memberships: {
+        select: { clientId: true, role: true, status: true },
+      },
+    },
+  });
+  if (!user || user.status !== ACTIVE) return null;
+
+  return {
+    userId: user.id,
+    email: user.email,
+    isPlatformAdmin: user.isPlatformAdmin,
+    status: user.status,
+    memberships: user.memberships,
+  };
+}
+
+/** Only memberships that currently grant anything. */
+function activeMemberships(actor: Actor): ActorMembership[] {
+  return actor.memberships.filter((m) => m.status === ACTIVE);
+}
+
+/** The businesses this actor may open at all. */
+export function accessibleClientIds(actor: Actor): string[] {
+  return activeMemberships(actor).map((m) => m.clientId);
+}
+
+/**
+ * This actor's role at one business, or null.
+ *
+ * Null for a platform admin too: an admin has no role AT a business, they have
+ * authority OVER all of them. Callers that care about the difference ask
+ * `isPlatformAdmin` rather than reading a role that was never really there.
+ */
+export function roleFor(actor: Actor, clientId: string): Role | null {
+  const membership = activeMemberships(actor).find((m) => m.clientId === clientId);
+  if (!membership) return null;
+  return membership.role === ROLE_OWNER ? ROLE_OWNER : ROLE_STAFF;
+}
+
+/** May this actor see this business at all? */
+export function canRead(actor: Actor, clientId: string): boolean {
+  if (actor.isPlatformAdmin) return true;
+  return roleFor(actor, clientId) !== null;
+}
+
+/**
+ * May this actor change the business itself — its details, its team, its
+ * settings? Owners and platform admins only; staff work inside a business
+ * without being able to reshape it.
+ */
+export function canManage(actor: Actor, clientId: string): boolean {
+  if (actor.isPlatformAdmin) return true;
+  return roleFor(actor, clientId) === ROLE_OWNER;
+}
+
+/**
+ * Links a verified Supabase identity to a RepOS user, creating one if needed.
+ *
+ * Called after Supabase has already authenticated someone, so the identity is
+ * trusted; what is NOT trusted is anything the browser sent alongside it.
+ * `isPlatformAdmin` is absent from both the create and the update on purpose:
+ * signing up can never make anyone RepOS staff, and neither can signing in
+ * again with a doctored payload. Promotion is an operator action and lives
+ * nowhere near this function.
+ */
+export async function provisionUser(
+  db: PrismaClient,
+  identity: { providerId: string; email: string; name?: string | null },
+  options: { now?: Date } = {},
+): Promise<{ userId: string; created: boolean }> {
+  const providerId = identity.providerId.trim();
+  const email = identity.email.trim().toLowerCase();
+  if (providerId.length === 0 || email.length === 0) {
+    throw new Error('provisionUser needs a verified identity');
+  }
+  const now = options.now ?? new Date();
+
+  const existing = await db.user.findUnique({
+    where: { authProviderId: providerId },
+    select: { id: true },
+  });
+  if (existing) {
+    await db.user.update({
+      where: { id: existing.id },
+      data: { email, lastSignInAt: now },
+    });
+    return { userId: existing.id, created: false };
+  }
+
+  // An invitation may have created the row before the account existed: the
+  // address is known, the identity is not. Claim it rather than colliding on
+  // the unique email and leaving the person unable to sign in.
+  const byEmail = await db.user.findUnique({ where: { email }, select: { id: true, authProviderId: true } });
+  if (byEmail && !byEmail.authProviderId) {
+    await db.user.update({
+      where: { id: byEmail.id },
+      data: { authProviderId: providerId, lastSignInAt: now, emailVerifiedAt: now },
+    });
+    return { userId: byEmail.id, created: false };
+  }
+
+  const created = await db.user.create({
+    data: {
+      email,
+      name: identity.name?.trim() || null,
+      authProviderId: providerId,
+      emailVerifiedAt: now,
+      lastSignInAt: now,
+    },
+    select: { id: true },
+  });
+  return { userId: created.id, created: true };
+}

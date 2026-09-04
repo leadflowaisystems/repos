@@ -1,7 +1,13 @@
 # PRODUCT PRINCIPLES
 
-RepOS is an internal operator tool. It is not a SaaS product, and the business
-owner is not expected to log into it.
+RepOS is a Customer Feedback → Business Improvement System. Its promise is:
+know what your customers really think, fix what matters, see whether it
+actually improved.
+
+It is not a SaaS product and it is not review management. The operator signs in
+with a password. The business owner never does — they get one secret link per
+business, read-only. A customer never does either — they scan a QR and can say
+something anonymously. That is the whole access model.
 
 ## What we sell
 
@@ -49,8 +55,18 @@ telemetry. The operator observes, enters and sends things themselves.
 
 ## What we deliberately do not build
 
-Authentication, billing, multi-tenancy, deployment infrastructure, user
-accounts, analytics, notification infrastructure, and every other piece of SaaS
-machinery. One operator, one laptop, one SQLite file.
+Billing, multi-tenancy, user accounts, teams, roles, invitations, analytics,
+notification infrastructure, and every other piece of SaaS machinery. One
+operator, one laptop, one SQLite file.
 
-The long-term goal is that the owner never needs to open this system at all.
+No Google, Meta or WhatsApp integration: no OAuth, no review fetching, no reply
+publishing, no messaging API. A public review link is a URL the operator types
+in by hand, offered to every customer after they have already left feedback.
+
+There is exactly one password, for the operator, so a public address cannot be
+opened by a stranger (M16). The owner's own view needs no password — their link
+is the credential, so RepOS holds no owner or customer credentials at all.
+
+The long-term goal is that the owner needs to open this system only when they
+want to; everything that matters also reaches them as a message the operator
+sends by hand.

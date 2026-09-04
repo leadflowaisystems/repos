@@ -1,5 +1,5 @@
 import QRCode from 'qrcode';
-import { checkReviewUrl } from './content';
+import { checkPrintableUrl } from './content';
 
 /**
  * QR generation — entirely local.
@@ -26,7 +26,7 @@ const OPTIONS = {
 };
 
 /**
- * Renders a QR for an operator-supplied URL.
+ * Renders the QR that goes on the printed card.
  *
  * Refuses anything that is not a plain http(s) link, so a malformed or unsafe
  * value can never reach a card that strangers will scan.
@@ -34,7 +34,7 @@ const OPTIONS = {
 export async function generateQrSvg(
   rawUrl: string | null | undefined,
 ): Promise<QrResult> {
-  const check = checkReviewUrl(rawUrl);
+  const check = checkPrintableUrl(rawUrl);
   if (!check.ok) return { ok: false, reason: check.reason };
 
   try {

@@ -13,6 +13,7 @@ import {
 import { DeleteFeedbackButton } from '@/components/forms/feedback-forms';
 import {
   GenerateReplyButton,
+  HandledButton,
   ReplyPanel,
 } from '@/components/forms/reply-panel';
 import { prisma } from '@/lib/db';
@@ -74,7 +75,10 @@ export default async function FeedbackItemPage({
   const praises = item.themes.filter((theme) => theme.sentiment === 'POSITIVE');
   const issues = item.themes.filter((theme) => theme.sentiment === 'NEGATIVE');
   const base = `/clients/${id}/feedback`;
-  const handled = item.draftStatus === 'HANDLED';
+  // Back goes to the list the operator came from, filters and all (M17).
+  const from = typeof query.from === 'string' ? query.from : '';
+  const backHref = from ? `${base}?${from}` : base;
+  const handled = item.handledAt !== null || item.draftStatus === 'HANDLED';
   const showsReply = wantsDraft(item.responseAction) || item.draftText !== null;
   // A draft RepOS wrote under older rules is offered as a suggestion to redo,
   // not presented as current work.
@@ -97,7 +101,7 @@ export default async function FeedbackItemPage({
         }`}
         actions={
           <>
-            <LinkButton href={base}>Back to feedback</LinkButton>
+            <LinkButton href={backHref}>Back to feedback</LinkButton>
             <DeleteFeedbackButton clientId={id} itemId={item.id} />
           </>
         }
@@ -109,9 +113,46 @@ export default async function FeedbackItemPage({
           description="Stored exactly as it came in, after personal details were removed."
         />
         <CardBody className="space-y-4">
-          <p className="text-[15px] leading-relaxed whitespace-pre-wrap text-ink-900">
-            {item.text}
-          </p>
+          {item.text.length > 0 ? (
+            <p className="text-[15px] leading-relaxed whitespace-pre-wrap text-ink-900">
+              {item.text}
+            </p>
+          ) : (
+            <p className="text-[15px] leading-relaxed text-ink-500 italic">
+              {item.answers.length > 0
+                ? 'The customer answered the questions below and wrote nothing.'
+                : 'The customer left a rating and no written comment.'}
+            </p>
+          )}
+
+          {/* M19. Most customers tap rather than write, so for most rows this
+              is the whole of what they said. Shown as given: the rating they
+              chose and the specifics they picked, with nothing inferred. */}
+          {item.answers.length > 0 ? (
+            <dl className="divide-y divide-ink-100 border-t border-ink-100">
+              {item.answers.map((answer) => (
+                <div
+                  key={answer.key}
+                  className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5"
+                >
+                  <dt className="text-[14px] text-ink-700">{answer.label}</dt>
+                  <dd className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    {answer.signals.length > 0 ? (
+                      <span className="text-[13px] text-ink-500">
+                        {answer.signals.join(' · ')}
+                      </span>
+                    ) : null}
+                    <span
+                      className="text-[14px] font-medium text-ink-900 tabular-nums"
+                      aria-label={`${answer.rating} out of 5`}
+                    >
+                      {answer.rating}/5
+                    </span>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
 
           <div className="flex flex-wrap items-center gap-2 border-t border-ink-100 pt-4">
             <Badge tone="neutral">{item.sourceLabel}</Badge>
@@ -278,6 +319,24 @@ export default async function FeedbackItemPage({
                 This needs your own words and your own judgement. A suggested reply
                 would be the wrong tool here.
               </Notice>
+            ) : null}
+
+            {!showsReply ? (
+              <div className="flex flex-wrap items-center gap-3 border-t border-ink-100 pt-5">
+                <HandledButton
+                  clientId={id}
+                  itemId={item.id}
+                  handled={handled}
+                  label="I have dealt with this"
+                />
+                <p className="text-[12px] text-ink-500">
+                  {handled
+                    ? 'Marked as dealt with, so it stops counting as outstanding work.'
+                    : item.responseAction === 'NEEDS_HUMAN'
+                      ? 'Once you have spoken to the owner or the customer, mark it here so it stops asking.'
+                      : 'Nothing needs sending. Mark it here if you want it out of your queue.'}
+                </p>
+              </div>
             ) : null}
 
             {showsReply ? (

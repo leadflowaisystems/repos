@@ -42,7 +42,17 @@
       ],
       "replyPhrase": "the wait past your appointment time",
       "replyPhraseHinglish": "lambe intezaar",
-      "replyPhraseMarathi": "झालेल्या उशिराबद्दल"
+      "replyPhraseMarathi": "झालेल्या उशिराबद्दल",
+      "counterpart": "short_wait",
+      "askOwner": {
+        "question": "Where does the waiting mostly happen?",
+        "options": [
+          "Before the appointment starts",
+          "At reception or billing",
+          "The doctor runs late"
+        ]
+      },
+      "actionNeeds": []
     },
     {
       "key": "appointment_scheduling",
@@ -72,7 +82,15 @@
       ],
       "replyPhrase": "the trouble getting your appointment sorted",
       "replyPhraseHinglish": "appointment mein hui pareshani",
-      "replyPhraseMarathi": "अपॉइंटमेंटमध्ये झालेल्या गैरसोयीबद्दल"
+      "replyPhraseMarathi": "अपॉइंटमेंटमध्ये झालेल्या गैरसोयीबद्दल",
+      "askOwner": {
+        "question": "Where do bookings most often go wrong?",
+        "options": [
+          "Phone bookings",
+          "Online or app bookings",
+          "Walk-ins"
+        ]
+      }
     },
     {
       "key": "billing_clarity",
@@ -118,7 +136,16 @@
       ],
       "replyPhrase": "the confusion over the bill",
       "replyPhraseHinglish": "bill mein hue confusion",
-      "replyPhraseMarathi": "बिलाबाबत झालेल्या गोंधळाबद्दल"
+      "replyPhraseMarathi": "बिलाबाबत झालेल्या गोंधळाबद्दल",
+      "counterpart": "fair_pricing",
+      "askOwner": {
+        "question": "Which part of billing surprises patients?",
+        "options": [
+          "No estimate before treatment",
+          "Final bill differs from the estimate",
+          "Insurance or paperwork"
+        ]
+      }
     },
     {
       "key": "staff_behaviour",
@@ -153,7 +180,8 @@
       ],
       "replyPhrase": "the way you were spoken to at the desk",
       "replyPhraseHinglish": "counter par hue vyavhaar",
-      "replyPhraseMarathi": "काउंटरवरील वागणुकीबद्दल"
+      "replyPhraseMarathi": "काउंटरवरील वागणुकीबद्दल",
+      "counterpart": "staff_friendly"
     },
     {
       "key": "cleanliness",
@@ -186,7 +214,8 @@
       ],
       "replyPhrase": "the state of the clinic when you visited",
       "replyPhraseHinglish": "safai ki kami",
-      "replyPhraseMarathi": "स्वच्छतेच्या कमतरतेबद्दल"
+      "replyPhraseMarathi": "स्वच्छतेच्या कमतरतेबद्दल",
+      "counterpart": "clean_facility"
     },
     {
       "key": "consultation_rush",
@@ -211,7 +240,8 @@
       ],
       "replyPhrase": "feeling rushed during your consultation",
       "replyPhraseHinglish": "consultation mein hui jaldbaazi",
-      "replyPhraseMarathi": "तपासणीत झालेल्या घाईबद्दल"
+      "replyPhraseMarathi": "तपासणीत झालेल्या घाईबद्दल",
+      "counterpart": "doctor_care"
     },
     {
       "key": "followup_communication",
@@ -261,7 +291,8 @@
       ],
       "replyPhrase": "how things have gone since your visit",
       "replyPhraseHinglish": "visit ke baad hui pareshani",
-      "replyPhraseMarathi": "भेटीनंतर झालेल्या त्रासाबद्दल"
+      "replyPhraseMarathi": "भेटीनंतर झालेल्या त्रासाबद्दल",
+      "counterpart": "good_outcome"
     },
     {
       "key": "parking_access",
@@ -308,7 +339,11 @@
       ],
       "replyPhrase": "not being able to reach us on the phone",
       "replyPhraseHinglish": "phone par sampark na ho paane",
-      "replyPhraseMarathi": "फोनवर संपर्क न झाल्याबद्दल"
+      "replyPhraseMarathi": "फोनवर संपर्क न झाल्याबद्दल",
+      "actionNeeds": [
+        "STAFF"
+      ],
+      "alternativeAction": "Record a voicemail that promises a call back within the hour, and have reception clear it twice a day."
     }
   ],
   "praiseTaxonomy": [
@@ -387,7 +422,7 @@
     },
     {
       "key": "short_wait",
-      "label": "Little or no waiting",
+      "label": "Short waiting times",
       "hints": [
         "no wait",
         "on time",
@@ -483,15 +518,17 @@
     ]
   },
   "staffAskScript": {
-    "when": "At discharge or at the billing counter, after the patient says they feel looked after.",
-    "line": "If today's visit was helpful, would you mind sharing your honest experience? There is a QR code at the counter — it takes about a minute.",
-    "hinglishLine": "Agar aaj ka visit theek raha ho, toh apna honest feedback share kar dijiye. Counter par QR code hai, ek minute lagega.",
-    "marathiLine": "आजची भेट उपयुक्त वाटली असेल, तर तुमचा प्रामाणिक अनुभव नोंदवाल का? काउंटरवर QR कोड आहे, एक मिनिट लागेल.",
+    "when": "At the billing counter, for every patient leaving — not only the ones who seemed pleased.",
+    "line": "There is a QR at the counter. However today went, we would like to know — it takes about a minute and only we see it.",
+    "hinglishLine": "Counter par QR hai. Aaj jaisa bhi raha, humein batayein — ek minute lagta hai aur sirf hum dekhte hain.",
+    "marathiLine": "काउंटरवर QR आहे. आज जसं झालं तसं आम्हाला कळवा — एक मिनिट लागतो आणि ते फक्त आम्हीच पाहतो.",
     "doNot": [
       "Never offer a discount, gift, free consult or any reward for a review.",
       "Never ask only the happy patients — offer the same QR to everyone.",
       "Never fill in or dictate a review for a patient.",
-      "Never ask a patient to change or delete a review."
+      "Never ask a patient to change or delete a review.",
+      "Never wait until someone looks happy — offer the QR to everyone, every time.",
+      "Never ask a customer to leave a public review as a condition of anything."
     ]
   },
   "profileGapChecks": [
@@ -549,13 +586,143 @@
   "kit": {
     "assetLabel": "counter card",
     "placement": "At the billing counter, facing patients as they settle up.",
-    "moment": "At discharge or billing, once the patient says they feel looked after.",
+    "moment": "At the billing counter, for every patient leaving — not only the ones who seemed pleased.",
     "headline": "Was today’s visit helpful?",
     "subhead": "Scan and tell us honestly. It takes a minute.",
     "qrCaption": "Scan to share your experience",
-    "askMessage": "Thank you for visiting {{businessName}}. If today’s visit was helpful, would you share your honest experience? It takes about a minute: {{reviewUrl}}",
-    "askMessageHinglish": "Aapka {{businessName}} aane ke liye dhanyawaad. Agar aaj ka visit theek raha ho, toh apna honest feedback share kar dijiye — ek minute lagega: {{reviewUrl}}",
-    "askMessageMarathi": "{{businessName}} ला भेट दिल्याबद्दल धन्यवाद. आजची भेट उपयुक्त वाटली असेल, तर तुमचा प्रामाणिक अनुभव नोंदवाल का? एक मिनिट लागेल: {{reviewUrl}}",
+    "askMessage": "Thank you for visiting {{businessName}}. If today’s visit was helpful, would you share your honest experience? It takes about a minute: {{feedbackUrl}}",
+    "askMessageHinglish": "Aapka {{businessName}} aane ke liye dhanyawaad. Agar aaj ka visit theek raha ho, toh apna honest feedback share kar dijiye — ek minute lagega: {{feedbackUrl}}",
+    "askMessageMarathi": "{{businessName}} ला भेट दिल्याबद्दल धन्यवाद. आजची भेट उपयुक्त वाटली असेल, तर तुमचा प्रामाणिक अनुभव नोंदवाल का? एक मिनिट लागेल: {{feedbackUrl}}",
     "thankYou": "Thank you — we read every one of these."
+  },
+  "gateway": {
+    "headline": "How was your visit?",
+    "prompt": "Tell us what went well, or what we could do better.",
+    "placeholder": "The waiting, the doctor, the front desk — anything you noticed.",
+    "thankYou": "Thank you. The clinic team reads every one of these.",
+    "printLine": "Honest feedback helps us look after you better.",
+    "dimensions": [
+      {
+        "key": "waiting",
+        "label": "Waiting time",
+        "themeKey": "wait_time",
+        "improvePrompt": "How long past your slot was it?",
+        "goodPrompt": "Anything about the timing worth noting?",
+        "signals": [
+          {
+            "key": "long_past_slot",
+            "label": "Well past my appointment time"
+          },
+          {
+            "key": "no_update",
+            "label": "Nobody told me how long"
+          },
+          {
+            "key": "nowhere_to_sit",
+            "label": "Nowhere to sit"
+          },
+          {
+            "key": "order_skipped",
+            "label": "Others were taken before me"
+          }
+        ]
+      },
+      {
+        "key": "staff",
+        "label": "Staff at the desk",
+        "themeKey": "staff_behaviour",
+        "improvePrompt": "What happened?",
+        "goodPrompt": "Who helped you well?",
+        "signals": [
+          {
+            "key": "manner",
+            "label": "Manner of the staff"
+          },
+          {
+            "key": "unclear_answers",
+            "label": "Could not answer my questions"
+          },
+          {
+            "key": "unreachable",
+            "label": "Could not reach anyone on the phone"
+          },
+          {
+            "key": "billing",
+            "label": "Billing was not explained"
+          }
+        ]
+      },
+      {
+        "key": "consultation",
+        "label": "Time with the doctor",
+        "themeKey": "consultation_rush",
+        "improvePrompt": "What was missing?",
+        "goodPrompt": "Anything worth passing on to the doctor?",
+        "signals": [
+          {
+            "key": "too_short",
+            "label": "Felt too short"
+          },
+          {
+            "key": "not_explained",
+            "label": "Condition not explained"
+          },
+          {
+            "key": "no_questions",
+            "label": "No room to ask questions"
+          },
+          {
+            "key": "followup_unclear",
+            "label": "Unclear what to do next"
+          }
+        ]
+      },
+      {
+        "key": "booking",
+        "label": "Booking the appointment",
+        "themeKey": "appointment_scheduling",
+        "improvePrompt": "What was difficult?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "no_answer",
+            "label": "Phone went unanswered"
+          },
+          {
+            "key": "no_slot",
+            "label": "No slot available"
+          },
+          {
+            "key": "moved",
+            "label": "Appointment was moved"
+          },
+          {
+            "key": "time_confusion",
+            "label": "Confusion about the time"
+          }
+        ]
+      },
+      {
+        "key": "cleanliness",
+        "label": "Cleanliness",
+        "themeKey": "cleanliness",
+        "improvePrompt": "What did you notice?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "waiting_area",
+            "label": "The waiting area"
+          },
+          {
+            "key": "washroom",
+            "label": "The washroom"
+          },
+          {
+            "key": "consult_room",
+            "label": "The consulting room"
+          }
+        ]
+      }
+    ]
   }
 }

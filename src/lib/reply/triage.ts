@@ -61,7 +61,16 @@ export type TriageInput = {
   pack: Pack;
   /** Anchors "recent". Injected so tests are reproducible. */
   now?: Date;
+  /**
+   * False when nobody can be replied to — private feedback from the QR page
+   * (M14), where no name or contact was collected. Defaults to true.
+   */
+  replyChannel?: boolean;
 };
+
+/** The one reason a no-channel item carries, so the operator knows why. */
+export const NO_CHANNEL_REASON =
+  'Shared privately through the feedback page, so there is no public review to answer.';
 
 // ---------------------------------------------------------------------------
 // Signals in the text
@@ -352,12 +361,36 @@ export function triageFeedback(input: TriageInput): Triage {
     sentiment: input.sentiment,
   });
 
-  const recommendation = recommendResponse({
+  const recommended = recommendResponse({
     responseClass,
     text: input.text,
     stars: input.stars,
     themes: input.themes,
   });
+
+  // No channel, no reply. Something a person must look at — harm, money
+  // back, a threat to escalate — is still handed to the operator, because
+  // that flag is about attention rather than about answering. Everything
+  // else is filed as needing no response, with the reason spelled out, so a
+  // private complaint never sits in the reply queue waiting for a reply
+  // that has nowhere to go.
+  const noChannel = input.replyChannel === false;
+  const recommendation =
+    noChannel && recommended.action !== 'NEEDS_HUMAN'
+      ? { action: 'NO_RESPONSE_NEEDED' as const, reason: NO_CHANNEL_REASON }
+      : recommended;
+
+  if (noChannel && recommendation.action === 'NO_RESPONSE_NEEDED') {
+    return {
+      responseClass,
+      responseAction: recommendation.action,
+      priorityBand: 'NONE',
+      priorityRank: 0,
+      signals: [],
+      reasons: [NO_CHANNEL_REASON],
+      version: TRIAGE_VERSION,
+    };
+  }
 
   const signals = prioritySignals({
     responseClass,

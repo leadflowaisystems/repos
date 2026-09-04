@@ -119,8 +119,9 @@ export function HealthCardPanel({
         {health.status === 'INSUFFICIENT_DATA' ? (
           <Notice tone="neutral">
             RepOS will not give this client a status until there is something
-            real to base one on. Take a snapshot: enter what you see on the
-            public listing and paste any reviews you collected.
+            real to base one on. Get the feedback cards on site, then take a
+            check-in once some has come in — that is what it compares against
+            later. Public listing figures are optional and can be left blank.
           </Notice>
         ) : null}
 

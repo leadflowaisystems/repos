@@ -286,11 +286,16 @@ export type ActionResult =
   | 'NO_CLEAR_CHANGE'
   | 'INSUFFICIENT_DATA';
 
+/**
+ * Observational wording only. The comparison shows how often a theme came up
+ * before and after the change; it never shows why, so the label must not
+ * read as a verdict on the change itself.
+ */
 export const RESULT_LABELS: Record<ActionResult, string> = {
-  IMPROVED: 'Feedback improved after the change',
-  WORSENED: 'Feedback got worse after the change',
-  NO_CLEAR_CHANGE: 'No clear change in feedback',
-  INSUFFICIENT_DATA: 'Not enough feedback yet to tell',
+  IMPROVED: 'Mentioned less often after the change',
+  WORSENED: 'Mentioned more often after the change',
+  NO_CLEAR_CHANGE: 'No clear change after the change',
+  INSUFFICIENT_DATA: 'Not enough feedback after the change to tell',
 };
 
 export const RESULT_TONES: Record<ActionResult, 'good' | 'warn' | 'bad' | 'neutral'> = {

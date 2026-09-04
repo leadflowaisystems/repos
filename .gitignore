@@ -4,18 +4,38 @@ out/
 build/
 dist/
 
-# Local-first data. Never commit the operator's real client data.
+# Never commit a database. The narrow data/ rules came first; the blanket
+# rule below is the one that matters — a stray copy anywhere in the tree is
+# real customer data and must not reach a remote by accident.
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
 data/*.db
 data/*.db-journal
 data/*.db-wal
 data/*.db-shm
 data/uploads/
 data/exports/
+# Local machine state from the demo seeder, tied to one local database.
+data/.demo-manifest.json
 
-# Secrets
+# Database backups. Real client data — never committed, never uploaded.
+backups/
+
+# Secrets. Everything except the committed template.
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+.env.local.previous
+*.pem
+*.key
+secrets/
+credentials.json
+service-account*.json
 
 # OS / editor
 .DS_Store
@@ -32,3 +52,8 @@ coverage/
 
 # Test databases
 data/.test/
+
+# Deployment / tooling
+.vercel/
+supabase/.temp/
+supabase/.branches/

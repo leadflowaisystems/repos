@@ -3,6 +3,8 @@ import { getPackOrFallback } from '@/lib/packs';
 import { resolveVoice, type EffectiveVoice, type LanguageMix } from '@/lib/reply/voice';
 import { loadIntelligence } from '@/lib/intelligence/service';
 import { latestReportableAction } from '@/lib/improve/service';
+import { getContextSet } from '@/lib/context/service';
+import { youToldUs } from '@/lib/context/apply';
 import type { InsightAction } from './insight';
 import type { ClientIntelligence } from '@/lib/intelligence/engine';
 import { buildInsight, type OwnerInsight } from './insight';
@@ -50,6 +52,12 @@ export type CommsBundle = {
   voice: EffectiveVoice;
   language: LanguageMix;
   messages: ComposedMessage[];
+  /**
+   * What the owner told RepOS (M13), as "You told us …" lines for the operator
+   * to keep in mind while sending. Never inserted into a message automatically,
+   * and never mistaken for something a customer said.
+   */
+  ownerContext: string[];
 };
 
 /**
@@ -148,12 +156,21 @@ export async function getOwnerComms(
     context.intelligence,
   );
 
+  // What the owner told RepOS, for the operator to keep in mind. Read here so
+  // the panel and the owner's own pages show the same lines; never composed
+  // into a message by machine.
+  const ownerContext = (await getContextSet(db, client.id)).items
+    .filter((i) => i.provenance === 'OWNER_TOLD_US')
+    .slice(0, 6)
+    .map((i) => youToldUs(i));
+
   return ok({
     insight,
     intelligence: context.intelligence,
     voice,
     language: ownerLanguage(voice),
     messages: composeOwnerMessages(insight, voice),
+    ownerContext,
   });
 }
 

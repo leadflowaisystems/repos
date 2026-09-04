@@ -10,6 +10,7 @@ import {
   recordLearning,
 } from '@/lib/improve/service';
 import { bool, failure, optDate, str, success, text, type ActionState } from './shared';
+import { tenantGate } from '@/lib/auth/guard';
 
 /**
  * Improvement action loop (M11).
@@ -29,7 +30,9 @@ export async function createActionFromInsightAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const clientId = str(form, 'clientId');
+  const gate = await tenantGate(form, 'MEMBER');
+  if (!gate.ok) return gate.state;
+  const { clientId } = gate;
   const insightId = str(form, 'insightId');
   if (!clientId || !insightId) return failure('Missing the insight to act on.');
 
@@ -44,7 +47,9 @@ export async function decideActionAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const clientId = str(form, 'clientId');
+  const gate = await tenantGate(form, 'MEMBER');
+  if (!gate.ok) return gate.state;
+  const { clientId } = gate;
   const actionId = str(form, 'actionId');
   if (!clientId || !actionId) return failure('Missing action.');
 
@@ -67,7 +72,9 @@ export async function moveActionAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const clientId = str(form, 'clientId');
+  const gate = await tenantGate(form, 'MEMBER');
+  if (!gate.ok) return gate.state;
+  const { clientId } = gate;
   const actionId = str(form, 'actionId');
   if (!clientId || !actionId) return failure('Missing action.');
 
@@ -90,7 +97,9 @@ export async function measureActionAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const clientId = str(form, 'clientId');
+  const gate = await tenantGate(form, 'MEMBER');
+  if (!gate.ok) return gate.state;
+  const { clientId } = gate;
   const actionId = str(form, 'actionId');
   if (!clientId || !actionId) return failure('Missing action.');
 
@@ -105,7 +114,9 @@ export async function recordLearningAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const clientId = str(form, 'clientId');
+  const gate = await tenantGate(form, 'MEMBER');
+  if (!gate.ok) return gate.state;
+  const { clientId } = gate;
   const actionId = str(form, 'actionId');
   if (!clientId || !actionId) return failure('Missing action.');
 

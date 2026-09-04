@@ -1,11 +1,29 @@
 # RepOS
 
-Local-first internal operating system for a done-for-you Customer Intelligence
-service for local SMBs.
+Local-first operating system for a done-for-you Customer Intelligence service
+for local SMBs.
 
-RepOS is **an operator tool, not a customer-facing product**. Clients never log
-in. You use it to observe, analyse and report on customer feedback, and to keep
-your minutes-per-client down.
+**RepOS is a Customer Feedback → Business Improvement System.** The promise it
+makes to a business owner is:
+
+> Know what your customers really think. Fix what matters. See whether it
+> actually improved.
+
+It is not a review-management product. The customer voice it works from is
+private feedback left through the business's own QR card, and everything —
+the reading, the grouping, the recommendation, the before-and-after — works
+for a business with no public listing, no Google account and no intention of
+getting either. A public review link is optional, offered to every customer
+*after* they have already had their say, and RepOS never fetches it, posts to
+it, or lets it change a single conclusion.
+
+Three people touch it, and only one of them signs in:
+
+| | How they get in | What they see |
+| --- | --- | --- |
+| **You**, the operator | your password | everything |
+| **The business owner** | one secret link per business | that business's own view, read-only |
+| **A customer** | the QR on the card | one page where they can say something, anonymously |
 
 - [PRODUCT_PRINCIPLES.md](PRODUCT_PRINCIPLES.md) — what this is and what it is not
 - [COMPLIANCE.md](COMPLIANCE.md) — the hard rules and how each is enforced
@@ -22,18 +40,37 @@ your minutes-per-client down.
 ```bash
 npm install
 npm run setup
+npm run set-password -- --write
 npm run dev
 ```
 
 `npm run setup` creates `.env` and `.env.local`, generates the Prisma client and
 creates the SQLite database at `data/repos.db`.
 
-Open http://localhost:3000. The dev server binds to `0.0.0.0`, so you can also
-reach it from your phone on the same network at `http://<laptop-ip>:3000`.
+`npm run set-password` sets the one password you sign in with, and generates the
+secret that signs your session cookie. Until it has been run, RepOS cannot be
+signed into at all — there is no first-run setup page for anyone to reach first.
+Without `--write` it prints the two lines for you to paste into `.env.local`.
+
+Open http://localhost:3000 and sign in. The dev server binds to `0.0.0.0`, so you
+can also reach it from your phone on the same network at `http://<laptop-ip>:3000`.
 
 ## Configuration
 
 All secrets live in `.env.local`, which is gitignored. See `.env.example`.
+
+| Variable | Needed | What it is |
+| --- | --- | --- |
+| `DATABASE_URL` | always | The local SQLite path. Lives in `.env`, not `.env.local`, and holds no secret. |
+| `REPOS_OPERATOR_PASSWORD_HASH` | always | Your password, as a scrypt hash. Written by `npm run set-password`. |
+| `REPOS_SESSION_SECRET` | always | Signs the session cookie. Changing it signs out every open session. |
+| `REPOS_PUBLIC_BASE_URL` | production | The `https://` address customers open. Required in production; leave blank in development. |
+| `REPOS_BACKUP_DIR` | optional | Where backups go. Defaults to `./backups`. |
+| `GROQ_API_KEY` | optional | Enables AI drafting. RepOS works fully without it. |
+
+The password hash uses colons between its parts, never dollar signs: the env
+loader expands `$NAME` inside a value, so a dollar sign would silently swallow
+the rest of the line.
 
 RepOS works fully **without any AI key**. With no key it classifies feedback
 using the local keyword taxonomy and writes report prose from templates. Every
@@ -49,12 +86,160 @@ see COMPLIANCE.md for why there is no Google-operated fallback.
 | `npm run dev` | Local dev server on port 3000 |
 | `npm run build` | Production build (stop the dev server first — they share `.next`) |
 | `npm run verify` | typecheck + lint + tests |
-| `npm test` | Vitest suite |
+| `npm test` | Vitest suite — requires `REPOS_TEST_DATABASE_URL` (see below) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | ESLint |
-| `npm run db:push` | Apply the Prisma schema to SQLite |
+| `npm run db:push` | Apply the Prisma schema to PostgreSQL |
 | `npm run db:studio` | Browse the local database |
 | `npm run db:reset` | Wipe and recreate the database |
+| `npm run db:seed` | Load the demo dataset (`npm run db:seed:clear` removes it) |
+| `node scripts/bootstrap-admin.mjs` | Promote the first RepOS operator (needs `REPOS_BOOTSTRAP_SECRET`) |
+
+### Running the tests
+
+The suite has **no default database connection**, deliberately: a working
+default would put a password in tracked source. Point it at a local,
+disposable PostgreSQL database before running anything.
+
+```bash
+export REPOS_TEST_DATABASE_URL="postgresql://<user>:<password>@127.0.0.1:<port>/<database>"
+npm test
+```
+
+It creates and drops a schema per test file and truncates tables between
+cases, so never aim it at a database you care about. It refuses any host that
+is not `localhost`, `127.0.0.1` or `::1`.
+
+| `npm run backup` | Write a checked copy of the database to `backups/` |
+
+## Running it for a real client
+
+Everything above is enough for development on one laptop. Putting RepOS in front
+of a real business needs four things settled, in this order.
+
+### 1. One permanent address
+
+A QR code printed onto a card cannot be recalled, so the address inside it has to
+be decided once and never drift. Set it in `.env.local`:
+
+```
+REPOS_PUBLIC_BASE_URL="https://repos.yourdomain.com"
+```
+
+In production this is **required** and must be `https://`. RepOS will not fall
+back to the address a request arrived on, because a `Host` header can be set by
+anyone who can reach the server, and a forged one would end up permanently
+inside a printed QR. If it is missing or not https, RepOS says so on the client's
+Feedback QR page and on Settings, and refuses to draw a QR at all rather than
+draw a wrong one.
+
+Put RepOS behind a reverse proxy that terminates TLS (Caddy and nginx both do
+this in a few lines) and forwards to `npm start` on port 3000. The proxy's public
+host is also what Next compares against the `Origin` header before it will run a
+Server Action; that comparison is configured from the same variable, so there is
+only ever one address to set.
+
+Restarting RepOS does not change the address, the feedback tokens, or the owner
+links. Printed cards keep working.
+
+### 2. Your password
+
+```bash
+npm run set-password -- --write
+```
+
+There is one operator — you — and one password. It is stored as a scrypt hash in
+`.env.local` and never in the database, so a stolen backup contains no
+credential. Signing in sets a cookie that is signed with `REPOS_SESSION_SECRET`,
+is `HttpOnly`, `SameSite=Lax`, `Secure` in production, and lasts eight hours.
+
+Changing `REPOS_SESSION_SECRET` invalidates every session immediately. That is
+the fastest way to lock RepOS if a laptop goes missing.
+
+### 3. The owner's link
+
+Each client has one private address that opens that business's own view:
+
+```
+https://repos.yourdomain.com/portal/8tyv6aaugn6artvk54ksx8
+```
+
+The last part is a random 110-bit token, not the client's id. It is issued the
+first time you open that client's page. Anyone holding it can read that one
+business's view and nothing else — there is no navigation from it to another
+client, and no way to reach the operator's side. Treat it like a password and
+send it to the owner directly.
+
+If it goes somewhere it should not, press **Issue a new link** on the client's
+page. The old address stops working immediately, on every page of the portal.
+
+An unknown, mistyped or retired link, and a business you have archived, all
+produce the same neutral "this link doesn't open anything" page, so trying
+addresses teaches nothing.
+
+### 4. Backups
+
+Everything RepOS knows is one SQLite file. **Settings → Take a backup now**
+writes a checked copy; `npm run backup` does the same from a terminal.
+
+Copies go to `backups/` — beside the installation, never inside the folder
+holding the live database, never inside `public/`, and never uploaded anywhere.
+Point `REPOS_BACKUP_DIR` at another drive if you have one. Each copy is named
+for the moment it was taken and nothing is ever overwritten.
+
+The copy is made with SQLite's own `VACUUM INTO`, so it is a consistent moment
+even if RepOS is being used, and it is checked with `PRAGMA integrity_check`
+before it is given its final name. A file in `backups/` is always a backup that
+passed its check.
+
+**To restore one:**
+
+1. Stop RepOS.
+2. Rename `data/repos.db` — keep it, do not delete it.
+3. Copy the backup into `data/` and name it `repos.db`.
+4. Start RepOS and open a client to check its history is there.
+
+A backup holds clients, feedback and history. It holds no password and no keys,
+so a restored copy still needs its own `.env.local`.
+
+## Who can reach what
+
+| | Needs your password | Reaches |
+| --- | --- | --- |
+| You, the operator | yes | everything |
+| A business owner | no — one secret link per business | that business's own view, read-only |
+| A customer | no — the QR on the card | one page where they can say something |
+
+Three layers keep that true, and the third is the one that matters:
+
+1. **Middleware** bounces an unauthenticated request to `/login` before a page
+   renders. It is a courtesy, not a gate.
+2. **The operator layouts** check again before rendering anything.
+3. **Every server action checks for itself, as its first statement.** Server
+   Actions are POSTs addressed by an internal action id rather than by the page
+   path, so no path-matching rule can be the gate. A compliance test walks every
+   exported action and fails the build if one is missing the check.
+
+Exactly three actions are deliberately unguarded: signing in, signing out, and a
+customer submitting feedback. The last is authorized by the gateway token in the
+URL, is rate-limited, and can only ever write against the client that token
+resolves to.
+
+## What M16 deliberately does not do
+
+- **No Google, no WhatsApp, no email.** No OAuth of any kind, no review fetching,
+  no reply publishing, no notifications. See COMPLIANCE.md.
+- **No second user.** No teams, roles, invitations, or customer accounts. One
+  operator, one password.
+- **No password for the business owner.** Their link is the credential. Adding
+  accounts for owners would mean holding their credentials, and RepOS holds no
+  customer or owner passwords.
+- **No cloud backup, no uploads, no telemetry.** Backups are files on this
+  computer, and RepOS never schedules one on its own.
+- **No server-side session list.** The session cookie is signed and expires by
+  itself; signing out clears it in that browser. There is no store to revoke a
+  single stolen cookie from — rotating `REPOS_SESSION_SECRET` ends every session
+  at once, and that is the intended lever.
 
 ## The command centre
 
@@ -94,7 +279,9 @@ than rendering an empty chart.
 5. **Feedback kit** — one page generates a printable, vertical-aware kit: a
    counter/table stand, eight cards on an A4 sheet, a sticker and a staff
    instruction card, plus copyable messages in English, Hinglish and Marathi.
-   The QR encodes only a public review link you paste in by hand.
+   Every QR RepOS prints — the kit, the feedback card, the on-screen code and
+   the download — encodes the same address: that client's own private feedback
+   page. Nothing on the card depends on the business having a public listing.
 6. **Feedback inbox** — paste a batch of reviews (or add one by hand) and RepOS
    reads them: ratings, dates and text, with personal details stripped before
    anything is saved and obvious duplicates skipped. Items land unanalysed; the

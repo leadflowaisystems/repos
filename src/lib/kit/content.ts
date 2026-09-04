@@ -18,8 +18,23 @@ export type KitInput = {
   businessName: string;
   /** Optional override so the printed piece can use a shorter trading name. */
   displayName?: string | null;
-  /** Operator-supplied destination. Null when not set up yet. */
-  reviewUrl?: string | null;
+  /**
+   * THE address on the card: this client's own RepOS feedback page (M17).
+   *
+   * Every printed piece RepOS produces sends a customer to the same private
+   * page. The kit predates the feedback gateway and used to encode whatever
+   * public review link the operator had pasted in, which meant a card whose
+   * words asked for honest feedback, good or bad, actually opened a public
+   * listing. One address now, and it is this one.
+   */
+  feedbackUrl?: string | null;
+  /**
+   * The optional public review destination, typed in by hand.
+   *
+   * Never the QR. It appears as a second, plainly optional line, offered to
+   * everyone, and RepOS never looks it up, fetches it or posts to it.
+   */
+  publicReviewUrl?: string | null;
   /** Optional operator overrides; blank falls back to the vertical default. */
   headline?: string | null;
   subhead?: string | null;
@@ -58,8 +73,12 @@ export type KitContent = {
   };
   /** Non-negotiable rules for this vertical — no incentives, no gating. */
   rules: string[];
-  /** The destination encoded in the QR, or null when not supplied yet. */
-  reviewUrl: string | null;
+  /** The destination encoded in the QR: this client's own feedback page. */
+  feedbackUrl: string | null;
+  /** The optional public review link, offered after feedback. Never the QR. */
+  publicReviewUrl: string | null;
+  /** The one line about the public option, or null when there is no link. */
+  publicReviewNote: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -71,13 +90,14 @@ export type UrlCheck =
   | { ok: false; reason: string };
 
 /**
- * Validates an operator-supplied destination.
+ * Validates any address that will be printed onto a card.
  *
- * RepOS never derives, discovers or fetches this URL — it is typed in by hand.
- * Validation exists to stop a typo being printed onto a hundred cards, and to
- * refuse schemes that would be unsafe to encode into a QR that strangers scan.
+ * Nothing here is discovered, looked up or fetched — every URL RepOS prints is
+ * either its own feedback page or one the operator typed in. This exists to
+ * stop a typo reaching a hundred cards, and to refuse a scheme that would be
+ * unsafe to encode into a QR that strangers scan.
  */
-export function checkReviewUrl(raw: string | null | undefined): UrlCheck {
+export function checkPrintableUrl(raw: string | null | undefined): UrlCheck {
   const value = (raw ?? '').trim();
   if (value.length === 0) {
     return { ok: false, reason: 'No link has been added yet.' };
@@ -107,6 +127,30 @@ export function checkReviewUrl(raw: string | null | undefined): UrlCheck {
   return { ok: true, url: parsed.toString() };
 }
 
+/**
+ * Validates the OPTIONAL public review destination.
+ *
+ * Everything `checkPrintableUrl` refuses, plus RepOS's own addresses: an
+ * operator who works out that the QR should point at RepOS naturally pastes
+ * the feedback address into this field, which would send a customer who had
+ * just left feedback straight back to the same form (M17).
+ */
+export function checkReviewUrl(raw: string | null | undefined): UrlCheck {
+  const check = checkPrintableUrl(raw);
+  if (!check.ok) return check;
+
+  const path = new URL(check.url).pathname;
+  if (/^\/(feedback|portal)\//.test(path)) {
+    return {
+      ok: false,
+      reason:
+        'That is a RepOS address. The card already sends customers to their own feedback page — this field is only for a public review site, if the business has one.',
+    };
+  }
+
+  return check;
+}
+
 // ---------------------------------------------------------------------------
 // Readiness
 // ---------------------------------------------------------------------------
@@ -126,13 +170,17 @@ export type KitReadiness = {
 };
 
 /**
- * A kit is ready when it has a business name and a valid destination. That is
- * deliberately the whole list: everything else has a vertical default, so the
- * operator is never blocked on a decision RepOS can make for them.
+ * A kit is ready when it has a business name and a working feedback address.
+ *
+ * That is deliberately the whole list. Everything else has a vertical default,
+ * so the operator is never blocked on a decision RepOS can make for them — and
+ * nothing here depends on the business having a public listing, a Google
+ * presence, or any account anywhere. A business that opened yesterday can
+ * print its cards this afternoon.
  */
 export function computeReadiness(input: {
   businessName: string;
-  reviewUrl: string | null | undefined;
+  feedbackUrl: string | null | undefined;
 }): KitReadiness {
   const blockers: KitBlocker[] = [];
 
@@ -144,12 +192,12 @@ export function computeReadiness(input: {
     });
   }
 
-  const url = checkReviewUrl(input.reviewUrl);
+  const url = checkPrintableUrl(input.feedbackUrl);
   if (!url.ok) {
     blockers.push({
-      key: 'reviewUrl',
-      label: 'Add the public review link',
-      hint: `${url.reason} Open the business's public listing yourself, copy the "write a review" link, and paste it here. RepOS never looks it up for you.`,
+      key: 'feedbackUrl',
+      label: 'Set the address customers open',
+      hint: 'RepOS builds this from the address this installation runs on. Set that once on Settings and every card for every client is ready.',
     });
   }
 
@@ -212,12 +260,22 @@ export function buildKitContent(input: KitInput): KitContent {
   const kit = pack.kit;
 
   const displayName = firstNonEmpty(input.displayName, input.businessName);
-  const urlCheck = checkReviewUrl(input.reviewUrl);
-  const reviewUrl = urlCheck.ok ? urlCheck.url : null;
 
+  const feedbackCheck = checkPrintableUrl(input.feedbackUrl);
+  const feedbackUrl = feedbackCheck.ok ? feedbackCheck.url : null;
+
+  const publicCheck = checkReviewUrl(input.publicReviewUrl);
+  const publicReviewUrl = publicCheck.ok ? publicCheck.url : null;
+
+  // `reviewUrl` is kept as a template name because the vertical packs use it,
+  // and it now resolves to the SAME feedback page as `feedbackUrl`. A pack
+  // that says "tell us honestly, good or bad: {{reviewUrl}}" therefore sends
+  // the customer to the page that asks exactly that, which is what the words
+  // always promised.
   const vars = {
     businessName: displayName,
-    reviewUrl: reviewUrl ?? '[add your public review link]',
+    feedbackUrl: feedbackUrl ?? '[your feedback page address]',
+    reviewUrl: feedbackUrl ?? '[your feedback page address]',
   };
 
   const headline = firstNonEmpty(
@@ -256,7 +314,7 @@ export function buildKitContent(input: KitInput): KitContent {
     'Message to send',
     'English',
     kit?.askMessage ??
-      'Thank you for choosing {{businessName}}. If you have a minute, we would really value your honest feedback: {{reviewUrl}}',
+      'Thank you for choosing {{businessName}}. If you have a minute, we would really value your honest feedback: {{feedbackUrl}}',
   );
   pushMessage('ask_hinglish', 'Message to send', 'Hinglish', kit?.askMessageHinglish);
   pushMessage('ask_marathi', 'Message to send', 'Marathi', kit?.askMessageMarathi);
@@ -265,7 +323,7 @@ export function buildKitContent(input: KitInput): KitContent {
     displayName,
     headline: renderTemplate(headline, vars),
     subhead: renderTemplate(subhead, vars),
-    qrCaption: firstNonEmpty(kit?.qrCaption, 'Scan to leave an honest review'),
+    qrCaption: firstNonEmpty(kit?.qrCaption, 'Scan to tell us how it was'),
     footerNote: renderTemplate(
       firstNonEmpty(input.footerNote, kit?.thankYou, 'Thank you.'),
       vars,
@@ -284,6 +342,10 @@ export function buildKitContent(input: KitInput): KitContent {
       when: firstNonEmpty(kit?.moment, pack.staffAskScript.when),
     },
     rules: pack.staffAskScript.doNot,
-    reviewUrl,
+    feedbackUrl,
+    publicReviewUrl,
+    publicReviewNote: publicReviewUrl
+      ? 'After a customer sends their feedback, RepOS offers them the public review link too. Everyone is offered it, whatever they wrote.'
+      : null,
   };
 }

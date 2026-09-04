@@ -119,16 +119,7 @@ export function ReplyPanel({
           <SubmitButton label="Regenerate" busyLabel="Writing…" variant="ghost" />
         </form>
 
-        <form action={setHandledAction}>
-          <input type="hidden" name="clientId" value={clientId} />
-          <input type="hidden" name="itemId" value={itemId} />
-          <input type="hidden" name="handled" value={handled ? '' : 'on'} />
-          <SubmitButton
-            label={handled ? 'Reopen' : 'Mark handled'}
-            busyLabel="Saving…"
-            variant="ghost"
-          />
-        </form>
+        <HandledButton clientId={clientId} itemId={itemId} handled={handled} />
       </div>
 
       <p className="text-[12px] text-ink-500">
@@ -173,6 +164,40 @@ export function DraftRepliesButton({
         label={awaiting > 0 ? `Suggest ${awaiting} replies` : 'Suggest replies'}
         busyLabel="Writing…"
         variant="primary"
+      />
+    </form>
+  );
+}
+
+/**
+ * "I have dealt with this one."
+ *
+ * Its own component because it is not part of a draft (M17). The two response
+ * categories that most need an operator to close them off — the ones RepOS
+ * deliberately writes nothing for, and the ones that need no reply at all —
+ * never have a draft, so for exactly those the button had nowhere to live and
+ * the item was a dead end.
+ */
+export function HandledButton({
+  clientId,
+  itemId,
+  handled,
+  label,
+}: {
+  clientId: string;
+  itemId: string;
+  handled: boolean;
+  label?: string;
+}) {
+  return (
+    <form action={setHandledAction}>
+      <input type="hidden" name="clientId" value={clientId} />
+      <input type="hidden" name="itemId" value={itemId} />
+      <input type="hidden" name="handled" value={handled ? '' : 'on'} />
+      <SubmitButton
+        label={handled ? 'Reopen' : (label ?? 'Mark handled')}
+        busyLabel="Saving…"
+        variant="ghost"
       />
     </form>
   );

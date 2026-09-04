@@ -57,6 +57,14 @@ export type ComposedMessage = {
   title: string;
   /** Clean plain text, ready to paste anywhere. */
   body: string;
+  /**
+   * The same message shaped for the two places an operator actually sends it
+   * (M18). Nothing is added: these are the identical facts with the framing
+   * each channel needs, so a safety check on `body` covers both.
+   *
+   * RepOS sends neither. The operator copies one and sends it themselves.
+   */
+  channels: MessageChannels;
   language: LanguageMix;
   /** Why it says what it says, and what it could not say. Operator-facing. */
   notes: string[];
@@ -80,6 +88,17 @@ export type ComposedMessage = {
  * nineteen category names badly would read worse than a localised sentence
  * around an English label, which is how these businesses already write.
  */
+export type MessageChannels = {
+  /** No subject, no sign-off — the thing people paste into a chat. */
+  whatsapp: string;
+  /**
+   * `body` is the ready-made version. `greeting` and `signOff` are exposed
+   * separately so the operator's edits can be re-framed without the server
+   * composing the message twice.
+   */
+  email: { subject: string; greeting: string; signOff: string; body: string };
+};
+
 type OwnerPhrases = {
   updateOpening: (business: string) => string;
   lovesHeading: string;
@@ -105,6 +124,10 @@ type OwnerPhrases = {
   sinceChangeHeading: string;
   beforeAfter: (before: string, after: string) => string;
   awaitingEvidence: (theme: string) => string;
+  /** Email framing. WhatsApp gets none of this by design. */
+  emailSubject: (business: string, kind: CommsType) => string;
+  emailGreeting: string;
+  emailSignOff: string;
 };
 
 const PHRASES: Record<LanguageMix, OwnerPhrases> = {
@@ -138,6 +161,14 @@ const PHRASES: Record<LanguageMix, OwnerPhrases> = {
     beforeAfter: (b, a) => `Before: ${b}. Since the change: ${a}.`,
     awaitingEvidence: (t) =>
       `We do not have enough new feedback yet to say whether ${t.toLowerCase()} has changed. We will check again as more comes in.`,
+    emailSubject: (b, kind) =>
+      kind === 'OWNER_UPDATE'
+        ? `${b} — what your customers said`
+        : kind === 'ACTION_MESSAGE'
+          ? `${b} — one thing worth trying`
+          : `${b} — following up`,
+    emailGreeting: 'Hello,',
+    emailSignOff: 'Happy to talk it through whenever suits you.',
   },
 
   HINDI: {
@@ -168,6 +199,14 @@ const PHRASES: Record<LanguageMix, OwnerPhrases> = {
     beforeAfter: (b, a) => `पहले: ${b}. बदलाव के बाद: ${a}.`,
     awaitingEvidence: (t) =>
       `${t} में बदलाव हुआ या नहीं, यह बताने के लिए अभी पर्याप्त नई प्रतिक्रिया नहीं है. और आने पर हम फिर देखेंगे.`,
+    emailSubject: (b, kind) =>
+      kind === 'OWNER_UPDATE'
+        ? `${b} — आपके ग्राहकों ने क्या कहा`
+        : kind === 'ACTION_MESSAGE'
+          ? `${b} — एक सुझाव`
+          : `${b} — फ़ॉलो-अप`,
+    emailGreeting: 'नमस्ते,',
+    emailSignOff: 'जब आपको ठीक लगे, बात कर लेते हैं।',
   },
 
   HINGLISH: {
@@ -198,6 +237,14 @@ const PHRASES: Record<LanguageMix, OwnerPhrases> = {
     beforeAfter: (b, a) => `Pehle: ${b}. Change ke baad: ${a}.`,
     awaitingEvidence: (t) =>
       `${t} mein change hua ya nahi, yeh batane ke liye abhi kaafi nayi feedback nahi hai. Aur aane par hum phir dekhenge.`,
+    emailSubject: (b, kind) =>
+      kind === 'OWNER_UPDATE'
+        ? `${b} — customers ne kya kaha`
+        : kind === 'ACTION_MESSAGE'
+          ? `${b} — ek suggestion`
+          : `${b} — follow-up`,
+    emailGreeting: 'Namaste,',
+    emailSignOff: 'Jab aapko theek lage, baat kar lete hain.',
   },
 
   MARATHI: {
@@ -228,6 +275,14 @@ const PHRASES: Record<LanguageMix, OwnerPhrases> = {
     beforeAfter: (b, a) => `आधी: ${b}. बदलानंतर: ${a}.`,
     awaitingEvidence: (t) =>
       `${t} मध्ये बदल झाला की नाही हे सांगण्यासाठी अजून पुरेसा नवीन अभिप्राय नाही. अजून आल्यावर आम्ही पुन्हा पाहू.`,
+    emailSubject: (b, kind) =>
+      kind === 'OWNER_UPDATE'
+        ? `${b} — तुमच्या ग्राहकांनी काय सांगितलं`
+        : kind === 'ACTION_MESSAGE'
+          ? `${b} — एक सूचना`
+          : `${b} — फॉलो-अप`,
+    emailGreeting: 'नमस्कार,',
+    emailSignOff: 'तुम्हाला सोयीचं असेल तेव्हा बोलूया.',
   },
 
   // "Match the customer" has no meaning for a message to the owner, so it
@@ -259,6 +314,14 @@ const PHRASES: Record<LanguageMix, OwnerPhrases> = {
     beforeAfter: (b, a) => `Before: ${b}. Since the change: ${a}.`,
     awaitingEvidence: (t) =>
       `We do not have enough new feedback yet to say whether ${t.toLowerCase()} has changed.`,
+    emailSubject: (b, kind) =>
+      kind === 'OWNER_UPDATE'
+        ? `${b} — what your customers said`
+        : kind === 'ACTION_MESSAGE'
+          ? `${b} — one thing worth trying`
+          : `${b} — following up`,
+    emailGreeting: 'Hello,',
+    emailSignOff: 'Happy to talk it through whenever suits you.',
   },
 };
 
@@ -317,11 +380,39 @@ function finish(
     type,
     title,
     body,
+    channels: channelsFor(body, type, language, insight.businessName),
     language,
     notes,
     problems: result.problems,
     blocked: !result.storable,
     version: COMMS_VERSION,
+  };
+}
+
+/**
+ * The same message, framed for the two places it actually gets sent.
+ *
+ * WhatsApp is the body untouched: it was written to be pasted into a chat.
+ * Email gets the two things a chat does not need — a subject line so it can be
+ * found again, and a greeting and sign-off so it reads as a person wrote it.
+ * No fact is added, removed or re-worded, so the safety check that ran on the
+ * body covers both.
+ */
+export function channelsFor(
+  body: string,
+  type: CommsType,
+  language: LanguageMix,
+  business: string,
+): MessageChannels {
+  const phrases = PHRASES[language];
+  return {
+    whatsapp: body,
+    email: {
+      subject: phrases.emailSubject(business, type),
+      greeting: phrases.emailGreeting,
+      signOff: phrases.emailSignOff,
+      body: `${phrases.emailGreeting}\n\n${body}\n\n${phrases.emailSignOff}`,
+    },
   };
 }
 

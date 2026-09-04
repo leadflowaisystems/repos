@@ -1,0 +1,748 @@
+// RepOS — local-first SQLite schema.
+//
+// PII RULE (see COMPLIANCE.md):
+//   Contact fields exist ONLY for the business owner/operator we contract with.
+//   No end-customer names, phones, emails or identifiers are stored anywhere.
+//   Pasted review text is redacted on ingest before it is persisted.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// M1 — Clients + knowledge profile
+// ---------------------------------------------------------------------------
+
+model Client {
+  id           String  @id @default(cuid())
+  businessName String
+  vertical     String // pack id, e.g. "clinic" — see /packs
+  areaLabel    String? // neighbourhood / city / area, not a customer address
+
+  // Plain stored references. RepOS NEVER fetches these automatically.
+  mapsUrl       String?
+  reviewLinkUrl String?
+
+  // Owner/operator contact only. Never end-customer contact details.
+  ownerName  String?
+  ownerPhone String?
+  ownerEmail String?
+
+  avgCustomerValueInr Int?
+  plan                String    @default("STARTER")
+  status              String    @default("PROSPECT")
+  onboardingDate      DateTime?
+
+  // Manually observed baseline, captured at onboarding.
+  baselineRating         Float?
+  baselineReviewCount    Int?
+  baselineReviewsPerWeek Float?
+  baselineObservedAt     DateTime?
+
+  kitInstalledDate DateTime?
+  notes            String?
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  /// The owner's private address for their own workspace (M16).
+  ///
+  /// Unguessable and separate from `id` on purpose: the client id appears all
+  /// over the operator's screens and in links, and a cuid is a sortable
+  /// timestamp, not a secret. This is the same 110-bit token shape the
+  /// customer feedback page uses. Regenerating it revokes the old link.
+  /// Nullable so existing rows load; created on demand, never reused.
+  portalToken   String?   @unique
+  portalTokenAt DateTime?
+  /// When the operator recorded that they actually sent the owner their link
+  /// (M17). Distinct from portalTokenAt, which only records that RepOS minted
+  /// one — a token existing is not a business being onboarded.
+  portalLinkSentAt DateTime?
+
+  /// M20 - subscription state, deliberately separate from `status`.
+  ///
+  /// `status` is the operator's sales pipeline (PROSPECT / ACTIVE / PAUSED)
+  /// and has meant that since M1. This is whether the account is entitled to
+  /// the product: TRIAL, ACTIVE, PAUSED, CANCELLED. Keeping them apart means
+  /// a paused subscription does not rewrite the operator's pipeline notes,
+  /// and billing can be attached later without touching either.
+  subscriptionStatus String @default("TRIAL")
+
+  /// M20 - when the owner finished the self-serve setup wizard.
+  ///
+  /// Not `onboardingDate`, which is the operator's record of when they took
+  /// the business on. This one is the owner's own progress through signup.
+  setupCompletedAt DateTime?
+
+  voiceProfile VoiceProfile?
+  policy       BusinessPolicy?
+  kitConfig    KitConfig?
+  competitors  Competitor[]
+  snapshots    Snapshot[]
+  timeEntries  TimeEntry[]
+  minutes      Minute[]
+  feedback     ReviewItem[]
+  improvements ImprovementAction[]
+  context      BusinessContext[]
+  gateway      FeedbackGateway?
+  memberships  Membership[]
+  invitations  Invitation[]
+
+  @@index([status])
+  @@index([vertical])
+  @@index([subscriptionStatus])
+}
+
+// ---------------------------------------------------------------------------
+// M20 - identity, membership and roles
+// ---------------------------------------------------------------------------
+
+/// A person who can sign in.
+///
+/// Separate from Client on purpose. A Client is a business; a User is a human,
+/// and one human may look after two salons while another looks after one. The
+/// link between them is Membership, which is also where the role lives.
+///
+/// PII RULE, unchanged from M1: this is an OPERATOR or BUSINESS OWNER, never
+/// an end customer. Customers stay anonymous and never get an account.
+model User {
+  id    String  @id @default(cuid())
+  /// Stored lowercased and trimmed. The only identifier a person types.
+  email String  @unique
+  name  String?
+
+  /// The scrypt record from M16, when RepOS holds the credential itself.
+  /// Null for a user whose identity is delegated to an external provider.
+  passwordHash String?
+
+  /// The external identity id (Supabase Auth `auth.users.id`) when identity
+  /// is delegated. Null for an application-owned credential. Exactly one of
+  /// this and `passwordHash` is set for any user who can sign in.
+  authProviderId String? @unique
+
+  /// RepOS staff. Deliberately NOT a Membership row: an admin does not belong
+  /// to one business, they oversee all of them, and modelling that as a
+  /// membership would mean inventing a fake tenant to hang it from.
+  isPlatformAdmin Boolean @default(false)
+
+  /// ACTIVE | SUSPENDED. A suspended user keeps their memberships and their
+  /// history; they simply cannot sign in.
+  status String @default("ACTIVE")
+
+  emailVerifiedAt DateTime?
+  lastSignInAt    DateTime?
+
+  /// Bumped to invalidate every session this user currently holds.
+  ///
+  /// Sessions are signed cookies rather than rows, which cannot be deleted
+  /// server-side. Carrying this number in the cookie and comparing it on every
+  /// request gives the one thing a stateless session otherwise lacks: a way to
+  /// throw someone out after a password change or a suspension.
+  sessionVersion Int @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Membership[]
+  resetTokens PasswordResetToken[]
+  invitesSent Invitation[]         @relation("InvitedBy")
+
+  @@index([isPlatformAdmin])
+  @@index([status])
+}
+
+/// One person's access to one business, and what they may do there.
+///
+/// This row IS the authorization. Nothing in RepOS may decide that a user can
+/// see a client because an id appeared in a URL; it decides because a
+/// membership exists, is ACTIVE, and carries a role that permits it.
+model Membership {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// BUSINESS_OWNER | BUSINESS_STAFF. Platform admin is not a role here; it
+  /// is a property of the person, not of their relationship to one business.
+  role String @default("BUSINESS_STAFF")
+
+  /// ACTIVE | SUSPENDED. Suspending is reversible; deleting is not, and an
+  /// owner who removes someone by mistake should not lose the record of it.
+  status String @default("ACTIVE")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, clientId])
+  @@index([clientId, status])
+  @@index([userId, status])
+}
+
+/// A single-use, time-limited password reset.
+///
+/// The token itself is never stored - only its hash - so a leaked database
+/// does not hand out working reset links. A row is spent the moment it is
+/// used and every other outstanding row for that user is spent with it.
+model PasswordResetToken {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// SHA-256 of the token. The token exists only in the link.
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// An invitation to join one business.
+///
+/// Created by an operator or a business owner. Like a reset token, only the
+/// hash is stored. An invitation names the role it grants, so accepting one
+/// can never quietly award more access than the inviter chose.
+model Invitation {
+  id String @id @default(cuid())
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// Lowercased. The invitation is for this address and no other.
+  email String
+  role  String @default("BUSINESS_STAFF")
+
+  tokenHash String   @unique
+  expiresAt DateTime
+
+  invitedById String?
+  invitedBy   User?   @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  acceptedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([clientId, acceptedAt])
+  @@index([email])
+}
+
+// ---------------------------------------------------------------------------
+// M14 — Customer feedback gateway: the public front door, one per client
+// ---------------------------------------------------------------------------
+
+/// The public feedback page for one business.
+///
+/// A customer's phone sees the public token and nothing else: not the client
+/// id, not a name in the address, not a counter. The token is random, stable
+/// for the life of the client, and resolves to exactly one business.
+///
+/// PII RULE: there is deliberately no column here, or on ReviewItem, for a
+/// customer's name, phone, email, address or network address. A submission is
+/// the words and the rating, nothing about the person.
+model FeedbackGateway {
+  id       String @id @default(cuid())
+  clientId String @unique
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// Unguessable, non-identifying. The only thing printed inside the QR.
+  publicToken String @unique
+
+  /// Off means the page shows "not active" and stores nothing.
+  enabled Boolean @default(true)
+
+  /// Operator-supplied public review link, offered to EVERY customer after
+  /// they send feedback — never selectively. Stored string; never fetched.
+  publicReviewUrl String @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// M13 — Business context: what the owner told RepOS about their business
+// ---------------------------------------------------------------------------
+
+/// One thing the owner told RepOS about how their business works, what
+/// matters to them, or what RepOS should not suggest. Operational memory only:
+/// never a customer record, never a person's contact details. Kept apart from
+/// customer evidence by construction — the provenance column says where each
+/// line came from, and nothing here is ever counted as a customer saying it.
+model BusinessContext {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// PRIORITY | FOCUS | OPERATING | CONSTRAINT | TRIED | DEFINITION | ANSWER
+  kind String
+  /// OWNER_TOLD_US | DERIVED_FROM_ACTION | DERIVED_FROM_FEEDBACK
+  provenance String @default("OWNER_TOLD_US")
+  /// The statement, in the owner's words.
+  text String
+
+  /// Optional: the pack theme this explains, so it can sit beside the evidence.
+  themeKey String?
+  /// CONSTRAINT only: STAFF | DISCOUNT | PRICE | SPEND | OTHER.
+  constraintKey String?
+  /// ANSWER only: which owner question this answers (the theme it was asked for).
+  questionKey String?
+  /// TRIED only: the formal improvement action this refers to, when one exists.
+  actionId String?
+
+  /// When the owner told us. Not when the row was typed, if they differ.
+  recordedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  /// Set when the owner says it is no longer true. Retired context is kept,
+  /// never shown as current.
+  retiredAt   DateTime?
+  retiredNote String    @default("")
+
+  @@index([clientId, kind])
+  @@index([clientId, retiredAt])
+}
+
+model VoiceProfile {
+  id       String @id @default(cuid())
+  clientId String @unique
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// Every field is blank by default, and blank means "follow the vertical
+  /// pack" (see src/lib/reply/voice.ts). Seeding these with a copy of the
+  /// pack's voice would turn every client into a permanent override, so a later
+  /// improvement to a pack would never reach clients already onboarded — the
+  /// same rule KitConfig follows.
+  formality      String @default("") // FORMAL | NEUTRAL | FRIENDLY | CASUAL
+  languageMix    String @default("") // ENGLISH | HINGLISH | MARATHI | MIXED
+  greeting       String @default("")
+  signOff        String @default("")
+  preferredWords String @default("") // newline separated
+  bannedWords    String @default("") // newline separated
+  emojiPolicy    String @default("") // NONE | MINIMAL | MODERATE
+  exampleReplies String @default("") // newline separated
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BusinessPolicy {
+  id       String @id @default(cuid())
+  clientId String @unique
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  refundPolicy       String @default("")
+  appointmentPolicy  String @default("")
+  cancellationPolicy String @default("")
+  neverPromise       String @default("") // newline separated hard "do not say" list
+  sensitiveTopics    String @default("") // newline separated
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Competitor {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  name    String
+  mapsUrl String? // stored reference only, never fetched
+
+  // Manually entered by the operator from public observation.
+  rating      Float?
+  reviewCount Int?
+  observedAt  DateTime?
+
+  sortIndex Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, sortIndex])
+}
+
+// ---------------------------------------------------------------------------
+// M2 — Health Card + Customer Pulse snapshots
+// ---------------------------------------------------------------------------
+
+model Snapshot {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  label      String?
+  capturedAt DateTime // the date/time the operator observed this data
+  isBaseline Boolean  @default(false)
+
+  // Manually observed public figures.
+  rating            Float?
+  reviewCount       Int?
+  unansweredCount   Int?
+  daysSinceLastPost Int?
+  photoRecencyDays  Int?
+  reviewsPerWeek    Float?
+
+  profileGaps      String @default("[]") // JSON string array of gap keys
+  observationNotes String @default("")
+  competitorsJson  String @default("[]") // frozen copy of competitor values at capture time
+
+  // Deterministic aggregation output (computed by app code, never by the LLM).
+  analysisJson    String?
+  // AI-drafted prose only. Contains no numbers the app did not supply.
+  narrativeJson   String?
+  narrativeSource String? // AI:groq | AI:gemini | TEMPLATE
+  aiModel         String?
+  generatedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reviews ReviewItem[]
+
+  @@index([clientId, capturedAt])
+}
+
+/// One piece of customer feedback.
+///
+/// Every item belongs to exactly one CLIENT. It may additionally belong to a
+/// snapshot when it was captured as part of one, but feedback brought in
+/// through the intake inbox (M5) stands on its own.
+///
+/// The text stored here has already passed through deterministic PII
+/// minimisation — see src/lib/redact.ts. Sentiment and tags are left
+/// unclassified at intake and filled in by the analysis layer.
+model ReviewItem {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// Set only when this item was captured inside a snapshot.
+  snapshotId String?
+  snapshot   Snapshot? @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  // Redacted at ingest. Names/emails/phones/addresses are stripped first.
+  text       String
+  stars      Int?
+  reviewDate DateTime?
+  language   String? // en | hi | mr | mixed | unknown — set by the analysis layer
+
+  /// Where the operator got it: PUBLIC_REVIEW | PRIVATE_FEEDBACK | MANUAL_ENTRY | OTHER.
+  /// Deliberately generic — no platform is privileged.
+  source String @default("PUBLIC_REVIEW")
+
+  /// Deterministic hash of the normalised text, used to skip obvious duplicates
+  /// within a client. Not fuzzy: identical text after normalisation, or nothing.
+  fingerprint String @default("")
+
+  /// M19 — the structured signal from the feedback gateway.
+  ///
+  /// A JSON object of stable dimension keys to a 1-5 rating, e.g.
+  /// {"food":5,"service":2}. Empty for pasted feedback, for anything from
+  /// before M19, and for a customer who only left an overall rating. The keys
+  /// come from the client's vertical pack, never from display labels.
+  dimensionsJson String @default("{}")
+
+  /// M19 — the quick options a customer tapped, as stable keys, e.g.
+  /// ["service_slow"]. Additional evidence; never a substitute for what M6
+  /// reads out of the words.
+  signalsJson    String @default("[]")
+
+  sentiment       String  @default("UNCLASSIFIED") // set by the analysis layer
+  issueTags       String  @default("[]")
+  praiseTags      String  @default("[]")
+  classifiedBy    String  @default("NONE") // NONE | AI | KEYWORD | MANUAL
+  classifierModel String?
+  redacted        Boolean @default(false)
+  /// Categories removed at ingest, so the operator can see what was stripped.
+  redactionsJson  String  @default("[]")
+
+  // --- Analysis layer (M6) -------------------------------------------------
+
+  /// PENDING | ANALYSED | FAILED. Failure keeps the feedback intact and
+  /// retryable — analysis is never allowed to damage the original.
+  analysisStatus String @default("PENDING")
+
+  /// Themes with their own sentiment, e.g. doctor explanation -> positive and
+  /// waiting time -> negative on the same review. JSON array; the taxonomy keys
+  /// come from the client's vertical pack.
+  themesJson String @default("[]")
+
+  /// LOW | MEDIUM | HIGH. Explainable, not a fabricated probability.
+  confidence String @default("LOW")
+
+  /// Short human-readable reasons for the sentiment call, kept so the operator
+  /// can always see WHY RepOS decided what it decided.
+  analysisReasonsJson String @default("[]")
+
+  /// Last failure reason, cleared on a successful re-analysis.
+  analysisError String?
+
+  /// Engine version that produced the current analysis. Bumping it in code
+  /// makes previously analysed items eligible for controlled reprocessing.
+  analysisVersion Int @default(0)
+
+  /// Null until the analysis layer has processed this item.
+  analysedAt DateTime?
+
+  // --- Reply layer (M7) ----------------------------------------------------
+  // Everything here is derived from the analysis columns above. Nothing in this
+  // block re-reads the customer's text for sentiment.
+
+  /// UNCLASSIFIED | PRAISE | COMPLAINT | MIXED | QUESTION | NEUTRAL.
+  responseClass String @default("UNCLASSIFIED")
+
+  /// NONE | REPLY_RECOMMENDED | REPLY_OPTIONAL | NO_RESPONSE_NEEDED | NEEDS_HUMAN.
+  responseAction String @default("NONE")
+
+  /// NONE | LOW | MEDIUM | HIGH. Band of the named signals below, never a score
+  /// a model produced.
+  priorityBand String @default("NONE")
+
+  /// Sum of fixed weights from named signals. Used only for ordering, and always
+  /// shown alongside the reasons that produced it.
+  priorityRank Int @default(0)
+
+  /// Plain-language reasons for the priority, e.g. "Rated 1 star."
+  priorityReasonsJson String @default("[]")
+
+  /// Triage engine version, for controlled reprocessing.
+  triageVersion Int @default(0)
+
+  /// The suggested reply. Never sent anywhere by RepOS — the operator copies it.
+  draftText String?
+
+  /// Language the draft was written in, so the operator knows before copying.
+  draftLanguage String?
+
+  /// NONE | AI | TEMPLATE. TEMPLATE means the deterministic writer produced it.
+  draftSource String @default("NONE")
+
+  /// NONE | READY | EDITED | HANDLED | FAILED.
+  draftStatus String @default("NONE")
+
+  /// Last drafting failure, kept so the operator sees why rather than nothing.
+  draftError String?
+
+  /// Why the draft looks the way it does, including any safety rewrite.
+  draftNotesJson String @default("[]")
+
+  draftVersion Int       @default(0)
+  draftedAt    DateTime?
+  handledAt    DateTime?
+
+  sortIndex Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([snapshotId, sortIndex])
+  @@index([clientId, reviewDate])
+  @@index([clientId, fingerprint])
+  @@index([clientId, analysisStatus])
+  @@index([clientId, draftStatus])
+}
+
+// ---------------------------------------------------------------------------
+// M3 — Reputation / feedback kit
+// ---------------------------------------------------------------------------
+
+model KitConfig {
+  id       String @id @default(cuid())
+  clientId String @unique
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  // MANUALLY supplied by the operator. RepOS never derives or fetches this.
+  qrTargetUrl String @default("")
+
+  brandPrimary   String  @default("#1F3A5F")
+  brandSecondary String  @default("#C9A227")
+  logoPath       String? // relative path under data/uploads
+
+  displayName String @default("")
+  headline    String @default("")
+  subhead     String @default("")
+  staffScript String @default("")
+  footerNote  String @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// M4 — Minutes: the operational memory layer
+// ---------------------------------------------------------------------------
+
+/// One recorded thing that happened with a client: a conversation, a decision,
+/// an issue raised, something to follow up.
+///
+/// Deliberately tiny. This is operator memory about the BUSINESS, not a CRM and
+/// not a customer record — there is no field here for a customer's name, phone,
+/// email or address, and there never should be. See COMPLIANCE.md.
+model Minute {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// When the thing actually happened, which is not always when it was typed.
+  occurredAt DateTime
+  category   String   @default("GENERAL")
+  title      String
+  body       String   @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, occurredAt])
+}
+
+// ---------------------------------------------------------------------------
+// Time log — minutes spent per client, the operator KPI
+// ---------------------------------------------------------------------------
+
+model TimeEntry {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  taskType  String
+  minutes   Int
+  entryDate DateTime
+  note      String?
+
+  createdAt DateTime @default(now())
+
+  @@index([clientId, entryDate])
+  @@index([entryDate])
+}
+
+// ---------------------------------------------------------------------------
+// App-level settings (single operator, no accounts)
+// ---------------------------------------------------------------------------
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+/// ONE IMPROVEMENT ATTEMPT (M11).
+///
+/// The record of a business change that RepOS recommended, a human decided on,
+/// the business carried out, and customer feedback was then measured against.
+/// This is RepOS's long-term memory of what was actually tried and what
+/// happened afterwards.
+///
+/// Three blocks here are FROZEN at the moment they are written and are never
+/// recomputed:
+///
+///   1. the insight that caused the action, including its stable M10 id
+///   2. the recommendation exactly as it stood at that time
+///   3. the baseline evidence the recommendation rested on
+///
+/// Intelligence is recalculated on every page load. If a later recalculation
+/// ranks a different complaint first, or the pack advice is reworded, or the
+/// theme falls below the naming floor, the history must still show what RepOS
+/// originally said and why. A rewritten history is worse than none.
+model ImprovementAction {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  // --- Provenance: the M10 insight, frozen ---------------------------------
+
+  /// The stable intelligence id, `clientId:KIND:themeKey`. Traceability runs
+  /// through this, not through themeKey alone.
+  insightId           String
+  themeKey            String
+  themeLabel          String
+  /// PRAISE | ISSUE. Decides which direction counts as an improvement.
+  themeSentiment      String @default("ISSUE")
+  /// low | medium | high, as the vertical pack declared it at the time.
+  themeSeverity       String @default("medium")
+  /// What the insight said, in the words the operator actually read.
+  insightHeadline     String @default("")
+  insightDetail       String @default("")
+  /// The named ranking signals, frozen. JSON array of {key, weight, reason}.
+  insightSignalsJson  String @default("[]")
+  /// The M10 engine version that produced it.
+  intelligenceVersion Int    @default(0)
+
+  // --- What RepOS recommended, frozen --------------------------------------
+
+  /// The vertical pack's own advice, verbatim. RepOS does not write advice and
+  /// no model wrote this. Empty when the pack had none for this theme.
+  recommendationText String @default("")
+
+  // --- The baseline evidence, frozen ---------------------------------------
+
+  /// How many read feedback items mentioned the theme when the action was made.
+  baselineCount         Int
+  /// Out of how many read items. The denominator, so the share is comparable.
+  baselineTotal         Int
+  /// The feedback rows behind the count: "show me the evidence", years later.
+  baselineItemIdsJson   String   @default("[]")
+  /// STRONG | MODERATE | EARLY, as M10 judged it at the time.
+  baselineConfidence    String   @default("EARLY")
+  baselineCapturedAt    DateTime
+  /// The most recent check-in when the baseline was taken, if there was one.
+  baselineSnapshotId    String?
+  baselineSnapshotLabel String?
+
+  // --- The human layer -----------------------------------------------------
+
+  /// What we are trying to improve, in one line.
+  title       String
+  /// What the business ACTUALLY decided to do, which is often not the
+  /// recommendation. "Review booking capacity" becomes "cut 6-8pm slots to 5
+  /// an hour", and the second one is what has to be remembered.
+  description String @default("")
+
+  /// RECOMMENDED | ACCEPTED | DECLINED | PAUSED | DONE | MEASURED.
+  status     String @default("RECOMMENDED")
+  /// Why it was declined or paused, in the operator's words.
+  statusNote String @default("")
+
+  /// When a human accepted or declined it.
+  decidedAt  DateTime?
+  /// When the business says the change was implemented. NOT evidence that it
+  /// worked — only that it happened.
+  doneAt     DateTime?
+  measuredAt DateTime?
+
+  // --- The measured result, frozen when measured ---------------------------
+
+  /// IMPROVED | WORSENED | NO_CLEAR_CHANGE | INSUFFICIENT_DATA. Null until
+  /// measured. Decided by application code from stored feedback, never by a
+  /// model, and never a causal claim.
+  result     String?
+  /// The whole deterministic measurement, so the evidence behind the verdict
+  /// survives even if the feedback is later re-analysed.
+  resultJson String?
+
+  // --- Learning: business observation, never customer evidence -------------
+
+  /// The operator's own note about what they think happened. Displayed as an
+  /// observation, and never counted, quoted or shown as something a customer
+  /// said.
+  learningNote String    @default("")
+  learningAt   DateTime?
+
+  /// The Minute written when the decision was recorded, if one was. Actions do
+  /// not keep a second memory system; operational memory stays in M4.
+  minuteId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, status])
+  @@index([clientId, createdAt])
+  @@index([insightId])
+}

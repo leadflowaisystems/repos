@@ -10,12 +10,19 @@ import {
 } from "@/components/ui";
 import { HealthCardPanel, PulsePanel } from "@/components/health-card";
 import { IntelligencePanel } from "@/components/intelligence-panel";
+import { ResponsibilityPanel } from "@/components/responsibility-panel";
+import { getResponsibility } from "@/lib/responsibility/service";
 import { ImprovementActionsPanel } from "@/components/forms/improvement-actions";
 import { listActionsWithProgress } from "@/lib/improve/service";
 import { evidenceLine } from "@/lib/improve/model";
+import { PortalLinkPanel } from "@/components/forms/portal-link";
+import { portalPath } from "@/lib/portal/access";
+import { ensurePortalToken, getClientSetup } from "@/lib/clients/service";
+import { getPublicBaseUrl } from "@/lib/gateway/service";
+import { requestOrigin } from "@/lib/gateway/origin";
+import { resolvePublicBaseUrl } from "@/lib/config/public-url";
 import { prisma } from "@/lib/db";
 import { getClientHealth } from "@/lib/snapshots/service";
-import { computeReadiness } from "@/lib/kit/content";
 import { listClientMinutes } from "@/lib/minutes/service";
 import { MinuteCard } from "@/components/minute-list";
 import { OwnerCommsPanel } from "@/components/forms/owner-comms";
@@ -72,7 +79,23 @@ export default async function ClientOverviewPage({
   const pack = getPackOrFallback(client.vertical);
   const { start, end } = monthRange(new Date());
 
-  const [timeLogged, health, recentMinutes, minuteCount, comms, actions] =
+  // The owner’s link is a secret, and it is issued the first time this page
+  // is opened rather than at client creation — so an install that predates
+  // M16 gets one without anybody having to run anything.
+  const setup = await getClientSetup(prisma, client.id);
+  const portalToken = await ensurePortalToken(prisma, client.id);
+  // Only null when the client vanished between the read above and now.
+  if (!portalToken) notFound();
+  const portalPathname = portalPath(portalToken);
+  // Sent to the owner, so it has to be a whole address, not a path. The same
+  // one address the QR codes use — there is only ever one.
+  const portalBase = resolvePublicBaseUrl({
+    setting: await getPublicBaseUrl(prisma),
+    requestOrigin: await requestOrigin(),
+  });
+  const portalUrl = portalBase.ok ? `${portalBase.url}${portalPathname}` : portalPathname;
+
+  const [timeLogged, health, recentMinutes, minuteCount, comms, actions, responsibility] =
     await Promise.all([
       prisma.timeEntry.aggregate({
         where: { clientId: id, entryDate: { gte: start, lt: end } },
@@ -84,6 +107,7 @@ export default async function ClientOverviewPage({
       prisma.minute.count({ where: { clientId: id } }),
       getOwnerComms(prisma, id, { language: query.commsLang ?? null }),
       listActionsWithProgress(prisma, id),
+      getResponsibility(prisma, id),
     ]);
 
   // The action panel renders strings, not Dates: every figure and date is
@@ -133,7 +157,34 @@ export default async function ClientOverviewPage({
   const latest = client.snapshots[0];
   const timeThisMonth = timeLogged._sum.minutes ?? 0;
 
+  // What actually has to be true before this business is being served (M17).
+  //
+  // The old list scored a client against a public listing — a baseline rating,
+  // a competitor, a printable review kit — so a business with no Google
+  // presence showed a permanent "setup still to do" box naming things it would
+  // never do. These six are the things the product's own direction says matter,
+  // and every one of them is reachable without an account anywhere.
   const checklist = [
+    {
+      label: "Feedback page switched on",
+      done: setup.gatewayLive,
+      href: `/clients/${id}/qr`,
+    },
+    {
+      label: "Feedback cards printed and on site",
+      done: client.kitInstalledDate !== null,
+      href: `/clients/${id}/kit`,
+    },
+    {
+      label: "Owner has been sent their link",
+      done: client.portalLinkSentAt !== null,
+      href: `/clients/${id}`,
+    },
+    {
+      label: "What the owner told us is recorded",
+      done: setup.contextCount > 0,
+      href: `/clients/${id}/context`,
+    },
     {
       label: "Voice profile filled in",
       done: Boolean(
@@ -150,37 +201,36 @@ export default async function ClientOverviewPage({
       ),
       href: `/clients/${id}/profile`,
     },
-    {
-      label: "At least one competitor entered",
-      done: client.competitors.length > 0,
-      href: `/clients/${id}/profile`,
-    },
-    {
-      label: "Baseline observed",
-      done:
-        client.baselineRating !== null || client.baselineReviewCount !== null,
-      href: `/clients/${id}/edit`,
-    },
-    {
-      // Same readiness rule the kit page uses, so the two can never disagree.
-      label: "Feedback kit ready to print",
-      done: computeReadiness({
-        businessName: client.businessName,
-        reviewUrl: client.kitConfig?.qrTargetUrl || client.reviewLinkUrl,
-      }).ready,
-      href: `/clients/${id}/kit`,
-    },
-    {
-      label: "Kit installed on site",
-      done: client.kitInstalledDate !== null,
-      href: `/clients/${id}/edit`,
-    },
   ];
 
   const remaining = checklist.filter((c) => !c.done);
 
   return (
     <div className="space-y-6">
+      {remaining.length > 0 ? (
+        <Notice tone="warn" title="Setup still to do">
+          <ul className="mt-1 space-y-1">
+            {remaining.map((item) => (
+              <li key={item.label}>
+                <Link href={item.href} className="underline underline-offset-2">
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Notice>
+      ) : null}
+
+      {/* What RepOS is responsible for right now, before any measurement:
+          the same object the owner's Home is built from. */}
+      {responsibility ? (
+        <ResponsibilityPanel
+          r={responsibility.responsibility}
+          clientId={client.id}
+          portalToken={portalToken}
+        />
+      ) : null}
+
       <HealthCardPanel health={health.card} clientId={client.id} />
       <PulsePanel pulse={health.pulse} clientId={client.id} />
 
@@ -228,23 +278,29 @@ export default async function ClientOverviewPage({
         />
       </div>
 
-      {remaining.length > 0 ? (
-        <Notice tone="warn" title="Setup still to do">
-          <ul className="mt-1 space-y-1">
-            {remaining.map((item) => (
-              <li key={item.label}>
-                <Link href={item.href} className="underline underline-offset-2">
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Notice>
-      ) : (
+      {remaining.length === 0 ? (
         <Notice tone="good">
-          Setup is complete. This client is ready for a monthly snapshot.
+          Setup is complete: the feedback page is live, the cards are on site and the owner has
+          their link.
         </Notice>
-      )}
+      ) : null}
+
+      <Card>
+        <CardHeader
+          title="The owner’s link"
+          description="One private address that opens this business’s own view. It needs no password, so it should only ever go to the owner."
+        />
+        <CardBody>
+          <PortalLinkPanel
+            clientId={client.id}
+            url={portalUrl}
+            href={portalPathname}
+            addressWarning={portalBase.ok ? null : portalBase.reason}
+            justRegenerated={query.portalLink === "new"}
+            sent={setup.ownerLinkSent}
+          />
+        </CardBody>
+      </Card>
 
       <div className="grid gap-6">
         {comms.ok ? (
@@ -254,17 +310,24 @@ export default async function ClientOverviewPage({
             <CardHeader
               title="Ready to send to the owner"
               description="Written from this client's own feedback. Copy it and send it however you normally do."
+              action={
+                <LinkButton href={portalPathname}>Open client view</LinkButton>
+              }
             />
             <CardBody>
               <OwnerCommsPanel
                 base={`/clients/${id}`}
                 language={comms.data.language}
                 replyHref={`/clients/${id}/feedback`}
+                ownerContext={comms.data.ownerContext}
                 messages={comms.data.messages.map((message) => ({
                   type: message.type,
                   title: message.title,
                   description: COMMS_DESCRIPTIONS[message.type as CommsType],
                   body: message.body,
+                  emailSubject: message.channels.email.subject,
+                  emailGreeting: message.channels.email.greeting,
+                  emailSignOff: message.channels.email.signOff,
                   notes: message.notes,
                   problems: message.problems,
                   blocked: message.blocked,

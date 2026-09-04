@@ -33,7 +33,7 @@ export const clientInputSchema = z.object({
     .min(2, 'Business name is required.')
     .max(120, 'Business name is too long.'),
   vertical: z.string().refine((v) => findPack(v) !== undefined, {
-    message: 'Choose a vertical that exists under /packs.',
+    message: 'Choose the business type — it decides the whole playbook.',
   }),
   areaLabel: z
     .string()

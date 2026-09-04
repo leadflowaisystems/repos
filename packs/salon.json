@@ -38,7 +38,16 @@
       ],
       "replyPhrase": "how your hair turned out",
       "replyPhraseHinglish": "baalon ke result",
-      "replyPhraseMarathi": "केसांच्या रिझल्टबद्दल"
+      "replyPhraseMarathi": "केसांच्या रिझल्टबद्दल",
+      "counterpart": "stylist_skill",
+      "askOwner": {
+        "question": "Which services draw the complaints?",
+        "options": [
+          "Colour or chemical services",
+          "Cuts and styling",
+          "Spa or skin treatments"
+        ]
+      }
     },
     {
       "key": "appointment_scheduling",
@@ -61,7 +70,18 @@
       ],
       "replyPhrase": "the trouble with your appointment",
       "replyPhraseHinglish": "appointment mein hui gadbad",
-      "replyPhraseMarathi": "अपॉइंटमेंटमधील गोंधळाबद्दल"
+      "replyPhraseMarathi": "अपॉइंटमेंटमधील गोंधळाबद्दल",
+      "counterpart": "punctuality",
+      "askOwner": {
+        "question": "Where do appointment problems usually start?",
+        "options": [
+          "Appointment cancelled or not confirmed",
+          "The same stylist is double-booked",
+          "The previous client runs over",
+          "The booking was not recorded"
+        ]
+      },
+      "actionNeeds": []
     },
     {
       "key": "pricing_transparency",
@@ -90,7 +110,16 @@
       ],
       "replyPhrase": "being charged more than you were quoted",
       "replyPhraseHinglish": "bataye gaye daam se zyada charge hone",
-      "replyPhraseMarathi": "सांगितलेल्यापेक्षा जास्त पैसे घेतल्याबद्दल"
+      "replyPhraseMarathi": "सांगितलेल्यापेक्षा जास्त पैसे घेतल्याबद्दल",
+      "counterpart": "value_pricing",
+      "askOwner": {
+        "question": "Where does the price change?",
+        "options": [
+          "Add-ons during the service",
+          "Product charges at billing",
+          "Quoted price was unclear"
+        ]
+      }
     },
     {
       "key": "staff_behaviour",
@@ -116,7 +145,8 @@
       ],
       "replyPhrase": "the way you were spoken to",
       "replyPhraseHinglish": "staff ke vyavhaar",
-      "replyPhraseMarathi": "स्टाफच्या वागणुकीबद्दल"
+      "replyPhraseMarathi": "स्टाफच्या वागणुकीबद्दल",
+      "counterpart": "staff_warmth"
     },
     {
       "key": "hygiene",
@@ -146,7 +176,8 @@
       ],
       "replyPhrase": "the cleanliness of the tools and towels",
       "replyPhraseHinglish": "tools aur towel ki safai",
-      "replyPhraseMarathi": "साधने आणि टॉवेलच्या स्वच्छतेबद्दल"
+      "replyPhraseMarathi": "साधने आणि टॉवेलच्या स्वच्छतेबद्दल",
+      "counterpart": "hygiene_praise"
     },
     {
       "key": "upselling_pressure",
@@ -226,7 +257,12 @@
       ],
       "replyPhrase": "the wait even though you had booked",
       "replyPhraseHinglish": "booking ke baad bhi karna pade intezaar",
-      "replyPhraseMarathi": "बुकिंग असूनही झालेल्या उशिराबद्दल"
+      "replyPhraseMarathi": "बुकिंग असूनही झालेल्या उशिराबद्दल",
+      "counterpart": "punctuality",
+      "actionNeeds": [
+        "STAFF"
+      ],
+      "alternativeAction": "Track actual start time against booked time for one week and add a five-minute buffer between bookings."
     },
     {
       "key": "cleanliness_space",
@@ -249,7 +285,8 @@
       ],
       "replyPhrase": "the state of the salon when you visited",
       "replyPhraseHinglish": "salon ki safai",
-      "replyPhraseMarathi": "सलूनच्या स्वच्छतेबद्दल"
+      "replyPhraseMarathi": "सलूनच्या स्वच्छतेबद्दल",
+      "counterpart": "hygiene_praise"
     },
     {
       "key": "phone_unreachable",
@@ -268,7 +305,11 @@
       ],
       "replyPhrase": "not being able to get through to us",
       "replyPhraseHinglish": "phone par sampark na ho paane",
-      "replyPhraseMarathi": "फोनवर संपर्क न झाल्याबद्दल"
+      "replyPhraseMarathi": "फोनवर संपर्क न झाल्याबद्दल",
+      "actionNeeds": [
+        "STAFF"
+      ],
+      "alternativeAction": "Return every missed call before the next appointment starts, and say so in the voicemail message."
     }
   ],
   "praiseTaxonomy": [
@@ -334,7 +375,7 @@
     },
     {
       "key": "hygiene_praise",
-      "label": "Clean and hygienic",
+      "label": "Cleanliness and hygiene",
       "hints": [
         "clean",
         "hygienic",
@@ -443,15 +484,17 @@
     ]
   },
   "staffAskScript": {
-    "when": "At the billing counter, once the client has seen the finished result in the mirror.",
-    "line": "If you are happy with how it turned out, would you mind sharing an honest review? The QR at the counter takes a minute.",
-    "hinglishLine": "Agar aapko result pasand aaya ho, toh ek honest review share kar dijiye. Counter ka QR ek minute lega.",
-    "marathiLine": "निकाल आवडला असेल तर तुमचा प्रामाणिक अभिप्राय द्याल का? काउंटरवरचा QR एक मिनिट घेतो.",
+    "when": "At the billing counter, for every client — including anyone who seemed less than delighted.",
+    "line": "There is a QR at the counter. Tell us honestly how it turned out — good or bad, it comes straight to us and takes a minute.",
+    "hinglishLine": "Counter par QR hai. Honestly bataiye kaisa laga — accha ho ya bura, seedha humein aata hai aur ek minute lagta hai.",
+    "marathiLine": "काउंटरवर QR आहे. प्रामाणिकपणे सांगा कसं वाटलं — चांगलं असो वा वाईट, ते थेट आमच्याकडे येतं आणि एक मिनिट लागतो.",
     "doNot": [
       "Never offer a discount, free add-on or loyalty points for a review.",
       "Never show the QR only to clients who seemed pleased.",
       "Never type a review on a client's phone.",
-      "Never ask a client to remove or edit a review."
+      "Never ask a client to remove or edit a review.",
+      "Never wait until someone looks happy — offer the QR to everyone, every time.",
+      "Never ask a customer to leave a public review as a condition of anything."
     ]
   },
   "profileGapChecks": [
@@ -509,13 +552,147 @@
   "kit": {
     "assetLabel": "counter card",
     "placement": "At the billing counter, where clients can see it while paying.",
-    "moment": "At billing, once the client has seen the finished result in the mirror.",
+    "moment": "At the billing counter, for every client — including anyone who seemed less than delighted.",
     "headline": "Happy with how it turned out?",
     "subhead": "Scan and tell us honestly. One minute.",
     "qrCaption": "Scan to share your honest review",
-    "askMessage": "Thank you for visiting {{businessName}}. If you are happy with how it turned out, would you share an honest review? It takes a minute: {{reviewUrl}}",
-    "askMessageHinglish": "{{businessName}} aane ke liye dhanyawaad. Agar aapko result pasand aaya ho, toh ek honest review share kar dijiye — ek minute lagega: {{reviewUrl}}",
-    "askMessageMarathi": "{{businessName}} ला भेट दिल्याबद्दल धन्यवाद. निकाल आवडला असेल तर तुमचा प्रामाणिक अभिप्राय द्याल का? एक मिनिट लागेल: {{reviewUrl}}",
+    "askMessage": "Thank you for visiting {{businessName}}. If you are happy with how it turned out, would you share an honest review? It takes a minute: {{feedbackUrl}}",
+    "askMessageHinglish": "{{businessName}} aane ke liye dhanyawaad. Agar aapko result pasand aaya ho, toh ek honest review share kar dijiye — ek minute lagega: {{feedbackUrl}}",
+    "askMessageMarathi": "{{businessName}} ला भेट दिल्याबद्दल धन्यवाद. निकाल आवडला असेल तर तुमचा प्रामाणिक अभिप्राय द्याल का? एक मिनिट लागेल: {{feedbackUrl}}",
     "thankYou": "Thank you — the team will be glad to read this."
+  },
+  "gateway": {
+    "headline": "How was your visit?",
+    "prompt": "Tell us what you loved, or what we could do better.",
+    "placeholder": "Your stylist, the service, the booking — anything at all.",
+    "thankYou": "Thank you. The salon team will read this.",
+    "printLine": "Tell us honestly — it helps us get it right next time.",
+    "dimensions": [
+      {
+        "key": "result",
+        "label": "The result",
+        "themeKey": "service_result",
+        "improvePrompt": "What did not turn out as you wanted?",
+        "goodPrompt": "Anything worth passing on?",
+        "signals": [
+          {
+            "key": "not_as_asked",
+            "label": "Not what I asked for"
+          },
+          {
+            "key": "uneven",
+            "label": "Finish was uneven"
+          },
+          {
+            "key": "did_not_last",
+            "label": "Did not last"
+          },
+          {
+            "key": "products",
+            "label": "Products used"
+          }
+        ]
+      },
+      {
+        "key": "stylist",
+        "label": "The person who served you",
+        "themeKey": "staff_behaviour",
+        "improvePrompt": "What happened?",
+        "goodPrompt": "Who served you well?",
+        "signals": [
+          {
+            "key": "did_not_listen",
+            "label": "Did not listen to what I wanted"
+          },
+          {
+            "key": "rushed",
+            "label": "Felt rushed"
+          },
+          {
+            "key": "manner",
+            "label": "Manner of the staff"
+          },
+          {
+            "key": "pushed_extras",
+            "label": "Pushed extra services"
+          }
+        ]
+      },
+      {
+        "key": "waiting",
+        "label": "Waiting",
+        "themeKey": "wait_time",
+        "improvePrompt": "Where was the wait?",
+        "goodPrompt": "Anything about the timing worth noting?",
+        "signals": [
+          {
+            "key": "past_appointment",
+            "label": "Well past my appointment time"
+          },
+          {
+            "key": "mid_service",
+            "label": "Left waiting mid-service"
+          },
+          {
+            "key": "no_slot",
+            "label": "Could not get a slot"
+          },
+          {
+            "key": "unreachable",
+            "label": "Could not reach anyone to book"
+          }
+        ]
+      },
+      {
+        "key": "cleanliness",
+        "label": "Cleanliness",
+        "themeKey": "hygiene",
+        "improvePrompt": "What did you notice?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "tools",
+            "label": "Tools and equipment"
+          },
+          {
+            "key": "towels",
+            "label": "Towels or linen"
+          },
+          {
+            "key": "washroom",
+            "label": "The washroom"
+          },
+          {
+            "key": "station",
+            "label": "The station or chair"
+          }
+        ]
+      },
+      {
+        "key": "value",
+        "label": "Value for money",
+        "themeKey": "pricing_transparency",
+        "improvePrompt": "What felt off about the price?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "more_than_quoted",
+            "label": "More than I was quoted"
+          },
+          {
+            "key": "not_told",
+            "label": "Price not told upfront"
+          },
+          {
+            "key": "too_high",
+            "label": "Prices are high"
+          },
+          {
+            "key": "extras_added",
+            "label": "Extras added to the bill"
+          }
+        ]
+      }
+    ]
   }
 }

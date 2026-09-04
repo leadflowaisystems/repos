@@ -745,6 +745,9 @@ describe('the rest of RepOS knows about the loop', () => {
     const board = await getBoard(db, NOW);
     const card = board.cards.find((c) => c.clientId === clientId);
     expect(card?.actions.lastResult?.themeLabel).toBe('Long waiting time');
-    expect(card?.actions.lastResult?.label).toMatch(/improved/i);
+    // Observational wording only: the label says what the feedback did after
+    // the change, never that the change worked.
+    expect(card?.actions.lastResult?.label).toBe('Mentioned less often after the change');
+    expect(card?.actions.lastResult?.label).not.toMatch(/improved|worse|fixed/i);
   });
 });

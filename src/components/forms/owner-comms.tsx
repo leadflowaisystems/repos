@@ -23,6 +23,10 @@ export type CommsMessageView = {
   title: string;
   description: string;
   body: string;
+  /** The email framing for this message, in the owner's own language. */
+  emailSubject: string;
+  emailGreeting: string;
+  emailSignOff: string;
   notes: string[];
   problems: Array<{ code: string; message: string; blocking: boolean }>;
   blocked: boolean;
@@ -65,6 +69,22 @@ function LanguageSwitch({
 }
 
 function MessageCard({ message }: { message: CommsMessageView }) {
+  /**
+   * The same words, framed for an inbox rather than a chat.
+   *
+   * Built from whatever is in the box, so an edit the operator makes is
+   * carried into both copies. Nothing is added but the subject, greeting and
+   * sign-off an email needs and a chat does not.
+   */
+  const emailText = (text: string) =>
+    `Subject: ${message.emailSubject}
+
+${message.emailGreeting}
+
+${text}
+
+${message.emailSignOff}`;
+
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(message.body);
 
@@ -96,7 +116,18 @@ function MessageCard({ message }: { message: CommsMessageView }) {
             aria-label={message.title}
           />
           <div className="flex flex-wrap items-center gap-2">
-            <CopyButton value={value} label="Copy" copiedLabel="Copied" variant="primary" />
+            <CopyButton
+              value={value}
+              label="Copy for WhatsApp"
+              copiedLabel="Copied"
+              variant="primary"
+            />
+            <CopyButton
+              value={emailText(value)}
+              label="Copy for email"
+              copiedLabel="Copied"
+              variant="secondary"
+            />
             <Button type="button" variant="ghost" onClick={() => setEditing(false)}>
               Done
             </Button>
@@ -116,11 +147,26 @@ function MessageCard({ message }: { message: CommsMessageView }) {
             {value}
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <CopyButton value={value} label="Copy" copiedLabel="Copied" variant="primary" />
+            <CopyButton
+              value={value}
+              label="Copy for WhatsApp"
+              copiedLabel="Copied"
+              variant="primary"
+            />
+            <CopyButton
+              value={emailText(value)}
+              label="Copy for email"
+              copiedLabel="Copied"
+              variant="secondary"
+            />
             <Button type="button" variant="secondary" onClick={() => setEditing(true)}>
               Edit
             </Button>
           </div>
+          <p className="text-[12px] text-ink-500">
+            RepOS does not send anything. Copy it and send it yourself, however you already talk
+            to this owner.
+          </p>
         </div>
       )}
 
@@ -142,15 +188,33 @@ export function OwnerCommsPanel({
   language,
   messages,
   replyHref,
+  ownerContext = [],
 }: {
   base: string;
   language: string;
   messages: CommsMessageView[];
   replyHref: string;
+  /** What the owner told RepOS (M13). For the operator to keep in mind; never auto-inserted. */
+  ownerContext?: string[];
 }) {
   return (
     <div className="space-y-4">
       <LanguageSwitch base={base} current={language} />
+
+      {ownerContext.length > 0 ? (
+        <div className="rounded-lg border border-ink-200 bg-ink-50 px-4 py-3">
+          <p className="text-[11px] font-semibold tracking-wide text-ink-500 uppercase">
+            Keep in mind — the owner told RepOS
+          </p>
+          <ul className="mt-1.5 space-y-1">
+            {ownerContext.map((line) => (
+              <li key={line} className="text-[13px] leading-relaxed text-ink-700 italic">
+                {line}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className="grid gap-4">
         {messages.map((message) => (

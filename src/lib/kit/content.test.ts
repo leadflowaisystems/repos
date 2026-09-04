@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getPackOrFallback, listPacks, _resetPackCache } from '@/lib/packs';
 import {
   buildKitContent,
+  checkPrintableUrl,
   checkReviewUrl,
   computeReadiness,
   renderTemplate,
@@ -11,12 +12,15 @@ import { generateQrSvg } from './qr';
 _resetPackCache();
 
 const URL_OK = 'https://example.com/review/sunrise';
+/** What the card actually carries: this client's own RepOS feedback page. */
+const FEEDBACK_URL = 'https://repos.example.com/feedback/gp7f8yv6f9zyauwhvxxysm';
 
 function content(vertical: string, overrides: Record<string, unknown> = {}) {
   return buildKitContent({
     pack: getPackOrFallback(vertical),
     businessName: 'Sunrise Clinic',
-    reviewUrl: URL_OK,
+    feedbackUrl: FEEDBACK_URL,
+    publicReviewUrl: URL_OK,
     ...overrides,
   });
 }
@@ -71,11 +75,11 @@ describe('checkReviewUrl — safe, operator-supplied links only', () => {
 describe('renderTemplate', () => {
   it('substitutes known tokens', () => {
     expect(
-      renderTemplate('Visit {{businessName}} at {{reviewUrl}}', {
+      renderTemplate('Visit {{businessName}} at {{feedbackUrl}}', {
         businessName: 'Sunrise',
-        reviewUrl: URL_OK,
+        feedbackUrl: FEEDBACK_URL,
       }),
-    ).toBe(`Visit Sunrise at ${URL_OK}`);
+    ).toBe(`Visit Sunrise at ${FEEDBACK_URL}`);
   });
 
   it('leaves unknown tokens untouched rather than blanking them', () => {
@@ -87,62 +91,89 @@ describe('renderTemplate', () => {
 
 // ---------------------------------------------------------------------------
 
-describe('readiness', () => {
-  it('is READY when the business name and link are both present', () => {
-    const r = computeReadiness({ businessName: 'Sunrise Clinic', reviewUrl: URL_OK });
+describe('readiness — nothing here depends on a public listing', () => {
+  it('is READY with a business name and a feedback address', () => {
+    const r = computeReadiness({ businessName: 'Sunrise Clinic', feedbackUrl: FEEDBACK_URL });
     expect(r.ready).toBe(true);
     expect(r.label).toBe('READY');
     expect(r.blockers).toEqual([]);
   });
 
-  it('says NEEDS ONE THING when only the link is missing', () => {
-    const r = computeReadiness({ businessName: 'Sunrise Clinic', reviewUrl: null });
+  it('is READY for a business with no public review link at all', () => {
+    // The whole point of M17: a business that opened yesterday, has no Google
+    // listing and never will, can still print its cards this afternoon.
+    const c = buildKitContent({
+      pack: getPackOrFallback('restaurant'),
+      businessName: 'Corner Cafe',
+      feedbackUrl: FEEDBACK_URL,
+      publicReviewUrl: null,
+    });
+    expect(c.feedbackUrl).toBe(FEEDBACK_URL);
+    expect(c.publicReviewUrl).toBeNull();
+    expect(
+      computeReadiness({ businessName: 'Corner Cafe', feedbackUrl: FEEDBACK_URL }).ready,
+    ).toBe(true);
+  });
+
+  it('blocks only when RepOS does not know its own address', () => {
+    const r = computeReadiness({ businessName: 'Sunrise Clinic', feedbackUrl: null });
     expect(r.ready).toBe(false);
     expect(r.label).toBe('NEEDS ONE THING');
     expect(r.blockers).toHaveLength(1);
-    expect(r.blockers[0]?.key).toBe('reviewUrl');
-    expect(r.headline).toContain('add the public review link');
-  });
-
-  it('explains exactly what the operator has to supply', () => {
-    const r = computeReadiness({ businessName: 'Sunrise Clinic', reviewUrl: '' });
-    expect(r.blockers[0]?.hint).toContain('copy the "write a review" link');
-    expect(r.blockers[0]?.hint).toContain('never looks it up for you');
+    expect(r.blockers[0]?.key).toBe('feedbackUrl');
+    expect(r.blockers[0]?.hint).toContain('Settings');
   });
 
   it('counts multiple blockers', () => {
-    const r = computeReadiness({ businessName: '  ', reviewUrl: null });
+    const r = computeReadiness({ businessName: '  ', feedbackUrl: null });
     expect(r.blockers).toHaveLength(2);
     expect(r.label).toBe('NEEDS 2 THINGS');
   });
 
-  it('treats an unsafe link as missing rather than usable', () => {
+  it('treats an unsafe address as missing rather than usable', () => {
     const r = computeReadiness({
       businessName: 'Sunrise Clinic',
-      reviewUrl: 'javascript:alert(1)',
+      feedbackUrl: 'javascript:alert(1)',
     });
     expect(r.ready).toBe(false);
   });
 });
 
-// ---------------------------------------------------------------------------
+describe('the optional public review link', () => {
+  it('refuses a RepOS address, which is the mistake an operator would make', () => {
+    // An operator who works out that the QR should point at RepOS pastes the
+    // feedback address here, and sends people who just left feedback back to
+    // the same form.
+    for (const own of [FEEDBACK_URL, 'https://repos.example.com/portal/abc123']) {
+      const r = checkReviewUrl(own);
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.reason).toContain('RepOS address');
+    }
+  });
+
+  it('still allows those addresses onto the card itself', () => {
+    // The card carries exactly that URL, so the printable check must accept it.
+    expect(checkPrintableUrl(FEEDBACK_URL).ok).toBe(true);
+  });
+});
 
 describe('kit content — supplied vs missing URL', () => {
-  it('encodes the supplied URL and resolves every token', () => {
+  it('sends every message to the feedback page, never to the public one', () => {
     const c = content('clinic');
-    expect(c.reviewUrl).toBe(URL_OK);
+    expect(c.feedbackUrl).toBe(FEEDBACK_URL);
     for (const message of c.messages) {
       expect(message.body).not.toContain('{{');
       expect(message.body).toContain('Sunrise Clinic');
+      expect(message.body).toContain(FEEDBACK_URL);
+      expect(message.body).not.toContain(URL_OK);
     }
-    expect(c.messages[0]?.body).toContain(URL_OK);
   });
 
-  it('produces usable copy with no URL, marking where the link goes', () => {
-    const c = content('clinic', { reviewUrl: null });
-    expect(c.reviewUrl).toBeNull();
+  it('produces usable copy with no address yet, marking where it goes', () => {
+    const c = content('clinic', { feedbackUrl: null });
+    expect(c.feedbackUrl).toBeNull();
     expect(c.headline).toBeTruthy();
-    expect(c.messages[0]?.body).toContain('[add your public review link]');
+    expect(c.messages[0]?.body).toContain('[your feedback page address]');
     expect(c.messages[0]?.body).not.toContain('{{');
   });
 
@@ -197,7 +228,7 @@ describe('one workflow, every vertical', () => {
       const c = buildKitContent({
         pack,
         businessName: `Test ${pack.label}`,
-        reviewUrl: URL_OK,
+        feedbackUrl: FEEDBACK_URL,
       });
 
       expect(c.headline, pack.id).toBeTruthy();
@@ -209,7 +240,7 @@ describe('one workflow, every vertical', () => {
       expect(c.staffScript.marathi, pack.id).toBeTruthy();
       expect(c.messages.length, pack.id).toBeGreaterThanOrEqual(1);
       expect(c.rules.length, pack.id).toBeGreaterThan(0);
-      expect(c.reviewUrl, pack.id).toBe(URL_OK);
+      expect(c.feedbackUrl, pack.id).toBe(FEEDBACK_URL);
     }
   });
 
@@ -244,7 +275,7 @@ describe('one workflow, every vertical', () => {
   it('produces a distinct copyable message for every vertical', () => {
     const bodies = ALL.map(
       (pack) =>
-        buildKitContent({ pack, businessName: 'Test', reviewUrl: URL_OK })
+        buildKitContent({ pack, businessName: 'Test', feedbackUrl: FEEDBACK_URL })
           .messages[0]?.body ?? '',
     );
     expect(new Set(bodies).size).toBe(ALL.length);
@@ -256,7 +287,7 @@ describe('one workflow, every vertical', () => {
     const c = buildKitContent({
       pack: legacy,
       businessName: 'Legacy Business',
-      reviewUrl: URL_OK,
+      feedbackUrl: FEEDBACK_URL,
     });
 
     // Falls back through contentTemplates, then to a neutral default.
@@ -265,7 +296,7 @@ describe('one workflow, every vertical', () => {
     expect(c.assetLabel).toBe('counter card');
     expect(c.messages).toHaveLength(1);
     expect(c.messages[0]?.body).toContain('Legacy Business');
-    expect(c.messages[0]?.body).toContain(URL_OK);
+    expect(c.messages[0]?.body).toContain(FEEDBACK_URL);
   });
 });
 
@@ -311,9 +342,9 @@ describe('QR generation — local, offline, operator-supplied only', () => {
       const c = buildKitContent({
         pack,
         businessName: 'Test',
-        reviewUrl: URL_OK,
+        feedbackUrl: FEEDBACK_URL,
       });
-      const r = await generateQrSvg(c.reviewUrl);
+      const r = await generateQrSvg(c.feedbackUrl);
       expect(r.ok, pack.id).toBe(true);
     }
   });

@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { findPack, listPacks } from '@/lib/packs';
@@ -29,6 +29,7 @@ import {
   text,
   type ActionState,
 } from './shared';
+import { adminGate, tenantGate } from '@/lib/auth/guard';
 
 const MAX_COMPETITORS = 3;
 
@@ -49,6 +50,8 @@ export async function createClientAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
+  const gate = await adminGate();
+  if (!gate.ok) return gate.state;
   const result = await createClient(prisma, readClientForm(form));
   if (!result.ok) return failure(result.message, result.errors);
 
@@ -60,7 +63,11 @@ export async function updateClientAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const id = str(form, 'id');
+  // This form names the field `id` rather than `clientId`; the gate is told
+  // which one to read rather than the id being trusted because it was found.
+  const gate = await tenantGate(form, 'OWNER', 'id');
+  if (!gate.ok) return gate.state;
+  const id = gate.clientId;
   const result = await updateClient(prisma, id, readClientForm(form));
   if (!result.ok) return failure(result.message, result.errors);
 
@@ -74,6 +81,10 @@ export async function updateClientAction(
 }
 
 export async function archiveClientAction(form: FormData): Promise<void> {
+  const gate = await adminGate();
+  // A denial here is a 404, not a message: "not yours" and "not real"
+  // must look identical to anyone trying ids.
+  if (!gate.ok) notFound();
   const id = str(form, 'id');
   if (!id) return;
 
@@ -83,6 +94,10 @@ export async function archiveClientAction(form: FormData): Promise<void> {
 }
 
 export async function restoreClientAction(form: FormData): Promise<void> {
+  const gate = await adminGate();
+  // A denial here is a 404, not a message: "not yours" and "not real"
+  // must look identical to anyone trying ids.
+  if (!gate.ok) notFound();
   const id = str(form, 'id');
   if (!id) return;
 
@@ -103,6 +118,8 @@ export async function purgeClientAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
+  const gate = await adminGate();
+  if (!gate.ok) return gate.state;
   const id = str(form, 'id');
   if (!id) return failure('Missing client id.');
 
@@ -132,8 +149,9 @@ export async function saveVoiceProfileAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const clientId = str(form, 'clientId');
-  if (!clientId) return failure('Missing client id.');
+  const gate = await tenantGate(form, 'OWNER');
+  if (!gate.ok) return gate.state;
+  const { clientId } = gate;
 
   const parsed = voiceSchema.safeParse({
     formality: str(form, 'formality'),
@@ -173,8 +191,9 @@ export async function savePolicyAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const clientId = str(form, 'clientId');
-  if (!clientId) return failure('Missing client id.');
+  const gate = await tenantGate(form, 'OWNER');
+  if (!gate.ok) return gate.state;
+  const { clientId } = gate;
 
   const parsed = policySchema.safeParse({
     refundPolicy: text(form, 'refundPolicy'),
@@ -211,8 +230,9 @@ export async function saveCompetitorsAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const clientId = str(form, 'clientId');
-  if (!clientId) return failure('Missing client id.');
+  const gate = await tenantGate(form, 'OWNER');
+  if (!gate.ok) return gate.state;
+  const { clientId } = gate;
 
   const rows: Array<z.infer<typeof competitorSchema> & { sortIndex: number }> = [];
   const errors: Record<string, string> = {};
@@ -286,6 +306,10 @@ export async function saveCompetitorsAction(
 // ---------------------------------------------------------------------------
 
 export async function seedDemoDataAction(form: FormData): Promise<void> {
+  const gate = await adminGate();
+  // A denial here is a 404, not a message: "not yours" and "not real"
+  // must look identical to anyone trying ids.
+  if (!gate.ok) notFound();
   if (!bool(form, 'confirm')) return;
 
   const packIds = listPacks().map((p) => p.id);
@@ -326,7 +350,10 @@ export async function seedDemoDataAction(form: FormData): Promise<void> {
       kitConfig: {
         create: {
           displayName: 'Sunrise Clinic',
-          qrTargetUrl: 'https://example.com/replace-with-your-review-link',
+          // No public review link. The demo client is deliberately a
+          // business with no public listing: its QR is its own feedback page,
+          // which is all RepOS needs to be useful (M17).
+          qrTargetUrl: '',
           headline:
             pack?.contentTemplates.find((t) => t.key === 'counter_card_headline')
               ?.body ?? 'How was your visit?',

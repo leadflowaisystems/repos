@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { getPackOrFallback, listPacks, _resetPackCache } from '@/lib/packs';
 import { buildIntelligence, type IntelligenceInput } from '@/lib/intelligence/engine';
-import type { ThemeSummary, ThemeSummaryRow } from '@/lib/feedback/analysis';
+import type {
+  DimensionSummaryRow,
+  ThemeSummary,
+  ThemeSummaryRow,
+} from '@/lib/feedback/analysis';
 import type { Pulse } from '@/lib/health/health';
 import {
   ACTION_STATUSES,
@@ -58,8 +62,9 @@ function themes(
   praises: ThemeSummaryRow[],
   issues: ThemeSummaryRow[],
   analysedCount: number,
+  dimensions: DimensionSummaryRow[] = [],
 ): ThemeSummary {
-  return { praises, issues, analysedCount };
+  return { praises, issues, analysedCount, dimensions };
 }
 
 const NO_PULSE: Pulse = {

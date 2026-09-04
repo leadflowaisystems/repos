@@ -39,7 +39,6 @@ export function ReviewLinkForm({
         name="qrTargetUrl"
         label="Public review link"
         type="url"
-        required
         defaultValue={defaultValue}
         placeholder="https://…"
         hint={hint}

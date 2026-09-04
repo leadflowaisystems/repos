@@ -37,6 +37,9 @@ export type PrioritySignal = {
  * because RepOS does not record any of those.
  */
 export type NextActionKey =
+  | 'RESUME_FEEDBACK'
+  | 'PRINT_CARDS'
+  | 'SEND_OWNER_LINK'
   | 'ADD_FEEDBACK'
   | 'READ_FEEDBACK'
   | 'HANDLE_YOURSELF'
@@ -64,6 +67,24 @@ export type PriorityInput = {
   clientId: string;
   businessName: string;
   status: HealthStatus;
+  /**
+   * Where this business is in its own life (M17): PROSPECT, ONBOARDING,
+   * ACTIVE, PAUSED, CHURNED. A prospect you are pitching and a paused client
+   * you are not billing should not compete with a paying one for the morning.
+   */
+  clientStatus: string;
+  /**
+   * Onboarding, from the one definition in `@/lib/clients/service` (M17).
+   *
+   * A client stuck at zero feedback because nobody printed the card used to
+   * look identical to one whose card is on the counter and simply quiet.
+   */
+  setup: {
+    gatewayLive: boolean;
+    gatewayPaused: boolean;
+    cardsOnSite: boolean;
+    ownerLinkSent: boolean;
+  };
   /** The health card's most severe signal, already worded by that engine. */
   topSignalDetail: string | null;
   /** Declining pulse, from the trend engine. Never inferred here. */
@@ -119,6 +140,41 @@ function daysBetween(from: Date, to: Date): number {
  */
 export function prioritySignals(input: PriorityInput): PrioritySignal[] {
   const signals: PrioritySignal[] = [];
+
+  // Setup first (M17). A business whose feedback page is switched off, or
+  // whose cards were never printed, is not quiet — it is not collecting. That
+  // used to be invisible here while the owner's own portal was already being
+  // told their collection was off.
+  if (input.setup.gatewayPaused) {
+    signals.push({
+      key: 'gateway_paused',
+      weight: 40,
+      reason: 'The feedback page is paused, so a scanned card stores nothing.',
+    });
+  } else if (!input.setup.gatewayLive) {
+    signals.push({
+      key: 'gateway_missing',
+      weight: 40,
+      reason: 'This business has no working feedback page yet.',
+    });
+  } else if (!input.setup.cardsOnSite) {
+    signals.push({
+      key: 'cards_not_on_site',
+      weight: input.feedback.total === 0 ? 35 : 10,
+      reason:
+        input.feedback.total === 0
+          ? 'Nothing has come in, and the cards are not marked as being on site yet.'
+          : 'The cards are not marked as being on site yet.',
+    });
+  }
+
+  if (input.setup.gatewayLive && !input.setup.ownerLinkSent) {
+    signals.push({
+      key: 'owner_link_not_sent',
+      weight: 22,
+      reason: 'The owner has not been sent their link yet, so nobody is reading any of this.',
+    });
+  }
 
   if (input.status === 'ATTENTION') {
     signals.push({
@@ -256,11 +312,41 @@ export function nextActionFor(input: PriorityInput): NextAction {
   const base = `/clients/${input.clientId}`;
   const feedback = `${base}/feedback`;
 
+  // Nothing downstream is worth asking for while the front door is shut.
+  if (input.setup.gatewayPaused) {
+    return {
+      key: 'RESUME_FEEDBACK',
+      label: 'Switch the feedback page back on',
+      detail: 'It is paused, so a customer who scans the card sees "not active".',
+      href: `${base}/qr`,
+    };
+  }
+
+  if (!input.setup.gatewayLive) {
+    return {
+      key: 'RESUME_FEEDBACK',
+      label: 'Set up the feedback page',
+      detail: 'This business has no front door for customers yet.',
+      href: `${base}/qr`,
+    };
+  }
+
+  // Nothing has ever arrived and the cards are not out: that is why.
+  if (input.feedback.total === 0 && !input.setup.cardsOnSite) {
+    return {
+      key: 'PRINT_CARDS',
+      label: 'Print the cards',
+      detail: 'Nothing can come in until the QR is on the counter.',
+      href: `${base}/kit`,
+    };
+  }
+
   if (input.feedback.total === 0) {
     return {
       key: 'ADD_FEEDBACK',
       label: 'Bring in feedback',
-      detail: 'Paste the reviews you have collected and RepOS will read them.',
+      detail:
+        'The cards are out. Paste anything you have collected elsewhere, or give it time.',
       href: feedback,
     };
   }
@@ -309,6 +395,17 @@ export function nextActionFor(input: PriorityInput): NextAction {
       label: `Get a decision on ${input.actions.awaitingDecision}`,
       detail: 'RepOS suggested a change. Record what the business decided.',
       href: `${base}#actions`,
+    };
+  }
+
+  // Real work first, admin second — but an owner with no link cannot read
+  // anything RepOS prepares for them, so this comes before the update itself.
+  if (!input.setup.ownerLinkSent) {
+    return {
+      key: 'SEND_OWNER_LINK',
+      label: 'Send the owner their link',
+      detail: 'RepOS has something to show them and nobody has the address yet.',
+      href: base,
     };
   }
 
@@ -378,14 +475,38 @@ export type PriorityResult = {
   version: number;
 };
 
+/**
+ * How far up the morning board a client can climb, given where they are in
+ * their own life with the agency (M17).
+ *
+ * Client status used to be read by nobody. A prospect being pitched and a
+ * paused client nobody is billing sat in the same queue as a paying business
+ * with a complaint pattern, which at twenty clients makes the lower bands
+ * worthless. Nothing is hidden — the ceiling only stops them outranking the
+ * businesses actually being served.
+ */
+function ceilingFor(clientStatus: string): PriorityBand {
+  if (clientStatus === 'CHURNED') return 'NOTHING';
+  if (clientStatus === 'PAUSED') return 'WHEN_FREE';
+  if (clientStatus === 'PROSPECT') return 'SOON';
+  return 'NOW';
+}
+
+const BAND_ORDER: PriorityBand[] = ['NOTHING', 'WHEN_FREE', 'SOON', 'NOW'];
+
 export function prioritise(input: PriorityInput): PriorityResult {
   const signals = prioritySignals(input);
   const rank = signals.reduce((sum, signal) => sum + signal.weight, 0);
   const ordered = [...signals].sort((a, b) => b.weight - a.weight);
 
+  const ceiling = ceilingFor(input.clientStatus);
+  const earned = bandFor(rank);
+  const band =
+    BAND_ORDER.indexOf(earned) > BAND_ORDER.indexOf(ceiling) ? ceiling : earned;
+
   return {
     rank,
-    band: bandFor(rank),
+    band,
     signals,
     reasons: ordered.map((signal) => signal.reason),
     nextAction: nextActionFor(input),

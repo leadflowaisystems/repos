@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
+import { newPublicToken } from '@/lib/tokens';
 import {
   clientInputSchema,
   normaliseBusinessName,
@@ -113,6 +114,19 @@ export async function createClient(
         policy: { create: {} },
         kitConfig: {
           create: kitDefaultsFor(),
+        },
+        // The customer-facing feedback page exists from the moment the client
+        // does (M17). It used to be created lazily, the first time somebody
+        // opened one particular tab, so a client could be fully profiled and
+        // marked active while having no front door at all — and nothing said so.
+        //
+        // A public review link given at creation is carried straight onto the
+        // gateway, which is the row the customer's thank-you page reads.
+        gateway: {
+          create: {
+            publicToken: newPublicToken(),
+            publicReviewUrl: (input.reviewLinkUrl ?? '').trim(),
+          },
         },
       },
       select: { id: true },
@@ -316,4 +330,215 @@ export async function purgeClient(
 
   await db.client.delete({ where: { id } });
   return ok({ id });
+}
+
+// ---------------------------------------------------------------------------
+// The owner’s private link (M16)
+// ---------------------------------------------------------------------------
+//
+// Issuing and revoking live here rather than beside the portal, because both
+// are things the OPERATOR does to a client row. The owner’s own path only
+// reads — see `@/lib/portal/access`.
+/**
+ * The client's portal address, created on first use.
+ *
+ * Operator-side only. Like the feedback gateway, the row is filled in lazily
+ * so every client that already existed gets one the first time it is needed,
+ * with no migration step to forget.
+ */
+export async function ensurePortalToken(
+  db: PrismaClient,
+  clientId: string,
+  now: Date = new Date(),
+): Promise<string | null> {
+  const client = await db.client.findUnique({
+    where: { id: clientId },
+    select: { id: true, portalToken: true },
+  });
+  if (!client) return null;
+  if (client.portalToken) return client.portalToken;
+
+  // A collision on 110 random bits will not happen; the retry exists so the
+  // guarantee rests on the unique constraint rather than on luck.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const token = newPublicToken();
+    try {
+      const updated = await db.client.update({
+        where: { id: clientId },
+        data: { portalToken: token, portalTokenAt: now },
+        select: { portalToken: true },
+      });
+      return updated.portalToken;
+    } catch (error) {
+      const existing = await db.client.findUnique({
+        where: { id: clientId },
+        select: { portalToken: true },
+      });
+      if (existing?.portalToken) return existing.portalToken;
+      if (attempt === 2) throw error;
+    }
+  }
+  return null;
+}
+
+/** Issues a new address and retires the old one immediately. */
+export async function regeneratePortalToken(
+  db: PrismaClient,
+  clientId: string,
+  now: Date = new Date(),
+): Promise<string | null> {
+  const client = await db.client.findUnique({
+    where: { id: clientId },
+    select: { id: true },
+  });
+  if (!client) return null;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const updated = await db.client.update({
+        where: { id: clientId },
+        data: { portalToken: newPublicToken(), portalTokenAt: now },
+        select: { portalToken: true },
+      });
+      return updated.portalToken;
+    } catch (error) {
+      if (attempt === 2) throw error;
+    }
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Onboarding state (M17)
+// ---------------------------------------------------------------------------
+
+/**
+ * What is still true, and still missing, for one business.
+ *
+ * ONE definition, read by the client page's checklist and by the command
+ * centre, so the two can never tell the operator different things about the
+ * same client. Nothing here needs a public listing, a Google account or a
+ * customer's phone number.
+ */
+export type ClientSetup = {
+  clientId: string;
+  /** The feedback page exists and is switched on. */
+  gatewayLive: boolean;
+  /** It exists but the operator paused it, so a scanned card stores nothing. */
+  gatewayPaused: boolean;
+  /** The operator recorded that the printed cards are physically on site. */
+  cardsOnSite: boolean;
+  /** The operator recorded that the owner was actually sent their link. */
+  ownerLinkSent: boolean;
+  contextCount: number;
+  feedbackCount: number;
+  /** The steps still outstanding, in the order they should be done. */
+  remaining: string[];
+  complete: boolean;
+};
+
+type SetupRow = {
+  id: string;
+  kitInstalledDate: Date | null;
+  portalLinkSentAt: Date | null;
+  gateway: { enabled: boolean } | null;
+  _count: { context: number; feedback: number };
+};
+
+function setupFrom(row: SetupRow): ClientSetup {
+  const gatewayLive = row.gateway?.enabled === true;
+  const gatewayPaused = row.gateway !== null && !row.gateway.enabled;
+  const cardsOnSite = row.kitInstalledDate !== null;
+  const ownerLinkSent = row.portalLinkSentAt !== null;
+
+  const remaining: string[] = [];
+  if (!gatewayLive) {
+    remaining.push(
+      gatewayPaused ? 'Switch the feedback page back on' : 'Switch the feedback page on',
+    );
+  }
+  if (!cardsOnSite) remaining.push('Print the cards and get them on site');
+  if (!ownerLinkSent) remaining.push('Send the owner their link');
+
+  return {
+    clientId: row.id,
+    gatewayLive,
+    gatewayPaused,
+    cardsOnSite,
+    ownerLinkSent,
+    contextCount: row._count.context,
+    feedbackCount: row._count.feedback,
+    remaining,
+    complete: remaining.length === 0,
+  };
+}
+
+const SETUP_SELECT = {
+  id: true,
+  kitInstalledDate: true,
+  portalLinkSentAt: true,
+  gateway: { select: { enabled: true } },
+  _count: { select: { context: true, feedback: true } },
+} as const;
+
+export async function getClientSetup(
+  db: PrismaClient,
+  clientId: string,
+): Promise<ClientSetup> {
+  const row = await db.client.findUnique({ where: { id: clientId }, select: SETUP_SELECT });
+  if (!row) {
+    return {
+      clientId,
+      gatewayLive: false,
+      gatewayPaused: false,
+      cardsOnSite: false,
+      ownerLinkSent: false,
+      contextCount: 0,
+      feedbackCount: 0,
+      remaining: [],
+      complete: false,
+    };
+  }
+  return setupFrom(row);
+}
+
+/**
+ * The same answer for every client at once, in one query.
+ *
+ * The command centre is built on a fixed number of queries however many
+ * clients there are; this keeps that true.
+ */
+export async function listClientSetup(
+  db: PrismaClient,
+  clientIds: string[],
+): Promise<Map<string, ClientSetup>> {
+  if (clientIds.length === 0) return new Map();
+  const rows = await db.client.findMany({
+    where: { id: { in: clientIds } },
+    select: SETUP_SELECT,
+  });
+  return new Map(rows.map((row) => [row.id, setupFrom(row)]));
+}
+
+/**
+ * Records that the owner was actually sent their link.
+ *
+ * A token existing is not a business being onboarded — RepOS mints one the
+ * first time the operator opens the client. This is the operator saying "I
+ * have handed it over", which is the fact the checklist and the board need.
+ */
+export async function setPortalLinkSent(
+  db: PrismaClient,
+  clientId: string,
+  sent: boolean,
+  now: Date = new Date(),
+): Promise<ServiceResult<{ sent: boolean }>> {
+  const client = await db.client.findUnique({ where: { id: clientId }, select: { id: true } });
+  if (!client) return err('That client no longer exists.');
+
+  await db.client.update({
+    where: { id: clientId },
+    data: { portalLinkSentAt: sent ? now : null },
+  });
+  return ok({ sent });
 }

@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { createSnapshot, deleteSnapshot } from '@/lib/snapshots/service';
 import {
@@ -15,6 +15,7 @@ import {
   text,
   type ActionState,
 } from './shared';
+import { tenantGate } from '@/lib/auth/guard';
 
 /**
  * Snapshot server actions.
@@ -44,8 +45,9 @@ export async function createSnapshotAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const clientId = str(form, 'clientId');
-  if (!clientId) return failure('Missing client id.');
+  const gate = await tenantGate(form, 'MEMBER');
+  if (!gate.ok) return gate.state;
+  const { clientId } = gate;
 
   const result = await createSnapshot(prisma, clientId, readSnapshotForm(form));
   if (!result.ok) return failure(result.message, result.errors);
@@ -58,7 +60,11 @@ export async function createSnapshotAction(
 }
 
 export async function deleteSnapshotAction(form: FormData): Promise<void> {
-  const clientId = str(form, 'clientId');
+  const gate = await tenantGate(form, 'OWNER');
+  // A denial here is a 404, not a message: "not yours" and "not real"
+  // must look identical to anyone trying ids.
+  if (!gate.ok) notFound();
+  const { clientId } = gate;
   const snapshotId = str(form, 'snapshotId');
   if (!clientId || !snapshotId) return;
 

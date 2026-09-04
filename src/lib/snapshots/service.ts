@@ -97,39 +97,103 @@ export function toStoredFeedback(row: ReviewRow): StoredFeedback {
 }
 
 /**
- * Loads every stored snapshot for a client in the shape the health engine
+ * Loads every stored check-in for a client in the shape the health engine
  * expects. Sentiment and tags come from the stored review rows, not from the
  * frozen report JSON, so health is always recomputed from source data.
+ *
+ * WHICH FEEDBACK BELONGS TO A CHECK-IN (M17).
+ *
+ * A check-in is a moment: "this is what the business looked like on this
+ * date". Until M17 the only feedback it could see was whatever the operator
+ * happened to paste into it, which made sense when reviews arrived in batches
+ * copied off a public listing.
+ *
+ * Under the QR-first direction feedback arrives continuously and belongs to no
+ * batch at all, so on a real database roughly two thirds of it — including
+ * every single QR submission — was invisible to health, to the trend and to
+ * every before-and-after comparison, while the intelligence engine read all of
+ * it. Two parts of the product answering the same question from different
+ * evidence.
+ *
+ * So a check-in now covers the feedback that ARRIVED in its window: after the
+ * previous check-in, up to its own moment. Feedback pasted directly into a
+ * check-in still belongs to it, exactly as before.
+ *
+ * Feedback that arrived AFTER the most recent check-in belongs to no check-in
+ * at all. It is waiting for the next one. A check-in taken in March must not
+ * quietly absorb what a customer said in September — that would let a stale
+ * check-in keep re-reading itself as current.
+ *
+ * This changes which evidence a period contains, not what any of it means. No
+ * count is reweighted, no sentiment is reinterpreted, and the health engine
+ * itself is untouched.
  */
 export async function loadHealthSnapshots(
   db: PrismaClient,
   clientId: string,
 ): Promise<StoredSnapshot[]> {
-  const rows = await db.snapshot.findMany({
-    where: { clientId },
-    orderBy: { capturedAt: 'desc' },
-    select: {
-      id: true,
-      label: true,
-      capturedAt: true,
-      rating: true,
-      reviewCount: true,
-      unansweredCount: true,
-      reviewsPerWeek: true,
-      daysSinceLastPost: true,
-      photoRecencyDays: true,
-      generatedAt: true,
-      reviews: {
-        select: {
-          sentiment: true,
-          issueTags: true,
-          praiseTags: true,
-          stars: true,
-          reviewDate: true,
+  const [rows, arrived] = await Promise.all([
+    db.snapshot.findMany({
+      where: { clientId },
+      orderBy: { capturedAt: 'desc' },
+      select: {
+        id: true,
+        label: true,
+        capturedAt: true,
+        rating: true,
+        reviewCount: true,
+        unansweredCount: true,
+        reviewsPerWeek: true,
+        daysSinceLastPost: true,
+        photoRecencyDays: true,
+        generatedAt: true,
+        reviews: {
+          select: {
+            sentiment: true,
+            issueTags: true,
+            praiseTags: true,
+            stars: true,
+            reviewDate: true,
+          },
         },
       },
-    },
-  });
+    }),
+    db.reviewItem.findMany({
+      where: { clientId, snapshotId: null },
+      select: {
+        sentiment: true,
+        issueTags: true,
+        praiseTags: true,
+        stars: true,
+        reviewDate: true,
+        createdAt: true,
+      },
+    }),
+  ]);
+
+  // Oldest first, so each check-in's window starts where the last one ended.
+  const oldestFirst = [...rows].sort(
+    (a, b) => a.capturedAt.getTime() - b.capturedAt.getTime(),
+  );
+
+  const windowed = new Map<string, StoredFeedback[]>();
+  for (const row of oldestFirst) windowed.set(row.id, []);
+
+  for (const item of arrived) {
+    // When it reached RepOS. For a QR submission that is when the customer
+    // sent it; for a pasted batch it is when the operator brought it in.
+    const at = item.createdAt.getTime();
+    let target: string | null = null;
+    for (const row of oldestFirst) {
+      if (at <= row.capturedAt.getTime()) {
+        target = row.id;
+        break;
+      }
+    }
+    // Arrived after the last check-in: it belongs to the next one, not this one.
+    if (target === null) continue;
+    windowed.get(target)?.push(toStoredFeedback(item));
+  }
 
   return rows.map((row) => ({
     id: row.id,
@@ -142,7 +206,7 @@ export async function loadHealthSnapshots(
     daysSinceLastPost: row.daysSinceLastPost,
     photoRecencyDays: row.photoRecencyDays,
     generatedAt: row.generatedAt,
-    feedback: row.reviews.map(toStoredFeedback),
+    feedback: [...row.reviews.map(toStoredFeedback), ...(windowed.get(row.id) ?? [])],
   }));
 }
 

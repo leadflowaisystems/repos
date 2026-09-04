@@ -407,16 +407,18 @@
     ]
   },
   "staffAskScript": {
-    "when": "At a parent meeting or after a term result is handed over, at the front desk.",
-    "line": "If the classes have been useful, an honest review from a parent helps other families decide. The QR at the desk takes a minute.",
-    "hinglishLine": "Agar classes useful rahi hain, toh ek honest parent review dusre families ko decide karne mein help karta hai. Desk par QR hai, ek minute.",
-    "marathiLine": "वर्ग उपयुक्त ठरले असतील, तर पालकांचा प्रामाणिक अभिप्राय इतर कुटुंबांना निर्णय घ्यायला मदत करतो. डेस्कवरचा QR एक मिनिट घेतो.",
+    "when": "At the front desk or a parent meeting, for every parent — not only after good results.",
+    "line": "There is a QR at the desk. Tell us honestly how the classes are going for your child, including anything that is not working. It comes straight to us.",
+    "hinglishLine": "Desk par QR hai. Honestly bataiye classes aapke bacche ke liye kaisi chal rahi hain — jo theek nahi hai woh bhi. Seedha humein aata hai.",
+    "marathiLine": "डेस्कवर QR आहे. तुमच्या मुलासाठी वर्ग कसे चालले आहेत ते प्रामाणिकपणे सांगा — जे नीट नाही तेही. ते थेट आमच्याकडे येतं.",
     "doNot": [
       "Never offer a fee discount, free test series or material in exchange for a review.",
       "Never ask only the parents of high scorers.",
       "Never write a review on a parent's phone.",
       "Never ask anyone to remove or edit a review.",
-      "Never mention a student's name, marks or rank in a public reply."
+      "Never mention a student's name, marks or rank in a public reply.",
+      "Never wait until someone looks happy — offer the QR to everyone, every time.",
+      "Never ask a customer to leave a public review as a condition of anything."
     ]
   },
   "profileGapChecks": [
@@ -474,13 +476,151 @@
   "kit": {
     "assetLabel": "front-desk card",
     "placement": "At the front desk and in the parent waiting area.",
-    "moment": "At a parent meeting, or when a term result is handed over.",
+    "moment": "At the front desk or a parent meeting, for every parent — not only after good results.",
     "headline": "How are the classes going?",
     "subhead": "Scan and share your honest feedback. One minute.",
     "qrCaption": "Scan to share your honest feedback",
-    "askMessage": "Thank you for choosing {{businessName}}. If the classes have been useful, an honest review from a parent helps other families decide: {{reviewUrl}}",
-    "askMessageHinglish": "{{businessName}} chunne ke liye dhanyawaad. Agar classes useful rahi hain, toh ek honest parent review dusre families ko decide karne me help karta hai: {{reviewUrl}}",
-    "askMessageMarathi": "{{businessName}} निवडल्याबद्दल धन्यवाद. वर्ग उपयुक्त ठरले असतील, तर पालकांचा प्रामाणिक अभिप्राय इतर कुटुंबांना मदत करतो: {{reviewUrl}}",
+    "askMessage": "Thank you for choosing {{businessName}}. If the classes have been useful, an honest review from a parent helps other families decide: {{feedbackUrl}}",
+    "askMessageHinglish": "{{businessName}} chunne ke liye dhanyawaad. Agar classes useful rahi hain, toh ek honest parent review dusre families ko decide karne me help karta hai: {{feedbackUrl}}",
+    "askMessageMarathi": "{{businessName}} निवडल्याबद्दल धन्यवाद. वर्ग उपयुक्त ठरले असतील, तर पालकांचा प्रामाणिक अभिप्राय इतर कुटुंबांना मदत करतो: {{feedbackUrl}}",
     "thankYou": "Thank you — we will share this with the faculty team."
+  },
+  "gateway": {
+    "headline": "How are the classes going?",
+    "prompt": "Tell us what is working, or what we could do better.",
+    "placeholder": "The teaching, the pace, the batch timings — anything at all.",
+    "thankYou": "Thank you. This goes to the faculty team.",
+    "printLine": "Honest feedback helps us teach better.",
+    "dimensions": [
+      {
+        "key": "teaching",
+        "label": "Teaching",
+        "themeKey": "teaching_quality",
+        "improvePrompt": "What was not working?",
+        "goodPrompt": "Anything worth passing on?",
+        "signals": [
+          {
+            "key": "pace",
+            "label": "Pace of the class"
+          },
+          {
+            "key": "doubts",
+            "label": "Doubts not cleared"
+          },
+          {
+            "key": "depth",
+            "label": "Not enough depth"
+          },
+          {
+            "key": "material",
+            "label": "Study material"
+          }
+        ]
+      },
+      {
+        "key": "faculty",
+        "label": "The faculty",
+        "themeKey": "faculty_turnover",
+        "improvePrompt": "What happened?",
+        "goodPrompt": "Which teacher stood out?",
+        "signals": [
+          {
+            "key": "changed",
+            "label": "Teacher was changed"
+          },
+          {
+            "key": "absent",
+            "label": "Teacher often absent"
+          },
+          {
+            "key": "manner",
+            "label": "Manner with students"
+          },
+          {
+            "key": "substitute",
+            "label": "Substitute took the class"
+          }
+        ]
+      },
+      {
+        "key": "communication",
+        "label": "Keeping you informed",
+        "themeKey": "communication_parents",
+        "improvePrompt": "What did you not hear about?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "no_updates",
+            "label": "No updates on progress"
+          },
+          {
+            "key": "schedule_changes",
+            "label": "Schedule changes not told"
+          },
+          {
+            "key": "unreachable",
+            "label": "Hard to reach anyone"
+          },
+          {
+            "key": "no_test_feedback",
+            "label": "No feedback after tests"
+          }
+        ]
+      },
+      {
+        "key": "facilities",
+        "label": "Classrooms and facilities",
+        "themeKey": "facility_condition",
+        "improvePrompt": "What was the problem?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "batch_size",
+            "label": "Too many in the batch"
+          },
+          {
+            "key": "too_hot",
+            "label": "Too hot or stuffy"
+          },
+          {
+            "key": "seating",
+            "label": "Seating"
+          },
+          {
+            "key": "washroom",
+            "label": "The washroom"
+          },
+          {
+            "key": "safety",
+            "label": "Safety or supervision"
+          }
+        ]
+      },
+      {
+        "key": "value",
+        "label": "Value for the fee",
+        "themeKey": "fee_transparency",
+        "improvePrompt": "What felt off about the fee?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "extra_charges",
+            "label": "Charges I was not told about"
+          },
+          {
+            "key": "too_high",
+            "label": "Fee is high"
+          },
+          {
+            "key": "refund_terms",
+            "label": "Refund terms"
+          },
+          {
+            "key": "results",
+            "label": "Results were not what was promised"
+          }
+        ]
+      }
+    ]
   }
 }

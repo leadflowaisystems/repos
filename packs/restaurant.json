@@ -49,7 +49,16 @@
       ],
       "replyPhrase": "the food not being up to standard",
       "replyPhraseHinglish": "khane ki quality",
-      "replyPhraseMarathi": "जेवणाच्या दर्जाबद्दल"
+      "replyPhraseMarathi": "जेवणाच्या दर्जाबद्दल",
+      "counterpart": "food_taste",
+      "askOwner": {
+        "question": "Which dishes do complaints mention most?",
+        "options": [
+          "A few specific dishes",
+          "Whole sections of the menu",
+          "Not sure yet"
+        ]
+      }
     },
     {
       "key": "service_speed",
@@ -76,7 +85,20 @@
       ],
       "replyPhrase": "how long you waited to be served",
       "replyPhraseHinglish": "service mein lage waqt",
-      "replyPhraseMarathi": "सेवेला लागलेल्या वेळेबद्दल"
+      "replyPhraseMarathi": "सेवेला लागलेल्या वेळेबद्दल",
+      "counterpart": "service_quality",
+      "askOwner": {
+        "question": "When is service slowest?",
+        "options": [
+          "Weekend evenings",
+          "Weekday lunch",
+          "All the time"
+        ]
+      },
+      "actionNeeds": [
+        "STAFF"
+      ],
+      "alternativeAction": "Set a target ticket time per course and post it in the kitchen, and call out any table waiting past it."
     },
     {
       "key": "order_accuracy",
@@ -98,7 +120,15 @@
       ],
       "replyPhrase": "getting the wrong order",
       "replyPhraseHinglish": "galat order aane",
-      "replyPhraseMarathi": "चुकीची ऑर्डर आल्याबद्दल"
+      "replyPhraseMarathi": "चुकीची ऑर्डर आल्याबद्दल",
+      "askOwner": {
+        "question": "Where do orders go wrong?",
+        "options": [
+          "Taking the order",
+          "In the kitchen",
+          "Delivery or packing"
+        ]
+      }
     },
     {
       "key": "staff_behaviour",
@@ -128,7 +158,12 @@
       ],
       "replyPhrase": "the way the staff dealt with you",
       "replyPhraseHinglish": "staff ke vyavhaar",
-      "replyPhraseMarathi": "स्टाफच्या वागणुकीबद्दल"
+      "replyPhraseMarathi": "स्टाफच्या वागणुकीबद्दल",
+      "counterpart": "staff_warmth",
+      "actionNeeds": [
+        "STAFF"
+      ],
+      "alternativeAction": "Brief the floor on a fixed greeting and check-back routine for every table, and walk the floor once an hour."
     },
     {
       "key": "cleanliness",
@@ -159,7 +194,8 @@
       ],
       "replyPhrase": "the cleanliness of the place",
       "replyPhraseHinglish": "safai ki kami",
-      "replyPhraseMarathi": "स्वच्छतेच्या कमतरतेबद्दल"
+      "replyPhraseMarathi": "स्वच्छतेच्या कमतरतेबद्दल",
+      "counterpart": "cleanliness_praise"
     },
     {
       "key": "pricing_value",
@@ -186,7 +222,12 @@
       ],
       "replyPhrase": "feeling the bill was not worth it",
       "replyPhraseHinglish": "bill paise vasool na lagne",
-      "replyPhraseMarathi": "बिल योग्य न वाटल्याबद्दल"
+      "replyPhraseMarathi": "बिल योग्य न वाटल्याबद्दल",
+      "counterpart": "value_for_money",
+      "actionNeeds": [
+        "PRICE"
+      ],
+      "alternativeAction": "Publish portion sizes next to each dish so the price reads as fair before the order is placed."
     },
     {
       "key": "wait_for_table",
@@ -241,7 +282,8 @@
       ],
       "replyPhrase": "how uncomfortable it was to sit and eat",
       "replyPhraseHinglish": "baithne mein hui asuvidha",
-      "replyPhraseMarathi": "बसण्यात झालेल्या गैरसोयीबद्दल"
+      "replyPhraseMarathi": "बसण्यात झालेल्या गैरसोयीबद्दल",
+      "counterpart": "ambience"
     },
     {
       "key": "delivery_packaging",
@@ -402,7 +444,7 @@
     },
     {
       "key": "cleanliness_praise",
-      "label": "Clean and well-kept",
+      "label": "Cleanliness and upkeep",
       "hints": [
         "clean",
         "hygienic",
@@ -483,15 +525,17 @@
     ]
   },
   "staffAskScript": {
-    "when": "When clearing the table after the guest has finished and said they enjoyed the meal.",
-    "line": "Glad you enjoyed it. If you have a minute, there is a QR on the table card — your honest feedback really helps us.",
-    "hinglishLine": "Khushi hui aapko pasand aaya. Ek minute ho toh table card par QR hai — aapka honest feedback bahut help karta hai.",
-    "marathiLine": "आवडलं हे ऐकून छान वाटलं. एक मिनिट असेल तर टेबल कार्डवर QR आहे — तुमचा प्रामाणिक अभिप्राय खूप मदत करतो.",
+    "when": "When clearing the table, for every guest — whatever kind of meal they had.",
+    "line": "There is a QR on the table card. Whatever you thought of today, we would like to hear it — it takes a minute and it goes straight to us.",
+    "hinglishLine": "Table card par QR hai. Aaj jaisa bhi laga — accha ya bura — bata dijiye. Ek minute lagta hai aur seedha humein aata hai.",
+    "marathiLine": "टेबल कार्डवर QR आहे. आज जसं वाटलं तसं सांगा — चांगलं असो वा वाईट. एक मिनिट लागतो आणि थेट आमच्यापर्यंत येतं.",
     "doNot": [
       "Never offer a discount, free dish or dessert in exchange for a review.",
       "Never show the QR only to guests who looked happy.",
       "Never write a review on a guest's phone.",
-      "Never ask a guest to take down a bad review."
+      "Never ask a guest to take down a bad review.",
+      "Never wait until someone looks happy — offer the QR to everyone, every time.",
+      "Never ask a customer to leave a public review as a condition of anything."
     ]
   },
   "profileGapChecks": [
@@ -549,13 +593,151 @@
   "kit": {
     "assetLabel": "table card",
     "placement": "On each table, and one at the billing counter.",
-    "moment": "When clearing the table, after the guest has finished the meal.",
+    "moment": "When clearing the table, for every guest — whatever kind of meal they had.",
     "headline": "How was the food today?",
     "subhead": "Scan and tell us honestly — good or bad.",
     "qrCaption": "Scan to tell us how it was",
-    "askMessage": "Thanks for eating at {{businessName}}. If you have a minute, tell us honestly how it was — it genuinely helps the kitchen: {{reviewUrl}}",
-    "askMessageHinglish": "{{businessName}} me khaane ke liye shukriya. Ek minute ho toh honest feedback de dijiye — kitchen ko bahut help karta hai: {{reviewUrl}}",
-    "askMessageMarathi": "{{businessName}} मध्ये जेवल्याबद्दल धन्यवाद. एक मिनिट असेल तर प्रामाणिक अभिप्राय द्या — स्वयंपाकघराला खूप मदत होते: {{reviewUrl}}",
+    "askMessage": "Thanks for eating at {{businessName}}. If you have a minute, tell us honestly how it was — it genuinely helps the kitchen: {{feedbackUrl}}",
+    "askMessageHinglish": "{{businessName}} me khaane ke liye shukriya. Ek minute ho toh honest feedback de dijiye — kitchen ko bahut help karta hai: {{feedbackUrl}}",
+    "askMessageMarathi": "{{businessName}} मध्ये जेवल्याबद्दल धन्यवाद. एक मिनिट असेल तर प्रामाणिक अभिप्राय द्या — स्वयंपाकघराला खूप मदत होते: {{feedbackUrl}}",
     "thankYou": "Thank you — this goes straight to the kitchen team."
+  },
+  "gateway": {
+    "headline": "How was your experience?",
+    "prompt": "Tell us what went well, or what we could do better.",
+    "placeholder": "The food, the service, the wait — anything at all.",
+    "thankYou": "Thank you. This goes straight to the kitchen and the floor team.",
+    "printLine": "Tell us honestly — good or bad. A few taps is enough.",
+    "dimensions": [
+      {
+        "key": "food",
+        "label": "Food and drink",
+        "themeKey": "food_quality",
+        "improvePrompt": "What would have made it better?",
+        "goodPrompt": "Anything the kitchen should hear?",
+        "signals": [
+          {
+            "key": "taste",
+            "label": "Taste was off"
+          },
+          {
+            "key": "not_hot",
+            "label": "Not served hot"
+          },
+          {
+            "key": "portion",
+            "label": "Portion was small"
+          },
+          {
+            "key": "not_fresh",
+            "label": "Did not taste fresh"
+          },
+          {
+            "key": "spice_level",
+            "label": "Spice level was wrong"
+          }
+        ]
+      },
+      {
+        "key": "service",
+        "label": "Service",
+        "themeKey": "staff_behaviour",
+        "improvePrompt": "What happened?",
+        "goodPrompt": "Who looked after you well?",
+        "signals": [
+          {
+            "key": "hard_to_find",
+            "label": "Hard to find someone"
+          },
+          {
+            "key": "rushed",
+            "label": "Felt rushed"
+          },
+          {
+            "key": "order_wrong",
+            "label": "Order came wrong"
+          },
+          {
+            "key": "manner",
+            "label": "Manner of the staff"
+          }
+        ]
+      },
+      {
+        "key": "waiting",
+        "label": "Waiting",
+        "themeKey": "service_speed",
+        "improvePrompt": "Where was the wait?",
+        "goodPrompt": "Anything about the timing worth noting?",
+        "signals": [
+          {
+            "key": "for_table",
+            "label": "For a table"
+          },
+          {
+            "key": "to_order",
+            "label": "To place the order"
+          },
+          {
+            "key": "for_food",
+            "label": "For the food"
+          },
+          {
+            "key": "for_bill",
+            "label": "For the bill"
+          }
+        ]
+      },
+      {
+        "key": "cleanliness",
+        "label": "Cleanliness",
+        "themeKey": "cleanliness",
+        "improvePrompt": "What did you notice?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "table",
+            "label": "The table"
+          },
+          {
+            "key": "washroom",
+            "label": "The washroom"
+          },
+          {
+            "key": "crockery",
+            "label": "Plates or glasses"
+          },
+          {
+            "key": "seating_area",
+            "label": "The seating area"
+          }
+        ]
+      },
+      {
+        "key": "value",
+        "label": "Value for money",
+        "themeKey": "pricing_value",
+        "improvePrompt": "What felt off about the price?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "too_high",
+            "label": "Prices are high"
+          },
+          {
+            "key": "portion_price",
+            "label": "Portion for the price"
+          },
+          {
+            "key": "bill_surprise",
+            "label": "Bill was more than expected"
+          },
+          {
+            "key": "extra_charges",
+            "label": "Charges I was not told about"
+          }
+        ]
+      }
+    ]
   }
 }

@@ -109,9 +109,14 @@ export function ClientForm({
               name="vertical"
               label="Vertical"
               required
-              defaultValue={values.vertical || verticals[0]?.value}
-              options={verticals}
-              hint="Chooses the playbook: taxonomy, voice preset and staff script."
+              // No silent default (M17). This used to fall back to the first
+              // option, so an operator who tabbed past the field onboarded a
+              // restaurant with clinic wording, clinic taxonomy and clinic
+              // banned words — and `required` never fired, because something
+              // was already selected.
+              defaultValue={values.vertical}
+              options={[{ value: '', label: 'Choose the business type…' }, ...verticals]}
+              hint="Chooses the playbook: taxonomy, voice preset, customer question and staff script. It is worth getting right."
             />
             <TextField
               name="areaLabel"

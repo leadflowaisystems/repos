@@ -182,15 +182,41 @@ describe('the board answers who needs the operator', () => {
 
 describe('low-data clients are handled honestly', () => {
   it('does not look broken for a brand new client', async () => {
-    await makeClient('Brand New Clinic');
+    const clientId = await makeClient('Brand New Clinic');
 
     const card = cardFor(await getBoard(db, NOW), 'Brand New Clinic');
     expect(card.lowData?.missing).toBe('No feedback yet');
     expect(card.lowData?.why).toMatch(/nothing to read/i);
-    expect(card.nextAction.key).toBe('ADD_FEEDBACK');
+    // Get the QR onto the counter, not "paste the reviews you have collected"
+    // — a business with no public listing has none to paste (M17).
+    expect(card.nextAction.key).toBe('PRINT_CARDS');
+    expect(card.nextAction.href).toBe(`/clients/${clientId}/kit`);
     expect(card.topIssue).toBeNull();
     expect(card.change).toBeNull();
     expect(card.recommendation).toBeNull();
+  });
+
+  it('stops asking for the cards once they are on site', async () => {
+    const clientId = await makeClient('Carded Clinic');
+    await db.client.update({
+      where: { id: clientId },
+      data: { kitInstalledDate: new Date('2026-03-01T00:00:00.000Z') },
+    });
+
+    const card = cardFor(await getBoard(db, NOW), 'Carded Clinic');
+    expect(card.nextAction.key).toBe('ADD_FEEDBACK');
+  });
+
+  it('says so when a client’s feedback page is switched off', async () => {
+    const clientId = await makeClient('Paused Clinic');
+    await db.feedbackGateway.update({
+      where: { clientId },
+      data: { enabled: false },
+    });
+
+    const card = cardFor(await getBoard(db, NOW), 'Paused Clinic');
+    expect(card.nextAction.key).toBe('RESUME_FEEDBACK');
+    expect(card.reasons.join(' ')).toMatch(/paused/i);
   });
 
   it('says what is missing when nothing has been read', async () => {

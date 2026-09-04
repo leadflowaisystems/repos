@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import {
   draftClientReplies,
@@ -12,6 +12,7 @@ import {
 import { bool, str, text } from './shared';
 import type { ActionState } from './shared';
 import { failure, success } from './shared';
+import { tenantGate } from '@/lib/auth/guard';
 
 /**
  * Reply actions.
@@ -32,7 +33,11 @@ function revalidateFor(clientId: string, itemId?: string) {
 }
 
 export async function draftRepliesAction(form: FormData): Promise<void> {
-  const clientId = str(form, 'clientId');
+  const gate = await tenantGate(form, 'MEMBER');
+  // A denial here is a 404, not a message: "not yours" and "not real"
+  // must look identical to anyone trying ids.
+  if (!gate.ok) notFound();
+  const { clientId } = gate;
   if (!clientId) return;
 
   const result = await draftClientReplies(prisma, clientId, {
@@ -57,7 +62,11 @@ export async function draftRepliesAction(form: FormData): Promise<void> {
 }
 
 export async function regenerateDraftAction(form: FormData): Promise<void> {
-  const clientId = str(form, 'clientId');
+  const gate = await tenantGate(form, 'MEMBER');
+  // A denial here is a 404, not a message: "not yours" and "not real"
+  // must look identical to anyone trying ids.
+  if (!gate.ok) notFound();
+  const { clientId } = gate;
   const itemId = str(form, 'itemId');
   if (!clientId || !itemId) return;
 
@@ -81,7 +90,9 @@ export async function saveDraftAction(
   _previous: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const clientId = str(form, 'clientId');
+  const gate = await tenantGate(form, 'MEMBER');
+  if (!gate.ok) return gate.state;
+  const { clientId } = gate;
   const itemId = str(form, 'itemId');
   if (!clientId || !itemId) return failure('That feedback item could not be found.');
 
@@ -98,7 +109,11 @@ export async function saveDraftAction(
 }
 
 export async function setHandledAction(form: FormData): Promise<void> {
-  const clientId = str(form, 'clientId');
+  const gate = await tenantGate(form, 'MEMBER');
+  // A denial here is a 404, not a message: "not yours" and "not real"
+  // must look identical to anyone trying ids.
+  if (!gate.ok) notFound();
+  const { clientId } = gate;
   const itemId = str(form, 'itemId');
   if (!clientId || !itemId) return;
 

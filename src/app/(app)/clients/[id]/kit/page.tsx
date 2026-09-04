@@ -9,6 +9,7 @@ import {
 } from '@/components/forms/kit-forms';
 import { prisma } from '@/lib/db';
 import { getKitView } from '@/lib/kit/service';
+import { requestOrigin } from '@/lib/gateway/origin';
 import { formatDate } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -26,7 +27,7 @@ export default async function KitPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const kit = await getKitView(prisma, id);
+  const kit = await getKitView(prisma, id, { requestOrigin: await requestOrigin() });
   if (!kit) notFound();
 
   const { content, readiness, qr } = kit;
@@ -58,7 +59,7 @@ export default async function KitPage({
           {readiness.ready ? (
             <div className="flex flex-wrap items-center gap-2">
               <PrintKitButton href={printHref} />
-              <CopyButton value={content.reviewUrl ?? ''} label="Copy link" />
+              <CopyButton value={content.feedbackUrl ?? ''} label="Copy feedback link" />
               <KitInstalledToggle
                 clientId={id}
                 installed={kit.kitInstalledDate !== null}
@@ -68,7 +69,7 @@ export default async function KitPage({
         </CardBody>
       </Card>
 
-      {/* ---- The one blocking step ---- */}
+      {/* ---- What is actually in the way, if anything ---- */}
       {!readiness.ready ? (
         <Card>
           <CardHeader
@@ -81,16 +82,40 @@ export default async function KitPage({
                 {blocker.hint}
               </Notice>
             ))}
-            {readiness.blockers.some((b) => b.key === 'reviewUrl') ? (
-              <ReviewLinkForm
-                clientId={id}
-                defaultValue={kit.config.qrTargetUrl}
-                hint="Open the business's public listing yourself, copy its “write a review” link, and paste it here. RepOS never fetches or looks up a listing."
-              />
-            ) : null}
           </CardBody>
         </Card>
       ) : null}
+
+      {kit.gatewayPaused ? (
+        <Notice tone="warn" title="This client&rsquo;s feedback page is paused">
+          The cards will print, but a customer who scans one today sees &ldquo;not active&rdquo;
+          and nothing is stored. Turn it back on from the Feedback QR tab before handing these
+          out.
+        </Notice>
+      ) : null}
+
+      {/* ---- The optional public review link ---- */}
+      <Card>
+        <CardHeader
+          title="A public review, optional"
+          description="Nothing on the card depends on this. It only decides whether customers are offered a public review after they have already had their say."
+        />
+        <CardBody className="space-y-4">
+          {content.publicReviewNote ? (
+            <Notice tone="good">{content.publicReviewNote}</Notice>
+          ) : (
+            <Notice tone="neutral">
+              No public review link. Customers finish at the thank-you page, and this business is
+              fully served without one.
+            </Notice>
+          )}
+          <ReviewLinkForm
+            clientId={id}
+            defaultValue={kit.config.qrTargetUrl}
+            hint="Open the business's public listing yourself, copy its “write a review” link, and paste it here. RepOS never fetches or looks up a listing. Leave it blank if the business has no public listing."
+          />
+        </CardBody>
+      </Card>
 
       {/* ---- Preview ---- */}
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">

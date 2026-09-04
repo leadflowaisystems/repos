@@ -23,6 +23,15 @@ function input(overrides: Partial<PriorityInput> = {}): PriorityInput {
     clientId: 'c1',
     businessName: 'Sunrise Dental Clinic',
     status: 'HEALTHY' as HealthStatus,
+    clientStatus: 'ACTIVE',
+    // A fully set-up client by default, so a test about replies is not
+    // silently answered by an onboarding signal.
+    setup: {
+      gatewayLive: true,
+      gatewayPaused: false,
+      cardsOnSite: true,
+      ownerLinkSent: true,
+    },
     topSignalDetail: null,
     trendDeclining: false,
     topIssue: null,

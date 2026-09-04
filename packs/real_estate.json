@@ -236,7 +236,7 @@
   "praiseTaxonomy": [
     {
       "key": "transparency",
-      "label": "Honest and transparent",
+      "label": "Honesty and transparency",
       "hints": [
         "honest",
         "transparent",
@@ -287,7 +287,7 @@
     },
     {
       "key": "options_shown",
-      "label": "Showed relevant options",
+      "label": "Well-matched options",
       "hints": [
         "showed",
         "shortlist",
@@ -312,7 +312,7 @@
     },
     {
       "key": "no_pressure",
-      "label": "No pressure",
+      "label": "An unpressured approach",
       "hints": [
         "no pressure",
         "patient",
@@ -371,16 +371,18 @@
     ]
   },
   "staffAskScript": {
-    "when": "After handover or agreement signing, once the client confirms the process went smoothly.",
-    "line": "If the process worked for you, an honest review helps the next family decide who to trust. The QR on this card takes a minute.",
-    "hinglishLine": "Agar process theek raha ho, toh ek honest review agle family ko trust decide karne mein help karta hai. Is card ka QR ek minute lega.",
-    "marathiLine": "प्रक्रिया सुरळीत झाली असेल, तर प्रामाणिक अभिप्राय पुढच्या कुटुंबाला विश्वास ठरवायला मदत करतो. या कार्डवरचा QR एक मिनिट घेतो.",
+    "when": "At handover or agreement signing, for every client — however the process turned out.",
+    "line": "There is a QR on this card. Tell us honestly how the process went for you, including anything that was frustrating. It comes straight to us.",
+    "hinglishLine": "Is card par QR hai. Honestly bataiye process kaisa raha — jo pareshani hui woh bhi. Seedha humein aata hai.",
+    "marathiLine": "या कार्डवर QR आहे. प्रक्रिया कशी झाली ते प्रामाणिकपणे सांगा — जे त्रासदायक होतं तेही. ते थेट आमच्याकडे येतं.",
     "doNot": [
       "Never offer a brokerage discount or any benefit in exchange for a review.",
       "Never ask only the clients whose deals closed well.",
       "Never write a review on a client's phone.",
       "Never ask a client to remove or edit a review.",
-      "Never mention a property address, deal value or client name in a public reply."
+      "Never mention a property address, deal value or client name in a public reply.",
+      "Never wait until someone looks happy — offer the QR to everyone, every time.",
+      "Never ask a customer to leave a public review as a condition of anything."
     ]
   },
   "profileGapChecks": [
@@ -438,13 +440,147 @@
   "kit": {
     "assetLabel": "handover card",
     "placement": "Handed over with the agreement folder or at key handover.",
-    "moment": "After handover or agreement signing, once the client confirms it went smoothly.",
+    "moment": "At handover or agreement signing, for every client — however the process turned out.",
     "headline": "How did the process go?",
     "subhead": "Scan and share your honest experience. One minute.",
     "qrCaption": "Scan to share your honest experience",
-    "askMessage": "Thank you for working with {{businessName}}. If the process worked for you, an honest review helps the next family decide who to trust: {{reviewUrl}}",
-    "askMessageHinglish": "{{businessName}} ke saath kaam karne ke liye dhanyawaad. Agar process theek raha ho, toh ek honest review agle family ko trust decide karne me help karta hai: {{reviewUrl}}",
-    "askMessageMarathi": "{{businessName}} सोबत काम केल्याबद्दल धन्यवाद. प्रक्रिया सुरळीत झाली असेल, तर प्रामाणिक अभिप्राय पुढच्या कुटुंबाला मदत करतो: {{reviewUrl}}",
+    "askMessage": "Thank you for working with {{businessName}}. If the process worked for you, an honest review helps the next family decide who to trust: {{feedbackUrl}}",
+    "askMessageHinglish": "{{businessName}} ke saath kaam karne ke liye dhanyawaad. Agar process theek raha ho, toh ek honest review agle family ko trust decide karne me help karta hai: {{feedbackUrl}}",
+    "askMessageMarathi": "{{businessName}} सोबत काम केल्याबद्दल धन्यवाद. प्रक्रिया सुरळीत झाली असेल, तर प्रामाणिक अभिप्राय पुढच्या कुटुंबाला मदत करतो: {{feedbackUrl}}",
     "thankYou": "Thank you — do reach out if anything comes up later."
+  },
+  "gateway": {
+    "headline": "How did the process go?",
+    "prompt": "Tell us what went well, or what we could have done better.",
+    "placeholder": "The visits, the paperwork, the communication — anything at all.",
+    "thankYou": "Thank you. We read every one of these.",
+    "printLine": "Honest feedback helps us do right by the next family.",
+    "dimensions": [
+      {
+        "key": "communication",
+        "label": "Communication",
+        "themeKey": "responsiveness",
+        "improvePrompt": "What happened?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "no_reply",
+            "label": "Calls or messages went unanswered"
+          },
+          {
+            "key": "slow",
+            "label": "Slow to come back"
+          },
+          {
+            "key": "chased",
+            "label": "I had to keep chasing"
+          },
+          {
+            "key": "changed_hands",
+            "label": "Kept being passed to someone else"
+          }
+        ]
+      },
+      {
+        "key": "transparency",
+        "label": "Being straight with you",
+        "themeKey": "hidden_charges",
+        "improvePrompt": "What were you not told?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "extra_charges",
+            "label": "Charges I was not told about"
+          },
+          {
+            "key": "price_changed",
+            "label": "Price changed later"
+          },
+          {
+            "key": "pressure",
+            "label": "Pressed to decide quickly"
+          },
+          {
+            "key": "token_terms",
+            "label": "Token amount terms"
+          }
+        ]
+      },
+      {
+        "key": "options",
+        "label": "The properties shown",
+        "themeKey": "listing_accuracy",
+        "improvePrompt": "What did not match?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "not_as_listed",
+            "label": "Not as described"
+          },
+          {
+            "key": "photos",
+            "label": "Photos did not match"
+          },
+          {
+            "key": "already_gone",
+            "label": "Already taken"
+          },
+          {
+            "key": "wrong_budget",
+            "label": "Outside what I asked for"
+          }
+        ]
+      },
+      {
+        "key": "visits",
+        "label": "Site visits",
+        "themeKey": "site_visit_experience",
+        "improvePrompt": "What was the problem?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "late",
+            "label": "Nobody turned up on time"
+          },
+          {
+            "key": "no_access",
+            "label": "Could not get in"
+          },
+          {
+            "key": "rushed",
+            "label": "Rushed through it"
+          },
+          {
+            "key": "no_answers",
+            "label": "Questions went unanswered"
+          }
+        ]
+      },
+      {
+        "key": "paperwork",
+        "label": "Paperwork",
+        "themeKey": "documentation_delay",
+        "improvePrompt": "Where did it get stuck?",
+        "goodPrompt": "Anything worth noting?",
+        "signals": [
+          {
+            "key": "delayed",
+            "label": "Took far longer than said"
+          },
+          {
+            "key": "errors",
+            "label": "Errors in the documents"
+          },
+          {
+            "key": "no_updates",
+            "label": "No updates on progress"
+          },
+          {
+            "key": "after_deal",
+            "label": "Support stopped after the deal"
+          }
+        ]
+      }
+    ]
   }
 }

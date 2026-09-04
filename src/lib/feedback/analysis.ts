@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
+import { readStructured } from '@/lib/feedback/structured';
 import { getPackOrFallback, type Pack } from '@/lib/packs';
 import { sanitiseSentiment, sanitiseTags, type Sentiment } from '@/lib/analysis/classify';
 import {
@@ -317,6 +318,9 @@ export async function getAnalysisCoverage(
   };
 }
 
+/** At or below this, a customer is telling you something is wrong. */
+export const LOW_RATING_AT = 3;
+
 export type ThemeSummaryRow = {
   key: string;
   label: string;
@@ -327,10 +331,34 @@ export type ThemeSummaryRow = {
   itemIds: string[];
 };
 
+/**
+ * What the taps say about one part of the business (M19).
+ *
+ * Separate from the theme rows on purpose. A theme count is how many people
+ * WROTE about something; this is how many RATED it. Merging the two would let
+ * RepOS report that customers said something nobody ever said.
+ */
+export type DimensionSummaryRow = {
+  key: string;
+  label: string;
+  /** The issue theme this corroborates, from the pack. */
+  themeKey: string;
+  /** How many customers rated it at all. */
+  rated: number;
+  /** How many of those rated it 3 or below. */
+  low: number;
+  /** Mean of the ratings given, to one decimal. Null when nobody rated it. */
+  average: number | null;
+  /** The specifics customers tapped, most-picked first. */
+  signals: Array<{ key: string; label: string; count: number }>;
+};
+
 export type ThemeSummary = {
   praises: ThemeSummaryRow[];
   issues: ThemeSummaryRow[];
   analysedCount: number;
+  /** In pack order. Empty for a vertical that asks nothing structured. */
+  dimensions: DimensionSummaryRow[];
 };
 
 /**
@@ -345,11 +373,70 @@ export async function getThemeSummary(
   clientId: string,
   vertical: string,
 ): Promise<ThemeSummary> {
+  const pack = getPackOrFallback(vertical);
   const rows = await db.reviewItem.findMany({
     where: { clientId, analysisStatus: 'ANALYSED' },
     select: { id: true, themesJson: true },
   });
-  return summariseThemeRows(rows, getPackOrFallback(vertical));
+  // Deliberately every row, not only the analysed ones. A customer who rated
+  // five things and typed nothing has no words to analyse, and dropping them
+  // here would throw away the majority of what the gateway collects.
+  const structured = await db.reviewItem.findMany({
+    where: { clientId },
+    select: { dimensionsJson: true, signalsJson: true },
+  });
+  return { ...summariseThemeRows(rows, pack), dimensions: summariseDimensions(structured, pack) };
+}
+
+/**
+ * The ratings and specifics, bucketed by the questions the pack asks.
+ *
+ * Counts only. Nothing here decides that a low rating is a problem worth
+ * reporting — that judgement stays in the one intelligence engine, which
+ * applies the same evidence floor to these as it does to written mentions.
+ */
+export function summariseDimensions(
+  rows: Array<{ dimensionsJson?: string | null; signalsJson?: string | null }>,
+  pack: Pack,
+): DimensionSummaryRow[] {
+  const dimensions = pack.gateway?.dimensions ?? [];
+  if (dimensions.length === 0) return [];
+
+  const totals = new Map<string, { sum: number; rated: number; low: number }>();
+  const signalCounts = new Map<string, number>();
+  for (const row of rows) {
+    const structured = readStructured(row);
+    for (const [key, rating] of Object.entries(structured.dimensions)) {
+      const bucket = totals.get(key) ?? { sum: 0, rated: 0, low: 0 };
+      bucket.sum += rating;
+      bucket.rated += 1;
+      if (rating <= LOW_RATING_AT) bucket.low += 1;
+      totals.set(key, bucket);
+    }
+    for (const key of structured.signals) {
+      signalCounts.set(key, (signalCounts.get(key) ?? 0) + 1);
+    }
+  }
+
+  return dimensions.map((dimension) => {
+    const bucket = totals.get(dimension.key);
+    return {
+      key: dimension.key,
+      label: dimension.label,
+      themeKey: dimension.themeKey,
+      rated: bucket?.rated ?? 0,
+      low: bucket?.low ?? 0,
+      average: bucket && bucket.rated > 0 ? Math.round((bucket.sum / bucket.rated) * 10) / 10 : null,
+      signals: dimension.signals
+        .map((signal) => ({
+          key: signal.key,
+          label: signal.label,
+          count: signalCounts.get(signal.key) ?? 0,
+        }))
+        .filter((signal) => signal.count > 0)
+        .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)),
+    };
+  });
 }
 
 /**
@@ -381,12 +468,22 @@ export function summariseThemeRows(
   pack.praiseTaxonomy.forEach((e, i) => order.set(`PRAISE:${e.key}`, i));
   pack.issueTaxonomy.forEach((e, i) => order.set(`ISSUE:${e.key}`, i));
 
+  // The KEY is what analysis decided and is authoritative; the LABEL is only
+  // how it is worded to the owner, so it is resolved from the pack as it
+  // stands today (M18). Labels were read from the row, frozen at the moment
+  // the feedback was analysed, which meant improving a vertical's wording
+  // reached new clients and never existing ones. A key the pack no longer
+  // carries keeps whatever it was stored with, so no row is ever lost.
+  const wording = new Map<string, string>();
+  for (const e of pack.praiseTaxonomy) wording.set(`PRAISE:${e.key}`, e.label);
+  for (const e of pack.issueTaxonomy) wording.set(`ISSUE:${e.key}`, e.label);
+
   const toRows = (kind: 'PRAISE' | 'ISSUE'): ThemeSummaryRow[] =>
     [...buckets.values()]
       .filter((b) => b.theme.kind === kind)
       .map((b) => ({
         key: b.theme.key,
-        label: b.theme.label,
+        label: wording.get(`${kind}:${b.theme.key}`) ?? b.theme.label,
         kind,
         severity: b.theme.severity,
         count: b.itemIds.length,
@@ -402,6 +499,10 @@ export function summariseThemeRows(
     praises: toRows('PRAISE'),
     issues: toRows('ISSUE'),
     analysedCount: rows.length,
+    // Filled by the caller that holds the structured columns. The in-memory
+    // path is given rows selected for theme analysis, which need not carry
+    // them, so an empty list here means "not loaded", never "nobody rated".
+    dimensions: [],
   };
 }
 

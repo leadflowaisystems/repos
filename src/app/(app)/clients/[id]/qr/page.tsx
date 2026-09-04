@@ -1,0 +1,239 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import clsx from 'clsx';
+import { Badge, Card, CardBody, CardHeader, Notice } from '@/components/ui';
+import { CopyButton } from '@/components/copy-button';
+import {
+  GatewayEnabledToggle,
+  InlineHint,
+  OpenInNewTabButton,
+  PublicBaseUrlForm,
+  PublicReviewUrlForm,
+  QrDownloadButtons,
+} from '@/components/forms/gateway-forms';
+import { prisma } from '@/lib/db';
+import { getGatewayView } from '@/lib/gateway/service';
+import { lanOrigins, portOf, requestOrigin } from '@/lib/gateway/origin';
+import { feedbackPath } from '@/lib/gateway/token';
+import { formatDate, formatNumber } from '@/lib/format';
+
+export const dynamic = 'force-dynamic';
+
+/**
+ * ONE feedback QR page for every vertical (M14).
+ *
+ * The operator opens it and it is already done: the link exists, the QR is
+ * drawn, the card is ready to print. The only decisions left are optional —
+ * a public review link, and a fixed address if RepOS has one.
+ */
+export default async function FeedbackQrPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const origin = await requestOrigin();
+  const view = await getGatewayView(prisma, id, { requestOrigin: origin });
+  if (!view) notFound();
+
+  // No address, no QR. A printed card cannot be recalled, so RepOS would
+  // rather show the operator a configuration error than a code that opens
+  // the wrong place — or nothing at all.
+  const addressReady = view.baseUrlError === null && view.qr !== null;
+  const live = view.enabled && !view.archived && addressReady;
+  const tone = !addressReady ? 'bad' : !live ? 'warn' : view.baseUrlLoopback ? 'warn' : 'good';
+  const label = !addressReady
+    ? 'NOT SET UP YET'
+    : view.archived
+      ? 'ARCHIVED'
+      : !view.enabled
+        ? 'PAUSED'
+        : view.baseUrlLoopback
+          ? 'READY ON THIS COMPUTER ONLY'
+          : 'READY';
+  const headline = !addressReady
+    ? 'RepOS does not know what address a customer would open, so it has not made a QR.'
+    : view.archived
+      ? 'This client is archived, so its feedback page is switched off.'
+      : !view.enabled
+        ? 'Feedback is paused. A scanned QR shows "not active" and nothing is stored.'
+        : view.baseUrlLoopback
+          ? 'The QR works here, but not yet on a customer’s phone — set the address below.'
+          : 'Customers can scan this QR and tell the business what they think.';
+
+  const previewHref = feedbackPath(view.token);
+  const printHref = `/print/feedback/${id}`;
+  const fileBase = view.businessName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'client';
+  const port =
+    portOf(view.baseUrlSource === 'REQUEST' ? (origin ?? '') : view.baseUrl) ||
+    portOf(origin ?? '');
+  const suggestions = lanOrigins(port);
+
+  return (
+    <div className="space-y-6">
+      {/* ---- Ready state ---- */}
+      <Card className="overflow-hidden">
+        <div className={clsx('h-1', tone === 'good' ? 'bg-good-600' : 'bg-warn-600')} />
+        <CardBody className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone={tone}>{label}</Badge>
+              <span className="text-[13px] text-ink-500">Customer feedback page · {view.verticalLabel}</span>
+            </div>
+            <p className="mt-2 text-[15px] font-semibold text-ink-900">{headline}</p>
+            <p className="mt-1 text-[13px] text-ink-600">
+              {view.received.total === 0
+                ? 'Nothing has come in through it yet.'
+                : `${formatNumber(view.received.total)} received through it${
+                    view.received.latestAt ? `, the latest ${formatDate(view.received.latestAt)}` : ''
+                  }.`}
+              {view.received.unread > 0 ? (
+                <>
+                  {' '}
+                  <Link href={`/clients/${id}/feedback?needs=1`} className="font-medium underline underline-offset-2">
+                    {view.received.unread} waiting to be read
+                  </Link>
+                  .
+                </>
+              ) : null}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {live ? (
+              <>
+                <OpenInNewTabButton href={printHref} label="Print card" variant="primary" />
+                <OpenInNewTabButton href={previewHref} label="Preview customer page" />
+                <CopyButton value={view.feedbackUrl} label="Copy link" />
+              </>
+            ) : null}
+            {!view.archived ? <GatewayEnabledToggle clientId={id} enabled={view.enabled} /> : null}
+          </div>
+        </CardBody>
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+        {/* ---- The QR ---- */}
+        <Card>
+          <CardHeader title="The QR" description="Generated by RepOS. Same code on screen, on the card and in the download." />
+          <CardBody className="space-y-4">
+            {view.qr === null ? (
+              <Notice tone="bad" title="No QR yet">
+                {view.baseUrlError}
+              </Notice>
+            ) : (
+              <>
+            <div className="rounded-xl border border-ink-200 px-5 py-5 text-center">
+              <p className="text-[11px] font-semibold tracking-[0.14em] text-ink-500 uppercase">
+                {view.businessName}
+              </p>
+              <p className="mt-2 text-[17px] leading-snug font-semibold text-ink-900">{view.copy.printHeadline}</p>
+              <div className="mx-auto mt-4 w-[170px]">
+                <div
+                  className={clsx('[&>svg]:h-auto [&>svg]:w-full', !live && 'opacity-40')}
+                  dangerouslySetInnerHTML={{ __html: view.qr?.svg ?? '' }}
+                />
+              </div>
+              <p className="mt-3 text-[12px] text-ink-600">{view.copy.printLine}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <QrDownloadButtons
+                pngDataUrl={view.qr?.pngDataUrl ?? ''}
+                svg={view.qr?.svg ?? ''}
+                fileBase={fileBase}
+              />
+            </div>
+            <div>
+              <p className="text-[12px] font-semibold tracking-wide text-ink-500 uppercase">Opens</p>
+              <p className="mt-1 text-[13px] break-all text-ink-800">{view.feedbackUrl}</p>
+            </div>
+              </>
+            )}
+          </CardBody>
+        </Card>
+
+        <div className="space-y-6">
+          {/* ---- Optional public review link ---- */}
+          <Card>
+            <CardHeader
+              title="After they send: a public review, optional"
+              description="Every customer sees the same thank-you page. If a public review link is added here, every one of them is offered it — whatever they wrote."
+            />
+            <CardBody className="space-y-4">
+              {view.publicReviewUrl ? (
+                <Notice tone="good">
+                  Customers are offered “{view.publicReviewLabel}” after sending. RepOS never
+                  copies their feedback there, never writes a review, and never decides who sees the button.
+                </Notice>
+              ) : (
+                <Notice tone="neutral">
+                  No public review link yet. Customers finish at the thank-you page. Private
+                  feedback works fine without one.
+                </Notice>
+              )}
+              <PublicReviewUrlForm clientId={id} defaultValue={view.publicReviewUrl} />
+            </CardBody>
+          </Card>
+
+          {/* ---- Where to put it ---- */}
+          <Card>
+            <CardHeader title="Where to put it" description={`For a ${view.verticalLabel.toLowerCase()}.`} />
+            <CardBody className="space-y-3">
+              <p className="text-[13px] leading-relaxed text-ink-800">{view.copy.placement}</p>
+              <p className="text-[13px] leading-relaxed text-ink-600">
+                Offer it to every customer, whatever they seemed to think. The page asks everyone
+                the same question and steers nobody.
+              </p>
+              <InlineHint>
+                The print kit&rsquo;s QR sends people straight to the public review page. This QR
+                opens RepOS&rsquo;s own feedback page, where a customer can say anything privately;
+                the public review link is offered afterwards, to everyone, if you add one above.
+              </InlineHint>
+            </CardBody>
+          </Card>
+
+          {/* ---- The address ---- */}
+          <Card>
+            <CardHeader
+              title="Where the link opens"
+              description="The QR points at the computer RepOS runs on. Customers' phones have to be able to reach it."
+            />
+            <CardBody className="space-y-4">
+              {view.baseUrlError ? (
+                <Notice tone="bad" title="RepOS cannot work out the address">
+                  {view.baseUrlError}
+                </Notice>
+              ) : null}
+              {view.baseUrlSource === 'ENV' ? (
+                <Notice tone="neutral" title="Set outside RepOS">
+                  This installation&rsquo;s address is fixed at{' '}
+                  <span className="break-all">{view.baseUrl}</span>, set once when RepOS was
+                  installed. It does not change when RepOS restarts, which is what keeps printed
+                  cards working. Changing it is a job for whoever set the server up.
+                </Notice>
+              ) : null}
+              {view.baseUrlLoopback ? (
+                <Notice tone="warn" title="This address only works on this computer">
+                  A phone that scans the QR now would open nothing. Pick this computer&rsquo;s
+                  address on the shop&rsquo;s Wi-Fi below, or a public address you have set up
+                  for RepOS, and save it once.
+                </Notice>
+              ) : null}
+              {view.baseUrlSource === 'ENV' ? null : (
+                <PublicBaseUrlForm
+                  clientId={id}
+                  current={view.baseUrl}
+                  fromSetting={view.baseUrlSource === 'SETTING'}
+                  suggestions={suggestions.filter((s) => s !== view.baseUrl)}
+                />
+              )}
+            </CardBody>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}

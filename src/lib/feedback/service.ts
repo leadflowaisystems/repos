@@ -2,6 +2,8 @@ import type { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { parseReviews } from '@/lib/analysis/parse-reviews';
 import { cleanReviewText } from '@/lib/redact';
+import { getPackOrFallback, type Pack } from '@/lib/packs';
+import { readDimensions, readStructured } from '@/lib/feedback/structured';
 import { parseJson } from '@/lib/format';
 import { fingerprintFeedback } from './fingerprint';
 import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
@@ -57,15 +59,41 @@ export const FEEDBACK_SOURCES = [
 
 export type FeedbackSource = (typeof FEEDBACK_SOURCES)[number];
 
-export const SOURCE_LABELS: Record<FeedbackSource, string> = {
+/**
+ * Sources that arrive on their own rather than through the paste box (M14).
+ *
+ * REP_OS_QR is the customer feedback page. The same column carries every
+ * source, so a future one is a new value here and nothing else — the row,
+ * the analysis and the intelligence are shared. No platform is named.
+ */
+export const DIRECT_SOURCES = ['REP_OS_QR'] as const;
+
+export type DirectSource = (typeof DIRECT_SOURCES)[number];
+
+/** Every value the `source` column may hold. */
+export const INGEST_SOURCES = [...FEEDBACK_SOURCES, ...DIRECT_SOURCES] as const;
+
+export type IngestSource = (typeof INGEST_SOURCES)[number];
+
+export const SOURCE_LABELS: Record<IngestSource, string> = {
   PUBLIC_REVIEW: 'Public review',
   PRIVATE_FEEDBACK: 'Private feedback',
   MANUAL_ENTRY: 'Manual entry',
   OTHER: 'Other',
+  REP_OS_QR: 'Feedback QR',
 };
 
 export function sourceLabel(source: string): string {
-  return SOURCE_LABELS[source as FeedbackSource] ?? source;
+  return SOURCE_LABELS[source as IngestSource] ?? source;
+}
+
+/**
+ * Whether anyone can be replied to. A customer who scanned the QR gave no
+ * name and no contact, and their words are private, so there is no review to
+ * answer. The reply layer reads this rather than guessing from the source.
+ */
+export function hasReplyChannel(source: string): boolean {
+  return source !== 'REP_OS_QR';
 }
 
 export function sourceOptions(): Array<{ value: string; label: string }> {
@@ -343,9 +371,65 @@ export type FeedbackRow = {
   draftNotes: string[];
   draftError: string | null;
   handledAt: Date | null;
+  /**
+   * What the customer tapped (M19), resolved against the client's pack so the
+   * operator reads labels rather than keys. Empty for a pasted review and for
+   * anything stored before M19.
+   */
+  answers: Array<{ key: string; label: string; rating: number; signals: string[] }>;
 };
 
 const PREVIEW_LENGTH = 150;
+
+/**
+ * A customer may leave a rating and no words (M14). The row's text is empty
+ * and stays empty — nothing is invented in the customer's voice — and every
+ * list shows this line in its place.
+ */
+export const RATING_ONLY_PREVIEW = 'Rating only — no written comment.';
+
+/**
+ * The same line for a customer who answered the vertical's questions (M19).
+ *
+ * "Rating only" undersells five deliberate answers, and an operator scanning
+ * a list needs to know the difference between a row holding one tap and a row
+ * holding six.
+ */
+export function ratingOnlyPreview(rated: number): string {
+  return `Rated ${rated} question${rated === 1 ? '' : 's'} — no written comment.`;
+}
+
+/**
+ * The tapped answers, worded as the pack words them today (M19).
+ *
+ * Labels are resolved at read time for the same reason theme labels are: the
+ * key is what was stored and is authoritative, the wording is only how it is
+ * shown, and improving a vertical's wording has to reach feedback that is
+ * already in the database. A key the pack has since dropped is left out
+ * rather than shown as a bare key the operator cannot read.
+ */
+function answersFor(
+  row: { dimensionsJson?: string | null; signalsJson?: string | null },
+  pack: Pack | undefined,
+): FeedbackRow['answers'] {
+  const dimensions = pack?.gateway?.dimensions ?? [];
+  if (dimensions.length === 0) return [];
+
+  const structured = readStructured(row);
+  const tapped = new Set(structured.signals);
+  const out: FeedbackRow['answers'] = [];
+  for (const dimension of dimensions) {
+    const rating = structured.dimensions[dimension.key];
+    if (rating === undefined) continue;
+    out.push({
+      key: dimension.key,
+      label: dimension.label,
+      rating,
+      signals: dimension.signals.filter((s) => tapped.has(s.key)).map((s) => s.label),
+    });
+  }
+  return out;
+}
 
 function toRow(row: {
   id: string;
@@ -379,22 +463,30 @@ function toRow(row: {
   draftNotesJson: string;
   draftError: string | null;
   handledAt: Date | null;
-}): FeedbackRow {
+  dimensionsJson?: string | null;
+  signalsJson?: string | null;
+}, pack?: Pack): FeedbackRow {
   const collapsed = row.text.replace(/\s+/g, ' ').trim();
+  const rated = Object.keys(readDimensions(row.dimensionsJson)).length;
   return {
     id: row.id,
     clientId: row.clientId,
     text: row.text,
     preview:
-      collapsed.length > PREVIEW_LENGTH
-        ? `${collapsed.slice(0, PREVIEW_LENGTH).trimEnd()}…`
-        : collapsed,
+      collapsed.length === 0
+        ? rated > 0
+          ? ratingOnlyPreview(rated)
+          : RATING_ONLY_PREVIEW
+        : collapsed.length > PREVIEW_LENGTH
+          ? `${collapsed.slice(0, PREVIEW_LENGTH).trimEnd()}…`
+          : collapsed,
     stars: row.stars,
     reviewDate: row.reviewDate,
     source: row.source,
     sourceLabel: sourceLabel(row.source),
     redacted: row.redacted,
     redactions: parseJson<string[]>(row.redactionsJson, []),
+    answers: answersFor(row, pack),
     // Version-aware on purpose: after a bump the stored reading is stale, and
     // the row must say so rather than showing themes the header calls unread.
     analysed:
@@ -442,18 +534,32 @@ export type FeedbackFilters = {
   byPriority?: boolean;
   /** Only items whose analysis mentions this taxonomy theme. */
   themeKey?: string | null;
+  /** Free text the comment must contain. */
+  query?: string | null;
+  /**
+   * Only what RepOS thinks still deserves a person's answer (M18).
+   *
+   * The one definition, in the query rather than in a page — the owner's
+   * Reviews page filtered in memory while the number beside the filter was
+   * counted with a different set of conditions, so the two could disagree.
+   */
+  worthReply?: boolean;
   limit?: number;
+  /** Rows to skip, for paging. */
+  offset?: number;
 };
 
 /**
- * One client's feedback. Always scoped by clientId in the query itself, so
- * cross-client leakage is not possible through this path.
+ * The WHERE every feedback read shares (M18).
+ *
+ * Extracted so the list and its total count are built from exactly the same
+ * conditions. A page saying "9 comments" over a list of 6 is worse than no
+ * number at all, and that is what two hand-written filters eventually produce.
  */
-export async function listClientFeedback(
-  db: PrismaClient,
+function feedbackWhere(
   clientId: string,
-  filters: FeedbackFilters = {},
-): Promise<FeedbackRow[]> {
+  filters: FeedbackFilters,
+): Record<string, unknown> {
   const where: Record<string, unknown> = { clientId };
 
   if (typeof filters.stars === 'number') where.stars = filters.stars;
@@ -479,21 +585,77 @@ export async function listClientFeedback(
     where.reviewDate = range;
   }
 
+  // Themes live inside a JSON column, and until M18 this ran in memory AFTER
+  // the row limit — so a theme chip reading "40" could open a list of twelve,
+  // silently, on the one page whose whole job is proof. The stored shape is
+  // [{"key":"wait_time",...}], so matching that exact fragment is equivalent
+  // to parsing every row, and it lets the database do the paging.
+  if (filters.themeKey) {
+    where.themesJson = { contains: `"key":"${themeNeedle(filters.themeKey)}"` };
+  }
+
+  const q = (filters.query ?? '').trim();
+  if (q) where.text = { contains: q };
+
+  // The same three conditions `worthReply` applies in the portal: something
+  // filed as needing no response is never worth a reply however it ranks,
+  // anything already handled is done, and what is left has to be either high
+  // priority or explicitly a person's job.
+  if (filters.worthReply) {
+    where.responseAction = { not: 'NO_RESPONSE_NEEDED' };
+    where.handledAt = null;
+    where.AND = [
+      { OR: [{ priorityBand: 'HIGH' }, { responseAction: 'NEEDS_HUMAN' }] },
+    ];
+  }
+
+  return where;
+}
+
+/** Theme keys come from the packs and are plain identifiers. Enforce that. */
+function themeNeedle(key: string): string {
+  return key.replace(/[^a-z0-9_]/gi, '');
+}
+
+function feedbackOrder(filters: FeedbackFilters) {
+  // Newest feedback first; undated items fall back to arrival order. When
+  // the operator is working a reply queue, the most demanding item leads.
+  return filters.byPriority
+    ? [{ priorityRank: 'desc' as const }, { reviewDate: 'desc' as const }, { sortIndex: 'desc' as const }]
+    : [{ reviewDate: 'desc' as const }, { createdAt: 'desc' as const }, { sortIndex: 'desc' as const }];
+}
+
+/**
+ * One client's feedback. Always scoped by clientId in the query itself, so
+ * cross-client leakage is not possible through this path.
+ */
+export async function listClientFeedback(
+  db: PrismaClient,
+  clientId: string,
+  filters: FeedbackFilters = {},
+): Promise<FeedbackRow[]> {
   const rows = await db.reviewItem.findMany({
-    where,
-    // Newest feedback first; undated items fall back to arrival order. When
-    // the operator is working a reply queue, the most demanding item leads.
-    orderBy: filters.byPriority
-      ? [{ priorityRank: 'desc' }, { reviewDate: 'desc' }, { sortIndex: 'desc' }]
-      : [{ reviewDate: 'desc' }, { createdAt: 'desc' }, { sortIndex: 'desc' }],
+    where: feedbackWhere(clientId, filters),
+    orderBy: feedbackOrder(filters),
     ...(filters.limit ? { take: filters.limit } : {}),
+    ...(filters.offset ? { skip: filters.offset } : {}),
   });
 
-  const mapped = rows.map(toRow);
-  // Theme filtering happens here because themes live inside a JSON column.
-  return filters.themeKey
-    ? mapped.filter((row) => row.themes.some((t) => t.key === filters.themeKey))
-    : mapped;
+  return rows.map((row) => toRow(row));
+}
+
+/**
+ * How many rows those same filters match in total.
+ *
+ * Separate from the list so a page can show 25 comments and still say honestly
+ * how many there are.
+ */
+export async function countClientFeedback(
+  db: PrismaClient,
+  clientId: string,
+  filters: FeedbackFilters = {},
+): Promise<number> {
+  return db.reviewItem.count({ where: feedbackWhere(clientId, filters) });
 }
 
 export async function getFeedbackItem(
@@ -502,7 +664,12 @@ export async function getFeedbackItem(
   itemId: string,
 ): Promise<FeedbackRow | null> {
   const row = await db.reviewItem.findFirst({ where: { id: itemId, clientId } });
-  return row ? toRow(row) : null;
+  if (!row) return null;
+  const client = await db.client.findUnique({
+    where: { id: clientId },
+    select: { vertical: true },
+  });
+  return toRow(row, getPackOrFallback(client?.vertical));
 }
 
 export type FeedbackStats = {
