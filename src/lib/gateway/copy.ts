@@ -80,10 +80,13 @@ export function buildGatewayCopy(pack: Pack, businessName: string): GatewayCopy 
     backLabel: 'Back',
     skipLabel: 'Skip',
     privacyLine: `No name or number needed. This goes to the ${businessName.trim()} team only.`,
-    thanksHeadline: 'Thank you. Your feedback has been received.',
+    thanksHeadline: 'Thank you. Your feedback has gone directly to the team.',
     thanksLine: pick(g?.thankYou, kit?.thankYou, 'The team reads every one of these.'),
-    shareQuestion: 'Want to share your experience publicly?',
-    shareNote: 'Entirely optional. Whatever you wrote here stays private.',
+    // Everyone sees this, worded the same way, whatever they rated. It never
+    // suggests the private feedback was sent anywhere but the team.
+    shareQuestion: 'Want to help others decide?',
+    shareNote:
+      'You can also leave a public review. Entirely optional — whatever you wrote here stays private.',
     printHeadline: pick(g?.headline, 'How was your experience?'),
     printLine: pick(g?.printLine, 'Your feedback helps us improve.'),
     placement: pick(kit?.placement, 'Somewhere the customer looks while they are paying.'),

@@ -309,7 +309,7 @@ describe('reviews — the evidence', () => {
   it('shows the owner-facing shape and nothing more', () => {
     const v = reviews();
     expect(Object.keys(v.items[0]!).sort()).toEqual([
-      'at', 'classLabel', 'id', 'replyState', 'sentiment', 'sentimentLabel', 'sourceLabel', 'stars', 'suggestedReply', 'text', 'themes',
+      'at', 'classLabel', 'gave', 'id', 'read', 'replyState', 'sentiment', 'sentimentLabel', 'sourceLabel', 'stars', 'suggestedReply', 'text', 'themes',
     ]);
     const t = text(v);
     expect(t).not.toMatch(/priorityRank|priorityReasons|draftNotes|draftSource|redactions|clientId|matched a hint|low rating/);

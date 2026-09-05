@@ -468,7 +468,7 @@ describe('pulse', () => {
     const p = pulse([]);
     expect(p.available).toBe(false);
     expect(p.current).toBeNull();
-    expect(p.reason).toContain('No snapshots yet');
+    expect(p.reason).toContain('No check-in recorded yet');
   });
 
   it('shows the current period but no comparison after one snapshot', () => {

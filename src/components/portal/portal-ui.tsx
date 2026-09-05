@@ -193,7 +193,7 @@ const LAYER_LABELS: Record<LayerKind, string> = {
   recommend: 'RepOS recommends',
   owner: 'You told us',
   next: 'Next',
-  watch: 'RepOS will watch',
+  watch: 'Watching',
 };
 
 /** A labelled row. The label is the reader's guarantee of what kind of statement follows. */
@@ -256,7 +256,7 @@ export function Tag({ bucket }: { bucket: PortalBucket }) {
         : bucket === 'KEEP'
           ? 'Keep doing this'
           : bucket === 'WATCH'
-            ? 'Watch this'
+            ? 'Watching'
             : 'Not enough evidence'}
     </span>
   );
@@ -684,9 +684,9 @@ export function Question({ q }: { q: PortalQuestion }) {
 
 export function MemoryStrip({ memory }: { memory: NonNullable<PortalAction['memory']> }) {
   const cells: Array<[string, string]> = [
-    ['Feedback before', memory.then],
-    ['What you changed', memory.change],
-    ['Feedback after', memory.now],
+    ['Before', memory.then],
+    ['You changed', memory.change],
+    ['After', memory.now],
     ['Reading', memory.result],
   ];
   return (
@@ -760,8 +760,26 @@ export function BeforeAfter({ outcome }: { outcome: PortalOutcome }) {
       <p className={clsx('mt-3 text-[11px] font-semibold tracking-wide uppercase', reading.tone)}>
         {reading.label}
       </p>
-      <p className="mt-1 text-[14px] leading-relaxed text-ink-800">{outcome.headline}</p>
-      <p className="mt-0.5 text-[12px] leading-relaxed text-ink-500">{outcome.note}</p>
+
+      {/* Three labelled statements, so a reading and its limit are never one
+          paragraph the eye can skim past. The limit is not tucked into small
+          print: it sits at the same size as the finding, because "we cannot
+          tell you this" is as much of the answer as the number is. */}
+      <dl className="mt-3 space-y-2.5">
+        <div>
+          <dt className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">What we know</dt>
+          <dd className="mt-0.5 text-[14px] leading-relaxed text-ink-900">{outcome.headline}</dd>
+        </div>
+        <div>
+          <dt className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">
+            What we cannot tell you
+          </dt>
+          <dd className="mt-0.5 text-[13px] leading-relaxed text-ink-700">
+            {outcome.note}
+            {outcome.caveat ? <span className="block">{outcome.caveat}</span> : null}
+          </dd>
+        </div>
+      </dl>
       <details className="mt-2 group">
         <summary className="cursor-pointer list-none text-[12px] font-medium text-ink-600 hover:text-ink-900">
           Why RepOS says this <span aria-hidden>›</span>
@@ -770,7 +788,6 @@ export function BeforeAfter({ outcome }: { outcome: PortalOutcome }) {
           {outcome.why.map((w) => (
             <li key={w}>{w}</li>
           ))}
-          {outcome.caveat ? <li className="text-ink-500">{outcome.caveat}</li> : null}
         </ul>
       </details>
     </div>
@@ -913,7 +930,7 @@ export function ActionStory({ action, basePath }: { action: PortalAction; basePa
           ) : null}
 
           <div>
-            <p className="mb-1 text-[11px] tracking-wide text-ink-500 uppercase">Next</p>
+            <p className="mb-1 text-[11px] tracking-wide text-ink-500 uppercase">What we recommend</p>
             <p className="text-[14px] leading-relaxed text-ink-900">{a.nextStep}</p>
           </div>
 
@@ -1040,62 +1057,243 @@ const SENTIMENT_DOT: Record<string, string> = {
   NEGATIVE: 'bg-bad-600',
 };
 
-export function ReviewRow({ item }: { item: ReviewItem }) {
+function Stars({ value }: { value: number }) {
   return (
-    <li className="py-4">
-      <details className="group">
-        <summary className="cursor-pointer list-none focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-500">
-            {item.stars !== null ? (
-              <span className="font-medium text-warn-600" aria-label={`${item.stars} out of 5`}>
-                {'★'.repeat(item.stars)}
-                <span className="text-ink-300">{'☆'.repeat(5 - item.stars)}</span>
-              </span>
-            ) : null}
-            {item.at ? <span>{formatDate(item.at)}</span> : null}
-            <span className="flex items-center gap-1.5">
-              <span aria-hidden className={clsx('h-1.5 w-1.5 rounded-full', SENTIMENT_DOT[item.sentiment] ?? 'bg-ink-300')} />
-              {item.sentimentLabel}
-            </span>
-            {item.replyState === 'SUGGESTED' ? (
-              <span className="font-medium text-warn-700">Needs your answer · draft ready</span>
-            ) : item.replyState === 'YOURS' ? (
-              <span className="font-medium text-warn-700">Needs your own reply</span>
-            ) : item.replyState === 'DRAFT' ? (
-              <span className="text-ink-500">Draft ready, optional</span>
-            ) : item.replyState === 'ANSWERED' ? (
-              <span className="text-good-700">Answered</span>
-            ) : null}
-          </div>
-          {item.text.length > 0 ? (
-            <p className="mt-1.5 text-[14px] leading-relaxed text-ink-800">{item.text}</p>
-          ) : (
-            <p className="mt-1.5 text-[14px] leading-relaxed text-ink-500 italic">
-              A rating only — no written comment.
-            </p>
-          )}
-          {item.themes.length > 0 ? (
-            <p className="mt-1.5 text-[12px] text-ink-500">{item.themes.join(' · ')}</p>
-          ) : null}
-        </summary>
-        <div className="mt-3 border-l-2 border-ink-200 pl-4 text-[13px] leading-relaxed text-ink-600">
-          <p>
-            {item.classLabel ? (
-              <>
-                <span className="text-ink-500">Sorted as:</span> {item.classLabel}
-                <span className="text-ink-400"> · </span>
-              </>
-            ) : null}
-            <span className="text-ink-500">From:</span> {item.sourceLabel}
+    <span className="font-medium text-warn-600" aria-label={`${value} out of 5`}>
+      {'★'.repeat(value)}
+      <span className="text-ink-300" aria-hidden>
+        {'☆'.repeat(5 - value)}
+      </span>
+    </span>
+  );
+}
+
+/**
+ * One piece of feedback, in two columns that must never blur into each other.
+ *
+ * CUSTOMER GAVE is exactly what the person tapped and typed: the overall
+ * rating, a rating for each part of the visit the vertical asks about, the
+ * specifics they selected, and their words in quotation marks. Nothing here
+ * is paraphrased, and a customer who wrote nothing is shown as having written
+ * nothing.
+ *
+ * REPOS UNDERSTOOD is everything derived from that: the themes, the tone, how
+ * it was sorted, and whether it needs an answer. Labelled as a reading, placed
+ * beside the evidence rather than woven into it, so an owner can always check
+ * the one against the other — and can never mistake "Slow service" for
+ * something the customer literally said.
+ */
+export function ReviewRow({ item }: { item: ReviewItem }) {
+  const { gave } = item;
+  const tapped = gave.dimensions.length > 0 || gave.selected.length > 0;
+
+  return (
+    <li className="py-5">
+      <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div>
+          <p className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">
+            Customer gave
           </p>
-          {item.suggestedReply ? (
-            <div className="mt-2">
-              <p className="text-[11px] tracking-wide text-ink-500 uppercase">Suggested reply</p>
-              <p className="mt-1 whitespace-pre-line text-ink-800">{item.suggestedReply}</p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-500">
+            {item.stars !== null ? (
+              <Stars value={item.stars} />
+            ) : (
+              <span className="italic">No overall rating</span>
+            )}
+            {item.at ? <span>{formatDate(item.at)}</span> : null}
+            <span>{item.sourceLabel}</span>
+          </div>
+
+          {gave.dimensions.length > 0 ? (
+            <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+              {gave.dimensions.map((d) => (
+                <div
+                  key={d.label}
+                  className="flex items-baseline justify-between gap-3 border-b border-dotted border-ink-200 pb-0.5 text-[13px]"
+                >
+                  <dt className="text-ink-700">{d.label}</dt>
+                  <dd
+                    className={clsx(
+                      'font-semibold tabular-nums',
+                      d.rating <= 2 ? 'text-bad-700' : d.rating === 3 ? 'text-ink-600' : 'text-good-700',
+                    )}
+                  >
+                    {d.rating}
+                    <span className="font-normal text-ink-400">/5</span>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+
+          {gave.selected.length > 0 ? (
+            <div className="mt-3">
+              <p className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">Selected</p>
+              <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                {gave.selected.map((label) => (
+                  <li
+                    key={label}
+                    className="rounded-full border border-ink-300 px-2.5 py-0.5 text-[12px] text-ink-800"
+                  >
+                    {label}
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : null}
+
+          <div className="mt-3">
+            <p className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">Written</p>
+            {item.text.length > 0 ? (
+              <p className="mt-1 text-[14px] leading-relaxed text-ink-900">“{item.text}”</p>
+            ) : (
+              <p className="mt-1 text-[13px] leading-relaxed text-ink-500 italic">
+                {tapped
+                  ? 'Nothing written — the ratings above are the whole message.'
+                  : 'A rating only — no written comment.'}
+              </p>
+            )}
+          </div>
         </div>
-      </details>
+
+        <div className="border-t border-dashed border-ink-200 pt-3 md:border-t-0 md:border-l md:pt-0 md:pl-6">
+          <p className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">
+            RepOS understood
+          </p>
+          {item.read ? (
+            <div className="mt-1.5 space-y-1.5 text-[13px] leading-relaxed text-ink-700">
+              {item.themes.length > 0 ? (
+                <p className="text-ink-900">{item.themes.join(' · ')}</p>
+              ) : (
+                <p className="text-ink-500">Nothing here matched a theme RepOS tracks.</p>
+              )}
+              <p className="flex items-center gap-1.5">
+                <span
+                  aria-hidden
+                  className={clsx('h-1.5 w-1.5 rounded-full', SENTIMENT_DOT[item.sentiment] ?? 'bg-ink-300')}
+                />
+                {item.sentimentLabel} in tone
+              </p>
+              {item.classLabel ? (
+                <p>
+                  <span className="text-ink-500">Sorted as</span> {item.classLabel}
+                </p>
+              ) : null}
+              {item.replyState === 'SUGGESTED' ? (
+                <p className="font-medium text-warn-700">Needs your answer · draft ready</p>
+              ) : item.replyState === 'YOURS' ? (
+                <p className="font-medium text-warn-700">Needs your own reply</p>
+              ) : item.replyState === 'DRAFT' ? (
+                <p className="text-ink-500">Draft ready, optional</p>
+              ) : item.replyState === 'ANSWERED' ? (
+                <p className="text-good-700">Answered</p>
+              ) : null}
+              {item.suggestedReply ? (
+                <details className="group pt-1">
+                  <summary className="cursor-pointer list-none text-[12px] font-medium text-ink-600 hover:text-ink-900 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none">
+                    Suggested reply <span aria-hidden>›</span>
+                  </summary>
+                  <p className="mt-1.5 border-l-2 border-ink-200 pl-3 whitespace-pre-line text-ink-800">
+                    {item.suggestedReply}
+                  </p>
+                </details>
+              ) : null}
+            </div>
+          ) : (
+            <p className="mt-1.5 text-[13px] leading-relaxed text-ink-500 italic">
+              Not read yet. Once it has been, the themes and tone appear here.
+            </p>
+          )}
+        </div>
+      </div>
     </li>
+  );
+}
+
+/**
+ * The five ratings as one-tap filters. An owner asking "what did the unhappy
+ * people say?" should not have to operate a form to find out.
+ */
+export function RatingStrip({
+  base,
+  ratings,
+  active,
+}: {
+  base: string;
+  ratings: Array<{ stars: number; count: number }>;
+  active: number | null;
+}) {
+  return (
+    <nav aria-label="By rating" className="mb-5 flex flex-wrap items-center gap-1.5">
+      <Link
+        href={base}
+        aria-current={active === null ? 'page' : undefined}
+        className={clsx(
+          'rounded-full border px-3 py-1 text-[13px] transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
+          active === null
+            ? 'border-ink-900 bg-ink-900 text-white'
+            : 'border-ink-300 text-ink-700 hover:border-ink-900 hover:text-ink-900',
+        )}
+      >
+        All
+      </Link>
+      {[...ratings]
+        .sort((a, b) => b.stars - a.stars)
+        .map((r) => (
+        <Link
+          key={r.stars}
+          href={`${base}?stars=${r.stars}`}
+          aria-current={active === r.stars ? 'page' : undefined}
+          aria-label={`${r.stars} star${r.stars === 1 ? '' : 's'}, ${r.count} ${r.count === 1 ? 'piece' : 'pieces'} of feedback`}
+          className={clsx(
+            'rounded-full border px-3 py-1 text-[13px] tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
+            active === r.stars
+              ? 'border-ink-900 bg-ink-900 text-white'
+              : r.count === 0
+                ? 'border-ink-200 text-ink-400'
+                : 'border-ink-300 text-ink-700 hover:border-ink-900 hover:text-ink-900',
+          )}
+        >
+          {r.stars}★ <span className={active === r.stars ? 'text-ink-300' : 'text-ink-400'}>{r.count}</span>
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+/**
+ * Check-in, This week and This month are three windows on one question, so
+ * they are one control rather than three tabs.
+ */
+export function PeriodSwitch({
+  basePath,
+  current,
+}: {
+  basePath: string;
+  current: 'checkin' | 'pulse' | 'review';
+}) {
+  const options = [
+    { slug: 'checkin', label: 'Since last check-in' },
+    { slug: 'pulse', label: 'This week' },
+    { slug: 'review', label: 'This month' },
+  ] as const;
+  return (
+    <nav aria-label="Period" className="mb-8 -mt-3 flex flex-wrap gap-1.5">
+      {options.map((o) => (
+        <Link
+          key={o.slug}
+          href={`${basePath}/${o.slug}`}
+          aria-current={current === o.slug ? 'page' : undefined}
+          className={clsx(
+            'rounded-full border px-3 py-1 text-[13px] transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
+            current === o.slug
+              ? 'border-ink-900 bg-ink-900 text-white'
+              : 'border-ink-300 text-ink-700 hover:border-ink-900 hover:text-ink-900',
+          )}
+        >
+          {o.label}
+        </Link>
+      ))}
+    </nav>
   );
 }

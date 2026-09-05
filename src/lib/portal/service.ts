@@ -165,7 +165,8 @@ export async function getReviewsView(
     getAnalysisCoverage(db, client.id),
     // Cumulative: "show more" grows the list rather than replacing it, which
     // is how somebody actually reads evidence.
-    listClientFeedback(db, client.id, { ...listFilters, limit: REVIEWS_PAGE_SIZE * page }),
+    // The pack goes along so each row's tapped ratings come back as labels.
+    listClientFeedback(db, client.id, { ...listFilters, limit: REVIEWS_PAGE_SIZE * page }, pack),
     countClientFeedback(db, client.id, listFilters),
     loadIntelligence(db, client, options.now ?? new Date()),
     // The same definition the filter uses, so the number and the list agree.

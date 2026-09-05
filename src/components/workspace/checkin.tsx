@@ -7,6 +7,7 @@ import {
   Limits,
   OutcomeRow,
   PageIntro,
+  PeriodSwitch,
   Quiet,
   Section,
   ThemeRows,
@@ -60,6 +61,7 @@ export async function PortalCheckin({
   return (
     <>
       <PageIntro eyebrow="Check-in" title={view.title} description={view.periodNote} />
+      <PeriodSwitch basePath={basePath} current="checkin" />
 
       <div className="mb-10">
         <Callout tone={view.worse.length > 0 || view.returning.length > 0 ? 'warn' : moved ? 'good' : 'neutral'}>

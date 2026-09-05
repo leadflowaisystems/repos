@@ -1,4 +1,4 @@
-import { Section, Quiet } from '@/components/portal/portal-ui';
+import { PageIntro, PeriodSwitch, Quiet, Section } from '@/components/portal/portal-ui';
 import type { PeriodReport, PeriodTheme } from '@/lib/reporting/service';
 
 /**
@@ -58,22 +58,27 @@ function ThemeList({ themes }: { themes: PeriodTheme[] }) {
   );
 }
 
-export function PeriodReportView({ report }: { report: PeriodReport }) {
+export function PeriodReportView({
+  report,
+  basePath,
+}: {
+  report: PeriodReport;
+  /** Where this door lives, so the period switch stays inside it. */
+  basePath: string;
+}) {
   const isWeek = report.kind === 'WEEK';
   const title = isWeek ? 'This week' : 'This month';
 
   return (
     <main>
-      <p className="text-[12px] font-semibold tracking-[0.14em] text-ink-500 uppercase">
-        {report.businessName}
-      </p>
-      <h1 className="mt-3 text-[26px] leading-[1.15] font-semibold tracking-tight text-ink-900">
-        {title}
-      </h1>
-      <p className="mt-1 text-[13px] text-ink-500">
-        {dateLabel(report.window.from)} – {dateLabel(report.window.to)}, compared with the{' '}
-        {report.window.days} days before
-      </p>
+      {/* The header above already names the business; this page reads as one
+          of the check-in family, with the same intro the others use. */}
+      <PageIntro
+        eyebrow="Check-in"
+        title={title}
+        description={`${dateLabel(report.window.from)} – ${dateLabel(report.window.to)}, compared with the ${report.window.days} days before`}
+      />
+      <PeriodSwitch basePath={basePath} current={isWeek ? 'pulse' : 'review'} />
 
       <p className="mt-6 text-[17px] leading-relaxed font-medium text-ink-900">
         {report.headline}

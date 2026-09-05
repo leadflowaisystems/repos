@@ -11,7 +11,13 @@ import {
   Section,
   ThemeRows,
 } from '@/components/portal/portal-ui';
-import { Answer, NeedsYouItem, SinceThen, WatchingList } from '@/components/portal/responsibility';
+import {
+  Answer,
+  NeedsYouItem,
+  SinceThen,
+  StrengthsList,
+  WatchingList,
+} from '@/components/portal/responsibility';
 
 /**
  * HOME — what should I know, and do I need to do anything? (M12 + M15)
@@ -56,6 +62,13 @@ export async function PortalHome({
   const changedElsewhere = view.changed.filter((s) => !placed.has(s.themeKey));
   const nothingYet = r.needsYou.length === 0 && r.watching.length === 0;
 
+  // The engine files a strength under "watching" — it is carrying it. On the
+  // page, a thing going well and a thing being watched for trouble are not
+  // the same news, and an owner should not have to read the chip to tell them
+  // apart. Same items, same order; only the heading differs.
+  const strengths = r.watching.filter((i) => i.state === 'KEEP_DOING');
+  const watching = r.watching.filter((i) => i.state !== 'KEEP_DOING');
+
   return (
     <>
       <Picture mood={view.mood} summary={view.summary} basis={view.basis} />
@@ -79,14 +92,20 @@ export async function PortalHome({
         </Section>
       ) : null}
 
-      {r.watching.length > 0 ? (
-        <Section eyebrow="RepOS is watching for you">
-          <WatchingList items={r.watching} basePath={basePath} />
+      {strengths.length > 0 ? (
+        <Section eyebrow="Going well" note="Customer strengths worth protecting">
+          <StrengthsList items={strengths} basePath={basePath} />
+        </Section>
+      ) : null}
+
+      {watching.length > 0 ? (
+        <Section eyebrow="RepOS is watching">
+          <WatchingList items={watching} basePath={basePath} />
         </Section>
       ) : null}
 
       {r.did.length > 0 || view.basedOn > 0 ? (
-        <Section eyebrow={r.sinceLabel} note="What RepOS did">
+        <Section eyebrow={r.sinceLabel} note="Your progress">
           <SinceThen r={r} />
         </Section>
       ) : null}
@@ -116,8 +135,19 @@ export async function PortalHome({
       {nothingYet && view.basedOn > 0 ? (
         <Section eyebrow="What customers are telling you">
           <Quiet>
-            Nothing has been said often enough yet for us to call it a pattern. We name something
-            once at least three customers have raised it — until then we would be guessing.
+            Nothing meaningful to compare yet. RepOS names something once at least three customers
+            have raised it — until then it would be guessing. As more feedback arrives, this page
+            will say whether anything is becoming a pattern.
+          </Quiet>
+        </Section>
+      ) : null}
+
+      {view.basedOn === 0 ? (
+        <Section eyebrow="What customers are telling you">
+          <Quiet>
+            Your first customer signals will appear here. RepOS is ready — once feedback starts
+            arriving through your QR code, this page will say what matters and whether anything
+            needs you.
           </Quiet>
         </Section>
       ) : null}

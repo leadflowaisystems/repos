@@ -32,5 +32,5 @@ export default async function WEEKPage({
   const report = await getWeeklyPulse(prisma, clientId);
   if (!report) notFound();
 
-  return <PeriodReportView report={report} />;
+  return <PeriodReportView report={report} basePath={`/workspace/${clientId}`} />;
 }

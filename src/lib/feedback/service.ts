@@ -633,6 +633,13 @@ export async function listClientFeedback(
   db: PrismaClient,
   clientId: string,
   filters: FeedbackFilters = {},
+  /**
+   * The client's pack, when the caller already holds it. With it, each row's
+   * `answers` carries the tapped ratings and specifics as labels; without it
+   * they read as empty — which is how the owner's Reviews page shipped with
+   * every dimension a customer rated invisible. No extra query either way.
+   */
+  pack?: Pack,
 ): Promise<FeedbackRow[]> {
   const rows = await db.reviewItem.findMany({
     where: feedbackWhere(clientId, filters),
@@ -641,7 +648,7 @@ export async function listClientFeedback(
     ...(filters.offset ? { skip: filters.offset } : {}),
   });
 
-  return rows.map((row) => toRow(row));
+  return rows.map((row) => toRow(row, pack));
 }
 
 /**

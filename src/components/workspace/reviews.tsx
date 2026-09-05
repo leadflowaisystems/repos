@@ -7,6 +7,7 @@ import {
   PageIntro,
   Quiet,
   RatingBars,
+  RatingStrip,
   ReviewRow,
   Section,
   SentimentBar,
@@ -92,7 +93,7 @@ export async function PortalReviews({
         title="What your customers actually wrote"
         description={
           view.total === 0
-            ? 'No feedback has been collected yet.'
+            ? 'Your first customer signals will appear here. RepOS is ready.'
             : `${view.total} pieces of feedback collected · ${view.analysed} read${
                 view.averageRating !== null
                   ? ` · ${view.averageRating.toFixed(1)}★ average of the ratings attached to them`
@@ -100,6 +101,10 @@ export async function PortalReviews({
               }`
         }
       />
+
+      {view.total > 0 ? (
+        <RatingStrip base={base} ratings={view.ratings} active={view.filters.stars} />
+      ) : null}
 
       {view.found.length > 0 ? (
         <Section eyebrow="What RepOS found in them">
@@ -217,7 +222,11 @@ export async function PortalReviews({
       ) : null}
 
       {view.total === 0 ? (
-        <Quiet>Once feedback has been collected and read, every comment will appear here with its tone and themes attached.</Quiet>
+        <Quiet>
+          Once customers start scanning your QR code, each piece of feedback appears here exactly
+          as they gave it — the rating, what they tapped, and their words — with what RepOS made
+          of it alongside.
+        </Quiet>
       ) : (
         <>
           <p className="text-[14px] font-medium text-ink-900">

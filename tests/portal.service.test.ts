@@ -204,7 +204,9 @@ describe('operator-only material never reaches the portal', () => {
     expect(Object.keys(item ?? {}).sort()).toEqual([
       'at',
       'classLabel',
+      'gave',
       'id',
+      'read',
       'replyState',
       'sentiment',
       'sentimentLabel',

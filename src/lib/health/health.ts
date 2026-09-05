@@ -764,7 +764,7 @@ export function computePulse(input: HealthInput): Pulse {
   if (!currentSnapshot) {
     return {
       available: false,
-      reason: 'No snapshots yet. The Pulse compares one saved snapshot against the one before it.',
+      reason: 'No check-in recorded yet. Once two are on record, RepOS can say which way things are moving.',
       direction: 'NONE',
       directionLabel: TREND_LABELS.NONE,
       current: null,

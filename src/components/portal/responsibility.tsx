@@ -176,10 +176,18 @@ export function NeedsYouItem({
   );
 }
 
-/** A compact row for what RepOS is carrying: watching, protecting, waiting. */
+/**
+ * A compact row for what RepOS is carrying.
+ *
+ * Three things an owner needs to be able to stop thinking about a topic:
+ * WHAT it is, WHY it is worth carrying at all, and WHEN RepOS will say
+ * something. Each is labelled, so the promise is explicit — "I don't have to
+ * remember this; RepOS will" is only true if the owner can see the condition
+ * that brings it back.
+ */
 function WatchingRow({ item, basePath }: { item: ResponsibilityItem; basePath: string }) {
   return (
-    <li className="py-3">
+    <li className="py-3.5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <StateChip item={item} />
         {item.evidence ? (
@@ -189,12 +197,28 @@ function WatchingRow({ item, basePath }: { item: ResponsibilityItem; basePath: s
         ) : null}
       </div>
       <p className="mt-1 text-[15px] leading-snug font-semibold text-ink-900">{item.headline}</p>
-      <p className="mt-0.5 text-[12px] leading-relaxed text-ink-500">{item.watching}</p>
-      {item.contextUsed.length > 0 ? (
-        <p className="mt-0.5 text-[12px] leading-relaxed text-ink-600 italic">{item.contextUsed[0]}</p>
-      ) : null}
+      <dl className="mt-1.5 space-y-1">
+        <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-[5.5rem_1fr]">
+          <dt className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">Why</dt>
+          <dd className="text-[13px] leading-relaxed text-ink-700">{item.whyItMatters}</dd>
+        </div>
+        <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-[5.5rem_1fr]">
+          <dt className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">
+            We&rsquo;ll flag it
+          </dt>
+          <dd className="text-[13px] leading-relaxed text-ink-700">{item.watching}</dd>
+        </div>
+        {item.contextUsed.length > 0 ? (
+          <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-[5.5rem_1fr]">
+            <dt className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">
+              You told us
+            </dt>
+            <dd className="text-[13px] leading-relaxed text-ink-700 italic">{item.contextUsed[0]}</dd>
+          </div>
+        ) : null}
+      </dl>
       {item.themeKey ? (
-        <div className="mt-1.5">
+        <div className="mt-2">
           <EvidenceLink
             basePath={basePath}
             themeKey={item.themeKey}
@@ -204,6 +228,45 @@ function WatchingRow({ item, basePath }: { item: ResponsibilityItem; basePath: s
         </div>
       ) : null}
     </li>
+  );
+}
+
+/**
+ * A strength, with the proof. Not a badge and not a score: the customers'
+ * count, RepOS's reading of why it matters, and one tap to the words.
+ */
+function StrengthRow({ item, basePath }: { item: ResponsibilityItem; basePath: string }) {
+  return (
+    <li className="py-3.5">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <StateChip item={item} />
+        {item.evidence ? (
+          <span className="text-[12px] text-ink-500 tabular-nums">
+            {item.evidence.count} of {item.evidence.outOf}
+          </span>
+        ) : null}
+      </div>
+      <p className="mt-1 text-[15px] leading-snug font-semibold text-ink-900">{item.headline}</p>
+      {item.evidence ? (
+        <p className="mt-0.5 text-[12px] leading-relaxed text-ink-500">{item.evidence.line}</p>
+      ) : null}
+      <p className="mt-1 text-[13px] leading-relaxed text-ink-700">{item.recommendedNextStep}</p>
+      {item.themeKey ? (
+        <div className="mt-1.5">
+          <EvidenceLink basePath={basePath} themeKey={item.themeKey} count={item.evidence?.count} />
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
+export function StrengthsList({ items, basePath }: { items: ResponsibilityItem[]; basePath: string }) {
+  return (
+    <ul className="divide-y divide-ink-200 border-y border-ink-200">
+      {items.map((item) => (
+        <StrengthRow key={item.id} item={item} basePath={basePath} />
+      ))}
+    </ul>
   );
 }
 

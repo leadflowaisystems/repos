@@ -219,6 +219,20 @@ export type ReviewItem = {
   stars: number | null;
   at: Date | null;
   sourceLabel: string;
+  /**
+   * Exactly what the customer tapped, as the pack words it today (M19), kept
+   * apart from everything RepOS derived so the two can never be confused on
+   * screen. Empty for a pasted review and for anything stored before M19.
+   */
+  gave: {
+    dimensions: Array<{ label: string; rating: number }>;
+    selected: string[];
+  };
+  /**
+   * Whether RepOS has read this yet. Without it, "no theme" and "not looked
+   * at" would render the same, and only one of them is true.
+   */
+  read: boolean;
   sentiment: string;
   sentimentLabel: string;
   /** Null when the reply engine has not sorted it. */
@@ -405,6 +419,11 @@ export function buildReviewsView(input: {
         stars: row.stars,
         at: row.reviewDate,
         sourceLabel: row.sourceLabel,
+        read: row.analysed,
+        gave: {
+          dimensions: row.answers.map((a) => ({ label: a.label, rating: a.rating })),
+          selected: row.answers.flatMap((a) => a.signals),
+        },
         sentiment: row.sentiment,
         sentimentLabel: sentimentLabelOf(row.sentiment),
         classLabel:

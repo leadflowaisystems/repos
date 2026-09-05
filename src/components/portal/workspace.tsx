@@ -25,14 +25,21 @@ import clsx from 'clsx';
  */
 const SECTIONS = [
   { slug: '', label: 'Home', extra: false },
-  { slug: 'pulse', label: 'This week', extra: true },
-  { slug: 'review', label: 'This month', extra: true },
   { slug: 'analysis', label: 'Customers', extra: false },
-  { slug: 'improvements', label: 'Improvements', extra: false },
   { slug: 'reviews', label: 'Reviews', extra: false },
+  { slug: 'improvements', label: 'Improvements', extra: false },
   { slug: 'checkin', label: 'Check-in', extra: false },
   { slug: 'team', label: 'Team', extra: true },
 ] as const;
+
+/**
+ * Six tabs, not eight. The weekly Pulse and the monthly Review are still
+ * there — same routes, same reports — but they are two windows on the same
+ * question Check-in answers ("what changed?"), so they live as a period
+ * switch at the top of that page rather than as two more tabs an owner has to
+ * scroll past on a phone. Landing on either keeps Check-in highlighted.
+ */
+const CHECKIN_FAMILY = new Set(['checkin', 'pulse', 'review']);
 
 export function WorkspaceHeader({
   basePath,
@@ -85,7 +92,8 @@ export function WorkspaceHeader({
       >
         <ul className="flex gap-1">
           {SECTIONS.filter((s) => showExtras || !s.extra).map((s) => {
-            const active = currentSlug === s.slug;
+            const active =
+              s.slug === 'checkin' ? CHECKIN_FAMILY.has(currentSlug) : currentSlug === s.slug;
             return (
               <li key={s.slug}>
                 <Link
