@@ -129,6 +129,34 @@ describe('the command centre page itself', () => {
   });
 });
 
+describe('the client tab bar', () => {
+  const source = read('components', 'client-tabs.tsx');
+  const tags = linkTags(code(source));
+
+  // Rendered by the client layout, so it is on screen for the whole time an
+  // operator is inside a business — and every destination is a per-client
+  // dynamic route. Left on default prefetch it asks the server to render every
+  // OTHER tab as soon as one is opened, which is why switching tabs measured
+  // slower in production than opening the client in the first place.
+  it('still has the eight tabs this test was written for', () => {
+    expect(tags).toHaveLength(1);
+    expect(source).toContain("label: 'Overview'");
+    expect(source).toContain("label: 'Profile'");
+    expect((source.match(/label: '/g) ?? []).length).toBe(8);
+  });
+
+  it('does not prefetch them', () => {
+    for (const tag of tags) {
+      expect(tag.replace(/\s+/g, ' '), tag.replace(/\s+/g, ' ')).toContain('prefetch={false}');
+    }
+  });
+
+  it('says why, so the next person does not undo it', () => {
+    expect(source.toLowerCase()).toContain('prefetch');
+    expect(source).toMatch(/per-client dynamic route/i);
+  });
+});
+
 describe('the client list, where this was first measured', () => {
   const source = read('app', '(app)', 'clients', 'page.tsx');
 

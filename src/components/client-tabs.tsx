@@ -31,6 +31,20 @@ export function ClientTabs({ clientId }: { clientId: string }) {
           <Link
             key={tab.href}
             href={tab.href}
+            // All eight destinations are per-client dynamic routes, and this
+            // nav is rendered by the client layout — so it is on screen the
+            // whole time an operator is inside a business. With Next's default
+            // prefetch that means landing on any tab immediately asks the
+            // server to render up to eight more, each one paying the full
+            // client-detail cost against a database on another continent, and
+            // the tab the operator actually clicked then queues behind them.
+            // Measured in production: ~7s to open a client, 12-15s to switch
+            // tabs — the switch being SLOWER than the first open is the
+            // signature of the speculative work, not of the page itself.
+            //
+            // Same fix and same reasoning as command-card.tsx. Navigation is
+            // unchanged; loading.tsx still draws the frame on click.
+            prefetch={false}
             className={clsx(
               'shrink-0 rounded-t-lg border-b-2 px-3 py-2 text-[13px] font-medium transition-colors',
               active

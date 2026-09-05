@@ -33,20 +33,46 @@ const globalForPublic = globalThis as unknown as { publicPrisma: PrismaClient | 
 /**
  * Which clients speak through the public boundary.
  *
- * A WeakSet rather than a flag on the client, or a guess made by reading the
- * connection string: the answer is decided once, here, where the client is
- * built, and cannot be inferred wrongly later by code that only has a handle.
+ * THE MARK TRAVELS ON THE CLIENT, AND IT HAS TO.
+ *
+ * This was a module-local `WeakSet`, which is correct in a single module
+ * instance and wrong the moment there are two. Next bundles this file into
+ * more than one server chunk — the page and the server action are separate —
+ * and the client itself is shared between them through `globalThis`. So one
+ * chunk built the client and recorded it in ITS set, published it globally,
+ * and the other chunk then received a handle its own set had never seen.
+ * `isPublicClient` answered false, `readGateway` took the ordinary Prisma
+ * branch, and `repos_public` — which holds no table privileges, exactly as
+ * intended — refused it with `42501 permission denied for table
+ * FeedbackGateway`. The customer saw "Something went wrong."
+ *
+ * `Symbol.for` resolves through the runtime-wide symbol registry, so every
+ * copy of this module looks up the same symbol, and the property lives on the
+ * client object itself. A handle therefore carries its own answer wherever it
+ * is passed, across chunk boundaries and through `globalThis` alike.
+ *
+ * Still not a guess made by reading the connection string: the answer is
+ * written once, here, where the client is built.
  */
-const publicClients = new WeakSet<object>();
+const PUBLIC_CLIENT_MARK = Symbol.for('repos.db-public.privilegeless-client');
 
 export function markPublicClient<T extends object>(client: T): T {
-  publicClients.add(client);
+  Object.defineProperty(client, PUBLIC_CLIENT_MARK, {
+    value: true,
+    enumerable: false,
+    writable: false,
+    configurable: false,
+  });
   return client;
 }
 
 /** True when this handle reaches the database as the privilege-less role. */
 export function isPublicClient(client: unknown): boolean {
-  return typeof client === 'object' && client !== null && publicClients.has(client);
+  return (
+    typeof client === 'object' &&
+    client !== null &&
+    (client as Record<symbol, unknown>)[PUBLIC_CLIENT_MARK] === true
+  );
 }
 
 export const PUBLIC_DATABASE_URL_VAR = 'PUBLIC_DATABASE_URL';
