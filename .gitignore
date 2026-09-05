@@ -81,3 +81,6 @@ data/.test/
 .vercel/
 supabase/.temp/
 supabase/.branches/
+
+.vercel
+.env*.local
