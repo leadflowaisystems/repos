@@ -63,12 +63,9 @@ function Row({ item, clientId }: { item: ResponsibilityItem; clientId: string })
 export function ResponsibilityPanel({
   r,
   clientId,
-  portalToken,
 }: {
   r: Responsibility;
   clientId: string;
-  /** The owner's own secret address for this workspace. Never the client id. */
-  portalToken: string;
 }) {
   const carried = r.watching.length;
   return (
@@ -79,7 +76,7 @@ export function ResponsibilityPanel({
         action={
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={TONE[r.state]}>{r.answer}</Badge>
-            <LinkButton href={`/portal/${portalToken}`}>Open client view</LinkButton>
+            <LinkButton href={`/workspace/${clientId}`}>Open client view</LinkButton>
           </div>
         }
       />

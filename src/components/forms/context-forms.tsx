@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { SubmitButton } from '@/components/forms/submit-button';
 import { Badge, Button, Card, CardBody, CardHeader } from '@/components/ui';
 import {
   ActionForm,
@@ -75,9 +76,9 @@ export function OwnerQuestionCard({
               <input type="hidden" name="clientId" value={clientId} />
               <input type="hidden" name="themeKey" value={question.themeKey} />
               <input type="hidden" name="answer" value={option} />
-              <Button type="submit" variant="secondary">
+              <SubmitButton variant="secondary">
                 {option}
-              </Button>
+              </SubmitButton>
             </form>
           ))}
         </div>
@@ -307,18 +308,18 @@ function ContextRowItem({
                 <form action={retireContextAction}>
                   <input type="hidden" name="clientId" value={clientId} />
                   <input type="hidden" name="contextId" value={row.id} />
-                  <Button type="submit" variant="secondary">
+                  <SubmitButton variant="secondary">
                     No longer true
-                  </Button>
+                  </SubmitButton>
                 </form>
               </>
             ) : (
               <form action={restoreContextAction}>
                 <input type="hidden" name="clientId" value={clientId} />
                 <input type="hidden" name="contextId" value={row.id} />
-                <Button type="submit" variant="secondary">
+                <SubmitButton variant="secondary">
                   True again
-                </Button>
+                </SubmitButton>
               </form>
             )}
             <form
@@ -329,9 +330,9 @@ function ContextRowItem({
             >
               <input type="hidden" name="clientId" value={clientId} />
               <input type="hidden" name="contextId" value={row.id} />
-              <Button type="submit" variant="danger">
+              <SubmitButton variant="danger">
                 Remove
-              </Button>
+              </SubmitButton>
             </form>
           </div>
         ) : null}

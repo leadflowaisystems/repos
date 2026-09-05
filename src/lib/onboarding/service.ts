@@ -1,8 +1,9 @@
 import type { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { ensureGateway } from '@/lib/gateway/service';
+import { isMissingDbFunction, withRlsContext } from '@/lib/db';
 import { findPack, packOptions } from '@/lib/packs';
-import { ROLE_OWNER } from '@/lib/tenancy/service';
+import { createClientRow, ROLE_OWNER } from '@/lib/tenancy/service';
 
 /**
  * SELF-SERVICE ONBOARDING (M20).
@@ -106,7 +107,87 @@ export async function completeOnboarding(
 
   const now = options.now ?? new Date();
 
-  const clientId = await db.$transaction(async (tx) => {
+  let clientId: string;
+  try {
+    // withRlsContext, not db.$transaction: a raw transaction client does not
+    // pass through the identity extension, so its queries would arrive with no
+    // app.user_id and the policies would refuse every one of them.
+    clientId = await withRlsContext(db, async (tx) => {
+      // The business and the owner's membership together, because neither can
+      // authorise the other into existence: `client_write` wants an owner that
+      // does not exist yet, and `membership_write` wants a business that does
+      // not either. `app.create_client` is the one place that knot is untied,
+      // and it binds the business to whoever the transaction says is asking —
+      // never to a value this function was handed.
+      const id = await createClientRow(
+        tx,
+        { businessName: input.businessName, vertical: input.vertical, asOwner: true },
+        now,
+      );
+
+      // Everything else is an ordinary write now: the row exists and the caller
+      // owns it, so the same policies that refused the insert allow this.
+      // `status` and `subscriptionStatus` are absent on purpose — the function
+      // set them, and neither is a customer's to choose.
+      await tx.client.update({
+        where: { id },
+        data: {
+          areaLabel: input.areaLabel || null,
+          ownerName: input.ownerName || null,
+          ownerPhone: input.ownerPhone || null,
+          onboardingDate: now,
+          setupCompletedAt: now,
+        },
+      });
+
+      // One line, stored the same way every other piece of owner context is, so
+      // the intelligence engine reads it through the path it already has rather
+      // than a special onboarding field nothing else knows about.
+      if (input.context.length > 0) {
+        await tx.businessContext.create({
+          data: {
+            clientId: id,
+            kind: 'PRIORITY',
+            provenance: 'OWNER_TOLD_US',
+            text: input.context,
+            recordedAt: now,
+          },
+        });
+      }
+
+      return id;
+    });
+  } catch (error) {
+    if (!isMissingDbFunction(error)) throw error;
+    clientId = await createOwnedClientDirect(db, user.id, input, now);
+  }
+
+  // The M19 gateway, unchanged: same service, same token shape, same canonical
+  // URL every printed and on-screen surface already resolves to.
+  const gateway = await ensureGateway(db, clientId);
+  if (!gateway) return err('The business was created but its feedback page was not.');
+
+  return {
+    ok: true,
+    data: { clientId, vertical: input.vertical, publicToken: gateway.publicToken },
+  };
+}
+
+/**
+ * The same creation without the definer function.
+ *
+ * Only reachable where `rls.sql` has not been applied — the per-file schemas
+ * the test suite creates, where the connection owns its own tables and no
+ * policy stands between it and a new row. Kept behaviourally identical to the
+ * path above so the two cannot drift into meaning different things.
+ */
+async function createOwnedClientDirect(
+  db: PrismaClient,
+  userId: string,
+  input: z.output<typeof onboardingSchema>,
+  now: Date,
+): Promise<string> {
+  return withRlsContext(db, async (tx) => {
     const client = await tx.client.create({
       data: {
         businessName: input.businessName,
@@ -123,17 +204,9 @@ export async function completeOnboarding(
     });
 
     await tx.membership.create({
-      data: {
-        userId: user.id,
-        clientId: client.id,
-        role: ROLE_OWNER,
-        status: 'ACTIVE',
-      },
+      data: { userId, clientId: client.id, role: ROLE_OWNER, status: 'ACTIVE' },
     });
 
-    // One line, stored the same way every other piece of owner context is, so
-    // the intelligence engine reads it through the path it already has rather
-    // than a special onboarding field nothing else knows about.
     if (input.context.length > 0) {
       await tx.businessContext.create({
         data: {
@@ -148,16 +221,6 @@ export async function completeOnboarding(
 
     return client.id;
   });
-
-  // The M19 gateway, unchanged: same service, same token shape, same canonical
-  // URL every printed and on-screen surface already resolves to.
-  const gateway = await ensureGateway(db, clientId);
-  if (!gateway) return err('The business was created but its feedback page was not.');
-
-  return {
-    ok: true,
-    data: { clientId, vertical: input.vertical, publicToken: gateway.publicToken },
-  };
 }
 
 /**

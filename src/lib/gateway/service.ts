@@ -1,7 +1,10 @@
 import type { PrismaClient } from '@prisma/client';
 import { getPackOrFallback, type PackDimension } from '@/lib/packs';
 import { checkReviewUrl } from '@/lib/kit/content';
-import { ingestFeedback } from '@/lib/feedback/ingest';
+import { ingestFeedback, prepareIngest } from '@/lib/feedback/ingest';
+import { isPublicClient } from '@/lib/db-public';
+import { encodeDimensions, encodeSignals } from '@/lib/feedback/structured';
+import { readGateway, writeSubmissionAsPublic } from './store';
 import { parseStructured, ratedCount } from '@/lib/feedback/structured';
 import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
 import { buildGatewayCopy, publicReviewLabel, type GatewayCopy } from './copy';
@@ -337,23 +340,21 @@ export async function resolvePublicGateway(
 ): Promise<PublicGateway | null> {
   if (!isPublicToken(token)) return null;
 
-  const gateway = await db.feedbackGateway.findUnique({
-    where: { publicToken: token },
-    select: {
-      enabled: true,
-      publicReviewUrl: true,
-      client: { select: { id: true, businessName: true, vertical: true, archivedAt: true } },
-    },
-  });
-  if (!gateway || !gateway.enabled || gateway.client.archivedAt !== null) return null;
+  // One read, through whichever boundary this handle belongs to. An anonymous
+  // request resolves its token inside the database and never holds a privilege
+  // that could list a second gateway; an operator's request takes the ordinary
+  // RLS-bound path. Both answer null for a paused gateway or an archived
+  // business, so a customer cannot tell those apart from a wrong token.
+  const gateway = await readGateway(db, token);
+  if (!gateway) return null;
 
-  const pack = getPackOrFallback(gateway.client.vertical);
+  const pack = getPackOrFallback(gateway.vertical);
   const url = gateway.publicReviewUrl.trim() || null;
   return {
-    clientId: gateway.client.id,
+    clientId: gateway.clientId,
     token,
-    businessName: gateway.client.businessName,
-    copy: buildGatewayCopy(pack, gateway.client.businessName),
+    businessName: gateway.businessName,
+    copy: buildGatewayCopy(pack, gateway.businessName),
     publicReviewUrl: url,
     publicReviewLabel: url ? publicReviewLabel(url) : null,
     dimensions: pack.gateway?.dimensions ?? [],
@@ -475,20 +476,27 @@ export async function submitCustomerFeedback(
     return ok({ token: gateway.token, stored: false, itemId: null });
   }
 
-  const ingested = await ingestFeedback(
-    db,
-    gateway.clientId,
-    { text: hasWords ? text : '', stars, occurredAt: now, source: 'REP_OS_QR', structured },
-    {
-      now,
-      allowEmptyText: true,
-      dedupe: {
-        mode: 'WINDOW',
-        textWindowMs: TEXT_DUPLICATE_WINDOW_MS,
-        ratingOnlyWindowMs: RATING_DUPLICATE_WINDOW_MS,
-      },
-    },
-  );
+  const input = {
+    text: hasWords ? text : '',
+    stars,
+    occurredAt: now,
+    source: 'REP_OS_QR' as const,
+    structured,
+  };
+  const dedupe = {
+    mode: 'WINDOW' as const,
+    textWindowMs: TEXT_DUPLICATE_WINDOW_MS,
+    ratingOnlyWindowMs: RATING_DUPLICATE_WINDOW_MS,
+  };
+
+  // Both paths run the same preparation — the same redaction, the same
+  // fingerprint, the same refusal of an empty submission — and differ only in
+  // how the row reaches the database. The anonymous one goes through a
+  // function that resolves the business from the token again, on its own, and
+  // so is never told which client to write to.
+  const ingested = isPublicClient(db)
+    ? await ingestAsPublic(db, gateway.token, input, { now, dedupe })
+    : await ingestFeedback(db, gateway.clientId, input, { now, allowEmptyText: true, dedupe });
   if (!ingested.ok) return err(ingested.message, ingested.errors);
 
   return ok({
@@ -496,4 +504,39 @@ export async function submitCustomerFeedback(
     stored: !ingested.data.duplicate,
     itemId: ingested.data.duplicate ? null : ingested.data.id,
   });
+}
+
+/**
+ * The anonymous half of the fork: prepare exactly as always, then store
+ * through the privilege-less boundary.
+ */
+async function ingestAsPublic(
+  db: PrismaClient,
+  token: string,
+  input: Parameters<typeof prepareIngest>[0],
+  options: { now: Date; dedupe: { textWindowMs: number; ratingOnlyWindowMs: number } },
+): Promise<ServiceResult<{ id: string; duplicate: boolean }>> {
+  const prepared = prepareIngest(input, { now: options.now, allowEmptyText: true });
+  if (!prepared.ok) return err(prepared.message, prepared.errors);
+  const p = prepared.data;
+
+  const stored = await writeSubmissionAsPublic(db, token, {
+    text: p.text,
+    stars: input.stars,
+    reviewDate: input.occurredAt,
+    source: input.source,
+    fingerprint: p.fingerprint,
+    dimensionsJson: encodeDimensions(p.structured.dimensions),
+    signalsJson: encodeSignals(p.structured.signals),
+    redacted: p.redacted,
+    redactionsJson: JSON.stringify(p.redactions),
+    textWindowMs: options.dedupe.textWindowMs,
+    ratingOnlyWindowMs: options.dedupe.ratingOnlyWindowMs,
+    now: p.now,
+  });
+
+  // No rows means the token stopped resolving between the read and the write —
+  // the gateway was paused, or the business archived, mid-submission.
+  if (!stored) return err(NOT_ACTIVE_MESSAGE);
+  return ok(stored);
 }

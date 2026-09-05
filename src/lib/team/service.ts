@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { createHash, randomBytes } from 'node:crypto';
 import { ACTIVE, ROLE_OWNER, ROLE_STAFF } from '@/lib/tenancy/service';
+import { withRlsContext } from '@/lib/db';
 
 /**
  * TEAM MANAGEMENT (M20 Stage 3).
@@ -199,7 +200,8 @@ export async function acceptInvite(
   const user = await db.user.findUnique({ where: { id: userId }, select: { email: true } });
   if (!user || user.email.toLowerCase() !== invite.email.toLowerCase()) return bad;
 
-  await db.$transaction(async (tx) => {
+  // See onboarding: a raw transaction client carries no identity of its own.
+  await withRlsContext(db, async (tx) => {
     await tx.membership.upsert({
       where: { userId_clientId: { userId, clientId: invite.clientId } },
       create: { userId, clientId: invite.clientId, role: invite.role, status: ACTIVE },
@@ -209,6 +211,49 @@ export async function acceptInvite(
   });
 
   return { ok: true, data: { clientId: invite.clientId, role: invite.role } };
+}
+
+/**
+ * Accepting an invitation, through the one door Row Level Security leaves open.
+ *
+ * The policies make this impossible to do directly, and they are right to:
+ * `invitation_read` asks whether the caller already belongs to the business,
+ * and `membership_write` asks the same, while the entire purpose of accepting
+ * is that they do not yet. An invitee could never read the invitation that
+ * exists to admit them.
+ *
+ * `app.accept_invitation` resolves that in one place, under the owner's rights,
+ * and refuses unless every condition this module already required is met -- the
+ * token unknown, spent, revoked or expired, or addressed to a different email,
+ * all answer the same way. It is handed the token's HASH, never the token.
+ *
+ * The direct path below it is not a weaker alternative; it is the same rules
+ * expressed in TypeScript, and it only ever runs where RLS is not binding the
+ * connection -- the test suite, and any install that has not applied the DDL.
+ * Once the policies apply, it returns nothing and the function is the only way
+ * through.
+ */
+export async function acceptInviteViaResolver(
+  db: PrismaClient,
+  token: string,
+  userId: string,
+  options: { now?: Date } = {},
+): Promise<ServiceResult<{ clientId: string; role: string }>> {
+  const now = options.now ?? new Date();
+  try {
+    const rows = await db.$queryRaw<{ client_id: string; member_role: string }[]>`
+      SELECT * FROM app.accept_invitation(
+        ${hashToken(token ?? '')}::text, ${userId}::text, ${now.toISOString()}::text)`;
+    const accepted = rows[0];
+    // One answer for a wrong, spent, revoked, expired or misaddressed token.
+    if (!accepted) return err('That invitation is no longer valid.');
+    return { ok: true, data: { clientId: accepted.client_id, role: accepted.member_role } };
+  } catch (error) {
+    // 42883 is "no such function" - the DDL is not applied here. Anything else
+    // is a real failure and must not be reinterpreted as "try the other way".
+    if (!String(error).includes('42883')) throw error;
+    return acceptInvite(db, token, userId, options);
+  }
 }
 
 export async function revokeInvite(

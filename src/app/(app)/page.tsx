@@ -177,6 +177,10 @@ export default async function CommandCentrePage() {
                       <Link
                         key={card.clientId}
                         href={`/clients/${card.clientId}`}
+                        // Same reason as command-card.tsx: one per calm client,
+                        // on the same screen as the cards, all pointing at the
+                        // most expensive route in the app.
+                        prefetch={false}
                         className="text-[13px] text-ink-700 underline-offset-2 hover:underline"
                       >
                         {card.businessName}

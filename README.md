@@ -29,6 +29,34 @@ Three people touch it, and only one of them signs in:
 - [COMPLIANCE.md](COMPLIANCE.md) — the hard rules and how each is enforced
 - [DEFERRED.md](DEFERRED.md) — what was deliberately left out
 
+## Where the data lives
+
+RepOS ran on a local SQLite file through M19. Since M20 it runs on
+**Supabase PostgreSQL**, with **Supabase Auth** as the only identity system.
+Four things are worth knowing before touching anything:
+
+**`prisma/schema.prisma` is the authoritative schema.** It is the only Prisma
+schema in the repository — 16 models — and it is what `prisma generate`, the
+test suite and the production database all follow. `prisma/m20/` holds the
+Row Level Security SQL and its adversarial test, plus a README explaining
+them; there is no second schema file there, deliberately. See
+[prisma/m20/README.md](prisma/m20/README.md).
+
+**Supabase is production.** `DATABASE_URL` is the transaction pooler
+(port 6543, `pgbouncer=true`) and `DIRECT_DATABASE_URL` is the session pooler
+(port 5432) that migrations and `scripts/bootstrap-admin.mjs` need. Both live
+in `.env.local`, which is gitignored and must stay that way.
+
+**`scripts/migrate-sqlite-to-postgres.mjs` is a one-off migration utility, not
+a startup or seed script.** It moved the pre-M20 SQLite rows into Supabase
+once. It is deliberately absent from `package.json` so no `npm run` can reach
+it, and it must never be wired into a deploy step.
+
+**`data/repos.db` — the original SQLite database — must remain untouched.** It
+is the canonical pre-migration record and the only copy of that state outside
+a backup. The migration script opens it `readOnly: true` at the driver level;
+nothing else should open it at all. It is gitignored and never committed.
+
 ## Requirements
 
 - Node 20.11+ (developed on Node 24)
@@ -161,7 +189,7 @@ the fastest way to lock RepOS if a laptop goes missing.
 Each client has one private address that opens that business's own view:
 
 ```
-https://repos.yourdomain.com/portal/8tyv6aaugn6artvk54ksx8
+https://repos.yourdomain.com/portal/<22-character-token>
 ```
 
 The last part is a random 110-bit token, not the client's id. It is issued the

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { SubmitButton } from '@/components/forms/submit-button';
 import { Button, Notice } from '@/components/ui';
 import {
   ActionForm,
@@ -163,9 +164,9 @@ export function KitInstalledToggle({
     <form action={setKitInstalledAction}>
       <input type="hidden" name="clientId" value={clientId} />
       <input type="hidden" name="installed" value={installed ? '' : 'on'} />
-      <Button type="submit" variant={installed ? 'ghost' : 'secondary'}>
+      <SubmitButton variant={installed ? 'ghost' : 'secondary'}>
         {installed ? 'Mark as not installed' : 'Mark as installed on site'}
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

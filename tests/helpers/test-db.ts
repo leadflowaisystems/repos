@@ -85,13 +85,22 @@ export function createTestDb(name: string): PrismaClient {
   // flag resets whatever database it is pointed at, and this suite should
   // never hold a tool capable of doing that. Dropping one scratch schema by
   // name can only ever affect this test file.
+  // The connection string goes in the environment, never in the argument list.
+  // Anything on a command line is readable by every other process on the
+  // machine for as long as the child runs, and Node builds a failed
+  // execFileSync's error message out of the arguments — so a single connection
+  // error would print the password into the test output and from there into
+  // any CI log. `--schema` makes Prisma read the datasource, which resolves
+  // DATABASE_URL from the environment below.
+  const schemaPath = join(ROOT, 'prisma', 'schema.prisma');
+
   execFileSync(
     process.execPath,
-    [prismaCli, 'db', 'execute', '--stdin', '--url', base],
+    [prismaCli, 'db', 'execute', '--stdin', '--schema', schemaPath],
     {
       cwd: ROOT,
       input: `DROP SCHEMA IF EXISTS "${schema}" CASCADE; CREATE SCHEMA "${schema}";`,
-      env: { ...process.env },
+      env: { ...process.env, DATABASE_URL: base, DIRECT_DATABASE_URL: base },
       stdio: ['pipe', 'pipe', 'pipe'],
     },
   );

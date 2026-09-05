@@ -85,15 +85,33 @@ function collapse(text: string): string {
     .trim();
 }
 
-export async function ingestFeedback(
-  db: PrismaClient,
-  clientId: string,
-  input: IngestInput,
-  options: IngestOptions,
-): Promise<IngestResult> {
-  const client = await db.client.findUnique({ where: { id: clientId }, select: { id: true } });
-  if (!client) return { ok: false, message: 'That client no longer exists.', errors: {} };
+/** What survives validation, redaction and fingerprinting, ready to be stored. */
+export type PreparedIngest = {
+  text: string;
+  fingerprint: string;
+  structured: Structured;
+  redacted: boolean;
+  redactions: string[];
+  now: Date;
+};
 
+/**
+ * Everything that happens to a submission BEFORE it touches the database.
+ *
+ * Checks the source and the rating, strips personal details out of the words,
+ * collapses whitespace, and derives the fingerprint that duplicate detection
+ * later compares. Pulled out on its own so the public gateway — which stores
+ * its row through a different, privilege-less database path — runs the exact
+ * same checks rather than a second copy of them that could drift.
+ *
+ * It reads no database and writes nothing.
+ */
+export function prepareIngest(
+  input: IngestInput,
+  options: Pick<IngestOptions, 'now' | 'allowEmptyText'>,
+):
+  | { ok: true; data: PreparedIngest }
+  | { ok: false; message: string; errors: Record<string, string> } {
   if (!INGEST_SOURCES.includes(input.source)) {
     return { ok: false, message: 'Unknown feedback source.', errors: { source: 'Unknown source.' } };
   }
@@ -126,7 +144,32 @@ export async function ingestFeedback(
     };
   }
 
-  const now = options.now ?? new Date();
+  return {
+    ok: true,
+    data: {
+      text,
+      fingerprint,
+      structured,
+      redacted: cleaned.redacted,
+      redactions: cleaned.removed,
+      now: options.now ?? new Date(),
+    },
+  };
+}
+
+export async function ingestFeedback(
+  db: PrismaClient,
+  clientId: string,
+  input: IngestInput,
+  options: IngestOptions,
+): Promise<IngestResult> {
+  const client = await db.client.findUnique({ where: { id: clientId }, select: { id: true } });
+  if (!client) return { ok: false, message: 'That client no longer exists.', errors: {} };
+
+  const prepared = prepareIngest(input, options);
+  if (!prepared.ok) return prepared;
+  const { text, fingerprint, structured, now } = prepared.data;
+  const cleaned = { redacted: prepared.data.redacted, removed: prepared.data.redactions };
 
   // --- Duplicate check --------------------------------------------------
   let earlier: { id: string } | null = null;

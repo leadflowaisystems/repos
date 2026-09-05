@@ -39,6 +39,7 @@ export function WorkspaceHeader({
   businessName,
   verticalLabel,
   showExtras = false,
+  signOut,
 }: {
   /** Where this door lives, so links stay inside it. */
   basePath: string;
@@ -46,6 +47,15 @@ export function WorkspaceHeader({
   verticalLabel: string;
   /** True in the authenticated workspace, false on the shared link. */
   showExtras?: boolean;
+  /**
+   * The sign-out control, passed in rather than imported.
+   *
+   * This header serves two doors. The authenticated workspace has a session to
+   * end; the shared-link portal has none, and offering to sign out of
+   * something nobody signed into would be a lie. So the control is a slot: the
+   * workspace fills it, the portal leaves it empty.
+   */
+  signOut?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const base = `${basePath}`;
@@ -61,9 +71,12 @@ export function WorkspaceHeader({
           </p>
           <p className="text-[12px] text-ink-500">{verticalLabel}</p>
         </div>
-        <p className="text-[11px] font-medium tracking-widest text-ink-400 uppercase">
-          Prepared by RepOS
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="text-[11px] font-medium tracking-widest text-ink-400 uppercase">
+            Prepared by RepOS
+          </p>
+          {signOut}
+        </div>
       </div>
 
       <nav

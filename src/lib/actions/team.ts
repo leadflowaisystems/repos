@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db';
 import { tenantGate } from '@/lib/auth/guard';
 import { currentActor } from '@/lib/auth/authorize';
 import { inviteMember, revokeInvite, setMembership } from '@/lib/team/service';
-import { acceptInvite } from '@/lib/team/service';
+import { acceptInviteViaResolver } from '@/lib/team/service';
 import { failure, str, success, type ActionState } from './shared';
 
 /**
@@ -88,7 +88,7 @@ export async function acceptInviteAction(
   const actor = await currentActor(prisma);
   if (!actor) return failure('Please sign in to accept this invitation.');
 
-  const result = await acceptInvite(prisma, str(form, 'token'), actor.userId);
+  const result = await acceptInviteViaResolver(prisma, str(form, 'token'), actor.userId);
   if (!result.ok) return failure(result.message, result.errors);
 
   revalidateTeam(result.data.clientId);

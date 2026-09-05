@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { SubmitButton } from '@/components/forms/submit-button';
 import { Button, Card, CardBody, CardHeader } from '@/components/ui';
 import {
   ActionForm,
@@ -205,9 +206,9 @@ export function DeleteMinuteButton({
       <input type="hidden" name="clientId" value={clientId} />
       <input type="hidden" name="minuteId" value={minuteId} />
       <span className="text-[12px] text-ink-600">Delete &ldquo;{title}&rdquo;?</span>
-      <Button type="submit" variant="danger" className="px-2 py-1 text-[12px]">
+      <SubmitButton variant="danger" className="px-2 py-1 text-[12px]">
         Yes, delete
-      </Button>
+      </SubmitButton>
       <Button
         type="button"
         variant="ghost"

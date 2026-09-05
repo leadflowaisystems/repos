@@ -27,10 +27,34 @@ data/.demo-manifest.json
 backups/
 
 # Secrets. Everything except the committed template.
+#
+# `.env*` rather than `.env.*`: the dotted form only matches when a literal dot
+# follows, so `.envrc`, `.env_local` and `.env~` would all have slipped through.
 .env
-.env.*
+.env*
 !.env.example
 .env.local.previous
+
+# Editor, merge and rebase artifacts.
+#
+# These matter more than they look. A conflicted merge, a `git stash pop` or a
+# `git apply --reject` writes a copy of the ORIGINAL file next to it — and for
+# any file whose committed version carries a credential, that copy carries the
+# credential too, into a path nothing was ignoring.
+*.orig
+*.rej
+*.bak
+*.save
+*.swp
+*~
+
+# Database dumps. `pg_dumpall --globals-only` writes every role's password
+# verifier; a dump left in the working tree is stageable like any other file.
+dump.sql
+globals.sql
+roles.sql
+pg_dumpall.out
+*.dump
 *.pem
 *.key
 secrets/

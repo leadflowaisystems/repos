@@ -1,11 +1,12 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { prisma } from '@/lib/db';
+import { currentUserId, prisma } from '@/lib/db';
 import { currentActor } from '@/lib/auth/authorize';
 import { supabaseConfig, supabaseServerClient } from '@/lib/auth/supabase';
 import { completeOnboarding, landingPathFor } from '@/lib/onboarding/service';
-import { loadActor, provisionUser } from '@/lib/tenancy/service';
+import { authRedirectUrl, callbackFor, safeNextPath } from '@/lib/auth/redirect';
+import { bumpSessionVersion, loadActor, provisionUser } from '@/lib/tenancy/service';
 import { failure, str, type ActionState } from './shared';
 
 /**
@@ -30,11 +31,20 @@ const SIGN_IN_FAILED = 'That email and password do not match.';
 const SIGN_UP_FAILED = 'That account could not be created.';
 const NOT_CONFIGURED = 'Sign-in is not configured on this installation yet.';
 
-/** Only same-site paths are followed, so this can never become an open redirect. */
+/**
+ * Only same-site paths are followed, so this can never become an open redirect.
+ *
+ * The same-site rule is `safeNextPath`, shared with the auth callback and the
+ * sign-in page — a prefix test is not enough, because a browser reads `/\host`
+ * and `/<tab>/host` as leaving the site. The extra rule here is not about
+ * safety: bouncing a successful sign-in back to the sign-in page is a loop, so
+ * those two destinations are refused whatever the path check says.
+ */
 function safeNext(raw: string): string {
-  if (!raw.startsWith('/') || raw.startsWith('//')) return '';
-  if (raw.startsWith('/login') || raw.startsWith('/signup')) return '';
-  return raw;
+  const path = safeNextPath(raw);
+  if (path === null) return '';
+  if (path.startsWith('/login') || path.startsWith('/signup')) return '';
+  return path;
 }
 
 function configured(): boolean {
@@ -54,7 +64,14 @@ export async function signUpAction(_prev: ActionState, form: FormData): Promise<
   }
 
   const supabase = await supabaseServerClient();
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  // Without this, Supabase falls back to the project's Site URL and the
+  // confirmation email points at whatever port that happens to be — which is
+  // exactly how a confirmed account ends up landing on a dead server.
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: await authRedirectUrl(callbackFor('/onboarding')) },
+  });
   if (error || !data.user) return failure(SIGN_UP_FAILED);
 
   // The RepOS user is created from the identity Supabase just verified, never
@@ -124,10 +141,16 @@ export async function requestPasswordResetAction(
   const email = str(form, 'email').trim().toLowerCase();
   if (email.length === 0) return sent;
 
-  const origin = str(form, 'origin');
+  // Deliberately NOT the origin the form posted: a value from the browser
+  // decides where a password-reset email points, which is the last place to
+  // trust one. The canonical address is resolved server-side instead.
+  //
+  // It points at the callback rather than straight at /reset-password because
+  // a recovery link carries a code, and the form cannot set a password without
+  // a session. That was the second half of the same bug.
   const supabase = await supabaseServerClient();
   await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: origin.startsWith('http') ? `${origin}/reset-password` : undefined,
+    redirectTo: await authRedirectUrl(callbackFor('/reset-password')),
   });
   return sent;
 }
@@ -151,14 +174,36 @@ export async function updatePasswordAction(
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return failure('That reset link is no longer valid. Ask for a new one.');
 
+  // ORDER MATTERS, AND IT IS THE OPPOSITE OF THE OBVIOUS ONE.
+  //
+  // Two systems have to move and only one of them can be rolled back. Supabase
+  // Auth owns the password and cannot join a Prisma transaction, so there is no
+  // honest way to make this atomic — the only choice left is which half fails
+  // first, and therefore which inconsistent state is reachable.
+  //
+  // Done password-first, the reachable failure is the unforgivable one: the
+  // password has really changed, the bump throws, and the person is told it did
+  // not work. They then cannot sign in with either password, and nothing in the
+  // product will tell them why. That is exactly what happened here — the bump
+  // wrote `sessionVersion`, which `repos_app` has no column privilege for, so
+  // under the real runtime role this failed EVERY time.
+  //
+  // Done bump-first, the reachable failure is that sessions are invalidated and
+  // the password is not. Signing out too eagerly costs a sign-in and corrects
+  // itself; the old password still works, and asking for a new link is a path
+  // the person can actually find. So the irreversible step goes last, after
+  // everything reversible has already succeeded.
+  const userId = await currentUserId();
+  if (userId) {
+    try {
+      await bumpSessionVersion(prisma, userId);
+    } catch {
+      return failure('That password could not be set.');
+    }
+  }
+
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return failure('That password could not be set.');
-
-  // Everything else that person had open stops working.
-  await prisma.user.updateMany({
-    where: { authProviderId: userData.user.id },
-    data: { sessionVersion: { increment: 1 } },
-  });
 
   redirect('/login');
 }

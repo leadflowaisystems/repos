@@ -4,6 +4,7 @@ import { SignInForm } from '@/components/forms/account-forms';
 import { currentActor } from '@/lib/auth/authorize';
 import { prisma } from '@/lib/db';
 import { landingPathFor } from '@/lib/onboarding/service';
+import { safeNextPath } from '@/lib/auth/redirect';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,12 +20,39 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const actor = await currentActor(prisma);
-  if (actor) redirect(landingPathFor(actor));
-
   const query = await searchParams;
   const raw = Array.isArray(query.next) ? query.next[0] : query.next;
-  const next = typeof raw === 'string' && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/';
+  // Empty, not '/', when nothing was requested. '/' is the operator console,
+  // and defaulting to it sent every business owner somewhere they may not go —
+  // the sign-in action treats an empty value as "you decide" and asks their
+  // memberships instead.
+  //
+  // The third copy of the same-site check used to live here as an inline prefix
+  // test, and it had the same two holes as the other two. It matters here even
+  // though this page does not redirect: whatever survives is rendered into the
+  // hidden `next` field and posted straight back to the sign-in action. The
+  // action re-checks it — this is not the only line of defence — but laundering
+  // an attacker's value through our own form is not something to leave standing.
+  const next = safeNextPath(raw) ?? '';
+
+  /**
+   * The circuit breaker.
+   *
+   * `next` is set by exactly one thing: middleware turning away a request it
+   * would not authenticate. So its presence means middleware has already
+   * decided this caller has no usable session. If the check below then
+   * disagreed and sent them onward, middleware would turn them straight back —
+   * which is the redirect loop, and no amount of correct cookie handling makes
+   * a disagreement impossible.
+   *
+   * When the two disagree, the sign-in form is the safe answer: it costs an
+   * authenticated person one click and it cannot loop.
+   */
+  const bouncedByMiddleware = typeof raw === 'string' && raw.length > 0;
+  if (!bouncedByMiddleware) {
+    const actor = await currentActor(prisma);
+    if (actor) redirect(landingPathFor(actor));
+  }
 
   return (
     <main>

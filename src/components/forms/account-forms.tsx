@@ -127,11 +127,12 @@ export function SignInForm({ next }: { next: string }) {
   );
 }
 
-export function ForgotPasswordForm({ origin }: { origin: string }) {
+export function ForgotPasswordForm() {
   const [state, action, pending] = useActionState(requestPasswordResetAction, IDLE);
   return (
     <form action={action} className="mt-8 space-y-5">
-      <input type="hidden" name="origin" value={origin} />
+      {/* No origin field: where the email points is resolved on the server
+          from the deployment's own configuration, never from the browser. */}
       <Field name="email" label="Email" type="email" state={state} required autoComplete="email" />
       <Notice state={state} />
       <button type="submit" disabled={pending} className={BUTTON}>

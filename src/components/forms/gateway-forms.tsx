@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { SubmitButton } from '@/components/forms/submit-button';
 import { Button, Notice } from '@/components/ui';
 import { ActionForm, TextField } from '@/components/forms/form-shell';
 import {
@@ -57,9 +58,9 @@ export function GatewayEnabledToggle({
     <form action={setGatewayEnabledAction}>
       <input type="hidden" name="clientId" value={clientId} />
       <input type="hidden" name="enabled" value={enabled ? '' : 'on'} />
-      <Button type="submit" variant={enabled ? 'ghost' : 'primary'}>
+      <SubmitButton variant={enabled ? 'ghost' : 'primary'}>
         {enabled ? 'Pause feedback' : 'Resume feedback'}
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

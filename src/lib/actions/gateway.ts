@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { notFound, redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
+import { publicDb } from '@/lib/db-public';
 import { DIMENSION_FIELD_PREFIX, SIGNAL_FIELD } from '@/lib/gateway/fields';
 import {
   savePublicBaseUrl,
@@ -120,8 +121,11 @@ export async function submitCustomerFeedbackAction(
   const token = str(form, 'token');
   const stars = optInt(form, 'stars');
 
+  // The one action in RepOS with no signed-in person behind it, and so the one
+  // that uses the anonymous handle. Every operator action in this file keeps
+  // the ordinary client and stays bound by Row Level Security.
   const result = await submitCustomerFeedback(
-    prisma,
+    publicDb(),
     token,
     {
       stars: stars === null || Number.isNaN(stars) ? null : stars,

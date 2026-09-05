@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { SubmitButton } from '@/components/forms/submit-button';
 import { Button, Field, Input, Notice } from '@/components/ui';
 import { ActionForm, FieldError } from '@/components/forms/form-shell';
 import {
@@ -47,9 +48,9 @@ export function ArchiveClientButton({
       <span className="text-[12px] text-ink-600">
         Archive {businessName}? History is kept.
       </span>
-      <Button type="submit" variant="primary" className="px-2.5 py-1 text-[12px]">
+      <SubmitButton variant="primary" className="px-2.5 py-1 text-[12px]">
         Yes, archive
-      </Button>
+      </SubmitButton>
       <Button
         type="button"
         variant="ghost"
@@ -66,9 +67,9 @@ export function RestoreClientButton({ clientId }: { clientId: string }) {
   return (
     <form action={restoreClientAction}>
       <input type="hidden" name="id" value={clientId} />
-      <Button type="submit" className="px-2.5 py-1 text-[12px]">
+      <SubmitButton className="px-2.5 py-1 text-[12px]">
         Restore
-      </Button>
+      </SubmitButton>
     </form>
   );
 }
@@ -95,9 +96,9 @@ export function ArchiveClientPanel({
         </Notice>
         <form action={restoreClientAction}>
           <input type="hidden" name="id" value={clientId} />
-          <Button type="submit" variant="primary">
+          <SubmitButton variant="primary">
             Restore to active list
-          </Button>
+          </SubmitButton>
         </form>
       </div>
     );

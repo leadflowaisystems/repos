@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { SubmitButton } from '@/components/forms/submit-button';
 import { Button } from '@/components/ui';
 import { deleteSnapshotAction } from '@/lib/actions/snapshots';
 
@@ -35,9 +36,9 @@ export function DeleteSnapshotButton({
         Delete this snapshot and its {feedbackCount} stored feedback item
         {feedbackCount === 1 ? '' : 's'}?
       </span>
-      <Button type="submit" variant="danger">
+      <SubmitButton variant="danger">
         Yes, delete
-      </Button>
+      </SubmitButton>
       <Button type="button" variant="ghost" onClick={() => setConfirming(false)}>
         Cancel
       </Button>

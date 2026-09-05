@@ -1,5 +1,15 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import {
+  IntelligenceSection,
+  MinutesRecordedStat,
+  OwnerUpdateSection,
+  RecentMemorySection,
+  SectionSkeleton,
+  StatSkeleton,
+} from "@/components/client-detail-secondary";
+import { getClientDetailPrimary } from "@/lib/clients/detail";
 import {
   Card,
   CardBody,
@@ -9,35 +19,18 @@ import {
   Stat,
 } from "@/components/ui";
 import { HealthCardPanel, PulsePanel } from "@/components/health-card";
-import { IntelligencePanel } from "@/components/intelligence-panel";
 import { ResponsibilityPanel } from "@/components/responsibility-panel";
-import { getResponsibility } from "@/lib/responsibility/service";
 import { ImprovementActionsPanel } from "@/components/forms/improvement-actions";
-import { listActionsWithProgress } from "@/lib/improve/service";
 import { evidenceLine } from "@/lib/improve/model";
-import { PortalLinkPanel } from "@/components/forms/portal-link";
-import { portalPath } from "@/lib/portal/access";
-import { ensurePortalToken, getClientSetup } from "@/lib/clients/service";
-import { getPublicBaseUrl } from "@/lib/gateway/service";
-import { requestOrigin } from "@/lib/gateway/origin";
-import { resolvePublicBaseUrl } from "@/lib/config/public-url";
+import { OwnerHandoverPanel } from "@/components/forms/owner-handover";
 import { prisma } from "@/lib/db";
-import { getClientHealth } from "@/lib/snapshots/service";
-import { listClientMinutes } from "@/lib/minutes/service";
-import { MinuteCard } from "@/components/minute-list";
-import { OwnerCommsPanel } from "@/components/forms/owner-comms";
-import { getOwnerComms } from "@/lib/comms/service";
-import { COMMS_DESCRIPTIONS, type CommsType } from "@/lib/comms/compose";
-import { LinkButton } from "@/components/ui";
 import { getPackOrFallback } from "@/lib/packs";
 import {
   formatDate,
-  formatDecimal,
-  formatMinutes,
+  formatDecimal,
   formatNumber,
   formatRupees,
 } from "@/lib/format";
-import { monthRange } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
@@ -51,64 +44,16 @@ export default async function ClientOverviewPage({
   const { id } = await params;
   const query = await searchParams;
 
-  const client = await prisma.client.findUnique({
-    where: { id },
-    include: {
-      voiceProfile: true,
-      policy: true,
-      kitConfig: true,
-      competitors: { orderBy: { sortIndex: "asc" } },
-      snapshots: {
-        orderBy: { capturedAt: "desc" },
-        take: 3,
-        select: {
-          id: true,
-          label: true,
-          capturedAt: true,
-          rating: true,
-          reviewCount: true,
-          generatedAt: true,
-          _count: { select: { reviews: true } },
-        },
-      },
-    },
-  });
-
-  if (!client) notFound();
+  // One read for the first screen. Everything the operator looks at on arrival
+  // - who this is, whether anything needs doing, health, work in flight -
+  // resolved together instead of in three sequential stages. The rest of the
+  // page fetches itself behind Suspense further down.
+  const primary = await getClientDetailPrimary(prisma, id);
+  if (!primary) notFound();
+  const { client, setup, health, responsibility, actions } = primary;
 
   const pack = getPackOrFallback(client.vertical);
-  const { start, end } = monthRange(new Date());
-
-  // The owner’s link is a secret, and it is issued the first time this page
-  // is opened rather than at client creation — so an install that predates
-  // M16 gets one without anybody having to run anything.
-  const setup = await getClientSetup(prisma, client.id);
-  const portalToken = await ensurePortalToken(prisma, client.id);
-  // Only null when the client vanished between the read above and now.
-  if (!portalToken) notFound();
-  const portalPathname = portalPath(portalToken);
-  // Sent to the owner, so it has to be a whole address, not a path. The same
-  // one address the QR codes use — there is only ever one.
-  const portalBase = resolvePublicBaseUrl({
-    setting: await getPublicBaseUrl(prisma),
-    requestOrigin: await requestOrigin(),
-  });
-  const portalUrl = portalBase.ok ? `${portalBase.url}${portalPathname}` : portalPathname;
-
-  const [timeLogged, health, recentMinutes, minuteCount, comms, actions, responsibility] =
-    await Promise.all([
-      prisma.timeEntry.aggregate({
-        where: { clientId: id, entryDate: { gte: start, lt: end } },
-        _sum: { minutes: true },
-        _count: true,
-      }),
-      getClientHealth(prisma, id, client.vertical),
-      listClientMinutes(prisma, id, { limit: 3 }),
-      prisma.minute.count({ where: { clientId: id } }),
-      getOwnerComms(prisma, id, { language: query.commsLang ?? null }),
-      listActionsWithProgress(prisma, id),
-      getResponsibility(prisma, id),
-    ]);
+  const commsLanguage = query.commsLang ?? null;
 
   // The action panel renders strings, not Dates: every figure and date is
   // formatted once here so the client component adds no arithmetic of its own.
@@ -155,7 +100,6 @@ export default async function ClientOverviewPage({
   );
 
   const latest = client.snapshots[0];
-  const timeThisMonth = timeLogged._sum.minutes ?? 0;
 
   // What actually has to be true before this business is being served (M17).
   //
@@ -224,11 +168,7 @@ export default async function ClientOverviewPage({
       {/* What RepOS is responsible for right now, before any measurement:
           the same object the owner's Home is built from. */}
       {responsibility ? (
-        <ResponsibilityPanel
-          r={responsibility.responsibility}
-          clientId={client.id}
-          portalToken={portalToken}
-        />
+        <ResponsibilityPanel r={responsibility.responsibility} clientId={client.id} />
       ) : null}
 
       <HealthCardPanel health={health.card} clientId={client.id} />
@@ -236,12 +176,13 @@ export default async function ClientOverviewPage({
 
       {/* The listing's health, then what customers actually said about it.
           Everything below this is setup and admin. */}
-      {comms.ok ? (
-        <IntelligencePanel
-          intel={comms.data.intelligence}
+      <Suspense fallback={<SectionSkeleton lines={4} />}>
+        <IntelligenceSection
+          clientId={id}
+          commsLanguage={commsLanguage}
           actionedInsightIds={actionedInsightIds}
         />
-      ) : null}
+      </Suspense>
 
       {/* The loop closes here: what we decided to change, and what the
           feedback did afterwards. */}
@@ -267,15 +208,9 @@ export default async function ClientOverviewPage({
           value={formatNumber(client.snapshots.length)}
           hint={latest ? `Latest ${formatDate(latest.capturedAt)}` : "None yet"}
         />
-        <Stat
-          label="Minutes recorded"
-          value={formatNumber(minuteCount)}
-          hint={
-            timeThisMonth > 0
-              ? `${formatMinutes(timeThisMonth)} logged this month`
-              : "Conversations and decisions"
-          }
-        />
+        <Suspense fallback={<StatSkeleton />}>
+          <MinutesRecordedStat clientId={id} commsLanguage={commsLanguage} />
+        </Suspense>
       </div>
 
       {remaining.length === 0 ? (
@@ -287,86 +222,22 @@ export default async function ClientOverviewPage({
 
       <Card>
         <CardHeader
-          title="The owner’s link"
-          description="One private address that opens this business’s own view. It needs no password, so it should only ever go to the owner."
+          title="The owner’s access"
+          description="The owner signs in and opens their own workspace. Invite them from the Team page; this only records that you have done it."
         />
         <CardBody>
-          <PortalLinkPanel
-            clientId={client.id}
-            url={portalUrl}
-            href={portalPathname}
-            addressWarning={portalBase.ok ? null : portalBase.reason}
-            justRegenerated={query.portalLink === "new"}
-            sent={setup.ownerLinkSent}
-          />
+          <OwnerHandoverPanel clientId={client.id} sent={setup.ownerLinkSent} />
         </CardBody>
       </Card>
 
       <div className="grid gap-6">
-        {comms.ok ? (
-          // Anchored so the command centre can send the operator straight here
-          // rather than making them hunt down the page.
-          <Card id="owner-update">
-            <CardHeader
-              title="Ready to send to the owner"
-              description="Written from this client's own feedback. Copy it and send it however you normally do."
-              action={
-                <LinkButton href={portalPathname}>Open client view</LinkButton>
-              }
-            />
-            <CardBody>
-              <OwnerCommsPanel
-                base={`/clients/${id}`}
-                language={comms.data.language}
-                replyHref={`/clients/${id}/feedback`}
-                ownerContext={comms.data.ownerContext}
-                messages={comms.data.messages.map((message) => ({
-                  type: message.type,
-                  title: message.title,
-                  description: COMMS_DESCRIPTIONS[message.type as CommsType],
-                  body: message.body,
-                  emailSubject: message.channels.email.subject,
-                  emailGreeting: message.channels.email.greeting,
-                  emailSignOff: message.channels.email.signOff,
-                  notes: message.notes,
-                  problems: message.problems,
-                  blocked: message.blocked,
-                }))}
-              />
-            </CardBody>
-          </Card>
-        ) : null}
+        <Suspense fallback={<SectionSkeleton lines={5} />}>
+          <OwnerUpdateSection clientId={id} commsLanguage={commsLanguage} />
+        </Suspense>
 
-        <Card>
-          <CardHeader
-            title="Recent memory"
-            description="What happened with this client lately."
-            action={
-              <LinkButton href={`/clients/${id}/minutes`}>
-                {minuteCount === 0 ? "Add a minute" : "All minutes"}
-              </LinkButton>
-            }
-          />
-          <CardBody>
-            {recentMinutes.length === 0 ? (
-              <p className="text-[13px] leading-relaxed text-ink-500">
-                No minutes yet. Record conversations, decisions and context here
-                so next month you can see what you did, not just what changed.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {recentMinutes.map((minute) => (
-                  <MinuteCard
-                    key={minute.id}
-                    minute={minute}
-                    clientId={id}
-                    showActions={false}
-                  />
-                ))}
-              </div>
-            )}
-          </CardBody>
-        </Card>
+        <Suspense fallback={<SectionSkeleton lines={3} />}>
+          <RecentMemorySection clientId={id} commsLanguage={commsLanguage} />
+        </Suspense>
 
         <Card>
           <CardHeader title="Client details" />

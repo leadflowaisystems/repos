@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { CustomerFeedbackForm } from '@/components/feedback-gateway/customer-form';
-import { prisma } from '@/lib/db';
+// The customer has no account, so this page reaches the database through the
+// privilege-less public role rather than the RLS-bound application one. That
+// connection can call two token-scoped functions and read no table at all.
+import { publicDb } from '@/lib/db-public';
 import { resolvePublicGateway } from '@/lib/gateway/service';
 import { newFormNonce } from '@/lib/gateway/throttle';
 
@@ -13,7 +16,7 @@ export async function generateMetadata({
   params: Promise<{ token: string }>;
 }): Promise<Metadata> {
   const { token } = await params;
-  const gateway = await resolvePublicGateway(prisma, token);
+  const gateway = await resolvePublicGateway(publicDb(), token);
   return { title: gateway ? gateway.businessName : 'Feedback' };
 }
 
@@ -31,7 +34,7 @@ export default async function CustomerFeedbackPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const gateway = await resolvePublicGateway(prisma, token);
+  const gateway = await resolvePublicGateway(publicDb(), token);
   if (!gateway) notFound();
 
   const { copy } = gateway;

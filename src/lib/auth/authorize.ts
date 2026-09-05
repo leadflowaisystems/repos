@@ -7,7 +7,8 @@ import {
   type Actor,
   type Role,
 } from '@/lib/tenancy/service';
-import { supabaseServerClient } from '@/lib/auth/supabase';
+import { cache } from 'react';
+import { currentAuthUserId } from '@/lib/db';
 
 /**
  * AUTHORIZATION PRIMITIVES (M20).
@@ -96,11 +97,31 @@ export function requireTenantStaffOrOwner(
  *
  * `getUser()` rather than `getSession()` on purpose: getSession trusts the
  * cookie as it stands, while getUser re-verifies it with the auth server. A
- * forged or stale cookie must not be able to name a user.
+ * forged or stale cookie must not be able to name a user. That verification is
+ * a network call to Supabase, measured at 50-110 ms, and it used to happen
+ * here on top of the one `db.ts` already makes for the RLS context -- so a
+ * page paid for the same answer twice.
+ *
+ * `currentAuthUserId` is the same call, memoised per request by React's
+ * `cache()`. Reusing it changes nothing about what is verified or how often a
+ * revoked session is caught: within one request the cookie cannot change, and
+ * the next request verifies again from scratch.
  */
 export async function currentActor(db: PrismaClient): Promise<Actor | null> {
-  const supabase = await supabaseServerClient();
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) return null;
-  return loadActor(db, data.user.id);
+  const authProviderId = await currentAuthUserId();
+  if (!authProviderId) return null;
+  return actorFor(db, authProviderId);
 }
+
+/**
+ * The actor row, read once per request.
+ *
+ * The (app) layout asks for it to decide whether this is an operator, and a
+ * tenant gate asks again for the same request. Same user, same row, same
+ * answer -- so it is fetched once. Request-scoped: another request, another
+ * store, and nothing survives the response.
+ */
+const actorFor = cache(
+  async (db: PrismaClient, authProviderId: string): Promise<Actor | null> =>
+    loadActor(db, authProviderId),
+);

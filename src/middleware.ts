@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies';
 import { createServerClient } from '@supabase/ssr';
 import { SUPABASE_ANON_KEY_VAR, SUPABASE_URL_VAR } from '@/lib/auth/supabase';
 
@@ -21,6 +22,9 @@ const PUBLIC_PREFIXES = [
   '/signup',
   '/forgot-password',
   '/reset-password',
+  // The code exchange: reached from an emailed link by someone who has, by
+  // definition, no session yet.
+  '/auth',
   // The invitation page resolves nothing until someone signs in; it has to be
   // reachable so an invited person can get to the sign-in link on it.
   '/invite',
@@ -48,6 +52,25 @@ export async function middleware(request: NextRequest) {
   if (!url || !anonKey) return toLogin(request);
 
   let response = NextResponse.next({ request });
+
+  /**
+   * Cookies Supabase rotated while verifying, kept so they survive a redirect.
+   *
+   * This is the whole of the ERR_TOO_MANY_REDIRECTS bug. Supabase rotates the
+   * refresh token during `getUser()` and hands back new cookies; they were
+   * written onto `response`, but the redirect below built a brand-new response
+   * and carried none of them. The browser therefore kept presenting the OLD
+   * refresh token, which Supabase had already invalidated — rotation makes
+   * them single-use.
+   *
+   * The loop followed from that. `/login` is public, so middleware skips it and
+   * the page runs its own check, which could still succeed and send an
+   * authenticated person to their workspace. That route IS protected, so
+   * middleware checked again with the stale cookie, failed, and sent them back
+   * to `/login`. Two checks disagreeing, forever.
+   */
+  const rotated: Array<{ name: string; value: string; options?: Partial<ResponseCookie> }> = [];
+
   const supabase = createServerClient(url, anonKey, {
     cookies: {
       getAll() {
@@ -56,7 +79,10 @@ export async function middleware(request: NextRequest) {
       setAll(toSet) {
         for (const { name, value } of toSet) request.cookies.set(name, value);
         response = NextResponse.next({ request });
-        for (const { name, value, options } of toSet) response.cookies.set(name, value, options);
+        for (const cookie of toSet) {
+          response.cookies.set(cookie.name, cookie.value, cookie.options);
+          rotated.push(cookie);
+        }
       },
     },
   });
@@ -64,19 +90,26 @@ export async function middleware(request: NextRequest) {
   // getUser, not getSession: the cookie is re-verified with the auth server
   // rather than believed as it stands.
   const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) return toLogin(request);
+  if (error || !data.user) return toLogin(request, rotated);
 
   return response;
 }
 
-function toLogin(request: NextRequest) {
+function toLogin(
+  request: NextRequest,
+  rotated: Array<{ name: string; value: string; options?: Partial<ResponseCookie> }> = [],
+) {
   const login = new URL('/login', request.nextUrl);
   // Only same-site paths are ever echoed back, so this cannot become an open
   // redirect: the value is used as a path, and the login page re-checks it.
   if (request.nextUrl.pathname !== '/') {
     login.searchParams.set('next', request.nextUrl.pathname);
   }
-  return NextResponse.redirect(login);
+  const redirected = NextResponse.redirect(login);
+  // Whatever Supabase rotated has to reach the browser even on the way out,
+  // or the next request repeats this with a token that is already spent.
+  for (const cookie of rotated) redirected.cookies.set(cookie.name, cookie.value, cookie.options);
+  return redirected;
 }
 
 export const config = {

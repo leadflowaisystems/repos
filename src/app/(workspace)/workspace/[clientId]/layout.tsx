@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { WorkspaceHeader } from '@/components/portal/workspace';
+import { SignOutButton } from '@/components/sign-out';
 import { currentActor } from '@/lib/auth/authorize';
 import { tenantGateFor } from '@/lib/auth/guard';
 import { prisma } from '@/lib/db';
@@ -42,6 +43,7 @@ export default async function WorkspaceLayout({
         businessName={client.businessName}
         verticalLabel={verticalLabel(client.vertical)}
         showExtras
+        signOut={<SignOutButton variant="inline" />}
       />
       {children}
     </>

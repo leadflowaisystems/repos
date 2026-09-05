@@ -32,6 +32,26 @@ function Chip({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * WHY EVERY LINK IN THIS FILE SETS prefetch={false} (M20).
+ *
+ * This card renders once per client, and it carries nine links, every one of
+ * them to a per-client dynamic route under /clients/[id] — the client page
+ * itself, its feedback view, its minutes, its snapshots, its QR page, its kit.
+ * Next.js prefetches a <Link> as soon as it is on screen, so the command centre
+ * asks the server to start rendering nine expensive routes for EVERY business
+ * the operator has, before they click anything at all. Ten clients is ninety.
+ *
+ * The same mistake was fixed on /clients, where the measurement was taken: 44
+ * client-detail renders for 8 clicks, peaking at 6 concurrent, and a real click
+ * queued behind the speculative ones until the browser ran out of connections.
+ * That number belongs to that list and is not restated here; what makes this
+ * one worse is arithmetic — nine links per card instead of one.
+ *
+ * Nothing about navigation changes. The routes still load on click, and
+ * /clients/[id] has its own loading.tsx, so the operator sees the page frame
+ * immediately either way. What goes away is the work nobody asked for.
+ */
 export function CommandCard({ card }: { card: CommandCardData }) {
   const urgent = card.band === 'NOW';
   const base = `/clients/${card.clientId}`;
@@ -57,6 +77,7 @@ export function CommandCard({ card }: { card: CommandCardData }) {
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-ink-100 px-5 py-4">
         <div className="min-w-0">
           <Link
+            prefetch={false}
             href={base}
             className="block truncate text-[15px] font-semibold text-ink-900 hover:underline underline-offset-2"
           >
@@ -112,6 +133,7 @@ export function CommandCard({ card }: { card: CommandCardData }) {
             </p>
             <p className="text-[13px] leading-relaxed text-ink-800">
               <Link
+                prefetch={false}
                 href={`${base}/feedback?theme=${encodeURIComponent(card.topIssue.key)}`}
                 className="font-medium underline underline-offset-2"
               >
@@ -188,6 +210,7 @@ export function CommandCard({ card }: { card: CommandCardData }) {
           {card.nextAction.detail}
         </p>
         <Link
+          prefetch={false}
           href={card.nextAction.href}
           className={clsx(
             'shrink-0 rounded-lg px-3.5 py-2 text-[13px] font-medium transition-colors',
@@ -202,24 +225,24 @@ export function CommandCard({ card }: { card: CommandCardData }) {
 
       {/* ---- Everything else, one click away ---- */}
       <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-ink-100 px-5 py-2.5 text-[12px]">
-        <Link href={`${base}/feedback`} className="text-ink-600 hover:underline">
+        <Link href={`${base}/feedback`} prefetch={false} className="text-ink-600 hover:underline">
           Feedback{card.feedback.total > 0 ? ` (${card.feedback.total})` : ''}
         </Link>
-        <Link href={`${base}#owner-update`} className="text-ink-600 hover:underline">
+        <Link href={`${base}#owner-update`} prefetch={false} className="text-ink-600 hover:underline">
           Owner update
         </Link>
-        <Link href={`${base}/minutes`} className="text-ink-600 hover:underline">
+        <Link href={`${base}/minutes`} prefetch={false} className="text-ink-600 hover:underline">
           Minutes
         </Link>
-        <Link href={`${base}/snapshots`} className="text-ink-600 hover:underline">
+        <Link href={`${base}/snapshots`} prefetch={false} className="text-ink-600 hover:underline">
           Check-ins
         </Link>
         {/* The primary customer-voice channel had no route from the board at
             all, while the printed kit did (M17). */}
-        <Link href={`${base}/qr`} className="text-ink-600 hover:underline">
+        <Link href={`${base}/qr`} prefetch={false} className="text-ink-600 hover:underline">
           Feedback QR
         </Link>
-        <Link href={`${base}/kit`} className="text-ink-600 hover:underline">
+        <Link href={`${base}/kit`} prefetch={false} className="text-ink-600 hover:underline">
           Cards
         </Link>
       </div>

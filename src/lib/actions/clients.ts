@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { notFound, redirect } from 'next/navigation';
 import { z } from 'zod';
-import { prisma } from '@/lib/db';
+import { prisma, withRlsContext } from '@/lib/db';
 import { findPack, listPacks } from '@/lib/packs';
 import {
   archiveClient,
@@ -88,9 +88,18 @@ export async function archiveClientAction(form: FormData): Promise<void> {
   const id = str(form, 'id');
   if (!id) return;
 
-  await archiveClient(prisma, id);
+  // The result is read, not discarded. Archiving moves `status` as well as
+  // `archivedAt`, and `status` is written through a platform-admin-only
+  // function that can refuse — so this can now fail in a way it could not
+  // before, and reporting "Client archived" over a refusal would be a lie the
+  // operator has no way to notice.
+  const result = await archiveClient(prisma, id);
   revalidateClient(id);
-  redirect(`/clients?archived=${encodeURIComponent(id)}`);
+  redirect(
+    result.ok
+      ? `/clients?archived=${encodeURIComponent(id)}`
+      : `/clients?error=${encodeURIComponent(result.message)}`,
+  );
 }
 
 export async function restoreClientAction(form: FormData): Promise<void> {
@@ -276,10 +285,14 @@ export async function saveCompetitorsAction(
     return failure('Some competitor rows need attention.', errors);
   }
 
-  await prisma.$transaction([
-    prisma.competitor.deleteMany({ where: { clientId } }),
-    ...rows.map((row) =>
-      prisma.competitor.create({
+  // Replace-all, in one transaction that carries the identity. The array form
+  // of $transaction cannot be used here: each element would already have been
+  // wrapped in its own transaction by the identity extension, and Prisma will
+  // not nest those.
+  await withRlsContext(prisma, async (tx) => {
+    await tx.competitor.deleteMany({ where: { clientId } });
+    for (const row of rows) {
+      await tx.competitor.create({
         data: {
           clientId,
           name: row.name,
@@ -289,9 +302,9 @@ export async function saveCompetitorsAction(
           observedAt: row.observedAt,
           sortIndex: row.sortIndex,
         },
-      }),
-    ),
-  ]);
+      });
+    }
+  });
 
   revalidatePath(`/clients/${clientId}/profile`);
   return success(

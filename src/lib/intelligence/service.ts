@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
+import { oncePerRequest } from '@/lib/request-cache';
 import { getPackOrFallback, type Pack } from '@/lib/packs';
 import { getThemeSummary, type ThemeSummary } from '@/lib/feedback/analysis';
 import { getClientHealth } from '@/lib/snapshots/service';
@@ -76,6 +77,21 @@ export type IntelligenceContext = {
  * calculation, two presentations — a message and a screen can never disagree.
  */
 export async function loadIntelligence(
+  db: PrismaClient,
+  client: { id: string; businessName: string; vertical: string },
+  now: Date,
+): Promise<IntelligenceContext> {
+  // Three services ask for this independently while one page renders - the
+  // owner's update, the improvement actions, and the responsibility panel - so
+  // without this the same intelligence is computed three times from the same
+  // rows. Keyed on the business alone: `now` differs between those callers only
+  // by the milliseconds between their `new Date()` calls, and everything here
+  // buckets by week and month, so no reachable difference in `now` within one
+  // request can change the answer.
+  return oncePerRequest(`intelligence:${client.id}`, () => loadIntelligenceUncached(db, client, now));
+}
+
+async function loadIntelligenceUncached(
   db: PrismaClient,
   client: { id: string; businessName: string; vertical: string },
   now: Date,

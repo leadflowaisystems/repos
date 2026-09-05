@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
+import { oncePerRequest } from '@/lib/request-cache';
 import { readStructured } from '@/lib/feedback/structured';
 import { getPackOrFallback, type Pack } from '@/lib/packs';
 import { sanitiseSentiment, sanitiseTags, type Sentiment } from '@/lib/analysis/classify';
@@ -373,6 +374,7 @@ export async function getThemeSummary(
   clientId: string,
   vertical: string,
 ): Promise<ThemeSummary> {
+  return oncePerRequest(`themes:${clientId}:${vertical}`, async () => {
   const pack = getPackOrFallback(vertical);
   const rows = await db.reviewItem.findMany({
     where: { clientId, analysisStatus: 'ANALYSED' },
@@ -386,6 +388,7 @@ export async function getThemeSummary(
     select: { dimensionsJson: true, signalsJson: true },
   });
   return { ...summariseThemeRows(rows, pack), dimensions: summariseDimensions(structured, pack) };
+  });
 }
 
 /**

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { SubmitButton } from '@/components/forms/submit-button';
 import { Button } from '@/components/ui';
 import { seedDemoDataAction } from '@/lib/actions/clients';
 
@@ -24,9 +25,9 @@ export function DemoDataButton() {
     <form action={seedDemoDataAction} className="flex items-center gap-2">
       <input type="hidden" name="confirm" value="1" />
       <span className="text-[12px] text-ink-600">Create a demo client?</span>
-      <Button type="submit" variant="primary">
+      <SubmitButton variant="primary">
         Yes, create
-      </Button>
+      </SubmitButton>
       <Button type="button" variant="ghost" onClick={() => setConfirming(false)}>
         Cancel
       </Button>

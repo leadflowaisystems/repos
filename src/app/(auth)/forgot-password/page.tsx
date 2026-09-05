@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
 import Link from 'next/link';
 import { ForgotPasswordForm } from '@/components/forms/account-forms';
 
@@ -14,11 +13,7 @@ export const metadata: Metadata = { title: 'Reset your password' };
  * Whether a given person is a RepOS customer is not something this form is
  * willing to answer.
  */
-export default async function ForgotPasswordPage() {
-  // The reset link has to come back to this deployment, whatever its domain.
-  const host = (await headers()).get('host') ?? '';
-  const protocol = host.startsWith('localhost') || host.startsWith('127.') ? 'http' : 'https';
-  const origin = host ? `${protocol}://${host}` : '';
+export default function ForgotPasswordPage() {
 
   return (
     <main>
@@ -32,7 +27,7 @@ export default async function ForgotPasswordPage() {
         Reset your password
       </h1>
       <p className="mt-2 text-[15px] leading-relaxed text-ink-600">We will email you a link. The link works once and expires.</p>
-      <ForgotPasswordForm origin={origin} />
+      <ForgotPasswordForm />
       <p className="mt-6 text-[14px] text-ink-600">
         <Link href="/login" className="font-medium text-ink-900 underline underline-offset-4">
           Back to sign in

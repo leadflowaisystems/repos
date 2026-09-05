@@ -141,6 +141,14 @@ export default async function ClientsPage({
                     <td className="px-5 py-3">
                       <Link
                         href={`/clients/${client.id}`}
+                        // Every link here points at one of the most expensive pages in
+                        // RepOS, and Next.js prefetches them as soon as the row is on
+                        // screen. Five businesses meant five full renders - seven loaders
+                        // each - fired in the background every time this list was opened,
+                        // and a real click then queued behind them until the browser ran
+                        // out of connections to the origin. Measured during M20: 44
+                        // client-detail renders for 8 clicks, peaking at 6 concurrent.
+                        prefetch={false}
                         className="font-medium text-ink-900 underline-offset-2 hover:underline"
                       >
                         {client.businessName}

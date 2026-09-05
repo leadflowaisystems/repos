@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
+import { oncePerRequest } from '@/lib/request-cache';
 import { z } from 'zod';
 import { getPackOrFallback } from '@/lib/packs';
 import { redactPii } from '@/lib/redact';
@@ -220,8 +221,10 @@ export async function listClientContext(
 
 /** The active context the reasoning and presentation layers read. */
 export async function getContextSet(db: PrismaClient, clientId: string): Promise<ContextSet> {
+  return oncePerRequest(`context:${clientId}`, async () => {
   const rows = await listClientContext(db, clientId);
   return { items: rows.map((r) => ({ ...r })) };
+  });
 }
 
 export async function getContext(

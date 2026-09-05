@@ -1,5 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { newPublicToken } from '@/lib/tokens';
+import { isMissingDbFunction, withRlsContext } from '@/lib/db';
+import { createClientRow, setClientCommercials } from '@/lib/tenancy/service';
 import {
   clientInputSchema,
   normaliseBusinessName,
@@ -106,6 +108,73 @@ export async function createClient(
     });
   }
 
+  // The operator's own list. Same wall as self-service signup — `client_write`
+  // wants an owner the row does not have yet, and a platform admin is no better
+  // off, because `owned_client_ids()` reads the table through a STABLE function
+  // that cannot see the row being inserted. So the tenant row itself comes from
+  // `app.create_client`, which re-checks that the caller really is an admin
+  // rather than taking the server action's word for it, and everything else is
+  // written straight afterwards through the ordinary policy-checked path.
+  try {
+    const id = await withRlsContext(db, async (tx) => {
+      const newId = await createClientRow(
+        tx,
+        {
+          businessName: input.businessName,
+          vertical: input.vertical,
+          asOwner: false,
+          status: input.status,
+          plan: input.plan,
+        },
+        new Date(),
+      );
+
+      // Every column here is one `repos_app` is granted. `plan` and `status`
+      // are not among them — they are the platform's, and the function above
+      // has already set them from this same input.
+      await tx.client.update({
+        where: { id: newId },
+        data: {
+          businessName: input.businessName,
+          vertical: input.vertical,
+          areaLabel: input.areaLabel,
+          mapsUrl: input.mapsUrl,
+          reviewLinkUrl: input.reviewLinkUrl,
+          ownerName: input.ownerName,
+          ownerPhone: input.ownerPhone,
+          ownerEmail: input.ownerEmail,
+          avgCustomerValueInr: input.avgCustomerValueInr,
+          onboardingDate: input.onboardingDate,
+          baselineRating: input.baselineRating,
+          baselineReviewCount: input.baselineReviewCount,
+          baselineReviewsPerWeek: input.baselineReviewsPerWeek,
+          baselineObservedAt: input.baselineObservedAt,
+          kitInstalledDate: input.kitInstalledDate,
+          notes: input.notes,
+          voiceProfile: { create: voiceDefaultsFor() },
+          policy: { create: {} },
+          kitConfig: { create: kitDefaultsFor() },
+          gateway: {
+            create: {
+              publicToken: newPublicToken(),
+              publicReviewUrl: (input.reviewLinkUrl ?? '').trim(),
+            },
+          },
+        },
+      });
+
+      return newId;
+    });
+    return ok({ id });
+  } catch (error) {
+    if (!isMissingDbFunction(error)) {
+      return err(error instanceof Error ? error.message : 'Could not save this client.');
+    }
+  }
+
+  // Only where `rls.sql` has not been applied: the per-file schemas the test
+  // suite creates, whose connection owns its own tables. Behaviourally the
+  // same, in one nested write rather than two statements.
   try {
     const created = await db.client.create({
       data: {
@@ -148,7 +217,7 @@ export async function updateClient(
 
   const existing = await db.client.findUnique({
     where: { id },
-    select: { id: true, vertical: true },
+    select: { id: true, vertical: true, plan: true, status: true },
   });
   if (!existing) return err('That client no longer exists.');
 
@@ -166,12 +235,65 @@ export async function updateClient(
     });
   }
 
+  // `plan` and `status` are not this caller's to write. `repos_app` holds no
+  // column privilege on either, deliberately — see the Client grant in rls.sql —
+  // and the previous version of this function put them in the same UPDATE as
+  // everything else, so the whole statement was refused and the operator's edit
+  // form did nothing at all.
+  //
+  // They are also the reason the split is a security fix and not only a
+  // plumbing one. This function is reached through `tenantGate(..., 'OWNER')`,
+  // which a BUSINESS_OWNER satisfies; the edit page is staff-only but a server
+  // action is addressed by action id rather than by path, so the page's gate is
+  // not this one's. Routing the two columns through a function that checks for
+  // platform staff means an owner posting `plan: 'PRO'` is refused by name,
+  // rather than by a column privilege that was breaking the form as collateral.
+  //
+  // Only sent when something actually changed, so an ordinary edit that leaves
+  // them alone needs no elevated call at all.
+  const commercialsChanged = input.plan !== existing.plan || input.status !== existing.status;
+  const now = new Date();
+
   try {
-    await db.client.update({ where: { id }, data: input });
+    await withRlsContext(db, async (tx) => {
+      await tx.client.update({
+        where: { id },
+        data: {
+          businessName: input.businessName,
+          vertical: input.vertical,
+          areaLabel: input.areaLabel,
+          mapsUrl: input.mapsUrl,
+          reviewLinkUrl: input.reviewLinkUrl,
+          ownerName: input.ownerName,
+          ownerPhone: input.ownerPhone,
+          ownerEmail: input.ownerEmail,
+          avgCustomerValueInr: input.avgCustomerValueInr,
+          onboardingDate: input.onboardingDate,
+          baselineRating: input.baselineRating,
+          baselineReviewCount: input.baselineReviewCount,
+          baselineReviewsPerWeek: input.baselineReviewsPerWeek,
+          baselineObservedAt: input.baselineObservedAt,
+          kitInstalledDate: input.kitInstalledDate,
+          notes: input.notes,
+        },
+      });
+      if (commercialsChanged) {
+        await setClientCommercials(tx, id, input.status, input.plan, now);
+      }
+    });
   } catch (error) {
-    return err(
-      error instanceof Error ? error.message : 'Could not update this client.',
-    );
+    if (!isMissingDbFunction(error)) {
+      return err(error instanceof Error ? error.message : 'Could not update this client.');
+    }
+    // Only where rls.sql has not been applied: one role owns everything, so the
+    // single write is both possible and equivalent.
+    try {
+      await db.client.update({ where: { id }, data: input });
+    } catch (fallbackError) {
+      return err(
+        fallbackError instanceof Error ? fallbackError.message : 'Could not update this client.',
+      );
+    }
   }
 
   return ok({ id, verticalChanged: existing.vertical !== input.vertical });
@@ -271,11 +393,41 @@ export async function archiveClient(
   if (!existing) return err('That client no longer exists.');
   if (existing.archivedAt) return ok({ id });
 
-  await db.client.update({
-    where: { id },
-    data: { archivedAt: now, status: 'CHURNED' },
-  });
+  // `archivedAt` this role may write; `status` it may not. Same reason as
+  // updateClient, and the two must land together — an archived client left
+  // ACTIVE in the pipeline is a client the operator will keep being shown.
+  const failure = await writeArchiveState(db, id, now, 'CHURNED');
+  if (failure) return failure;
   return ok({ id });
+}
+
+/**
+ * Moves a client in and out of the archive, `archivedAt` and `status` together.
+ *
+ * The status half goes through `app.set_client_commercials`, which requires
+ * platform staff — both callers are already behind `adminGate()`, so this is the
+ * database agreeing with the server action rather than a new restriction.
+ */
+async function writeArchiveState(
+  db: PrismaClient,
+  id: string,
+  archivedAt: Date | null,
+  status: string,
+): Promise<ServiceErr | null> {
+  const now = new Date();
+  try {
+    await withRlsContext(db, async (tx) => {
+      await tx.client.update({ where: { id }, data: { archivedAt } });
+      await setClientCommercials(tx, id, status, null, now);
+    });
+    return null;
+  } catch (error) {
+    if (!isMissingDbFunction(error)) {
+      return err(error instanceof Error ? error.message : 'Could not save this client.');
+    }
+  }
+  await db.client.update({ where: { id }, data: { archivedAt, status } });
+  return null;
 }
 
 export async function restoreClient(
@@ -297,10 +449,8 @@ export async function restoreClient(
     );
   }
 
-  await db.client.update({
-    where: { id },
-    data: { archivedAt: null, status: 'PAUSED' },
-  });
+  const failure = await writeArchiveState(db, id, null, 'PAUSED');
+  if (failure) return failure;
   return ok({ id });
 }
 

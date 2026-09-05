@@ -1199,7 +1199,6 @@ describe('V1 hard rules — nothing acts without an operator behind it (M16)', (
     createMinuteAction: 'MEMBER',
     updateMinuteAction: 'MEMBER',
     deleteMinuteAction: 'OWNER',
-    regeneratePortalTokenAction: 'OWNER',
     setPortalLinkSentAction: 'OWNER',
     draftRepliesAction: 'MEMBER',
     regenerateDraftAction: 'MEMBER',
@@ -1295,8 +1294,13 @@ describe('V1 hard rules — nothing acts without an operator behind it (M16)', (
 });
 
 describe('V1 hard rules — secrets stay on the server (M16)', () => {
+  // The names this guard watches must be the names that currently exist.
+  // Two of the originals — the operator password hash and the session secret
+  // — were deleted in M20 when Supabase Auth became the only identity system,
+  // so a regex still naming those was guarding nothing, while the secrets it
+  // should have been guarding went unlisted.
   const SECRET_NAMES =
-    /REPOS_OPERATOR_PASSWORD_HASH|REPOS_SESSION_SECRET|GROQ_API_KEY|DATABASE_URL/;
+    /REPOS_OPERATOR_PASSWORD_HASH|REPOS_SESSION_SECRET|REPOS_BOOTSTRAP_SECRET|GROQ_API_KEY|GEMINI_API_KEY|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_ANON_KEY|DATABASE_URL|DIRECT_DATABASE_URL|PUBLIC_DATABASE_URL/;
 
   it('defines no browser-visible environment variable at all', () => {
     const offenders = EXECUTABLE.filter(({ code }) => /NEXT_PUBLIC_/.test(code)).map(

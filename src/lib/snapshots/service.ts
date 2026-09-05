@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
+import { oncePerRequest } from '@/lib/request-cache';
 import { z } from 'zod';
 import {
   aggregate,
@@ -132,6 +133,7 @@ export async function loadHealthSnapshots(
   db: PrismaClient,
   clientId: string,
 ): Promise<StoredSnapshot[]> {
+  return oncePerRequest(`snapshots:${clientId}`, async () => {
   const [rows, arrived] = await Promise.all([
     db.snapshot.findMany({
       where: { clientId },
@@ -208,6 +210,7 @@ export async function loadHealthSnapshots(
     generatedAt: row.generatedAt,
     feedback: [...row.reviews.map(toStoredFeedback), ...(windowed.get(row.id) ?? [])],
   }));
+  });
 }
 
 export type ClientHealth = {
