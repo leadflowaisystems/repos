@@ -46,7 +46,7 @@ export async function PortalImprovements({
     view.open.length + view.checked.length + view.notPursued.length === 0 && !view.suggested;
 
   return (
-    <>
+    <div className="max-w-3xl">
       <PageIntro
         eyebrow="Improvements"
         title="What you changed, and what happened next"
@@ -106,6 +106,6 @@ export async function PortalImprovements({
             : []
         }
       />
-    </>
+    </div>
   );
 }

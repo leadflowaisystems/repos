@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { parseReviews } from '@/lib/analysis/parse-reviews';
 import { cleanReviewText } from '@/lib/redact';
 import { getPackOrFallback, type Pack } from '@/lib/packs';
+import { analysisStateOf, type AnalysisState } from '@/lib/feedback/state';
 import { readDimensions, readStructured } from '@/lib/feedback/structured';
 import { parseJson } from '@/lib/format';
 import { fingerprintFeedback } from './fingerprint';
@@ -348,6 +349,8 @@ export type FeedbackRow = {
   redacted: boolean;
   redactions: string[];
   analysed: boolean;
+  /** Where it stands with RepOS: COLLECTED · PROCESSING · ANALYSED · FAILED. */
+  state: AnalysisState;
   createdAt: Date;
   // --- analysis layer ---
   sentiment: string;
@@ -441,6 +444,7 @@ function toRow(row: {
   redacted: boolean;
   redactionsJson: string;
   analysedAt: Date | null;
+  updatedAt?: Date | null;
   createdAt: Date;
   sentiment: string;
   themesJson: string;
@@ -491,6 +495,7 @@ function toRow(row: {
     // the row must say so rather than showing themes the header calls unread.
     analysed:
       row.analysisStatus === 'ANALYSED' && row.analysisVersion >= ANALYSIS_VERSION,
+    state: analysisStateOf(row),
     createdAt: row.createdAt,
     sentiment: row.sentiment,
     themes: parseJson<NormalizedTheme[]>(row.themesJson, []),
@@ -683,6 +688,12 @@ export type FeedbackStats = {
   total: number;
   analysed: number;
   unanalysed: number;
+  /** Collected and not yet in hand: the next run reads these. */
+  waiting: number;
+  /** Claimed by a run that is going now. */
+  processing: number;
+  /** The last attempt failed; the next run tries again. */
+  failed: number;
   withRating: number;
   redacted: number;
   averageRating: number | null;
@@ -706,10 +717,12 @@ export async function getFeedbackStats(
       analysedAt: true,
       analysisStatus: true,
       analysisVersion: true,
+      updatedAt: true,
       reviewDate: true,
       createdAt: true,
     },
   });
+  const now = new Date();
 
   const ratingCounts: Record<string, number> = {
     '1': 0,
@@ -723,6 +736,9 @@ export async function getFeedbackStats(
   let withRating = 0;
   let redacted = 0;
   let analysed = 0;
+  let waiting = 0;
+  let processing = 0;
+  let failed = 0;
   let newestAt: Date | null = null;
 
   for (const row of rows) {
@@ -732,8 +748,18 @@ export async function getFeedbackStats(
       withRating += 1;
     }
     if (row.redacted) redacted += 1;
-    if (row.analysisStatus === 'ANALYSED' && row.analysisVersion >= ANALYSIS_VERSION) {
-      analysed += 1;
+    switch (analysisStateOf(row, now)) {
+      case 'ANALYSED':
+        analysed += 1;
+        break;
+      case 'PROCESSING':
+        processing += 1;
+        break;
+      case 'FAILED':
+        failed += 1;
+        break;
+      default:
+        waiting += 1;
     }
     sourceMap.set(row.source, (sourceMap.get(row.source) ?? 0) + 1);
 
@@ -745,6 +771,9 @@ export async function getFeedbackStats(
     total: rows.length,
     analysed,
     unanalysed: rows.length - analysed,
+    waiting,
+    processing,
+    failed,
     withRating,
     redacted,
     averageRating:

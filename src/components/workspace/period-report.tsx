@@ -70,7 +70,7 @@ export function PeriodReportView({
   const title = isWeek ? 'This week' : 'This month';
 
   return (
-    <main>
+    <main className="max-w-3xl">
       {/* The header above already names the business; this page reads as one
           of the check-in family, with the same intro the others use. */}
       <PageIntro

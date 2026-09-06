@@ -39,7 +39,7 @@ export default function WorkspaceRootLayout({
   return (
     <html lang="en">
       <body className="min-h-dvh bg-ink-50">
-        <div className="mx-auto w-full max-w-3xl px-5 py-8">{children}</div>
+        <div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 sm:py-8">{children}</div>
       </body>
     </html>
   );

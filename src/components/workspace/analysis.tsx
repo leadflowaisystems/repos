@@ -6,6 +6,7 @@ import {
   PageIntro,
   Quiet,
   Section,
+  SoFar,
   ThemeRows,
   ThemeStory,
   WorkList,
@@ -45,8 +46,17 @@ export async function PortalAnalysis({
   const changing = view.better.length + view.worse.length > 0;
 
   return (
-    <>
+    <div className="max-w-3xl">
       <PageIntro eyebrow="Customers" title="Why RepOS is saying this" description={view.basis} />
+
+      {view.soFar.read > 0 || view.soFar.waiting > 0 ? (
+        <Section
+          eyebrow="What customers are mentioning so far"
+          note="Current signals, not conclusions"
+        >
+          <SoFar soFar={view.soFar} basePath={basePath} />
+        </Section>
+      ) : null}
 
       {view.work.length > 0 ? (
         <Section eyebrow="What RepOS did with your feedback">
@@ -163,6 +173,6 @@ export async function PortalAnalysis({
       ) : null}
 
       <Limits limits={view.limits} />
-    </>
+    </div>
   );
 }

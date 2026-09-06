@@ -258,3 +258,55 @@ export async function withRlsContext<T>(
 function transactionHandle(db: PrismaClient): PrismaClient {
   return (db as unknown) === (prisma as unknown) ? base : db;
 }
+
+/**
+ * A HANDLE FOR WORK NOBODY IS SIGNED IN FOR.
+ *
+ * The feedback pipeline runs after a customer's submission and after an
+ * owner's page has been served. Neither moment has a session to carry:
+ * the customer has no account, and by the time the run starts the response
+ * is gone. Every policy reads `app.user_id`, so a run with none would see
+ * nothing and read nothing — which is the correct failure, and also no
+ * pipeline.
+ *
+ * So a second transaction-local setting names the ONE client a run may
+ * touch, and `app.accessible_client_ids()` honours it alongside the person's
+ * memberships. The scope is exactly as narrow as a membership would be — one
+ * tenant, its own rows — and exactly as transient: `set_config(..., TRUE)`
+ * dies with the transaction, so a pooled connection never carries it to the
+ * next request. It is never derived from a URL. The two places that hold a
+ * client id worth trusting are the gateway, which resolved it from the
+ * customer's token inside the database, and a tenant gate that has already
+ * admitted the visitor.
+ *
+ * Built on the UNWRAPPED client on purpose. Wrapping the identity-carrying
+ * one would set `app.user_id` to nobody and the scope to the client in two
+ * different transactions, and only one of them would govern the query.
+ */
+export const SERVICE_SCOPE_SETTING = 'app.service_client_id';
+
+/** Every operation on the returned handle runs inside the scope of one client. */
+export function scopeToClient(handle: PrismaClient, clientId: string): PrismaClient {
+  if (typeof clientId !== 'string' || clientId.length === 0) {
+    throw new Error('A service scope needs a client id.');
+  }
+  const scoped = handle.$extends({
+    query: {
+      $allModels: {
+        async $allOperations({ args, query }) {
+          const [, result] = await handle.$transaction([
+            handle.$executeRaw`SELECT set_config('app.service_client_id', ${clientId}, TRUE)`,
+            query(args),
+          ]);
+          return result as unknown;
+        },
+      },
+    },
+  });
+  return scoped as unknown as PrismaClient;
+}
+
+/** The application's own connection, scoped to one client and no person. */
+export function serviceScopedDb(clientId: string): PrismaClient {
+  return scopeToClient(base, clientId);
+}

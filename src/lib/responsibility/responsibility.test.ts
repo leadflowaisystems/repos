@@ -484,7 +484,7 @@ describe('continuity', () => {
     });
     expect(one.sinceLabel).toBe('Since your check-in on 01 Mar 2026');
     expect(one.did[0]).toBe('Since your check-in on 01 Mar 2026, read 6 pieces of feedback — 2 of them sent through your feedback page.');
-    expect(one.did[1]).toBe('1 more is waiting to be read.');
+    expect(one.did[1]).toBe('1 more is being read now.');
     expect(one.did).toContain('Checked whether long waiting time is still coming up in the new feedback.');
     expect(one.lastCheckinAt?.getTime()).toBe(new Date(2026, 2, 1).getTime());
   });

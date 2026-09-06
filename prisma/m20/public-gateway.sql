@@ -210,6 +210,7 @@ GRANT EXECUTE ON FUNCTION app.public_submit(text, text, integer, text, text, tex
 REVOKE ALL ON FUNCTION app.current_user_id() FROM PUBLIC;
 REVOKE ALL ON FUNCTION app.is_platform_admin() FROM PUBLIC;
 REVOKE ALL ON FUNCTION app.accessible_client_ids() FROM PUBLIC;
+REVOKE ALL ON FUNCTION app.service_client_id() FROM PUBLIC;
 REVOKE ALL ON FUNCTION app.owned_client_ids() FROM PUBLIC;
 REVOKE ALL ON FUNCTION app.set_platform_admin(text, boolean) FROM PUBLIC;
 REVOKE ALL ON FUNCTION app.set_user_status(text, text) FROM PUBLIC;

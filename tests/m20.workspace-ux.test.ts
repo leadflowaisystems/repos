@@ -70,12 +70,19 @@ describe('every piece of feedback', () => {
 
   it('keeps the themes on the RepOS side, joined as a reading', () => {
     const understood = row.slice(row.indexOf('RepOS understood'));
-    expect(understood).toContain('{item.read ? (');
+    expect(understood).toContain("{item.state === 'ANALYSED' ? (");
     expect(understood).toContain("item.themes.join(' · ')");
     expect(understood).toContain('Nothing here matched a theme RepOS tracks.');
     expect(understood).toContain('in tone');
     expect(understood).toContain('Sorted as');
-    expect(understood).toContain('Not read yet.');
+  });
+
+  it('tells the four states apart: read, being read, waiting, could not read', () => {
+    const understood = row.slice(row.indexOf('RepOS understood'));
+    expect(understood).toContain('RepOS is reading this now.');
+    expect(understood).toContain('Waiting for RepOS to read it — usually within a minute of arriving.');
+    expect(understood).toContain('RepOS could not read this one yet. It will try again on its own.');
+    expect(understood).not.toContain('Not read yet');
   });
 });
 
@@ -99,6 +106,18 @@ describe('the reviews page', () => {
     expect(page).not.toMatch(/No data/i);
   });
 
+  it('opens with the counts that matter and says when RepOS is still reading', () => {
+    expect(page).toContain('<StatusStrip');
+    expect(page).toContain("{ label: 'read by RepOS', value: view.analysed }");
+    expect(page).toContain("{ label: 'being read now', value: inHand, tone: 'warn' as const }");
+    expect(page).toContain('Feedback has arrived and RepOS is reading it now');
+  });
+
+  it('lays the filters out as a grid, never a sideways scroll', () => {
+    expect(page).toContain('grid grid-cols-2 gap-3 sm:grid-cols-4');
+    expect(page).not.toContain('overflow-x-auto');
+  });
+
   it('carries the data it needs: the list is built with the pack', () => {
     const service = code(read('lib', 'portal', 'service.ts'));
     expect(service).toMatch(/listClientFeedback\(\s*db,\s*client\.id,\s*\{[^}]*\},\s*pack,?\s*\)/);
@@ -115,6 +134,14 @@ describe('the workspace navigation', () => {
 
   it('has six doors, in the order an owner thinks in', () => {
     expect(labels).toEqual(['Home', 'Customers', 'Reviews', 'Improvements', 'Check-in', 'Team']);
+  });
+
+  it('keeps every door on screen: wrapping on a phone, pinned from tablet up, finger-sized', () => {
+    expect(source).toContain('flex flex-wrap');
+    expect(source).not.toContain('overflow-x-auto');
+    expect(source).toContain('sm:sticky sm:top-0');
+    expect(source).toContain('min-h-11');
+    expect(source).toContain("aria-current={active ? 'page' : undefined}");
   });
 
   it('reaches the week and the month from Check-in rather than as tabs', () => {
@@ -147,7 +174,7 @@ describe('home, as an owner briefing', () => {
 
   it('asks the one question first', () => {
     expect(responsibility).toContain('Do I need to do anything?');
-    expect(home.indexOf('<Answer r={r} />')).toBeLessThan(home.indexOf('eyebrow="Needs you"'));
+    expect(home.indexOf('<Answer r={r} basePath={basePath} />')).toBeLessThan(home.indexOf('eyebrow="Needs you"'));
   });
 
   it('keeps what is going well apart from what is being watched', () => {
@@ -159,6 +186,22 @@ describe('home, as an owner briefing', () => {
     expect(home.indexOf('eyebrow="Going well"')).toBeLessThan(
       home.indexOf('eyebrow="RepOS is watching"'),
     );
+  });
+
+  it('is laid out once and adapted: one column on a phone, two on a laptop, main first', () => {
+    expect(home).toContain('grid grid-cols-1 gap-x-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]');
+    expect(home).toContain('<aside');
+    expect(home.indexOf('<Answer r={r} basePath={basePath} />')).toBeLessThan(home.indexOf('<aside'));
+    expect(home.indexOf('eyebrow="RepOS is watching"')).toBeGreaterThan(home.indexOf('<aside'));
+  });
+
+  it('shows the first customers\' signals before anything is a pattern, and never a blank', () => {
+    expect(home).toContain('<SoFar soFar={view.soFar} basePath={basePath} />');
+    expect(home).toContain('eyebrow="What customers are mentioning so far"');
+    expect(home).toContain('note="Current signals, not conclusions"');
+    const responsibilityUi = code(read('components', 'portal', 'responsibility.tsx'));
+    expect(responsibilityUi).toContain('Read what customers said about');
+    expect(responsibilityUi).toContain("`${basePath}/reviews?theme=${encodeURIComponent(top.themeKey)}`");
   });
 
   it('says what is watched, why, and when it will be flagged', () => {
@@ -222,5 +265,51 @@ describe('the customer thank-you', () => {
     expect(copy).toContain('Your feedback has gone directly to the team.');
     expect(copy).toContain('Entirely optional');
     expect(copy).not.toMatch(/only if|if you (were|are) happy|4 or 5 stars/i);
+  });
+});
+
+describe('the pipeline is wired to the product', () => {
+  it('starts a reading after every stored submission, after the response, never on it', () => {
+    const action = code(read('lib', 'actions', 'gateway.ts'));
+    const trigger = action.indexOf("triggerFeedbackProcessing(result.data.clientId, 'SUBMITTED')");
+    expect(trigger).toBeGreaterThan(0);
+    expect(trigger).toBeLessThan(action.indexOf('redirect(`/feedback/${result.data.token}/thanks`)'));
+    expect(action).toContain('if (result.data.stored) triggerFeedbackProcessing');
+    // The public request itself never reaches the analysis or a provider.
+    expect(action).not.toMatch(/@\/lib\/feedback\/analysis|classifyReviews|@\/lib\/ai\b/);
+  });
+
+  it('catches up whenever a workspace or the console is opened', () => {
+    for (const layout of [
+      ['app', '(workspace)', 'workspace', '[clientId]', 'layout.tsx'],
+      ['app', '(app)', 'clients', '[id]', 'layout.tsx'],
+    ] as const) {
+      const source = code(read(...layout));
+      expect(source).toContain("'VISIT')");
+      expect(source).toContain('export const maxDuration = 60;');
+      expect(source.indexOf('notFound()')).toBeLessThan(source.indexOf("'VISIT')"));
+    }
+    expect(code(read('app', '(feedback)', 'feedback', '[token]', 'page.tsx'))).toContain(
+      'export const maxDuration = 60;',
+    );
+  });
+
+  it('runs as a scope, not as a person, and only after the response', () => {
+    const trigger = code(read('lib', 'pipeline', 'trigger.ts'));
+    expect(trigger).toContain("import { after } from 'next/server';");
+    expect(trigger).toContain('serviceScopedDb(clientId)');
+    expect(trigger).toContain('after(run)');
+    expect(trigger).not.toMatch(/app\.user_id|currentUserId|isPlatformAdmin/);
+    const db = code(read('lib', 'db.ts'));
+    expect(db).toContain("set_config('app.service_client_id', ${clientId}, TRUE)");
+    expect(db).toContain('return scopeToClient(base, clientId);');
+  });
+
+  it('has a calm error state for the workspace', () => {
+    const error = code(read('app', '(workspace)', 'workspace', '[clientId]', 'error.tsx'));
+    expect(error).toContain("'use client'");
+    expect(error).toContain('Try again');
+    expect(error).toContain('Back to Home');
+    expect(error).not.toMatch(/error\.message|error\.digest|\.stack/);
   });
 });

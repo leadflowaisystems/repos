@@ -609,7 +609,7 @@ describe('the empty and low-data states are honest', () => {
       totalFeedback: 25,
     });
     expect(intel.evidence.unread).toBe(15);
-    expect(intel.limits.join(' ')).toMatch(/15 pieces of feedback have not been read/);
+    expect(intel.limits.join(' ')).toMatch(/15 more pieces of feedback are being read now and are not counted above yet/);
   });
 
   it('warns that a small pile is an early signal, not a conclusion', () => {

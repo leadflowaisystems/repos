@@ -59,7 +59,7 @@ export async function PortalCheckin({
   };
 
   return (
-    <>
+    <div className="max-w-3xl">
       <PageIntro eyebrow="Check-in" title={view.title} description={view.periodNote} />
       <PeriodSwitch basePath={basePath} current="checkin" />
 
@@ -132,6 +132,6 @@ export async function PortalCheckin({
       ) : null}
 
       <Limits limits={view.limits} />
-    </>
+    </div>
   );
 }

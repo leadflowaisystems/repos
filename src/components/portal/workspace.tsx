@@ -70,27 +70,31 @@ export function WorkspaceHeader({
   const currentSlug = rest.split('/').filter(Boolean)[0] ?? '';
 
   return (
-    <header className="mb-8">
+    <header className="mb-6 sm:mb-8">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <div className="min-w-0">
-          <p className="text-[15px] font-semibold tracking-tight text-ink-900">
+          <p className="truncate text-[15px] font-semibold tracking-tight text-ink-900">
             {businessName}
           </p>
           <p className="text-[12px] text-ink-500">{verticalLabel}</p>
         </div>
         <div className="flex items-center gap-3">
-          <p className="text-[11px] font-medium tracking-widest text-ink-400 uppercase">
+          <p className="hidden text-[11px] font-medium tracking-widest text-ink-400 uppercase sm:block">
             Prepared by RepOS
           </p>
           {signOut}
         </div>
       </div>
 
+      {/* The six doors, always on screen. On a phone they wrap into two rows
+          rather than scrolling sideways — a tab nobody can see is a page
+          nobody opens. From tablet width up the row stays put while the page
+          scrolls, so "where am I" and "where else can I go" never leave. */}
       <nav
         aria-label="Sections"
-        className="-mx-4 mt-4 overflow-x-auto overflow-y-hidden border-b border-ink-200 px-4 sm:mx-0 sm:px-0"
+        className="-mx-4 mt-3 border-b border-ink-200 bg-ink-50/95 px-4 backdrop-blur sm:sticky sm:top-0 sm:z-30 sm:mx-0 sm:px-0"
       >
-        <ul className="flex gap-1">
+        <ul className="flex flex-wrap gap-x-1">
           {SECTIONS.filter((s) => showExtras || !s.extra).map((s) => {
             const active =
               s.slug === 'checkin' ? CHECKIN_FAMILY.has(currentSlug) : currentSlug === s.slug;
@@ -100,7 +104,7 @@ export function WorkspaceHeader({
                   href={s.slug ? `${base}/${s.slug}` : base}
                   aria-current={active ? 'page' : undefined}
                   className={clsx(
-                    '-mb-px inline-block border-b-2 px-3 py-2.5 text-[13px] whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
+                    '-mb-px inline-flex min-h-11 items-center border-b-2 px-2.5 text-[13px] whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none sm:px-3',
                     active
                       ? 'border-ink-900 font-semibold text-ink-900'
                       : 'border-transparent text-ink-500 hover:border-ink-300 hover:text-ink-800',

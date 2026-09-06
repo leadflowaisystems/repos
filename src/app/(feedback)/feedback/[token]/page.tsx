@@ -9,6 +9,9 @@ import { resolvePublicGateway } from '@/lib/gateway/service';
 import { newFormNonce } from '@/lib/gateway/throttle';
 
 export const dynamic = 'force-dynamic';
+// The submit action runs on this route; the reading it starts continues after
+// the customer's response and needs room for a provider round trip.
+export const maxDuration = 60;
 
 export async function generateMetadata({
   params,

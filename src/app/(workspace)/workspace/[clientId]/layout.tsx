@@ -5,8 +5,11 @@ import { currentActor } from '@/lib/auth/authorize';
 import { tenantGateFor } from '@/lib/auth/guard';
 import { prisma } from '@/lib/db';
 import { verticalLabel } from '@/lib/packs';
+import { triggerFeedbackProcessing } from '@/lib/pipeline/trigger';
 
 export const dynamic = 'force-dynamic';
+// Long enough for the post-response reading of a batch and one provider round trip.
+export const maxDuration = 60;
 
 /**
  * The authenticated workspace shell.
@@ -35,6 +38,11 @@ export default async function WorkspaceLayout({
     select: { businessName: true, vertical: true },
   });
   if (!client) notFound();
+
+  // Anything waiting to be read is read now, after this page has been served.
+  // The gate above admitted this visitor to this client; that is the trust the
+  // scoped run inherits.
+  triggerFeedbackProcessing(clientId, 'VISIT');
 
   return (
     <>

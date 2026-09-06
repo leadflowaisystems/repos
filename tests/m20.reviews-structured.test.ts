@@ -70,7 +70,7 @@ describe('the reviews page', () => {
 
     // The customer's own input, untouched: nothing written, two parts rated.
     expect(item!.text).toBe('');
-    expect(item!.read).toBe(false);
+    expect(item!.state).toBe('COLLECTED');
     expect(item!.gave.dimensions).toEqual(
       expect.arrayContaining([
         { label: 'Food and drink', rating: 4 },

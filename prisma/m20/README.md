@@ -121,6 +121,25 @@ suite, which owns its own tables, not as a working alternative in production.
 Afterwards the `app` schema holds **15** functions with `public-gateway.sql`
 applied, 13 without, and the policy count is unchanged at 19.
 
+**A database that had `rls.sql` applied before the launch pass needs this
+too.** The feedback pipeline now runs on its own — after a customer submits,
+and whenever a workspace is opened with something waiting — and such a run has
+no signed-in person to carry. The file gained one function and changed one:
+
+* `app.service_client_id` — reads a second transaction-local setting,
+  `app.service_client_id`, which the application sets to the ONE client a
+  pipeline run may touch (`SELECT set_config('app.service_client_id', '<cuid>', TRUE)`).
+* `app.accessible_client_ids` — honours that setting alongside a person's
+  memberships. The scope is exactly as narrow as a membership and dies with
+  the transaction; it is never taken from a URL.
+
+Without them a pipeline run sees no rows and reads nothing (fail closed): new
+feedback stays "being read" until the file is re-applied. Re-applying the whole
+file is the supported way; the two statements are also safe to run alone.
+
+Afterwards the `app` schema holds **16** functions with `public-gateway.sql`
+applied, 14 without, and the policy count is unchanged at 19.
+
 
 ## Setting a role's password — never on a command line
 

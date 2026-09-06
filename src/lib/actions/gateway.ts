@@ -12,6 +12,7 @@ import {
   submitCustomerFeedback,
 } from '@/lib/gateway/service';
 import { requestAddress } from '@/lib/gateway/origin';
+import { triggerFeedbackProcessing } from '@/lib/pipeline/trigger';
 import { bool, failure, optInt, str, success, text, type ActionState } from './shared';
 import { adminGate, tenantGate } from '@/lib/auth/guard';
 
@@ -138,6 +139,12 @@ export async function submitCustomerFeedbackAction(
     { address: await requestAddress() },
   );
   if (!result.ok) return failure(result.message, result.errors);
+
+  // The reading starts once the thank-you page is on its way — never on the
+  // customer's request, and never as this anonymous handle: the run is scoped
+  // to the client the token resolved to, inside the database, and reaches it
+  // as the application role. Nothing stored (a duplicate, a bot) starts nothing.
+  if (result.data.stored) triggerFeedbackProcessing(result.data.clientId, 'SUBMITTED');
 
   redirect(`/feedback/${result.data.token}/thanks`);
 }

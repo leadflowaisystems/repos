@@ -583,7 +583,9 @@ describe('the optional public review path', () => {
 
     // What the submission hands back carries nothing a thank-you page could gate on.
     for (const outcome of [negative, positive]) {
-      expect(Object.keys(outcome).sort()).toEqual(['itemId', 'stored', 'token']);
+      // `clientId` is for the server — it starts the reading — and never
+      // reaches the redirect, which the compliance suite checks separately.
+      expect(Object.keys(outcome).sort()).toEqual(['clientId', 'itemId', 'stored', 'token']);
     }
   });
 });

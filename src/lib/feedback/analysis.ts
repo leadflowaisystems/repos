@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { oncePerRequest } from '@/lib/request-cache';
 import { readStructured } from '@/lib/feedback/structured';
+import { analysisStateOf, PROCESSING_STALE_MS } from '@/lib/feedback/state';
 import { getPackOrFallback, type Pack } from '@/lib/packs';
 import { sanitiseSentiment, sanitiseTags, type Sentiment } from '@/lib/analysis/classify';
 import {
@@ -30,8 +31,12 @@ import { parseJson } from '@/lib/format';
  *     deterministic engine still produces a full result and the item is still
  *     marked analysed — it simply says so was done without AI.
  *
- * There is no background worker: this is a local-first application and the
- * operator triggers analysis explicitly.
+ * Who calls it: the pipeline (`@/lib/pipeline`), after a customer submits and
+ * whenever a workspace is opened with something waiting; and the operator,
+ * explicitly, for a forced re-read. Several of those can overlap, so each
+ * item is CLAIMED before it is read — status PROCESSING — and a claim another
+ * run holds is left alone. A claim older than PROCESSING_STALE_MS belongs to
+ * a run that died and is taken over.
  */
 
 export type ServiceOk<T> = { ok: true; data: T };
@@ -56,6 +61,8 @@ export type AnalysisRunResult = {
   /** Left untouched because they were already current. */
   skippedUpToDate: number;
   needsRetry: number;
+  /** Claimed by another run that is still going, so left alone here. */
+  inProgress: number;
   /** True when a provider was actually used for at least one item. */
   usedAi: boolean;
   /** Plain-language notes, safe to show the operator. Never contains a key. */
@@ -68,6 +75,7 @@ type ItemRow = {
   stars: number | null;
   analysisStatus: string;
   analysisVersion: number;
+  updatedAt: Date;
 };
 
 export type AnalyseOptions = {
@@ -112,19 +120,28 @@ export async function analyseClientFeedback(
       stars: true,
       analysisStatus: true,
       analysisVersion: true,
+      updatedAt: true,
     },
   });
 
-  // Idempotency: only items that have never been analysed, previously failed,
-  // or were analysed by an older engine version.
-  const pending: ItemRow[] = options.force
-    ? all
-    : all.filter(
-        (row) =>
-          row.analysisStatus !== 'ANALYSED' || row.analysisVersion < ANALYSIS_VERSION,
-      );
+  // Idempotency, and one reader per item. Eligible: never read, failed, read
+  // by an older engine, or claimed by a run that never finished. A fresh claim
+  // belongs to another run — two customers sending a second apart start two
+  // runs, and the second must not read what the first is reading.
+  const staleBefore = new Date(now.getTime() - PROCESSING_STALE_MS);
+  const inProgressIds = new Set(
+    all
+      .filter((row) => row.analysisStatus === 'PROCESSING' && row.updatedAt >= staleBefore)
+      .map((row) => row.id),
+  );
+  const pending: ItemRow[] = all.filter((row) => {
+    if (inProgressIds.has(row.id)) return false;
+    if (options.force) return true;
+    const state = analysisStateOf(row, now);
+    return state === 'COLLECTED' || state === 'FAILED';
+  });
 
-  const skippedUpToDate = all.length - pending.length;
+  const skippedUpToDate = all.length - pending.length - inProgressIds.size;
   const queue = options.limit ? pending.slice(0, options.limit) : pending;
 
   if (queue.length === 0) {
@@ -133,11 +150,60 @@ export async function analyseClientFeedback(
       analysed: 0,
       skippedUpToDate,
       needsRetry: 0,
+      inProgress: inProgressIds.size,
       usedAi: false,
       notes:
         all.length === 0
           ? ['There is no feedback to read yet.']
-          : ['Everything here has already been read.'],
+          : inProgressIds.size > 0
+            ? ['Everything here is being read now.']
+            : ['Everything here has already been read.'],
+    });
+  }
+
+  // Claim before reading. Each claim is one conditional update that changes
+  // the status alone — the customer's words are never touched — and a row
+  // another run claimed in the meantime fails the condition, so no item is
+  // read twice at once: the database serialises the two updates and the
+  // second sees a fresh claim. The automatic path claims item by item, which
+  // is exact; a forced re-read is the operator's own click on a pile nobody
+  // else is reading, so it claims the pile in one statement instead of two
+  // hundred.
+  const notHeldByAnother = { NOT: { analysisStatus: 'PROCESSING', updatedAt: { gte: staleBefore } } };
+  const claimed: ItemRow[] = [];
+  if (options.force) {
+    const claimStart = new Date();
+    const queueIds = queue.map((row) => row.id);
+    await db.reviewItem.updateMany({
+      where: { id: { in: queueIds }, clientId, ...notHeldByAnother },
+      data: { analysisStatus: 'PROCESSING' },
+    });
+    const held = await db.reviewItem.findMany({
+      where: { id: { in: queueIds }, clientId, analysisStatus: 'PROCESSING', updatedAt: { gte: claimStart } },
+      select: { id: true },
+    });
+    const heldIds = new Set(held.map((row) => row.id));
+    claimed.push(...queue.filter((row) => heldIds.has(row.id)));
+  } else {
+    for (const row of queue) {
+      const claim = await db.reviewItem.updateMany({
+        where: { id: row.id, clientId, ...notHeldByAnother },
+        data: { analysisStatus: 'PROCESSING' },
+      });
+      if (claim.count === 1) claimed.push(row);
+    }
+  }
+  const inProgress = inProgressIds.size + (queue.length - claimed.length);
+
+  if (claimed.length === 0) {
+    return ok({
+      considered: all.length,
+      analysed: 0,
+      skippedUpToDate,
+      needsRetry: 0,
+      inProgress,
+      usedAi: false,
+      notes: ['Everything here is being read now.'],
     });
   }
 
@@ -149,8 +215,8 @@ export async function analyseClientFeedback(
   let aiModel: string | null = null;
 
   if (useAi) {
-    for (let start = 0; start < queue.length; start += AI_BATCH_SIZE) {
-      const slice = queue.slice(start, start + AI_BATCH_SIZE);
+    for (let start = 0; start < claimed.length; start += AI_BATCH_SIZE) {
+      const slice = claimed.slice(start, start + AI_BATCH_SIZE);
       try {
         const outcome = await classifyReviews(
           slice.map((row) => ({ text: row.text, stars: row.stars })),
@@ -191,7 +257,7 @@ export async function analyseClientFeedback(
   let analysed = 0;
   let needsRetry = 0;
 
-  for (const row of queue) {
+  for (const row of claimed) {
     try {
       const normalized = normalizeFeedback({
         text: row.text,
@@ -249,6 +315,7 @@ export async function analyseClientFeedback(
     analysed,
     skippedUpToDate,
     needsRetry,
+    inProgress,
     usedAi,
     notes: [...new Set(notes)],
   });
@@ -263,6 +330,8 @@ export type AnalysisCoverage = {
   analysed: number;
   needsAnalysis: number;
   failed: number;
+  /** Claimed by a run within the last PROCESSING_STALE_MS. */
+  processing: number;
   outOfDate: number;
   sentimentCounts: Record<Sentiment, number>;
   /** True when nothing at all is waiting. */
@@ -284,12 +353,14 @@ export async function getAnalysisCoverage(
 ): Promise<AnalysisCoverage> {
   const rows = await db.reviewItem.findMany({
     where: { clientId },
-    select: { analysisStatus: true, analysisVersion: true, sentiment: true },
+    select: { analysisStatus: true, analysisVersion: true, sentiment: true, updatedAt: true },
   });
 
   const sentimentCounts: Record<Sentiment, number> = { ...EMPTY_SENTIMENT };
+  const now = new Date();
   let analysed = 0;
   let failed = 0;
+  let processing = 0;
   let outOfDate = 0;
 
   for (const row of rows) {
@@ -304,6 +375,7 @@ export async function getAnalysisCoverage(
     } else {
       if (row.analysisStatus === 'FAILED') failed += 1;
       if (row.analysisStatus === 'ANALYSED') outOfDate += 1;
+      if (analysisStateOf(row, now) === 'PROCESSING') processing += 1;
     }
   }
 
@@ -313,6 +385,7 @@ export async function getAnalysisCoverage(
     analysed,
     needsAnalysis,
     failed,
+    processing,
     outOfDate,
     sentimentCounts,
     upToDate: needsAnalysis === 0,

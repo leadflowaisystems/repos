@@ -390,6 +390,12 @@ export type CustomerSubmission = {
 
 export type SubmitOutcome = {
   token: string;
+  /**
+   * The business the token resolved to — inside the database, never from a
+   * URL — so the caller can start the reading for it. Server-side only: the
+   * customer's redirect carries the token and nothing else.
+   */
+  clientId: string;
   /** False when the submission was accepted but deliberately not stored. */
   stored: boolean;
   itemId: string | null;
@@ -431,7 +437,7 @@ export async function submitCustomerFeedback(
 
   // A filled honeypot is not a person. Say thank you and store nothing.
   if (typeof raw.website === 'string' && raw.website.trim().length > 0) {
-    return ok({ token: gateway.token, stored: false, itemId: null });
+    return ok({ token: gateway.token, clientId: gateway.clientId, stored: false, itemId: null });
   }
 
   const stars = raw.stars;
@@ -467,13 +473,13 @@ export async function submitCustomerFeedback(
   // The same form posted twice lands once.
   if (typeof raw.nonce === 'string' && raw.nonce.length > 0 && raw.nonce.length <= 64) {
     if (!nonces.useOnce(`${gateway.token}:${raw.nonce}`, now)) {
-      return ok({ token: gateway.token, stored: false, itemId: null });
+      return ok({ token: gateway.token, clientId: gateway.clientId, stored: false, itemId: null });
     }
   }
 
   // Two or more links is advertising, not feedback.
   if ((text.match(URL_RE) ?? []).length >= 2) {
-    return ok({ token: gateway.token, stored: false, itemId: null });
+    return ok({ token: gateway.token, clientId: gateway.clientId, stored: false, itemId: null });
   }
 
   const input = {
@@ -501,6 +507,7 @@ export async function submitCustomerFeedback(
 
   return ok({
     token: gateway.token,
+    clientId: gateway.clientId,
     stored: !ingested.data.duplicate,
     itemId: ingested.data.duplicate ? null : ingested.data.id,
   });

@@ -112,13 +112,13 @@ describe('from nothing to something', () => {
     expect(r.did[0]).toBe('Read 1 piece of feedback.');
   });
 
-  it('unread feedback is reported as waiting, never counted as read', async () => {
+  it('unread feedback is reported as being read, never counted as read', async () => {
     const id = await makeClient('Sunrise Dental Clinic');
     await paste(id, waits(4));
     const r = await responsibility(id);
     expect(r.state).toBe('WAITING_FOR_EVIDENCE');
-    expect(r.answerDetail).toMatch(/^4 pieces of feedback are waiting to be read/);
-    expect(r.did).toEqual(['4 pieces of feedback are waiting to be read.']);
+    expect(r.answerDetail).toMatch(/^4 pieces of feedback have arrived and RepOS is reading them now/);
+    expect(r.did).toEqual(['4 pieces of feedback are being read now.']);
   });
 
   it('a clear complaint on enough feedback becomes the one thing to decide', async () => {

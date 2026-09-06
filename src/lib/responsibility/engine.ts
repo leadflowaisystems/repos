@@ -738,20 +738,20 @@ function didFor(args: {
       did.push(`Since your check-in on ${formatDate(since)}, read ${pieces(f.read)}${direct}.`);
     } else if (f.unread > 0) {
       did.push(
-        `Since your check-in on ${formatDate(since)}, ${pieces(f.unread)} ${f.unread === 1 ? 'has' : 'have'} come in and ${f.unread === 1 ? 'is' : 'are'} waiting to be read.`,
+        `Since your check-in on ${formatDate(since)}, ${pieces(f.unread)} ${f.unread === 1 ? 'has' : 'have'} come in and ${f.unread === 1 ? 'is' : 'are'} being read now.`,
       );
     } else {
       did.push(`No new feedback has come in since your check-in on ${formatDate(since)}.`);
     }
     if (f.read > 0 && f.unread > 0) {
-      did.push(`${f.unread} more ${f.unread === 1 ? 'is' : 'are'} waiting to be read.`);
+      did.push(`${f.unread} more ${f.unread === 1 ? 'is' : 'are'} being read now.`);
     }
   } else if (intel.evidence.analysed > 0) {
     did.push(
-      `Read ${pieces(intel.evidence.analysed)}${f.direct > 0 ? ` — ${f.direct} of them sent through your feedback page` : ''}${intel.evidence.unread > 0 ? ` (${intel.evidence.unread} more waiting to be read)` : ''}.`,
+      `Read ${pieces(intel.evidence.analysed)}${f.direct > 0 ? ` — ${f.direct} of them sent through your feedback page` : ''}${intel.evidence.unread > 0 ? ` (${intel.evidence.unread} more being read now)` : ''}.`,
     );
   } else if (intel.evidence.unread > 0) {
-    did.push(`${pieces(intel.evidence.unread)} ${intel.evidence.unread === 1 ? 'is' : 'are'} waiting to be read.`);
+    did.push(`${pieces(intel.evidence.unread)} ${intel.evidence.unread === 1 ? 'is' : 'are'} being read now.`);
   }
 
   // The comparisons and the grouping, in M12's own words: what RepOS read,
@@ -837,7 +837,7 @@ function answerFor(args: {
       answer: 'Nothing to decide yet.',
       detail:
         intel.evidence.unread > 0
-          ? `${pieces(intel.evidence.unread)} ${intel.evidence.unread === 1 ? 'is' : 'are'} waiting to be read. RepOS will have something to say once ${intel.evidence.unread === 1 ? 'it has' : 'they have'} been read.`
+          ? `${pieces(intel.evidence.unread)} ${intel.evidence.unread === 1 ? 'has' : 'have'} arrived and RepOS is reading ${intel.evidence.unread === 1 ? 'it' : 'them'} now — usually done within a minute. Reload to see what it found.`
           : 'RepOS has no customer feedback to work from yet. Once it starts coming in, this page will say what needs you.',
     };
   }

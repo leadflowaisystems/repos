@@ -116,6 +116,35 @@ export type PortalStep = { label: string; done: boolean };
 export type PortalFact = { label: string; value: string; scope: string };
 
 /**
+ * CURRENT SIGNALS — what customers are saying so far, before it is a pattern.
+ *
+ * The intelligence names a theme only once three customers have raised it,
+ * and that floor is right for a conclusion. It is wrong for a first week: an
+ * owner with two pieces of feedback should still see what those two said.
+ * So this lists every mention RepOS has read, marks the ones that have
+ * cleared the floor, and says plainly that the rest are single mentions.
+ * Nothing here is a trend, a comparison or a cause.
+ */
+export type PortalSoFar = {
+  /** Read by RepOS and counted here. */
+  read: number;
+  /** Arrived and being read; not counted here yet. */
+  waiting: number;
+  mentions: Array<{
+    themeKey: string;
+    label: string;
+    kind: 'PRAISE' | 'ISSUE';
+    count: number;
+    /** Raised by enough customers to be called a pattern. */
+    pattern: boolean;
+  }>;
+  /** The parts of the visit customers rated on the feedback page, with the average. */
+  rated: Array<{ label: string; average: number; rated: number; low: number }>;
+  /** What the numbers can and cannot mean, in one line. */
+  note: string;
+};
+
+/**
  * The before/after of a change, straight from the measurement engine.
  *
  * Observational by construction: it names the two piles and the date the
@@ -283,6 +312,7 @@ export type PortalView = {
   summary: string;
   basis: string;
   facts: PortalFact[];
+  soFar: PortalSoFar;
 
   /** The invisible work, stated plainly. */
   work: string[];
@@ -933,10 +963,13 @@ export function summaryFor(
   first: { insight: Insight; outcome: PortalOutcome | null; recurring: boolean } | null,
 ): { mood: PortalMood; summary: string } {
   if (intel.evidence.analysed === 0) {
+    const arrived = intel.evidence.unread;
     return {
       mood: 'TOO_EARLY',
       summary:
-        'We have not collected any feedback yet, so there is nothing to tell you about your customers.',
+        arrived > 0
+          ? `${pieces(arrived)} ${arrived === 1 ? 'has' : 'have'} arrived and RepOS is reading ${arrived === 1 ? 'it' : 'them'} now.`
+          : 'We have not collected any feedback yet, so there is nothing to tell you about your customers.',
     };
   }
   if (!intel.evidence.enough) {
@@ -1076,6 +1109,37 @@ export function buildPortalView(input: PortalInput): PortalView {
     ? [...loved, ...unhappy].filter((s) => s.movementDirection === null)
     : [];
 
+  // ---- Current signals, pattern or not -----------------------------------
+  // Counts straight from the theme summary, so a first week is not a blank
+  // page. The floor still decides what is a pattern; it no longer decides
+  // whether the owner may see what two customers said.
+  const mentions = [...input.themes.issues, ...input.themes.praises]
+    .filter((r) => r.count > 0)
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+    .slice(0, 8)
+    .map((r) => ({
+      themeKey: r.key,
+      label: r.label,
+      kind: r.kind,
+      count: r.count,
+      pattern: r.count >= MIN_MENTIONS_TO_NAME,
+    }));
+  const rated = input.themes.dimensions
+    .filter((d) => d.rated > 0 && d.average !== null)
+    .map((d) => ({ label: d.label, average: d.average as number, rated: d.rated, low: d.low }));
+  const soFar: PortalSoFar = {
+    read: intel.evidence.analysed,
+    waiting: intel.evidence.unread,
+    mentions,
+    rated,
+    note:
+      mentions.length === 0 && rated.length === 0
+        ? 'Once RepOS has read some feedback, what customers mention appears here.'
+        : mentions.some((m) => m.pattern)
+          ? `Marked ones are patterns — raised by ${MIN_MENTIONS_TO_NAME} or more customers. The rest are mentions RepOS is keeping an eye on, not conclusions.`
+          : `So far these are single mentions. RepOS calls something a pattern once ${MIN_MENTIONS_TO_NAME} customers have raised it, and says nothing about direction until there is history to compare.`,
+  };
+
   // ---- Facts, each with its own scope ---------------------------------------
   const facts: PortalFact[] = [
     {
@@ -1114,7 +1178,7 @@ export function buildPortalView(input: PortalInput): PortalView {
   const work: string[] = [];
   if (intel.evidence.analysed > 0) {
     work.push(
-      `Read ${pieces(intel.evidence.analysed)}${intel.evidence.unread > 0 ? ` (${intel.evidence.unread} more waiting to be read)` : ''}.`,
+      `Read ${pieces(intel.evidence.analysed)}${intel.evidence.unread > 0 ? ` (${intel.evidence.unread} more being read now)` : ''}.`,
     );
     work.push(
       patterns > 0
@@ -1344,9 +1408,14 @@ export function buildPortalView(input: PortalInput): PortalView {
     summary,
     basis:
       intel.evidence.analysed === 0
-        ? 'No feedback collected yet.'
-        : `Based on ${pieces(intel.evidence.analysed)} we have read.`,
+        ? intel.evidence.unread > 0
+          ? 'Usually read within a minute of arriving. Reload to see what RepOS found.'
+          : 'No feedback collected yet.'
+        : intel.evidence.unread > 0
+          ? `Based on ${pieces(intel.evidence.analysed)} we have read; ${intel.evidence.unread} more ${intel.evidence.unread === 1 ? 'is' : 'are'} being read now.`
+          : `Based on ${pieces(intel.evidence.analysed)} we have read.`,
     facts,
+    soFar,
     work,
 
     keep,

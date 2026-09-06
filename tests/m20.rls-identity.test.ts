@@ -95,6 +95,7 @@ async function installIdentityFunctions(): Promise<void> {
     'CREATE OR REPLACE FUNCTION app.current_user_id()',
     'CREATE OR REPLACE FUNCTION app.user_id_for_auth(p_auth_id text)',
     'CREATE OR REPLACE FUNCTION app.is_platform_admin()',
+    'CREATE OR REPLACE FUNCTION app.service_client_id()',
     'CREATE OR REPLACE FUNCTION app.accessible_client_ids()',
     'CREATE OR REPLACE FUNCTION app.owned_client_ids()',
   ];

@@ -1,5 +1,6 @@
-import type { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { processClientFeedback } from '@/lib/pipeline/feedback';
 import { createRlsTestDb, type RlsTestDb } from './helpers/rls-db';
 import { resetDb } from './helpers/test-db';
 
@@ -84,6 +85,7 @@ let updateClient: typeof import('@/lib/clients/service')['updateClient'];
 let archiveClient: typeof import('@/lib/clients/service')['archiveClient'];
 let restoreClient: typeof import('@/lib/clients/service')['restoreClient'];
 let validClientInput: typeof import('./helpers/test-db')['validClientInput'];
+let scopeToClient: typeof import('@/lib/db')['scopeToClient'];
 
 let seeded: { adminId: string; alphaUserId: string; betaUserId: string; betaClientId: string };
 
@@ -103,7 +105,7 @@ beforeAll(async () => {
     '@/lib/clients/service',
   ));
   ({ validClientInput } = await import('./helpers/test-db'));
-  ({ prisma: app } = await import('@/lib/db'));
+  ({ prisma: app, scopeToClient } = await import('@/lib/db'));
 }, 180_000);
 
 afterAll(async () => {
@@ -177,6 +179,105 @@ describe('the role the application actually connects as', () => {
       `SELECT count(*) AS n FROM pg_policies WHERE schemaname = 'public'`,
     );
     expect(Number(policies[0]?.n)).toBe(19);
+  });
+
+  it('ships the scope the pipeline runs under', async () => {
+    const fn = await owner.$queryRawUnsafe<{ n: bigint }[]>(
+      `SELECT count(*) AS n FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'app' AND p.proname = 'service_client_id'`,
+    );
+    expect(Number(fn[0]?.n)).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// THE PIPELINE, WITH NOBODY SIGNED IN
+// ---------------------------------------------------------------------------
+
+describe('the pipeline, with nobody signed in', () => {
+  /** A plain handle as `repos_app` — no identity wrapper — for the scope to sit on. */
+  let raw: PrismaClient;
+
+  beforeAll(() => {
+    raw = new PrismaClient({ datasources: { db: { url: harness.appUrl } } });
+  });
+
+  afterAll(async () => {
+    await raw.$disconnect();
+  });
+
+  async function twoBusinessesWithFeedback() {
+    const gamma = await owner.client.create({
+      data: { businessName: 'Gamma Salon', vertical: 'salon', status: 'ACTIVE' },
+      select: { id: true },
+    });
+    const betaItem = await owner.reviewItem.create({
+      data: { clientId: seeded.betaClientId, text: 'Treadmills were out of order again', stars: 2, source: 'REP_OS_QR' },
+      select: { id: true },
+    });
+    const gammaItem = await owner.reviewItem.create({
+      data: { clientId: gamma.id, text: 'Lovely haircut, will be back', stars: 5, source: 'REP_OS_QR' },
+      select: { id: true },
+    });
+    return { gammaId: gamma.id, betaItem: betaItem.id, gammaItem: gammaItem.id };
+  }
+
+  it('a run scoped to one business sees that business and nothing else', async () => {
+    const { gammaItem } = await twoBusinessesWithFeedback();
+    const scoped = scopeToClient(raw, seeded.betaClientId);
+
+    expect(await scoped.client.count()).toBe(1);
+    expect(await scoped.client.findUnique({ where: { id: seeded.betaClientId } })).not.toBeNull();
+    expect(await scoped.reviewItem.count()).toBe(1);
+    expect(await scoped.reviewItem.findUnique({ where: { id: gammaItem } })).toBeNull();
+    // Cannot write across the line either: the row simply is not there.
+    const across = await scoped.reviewItem.updateMany({
+      where: { id: gammaItem },
+      data: { analysisStatus: 'FAILED' },
+    });
+    expect(across.count).toBe(0);
+    expect((await owner.reviewItem.findUniqueOrThrow({ where: { id: gammaItem } })).analysisStatus).toBe('PENDING');
+    // And the person-side tables stay closed: a scope is not an identity.
+    expect(await scoped.user.count()).toBe(0);
+  });
+
+  it('the scope dies with its transaction: the pool carries nothing to the next query', async () => {
+    await twoBusinessesWithFeedback();
+    const scoped = scopeToClient(raw, seeded.betaClientId);
+    expect(await scoped.reviewItem.count()).toBe(1);
+    // Same connection pool, no scope, no session: nothing.
+    expect(await raw.reviewItem.count()).toBe(0);
+    expect(await raw.client.count()).toBe(0);
+    session = null;
+    expect(await app.reviewItem.count()).toBe(0);
+  });
+
+  it('reads one business\'s waiting feedback as repos_app and leaves the other untouched', async () => {
+    const { betaItem, gammaItem } = await twoBusinessesWithFeedback();
+    const scoped = scopeToClient(raw, seeded.betaClientId);
+
+    const run = await processClientFeedback(scoped, seeded.betaClientId, { useAi: false });
+    expect(run.ok).toBe(true);
+    expect(run.analysed).toBe(1);
+    expect(run.needsRetry).toBe(0);
+
+    const read = await owner.reviewItem.findUniqueOrThrow({ where: { id: betaItem } });
+    expect(read.analysisStatus).toBe('ANALYSED');
+    expect(read.text).toBe('Treadmills were out of order again');
+    expect(read.triageVersion).toBeGreaterThan(0);
+
+    const untouched = await owner.reviewItem.findUniqueOrThrow({ where: { id: gammaItem } });
+    expect(untouched.analysisStatus).toBe('PENDING');
+    expect(await owner.reviewItem.count()).toBe(2);
+  });
+
+  it('a scope for a business that does not exist reads nothing and writes nothing', async () => {
+    await twoBusinessesWithFeedback();
+    const scoped = scopeToClient(raw, 'clientthatdoesnotexist00');
+    expect(await scoped.reviewItem.count()).toBe(0);
+    const run = await processClientFeedback(scoped, 'clientthatdoesnotexist00', { useAi: false });
+    expect(run.ok).toBe(false);
+    expect(await owner.reviewItem.count({ where: { analysisStatus: 'PENDING' } })).toBe(2);
   });
 });
 

@@ -21,6 +21,20 @@ CREATE OR REPLACE FUNCTION app.current_user_id() RETURNS text
     SELECT NULLIF(current_setting('app.user_id', true), '')
 $$;
 
+-- --- work nobody is signed in for -----------------------------------------
+-- The feedback pipeline runs after a customer's submission has been answered
+-- and after an owner's page has been served: no session, no person, and
+-- therefore no `app.user_id`. Rather than lend such a run somebody's identity,
+-- the application names the ONE client the run may touch, transaction-local
+-- exactly like the user id: SET LOCAL app.service_client_id = '<cuid>'.
+-- The scope is as narrow as a membership and as short-lived as the
+-- transaction; it is never taken from a URL.
+
+CREATE OR REPLACE FUNCTION app.service_client_id() RETURNS text
+  LANGUAGE sql STABLE AS $$
+    SELECT NULLIF(current_setting('app.service_client_id', true), '')
+$$;
+
 CREATE OR REPLACE FUNCTION app.is_platform_admin() RETURNS boolean
   LANGUAGE sql STABLE SECURITY DEFINER AS $$
     SELECT EXISTS (
@@ -75,6 +89,9 @@ CREATE OR REPLACE FUNCTION app.accessible_client_ids() RETURNS SETOF text
     UNION
     SELECT m."clientId" FROM public."Membership" m
     WHERE m."userId" = app.current_user_id() AND m.status = 'ACTIVE'
+    UNION
+    -- A pipeline run scoped to one client, and nothing else (see above).
+    SELECT app.service_client_id() WHERE app.service_client_id() IS NOT NULL
 $$;
 
 -- --- the application role --------------------------------------------------

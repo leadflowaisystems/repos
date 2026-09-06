@@ -1,6 +1,7 @@
 import type { ClientIntelligence } from '@/lib/intelligence/engine';
 import type { FeedbackRow, FeedbackStats } from '@/lib/feedback/service';
 import type { AnalysisCoverage } from '@/lib/feedback/analysis';
+import type { AnalysisState } from '@/lib/feedback/state';
 import type { SnapshotListRow } from '@/lib/snapshots/service';
 import { SENTIMENT_LABELS } from '@/lib/analysis/normalize';
 import { formatDate } from '@/lib/format';
@@ -13,6 +14,7 @@ import {
   type PortalAction,
   type PortalInput,
   type PortalSignal,
+  type PortalSoFar,
   type PortalWatch,
 } from './view';
 
@@ -71,6 +73,8 @@ export type AnalysisView = {
   early: PortalSignal[];
   quietNote: string | null;
   noAction: string;
+  /** Current signals: what is being said so far, pattern or not. */
+  soFar: PortalSoFar;
   limits: string[];
 };
 
@@ -149,6 +153,7 @@ export function buildAnalysisView(input: PortalInput): AnalysisView {
     early: v.early,
     quietNote: v.quietNote,
     noAction: v.noAction,
+    soFar: v.soFar,
     limits: v.limits,
   };
 }
@@ -229,10 +234,11 @@ export type ReviewItem = {
     selected: string[];
   };
   /**
-   * Whether RepOS has read this yet. Without it, "no theme" and "not looked
-   * at" would render the same, and only one of them is true.
+   * Where this stands with RepOS. Without it, "no theme" and "not looked at
+   * yet" would render the same, and only one of them is true — and "being read
+   * now" and "could not be read" are different news again.
    */
-  read: boolean;
+  state: AnalysisState;
   sentiment: string;
   sentimentLabel: string;
   /** Null when the reply engine has not sorted it. */
@@ -250,6 +256,12 @@ export type ReviewsView = {
   businessName: string;
   total: number;
   analysed: number;
+  /** Collected, not yet read: the next run reads these. */
+  waiting: number;
+  /** Being read by a run that is going now. */
+  processing: number;
+  /** The last reading failed; the next run tries again. */
+  failed: number;
   withRating: number;
   averageRating: number | null;
   ratings: Array<{ stars: number; count: number }>;
@@ -397,6 +409,9 @@ export function buildReviewsView(input: {
     businessName: input.businessName,
     total: input.stats.total,
     analysed: input.stats.analysed,
+    waiting: input.stats.waiting,
+    processing: input.stats.processing,
+    failed: input.stats.failed,
     withRating: input.stats.withRating,
     averageRating: input.stats.averageRating,
     ratings,
@@ -419,7 +434,7 @@ export function buildReviewsView(input: {
         stars: row.stars,
         at: row.reviewDate,
         sourceLabel: row.sourceLabel,
-        read: row.analysed,
+        state: row.state,
         gave: {
           dimensions: row.answers.map((a) => ({ label: a.label, rating: a.rating })),
           selected: row.answers.flatMap((a) => a.signals),

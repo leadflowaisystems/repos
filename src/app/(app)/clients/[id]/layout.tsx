@@ -5,8 +5,11 @@ import { ClientTabs } from '@/components/client-tabs';
 import { prisma } from '@/lib/db';
 import { verticalLabel } from '@/lib/packs';
 import { titleCase } from '@/lib/format';
+import { triggerFeedbackProcessing } from '@/lib/pipeline/trigger';
 
 export const dynamic = 'force-dynamic';
+// Long enough for the post-response reading of a batch and one provider round trip.
+export const maxDuration = 60;
 
 const STATUS_TONE: Record<string, 'good' | 'brand' | 'warn' | 'neutral' | 'bad'> = {
   ACTIVE: 'good',
@@ -38,6 +41,10 @@ export default async function ClientLayout({
   });
 
   if (!client) notFound();
+
+  // The console catches up too: a row that could only be read from a button
+  // was the reason two real reviews sat unread. Runs after the response.
+  triggerFeedbackProcessing(client.id, 'VISIT');
 
   return (
     <>

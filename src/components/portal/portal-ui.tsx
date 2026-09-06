@@ -10,8 +10,10 @@ import type {
   PortalOutcome,
   PortalQuestion,
   PortalSignal,
+  PortalSoFar,
   PortalWatch,
 } from '@/lib/portal/view';
+import { pieces } from '@/lib/portal/view';
 import type { ReviewItem } from '@/lib/portal/pages';
 import { formatDate } from '@/lib/format';
 
@@ -114,7 +116,7 @@ export function Picture({
           Right now
         </span>
       </div>
-      <p className="text-[24px] leading-[1.28] font-semibold tracking-tight text-balance text-ink-900 sm:text-[30px]">
+      <p className="max-w-3xl text-[20px] leading-[1.28] font-semibold tracking-tight text-balance text-ink-900 sm:text-[24px]">
         {summary}
       </p>
       <p className="mt-2.5 text-[13px] text-ink-500">{basis}</p>
@@ -208,7 +210,7 @@ export function Layer({
 }) {
   return (
     <div className="grid grid-cols-1 gap-x-4 gap-y-0.5 py-1.5 sm:grid-cols-[7.5rem_1fr]">
-      <p className="pt-0.5 text-[10px] font-semibold tracking-widest text-ink-400 uppercase">
+      <p className="pt-0.5 text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
         {LAYER_LABELS[kind]}
       </p>
       <div
@@ -247,7 +249,7 @@ export function Tag({ bucket }: { bucket: PortalBucket }) {
   return (
     <span
       className={clsx(
-        'inline-block rounded-sm px-1.5 py-0.5 text-[10px] font-semibold tracking-wider uppercase',
+        'inline-block rounded-sm px-1.5 py-0.5 text-[11px] font-semibold tracking-wider uppercase',
         BUCKET_TONE[bucket],
       )}
     >
@@ -277,7 +279,7 @@ export function EvidenceLink({
   return (
     <Link
       href={`${basePath}/reviews?theme=${encodeURIComponent(themeKey)}`}
-      className="group inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-700 transition-colors hover:text-ink-900 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:ring-offset-2 focus-visible:outline-none"
+      className="inline-flex min-h-9 items-center gap-1.5 group text-[13px] font-medium text-ink-700 transition-colors hover:text-ink-900 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:ring-offset-2 focus-visible:outline-none"
     >
       {label ?? `Read the ${count} ${count === 1 ? 'comment' : 'comments'}`}
       <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
@@ -693,7 +695,7 @@ export function MemoryStrip({ memory }: { memory: NonNullable<PortalAction['memo
     <ol className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-ink-200 bg-ink-200 sm:grid-cols-4">
       {cells.map(([k, v], i) => (
         <li key={k} className="bg-white px-3 py-2">
-          <p className="text-[10px] tracking-widest text-ink-400 uppercase">{k}</p>
+          <p className="text-[11px] tracking-widest text-ink-400 uppercase">{k}</p>
           <p
             className={clsx(
               'mt-0.5 leading-snug',
@@ -767,11 +769,11 @@ export function BeforeAfter({ outcome }: { outcome: PortalOutcome }) {
           tell you this" is as much of the answer as the number is. */}
       <dl className="mt-3 space-y-2.5">
         <div>
-          <dt className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">What we know</dt>
+          <dt className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">What we know</dt>
           <dd className="mt-0.5 text-[14px] leading-relaxed text-ink-900">{outcome.headline}</dd>
         </div>
         <div>
-          <dt className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">
+          <dt className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
             What we cannot tell you
           </dt>
           <dd className="mt-0.5 text-[13px] leading-relaxed text-ink-700">
@@ -781,7 +783,7 @@ export function BeforeAfter({ outcome }: { outcome: PortalOutcome }) {
         </div>
       </dl>
       <details className="mt-2 group">
-        <summary className="cursor-pointer list-none text-[12px] font-medium text-ink-600 hover:text-ink-900">
+        <summary className="inline-flex min-h-9 cursor-pointer items-center list-none text-[12px] font-medium text-ink-600 hover:text-ink-900">
           Why RepOS says this <span aria-hidden>›</span>
         </summary>
         <ul className="mt-1.5 space-y-1 border-l-2 border-ink-200 pl-3 text-[12px] leading-relaxed text-ink-600">
@@ -1091,7 +1093,7 @@ export function ReviewRow({ item }: { item: ReviewItem }) {
     <li className="py-5">
       <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div>
-          <p className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">
+          <p className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
             Customer gave
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-500">
@@ -1128,7 +1130,7 @@ export function ReviewRow({ item }: { item: ReviewItem }) {
 
           {gave.selected.length > 0 ? (
             <div className="mt-3">
-              <p className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">Selected</p>
+              <p className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">Selected</p>
               <ul className="mt-1.5 flex flex-wrap gap-1.5">
                 {gave.selected.map((label) => (
                   <li
@@ -1143,7 +1145,7 @@ export function ReviewRow({ item }: { item: ReviewItem }) {
           ) : null}
 
           <div className="mt-3">
-            <p className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">Written</p>
+            <p className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">Written</p>
             {item.text.length > 0 ? (
               <p className="mt-1 text-[14px] leading-relaxed text-ink-900">“{item.text}”</p>
             ) : (
@@ -1157,10 +1159,10 @@ export function ReviewRow({ item }: { item: ReviewItem }) {
         </div>
 
         <div className="border-t border-dashed border-ink-200 pt-3 md:border-t-0 md:border-l md:pt-0 md:pl-6">
-          <p className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">
+          <p className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
             RepOS understood
           </p>
-          {item.read ? (
+          {item.state === 'ANALYSED' ? (
             <div className="mt-1.5 space-y-1.5 text-[13px] leading-relaxed text-ink-700">
               {item.themes.length > 0 ? (
                 <p className="text-ink-900">{item.themes.join(' · ')}</p>
@@ -1190,7 +1192,7 @@ export function ReviewRow({ item }: { item: ReviewItem }) {
               ) : null}
               {item.suggestedReply ? (
                 <details className="group pt-1">
-                  <summary className="cursor-pointer list-none text-[12px] font-medium text-ink-600 hover:text-ink-900 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none">
+                  <summary className="inline-flex min-h-9 cursor-pointer items-center list-none text-[12px] font-medium text-ink-600 hover:text-ink-900 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none">
                     Suggested reply <span aria-hidden>›</span>
                   </summary>
                   <p className="mt-1.5 border-l-2 border-ink-200 pl-3 whitespace-pre-line text-ink-800">
@@ -1201,7 +1203,11 @@ export function ReviewRow({ item }: { item: ReviewItem }) {
             </div>
           ) : (
             <p className="mt-1.5 text-[13px] leading-relaxed text-ink-500 italic">
-              Not read yet. Once it has been, the themes and tone appear here.
+              {item.state === 'PROCESSING'
+                ? 'RepOS is reading this now.'
+                : item.state === 'FAILED'
+                  ? 'RepOS could not read this one yet. It will try again on its own.'
+                  : 'Waiting for RepOS to read it — usually within a minute of arriving.'}
             </p>
           )}
         </div>
@@ -1229,7 +1235,7 @@ export function RatingStrip({
         href={base}
         aria-current={active === null ? 'page' : undefined}
         className={clsx(
-          'rounded-full border px-3 py-1 text-[13px] transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
+          'inline-flex min-h-9 items-center rounded-full border px-3 text-[13px] transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
           active === null
             ? 'border-ink-900 bg-ink-900 text-white'
             : 'border-ink-300 text-ink-700 hover:border-ink-900 hover:text-ink-900',
@@ -1246,7 +1252,7 @@ export function RatingStrip({
           aria-current={active === r.stars ? 'page' : undefined}
           aria-label={`${r.stars} star${r.stars === 1 ? '' : 's'}, ${r.count} ${r.count === 1 ? 'piece' : 'pieces'} of feedback`}
           className={clsx(
-            'rounded-full border px-3 py-1 text-[13px] tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
+            'inline-flex min-h-9 items-center rounded-full border px-3 text-[13px] tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
             active === r.stars
               ? 'border-ink-900 bg-ink-900 text-white'
               : r.count === 0
@@ -1285,7 +1291,7 @@ export function PeriodSwitch({
           href={`${basePath}/${o.slug}`}
           aria-current={current === o.slug ? 'page' : undefined}
           className={clsx(
-            'rounded-full border px-3 py-1 text-[13px] transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
+            'inline-flex min-h-9 items-center rounded-full border px-3 text-[13px] transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
             current === o.slug
               ? 'border-ink-900 bg-ink-900 text-white'
               : 'border-ink-300 text-ink-700 hover:border-ink-900 hover:text-ink-900',
@@ -1295,5 +1301,102 @@ export function PeriodSwitch({
         </Link>
       ))}
     </nav>
+  );
+}
+
+/**
+ * A handful of numbers with their names, in one line. The header of a page
+ * that is a place to work, not a paragraph to read.
+ */
+export function StatusStrip({
+  items,
+}: {
+  items: Array<{ label: string; value: string | number; tone?: 'neutral' | 'good' | 'warn' | 'bad' }>;
+}) {
+  const tones = {
+    neutral: 'text-ink-900',
+    good: 'text-good-700',
+    warn: 'text-warn-700',
+    bad: 'text-bad-700',
+  };
+  return (
+    <ul className="mb-5 flex flex-wrap gap-x-6 gap-y-2 border-y border-ink-200 py-3">
+      {items.map((i) => (
+        <li key={i.label} className="flex items-baseline gap-1.5">
+          <span className={clsx('text-[15px] font-semibold tabular-nums', tones[i.tone ?? 'neutral'])}>
+            {i.value}
+          </span>
+          <span className="text-[12px] text-ink-500">{i.label}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * CURRENT SIGNALS: what customers are mentioning so far, counted and marked.
+ *
+ * Every chip is one tap from the comments behind it. A chip with the mark
+ * has cleared the evidence floor and is a pattern; the others are mentions
+ * RepOS is keeping an eye on. The note underneath says exactly that, so a
+ * first week reads as a first week and never as a verdict.
+ */
+export function SoFar({ soFar, basePath }: { soFar: PortalSoFar; basePath: string }) {
+  return (
+    <div>
+      <p className="text-[13px] leading-relaxed text-ink-600">
+        {soFar.read > 0 ? `Read ${pieces(soFar.read)}.` : 'Nothing read yet.'}
+        {soFar.waiting > 0
+          ? ` ${soFar.waiting} more ${soFar.waiting === 1 ? 'is' : 'are'} being read now.`
+          : ''}
+      </p>
+
+      {soFar.mentions.length > 0 ? (
+        <ul className="mt-3 flex flex-wrap gap-2">
+          {soFar.mentions.map((m) => (
+            <li key={m.themeKey}>
+              <Link
+                href={`${basePath}/reviews?theme=${encodeURIComponent(m.themeKey)}`}
+                className={clsx(
+                  'inline-flex min-h-9 items-center gap-2 rounded-full border px-3 text-[13px] transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
+                  m.kind === 'ISSUE'
+                    ? 'border-bad-200 bg-bad-50 text-bad-700 hover:border-bad-600'
+                    : 'border-good-200 bg-good-50 text-good-700 hover:border-good-600',
+                  m.pattern && 'font-semibold',
+                )}
+                aria-label={`${m.label}, mentioned by ${m.count} ${m.count === 1 ? 'customer' : 'customers'}${m.pattern ? ', a pattern' : ''}`}
+              >
+                {m.pattern ? <span aria-hidden>●</span> : null}
+                {m.label}
+                <span className="rounded-full bg-white/80 px-1.5 text-[12px] tabular-nums">{m.count}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {soFar.rated.length > 0 ? (
+        <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+          {soFar.rated.map((d) => (
+            <div
+              key={d.label}
+              className="flex items-baseline justify-between gap-3 border-b border-dotted border-ink-200 pb-0.5 text-[13px]"
+            >
+              <dt className="text-ink-700">{d.label}</dt>
+              <dd className="tabular-nums">
+                <span className={clsx('font-semibold', d.average <= 3 ? 'text-bad-700' : 'text-good-700')}>
+                  {d.average.toFixed(1)}
+                </span>
+                <span className="text-ink-400">
+                  /5 · {d.rated} {d.rated === 1 ? 'rating' : 'ratings'}
+                </span>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+
+      <p className="mt-3 text-[12px] leading-relaxed text-ink-500">{soFar.note}</p>
+    </div>
   );
 }

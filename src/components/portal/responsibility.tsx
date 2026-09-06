@@ -52,7 +52,7 @@ function StateChip({ item }: { item: ResponsibilityItem }) {
     <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
       <span
         className={clsx(
-          'inline-block rounded-sm px-1.5 py-0.5 text-[10px] font-semibold tracking-wider uppercase',
+          'inline-block rounded-sm px-1.5 py-0.5 text-[11px] font-semibold tracking-wider uppercase',
           STATE_TONE[item.state],
         )}
       >
@@ -63,21 +63,50 @@ function StateChip({ item }: { item: ResponsibilityItem }) {
   );
 }
 
-/** The answer, in the largest type after the picture. */
-export function Answer({ r }: { r: Responsibility }) {
+const ANSWER_CARD: Record<ResponsibilityState, string> = {
+  DO_NOW: 'border-ink-900 bg-white',
+  FOLLOW_UP: 'border-warn-200 bg-warn-50',
+  WATCH: 'border-ink-200 bg-white',
+  KEEP_DOING: 'border-good-200 bg-good-50',
+  WAITING_FOR_EVIDENCE: 'border-ink-200 bg-white',
+  CLEAR: 'border-good-200 bg-good-50',
+};
+
+/**
+ * The answer, as the one card on the page — and a door.
+ *
+ * When something needs the owner, the card names it and links straight to
+ * the comments behind it, so "yes" is never a sentence to scroll away from.
+ */
+export function Answer({ r, basePath }: { r: Responsibility; basePath: string }) {
+  const top = r.needsYou[0] ?? null;
+  const evidence = top?.themeKey
+    ? `${basePath}/reviews?theme=${encodeURIComponent(top.themeKey)}`
+    : top
+      ? `${basePath}/reviews?needs=reply`
+      : null;
   return (
-    <div className="mb-6">
+    <section className={clsx('mb-8 rounded-xl border p-4 sm:p-5', ANSWER_CARD[r.state])}>
       <div className="mb-2 flex items-center gap-2">
         <span className={clsx('h-2 w-2 rounded-full', ANSWER_DOT[r.state])} aria-hidden />
-        <span className="text-[11px] font-medium tracking-widest text-ink-500 uppercase">
+        <h2 className="text-[11px] font-medium tracking-widest text-ink-500 uppercase">
           Do I need to do anything?
-        </span>
+        </h2>
       </div>
       <p className="text-[20px] leading-snug font-semibold tracking-tight text-ink-900 sm:text-[22px]">
         {r.answer}
       </p>
       <p className="mt-1.5 text-[14px] leading-relaxed text-ink-600">{r.answerDetail}</p>
-    </div>
+      {top && evidence ? (
+        <Link
+          href={evidence}
+          className="mt-3 inline-flex min-h-9 items-center gap-1.5 text-[13px] font-medium text-ink-900 underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none"
+        >
+          {top.themeLabel ? `Read what customers said about ${top.themeLabel.toLowerCase()}` : 'Read the comments that need you'}{' '}
+          <span aria-hidden>→</span>
+        </Link>
+      ) : null}
+    </section>
   );
 }
 
@@ -88,7 +117,7 @@ function Thread({ steps }: { steps: ThreadStep[] }) {
     <ol className="mt-3 space-y-1.5 border-l border-ink-200 pl-4">
       {steps.map((s) => (
         <li key={s.key} className="grid grid-cols-1 gap-x-3 gap-y-0.5 sm:grid-cols-[6.5rem_1fr]">
-          <p className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">
+          <p className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
             {s.label}
             <span className="ml-1 font-normal normal-case tracking-normal text-ink-400">
               · {SOURCE_LABELS[s.source]}
@@ -146,7 +175,7 @@ export function NeedsYouItem({
           </p>
           <Link
             href={`${basePath}/reviews?needs=reply`}
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-700 hover:text-ink-900"
+            className="inline-flex min-h-9 items-center gap-1.5 text-[13px] font-medium text-ink-700 hover:text-ink-900"
           >
             Read them <span aria-hidden>→</span>
           </Link>
@@ -155,7 +184,7 @@ export function NeedsYouItem({
 
       {item.thread.length > 1 ? (
         <details className="mt-3 group">
-          <summary className="cursor-pointer list-none text-[12px] font-medium text-ink-600 hover:text-ink-900">
+          <summary className="inline-flex min-h-9 cursor-pointer items-center list-none text-[12px] font-medium text-ink-600 hover:text-ink-900">
             How we got here <span aria-hidden>›</span>
           </summary>
           <Thread steps={item.thread} />
@@ -166,7 +195,7 @@ export function NeedsYouItem({
         <div className="mt-2">
           <Link
             href={`${basePath}/improvements`}
-            className="text-[13px] font-medium text-ink-700 hover:text-ink-900"
+            className="inline-flex min-h-9 items-center text-[13px] font-medium text-ink-700 hover:text-ink-900"
           >
             See the improvement →
           </Link>
@@ -199,18 +228,18 @@ function WatchingRow({ item, basePath }: { item: ResponsibilityItem; basePath: s
       <p className="mt-1 text-[15px] leading-snug font-semibold text-ink-900">{item.headline}</p>
       <dl className="mt-1.5 space-y-1">
         <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-[5.5rem_1fr]">
-          <dt className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">Why</dt>
+          <dt className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">Why</dt>
           <dd className="text-[13px] leading-relaxed text-ink-700">{item.whyItMatters}</dd>
         </div>
         <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-[5.5rem_1fr]">
-          <dt className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">
+          <dt className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
             We&rsquo;ll flag it
           </dt>
           <dd className="text-[13px] leading-relaxed text-ink-700">{item.watching}</dd>
         </div>
         {item.contextUsed.length > 0 ? (
           <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-[5.5rem_1fr]">
-            <dt className="text-[10px] font-semibold tracking-widest text-ink-400 uppercase">
+            <dt className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
               You told us
             </dt>
             <dd className="text-[13px] leading-relaxed text-ink-700 italic">{item.contextUsed[0]}</dd>

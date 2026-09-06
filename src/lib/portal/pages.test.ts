@@ -155,6 +155,7 @@ function row(over: Partial<FeedbackRow> = {}): FeedbackRow {
     redacted: false,
     redactions: [],
     analysed: true,
+    state: 'ANALYSED',
     createdAt: NOW,
     sentiment: 'NEGATIVE',
     themes: WAIT,
@@ -216,6 +217,9 @@ const STATS: FeedbackStats = {
   total: 5,
   analysed: 5,
   unanalysed: 0,
+  waiting: 0,
+  processing: 0,
+  failed: 0,
   withRating: 5,
   redacted: 0,
   averageRating: 2.4,
@@ -232,6 +236,7 @@ const COVERAGE: AnalysisCoverage = {
   analysed: 5,
   needsAnalysis: 0,
   failed: 0,
+  processing: 0,
   outOfDate: 0,
   sentimentCounts: { POSITIVE: 1, NEGATIVE: 3, MIXED: 0, NEUTRAL: 1, UNKNOWN: 0 },
   upToDate: true,
@@ -309,7 +314,7 @@ describe('reviews — the evidence', () => {
   it('shows the owner-facing shape and nothing more', () => {
     const v = reviews();
     expect(Object.keys(v.items[0]!).sort()).toEqual([
-      'at', 'classLabel', 'gave', 'id', 'read', 'replyState', 'sentiment', 'sentimentLabel', 'sourceLabel', 'stars', 'suggestedReply', 'text', 'themes',
+      'at', 'classLabel', 'gave', 'id', 'replyState', 'sentiment', 'sentimentLabel', 'sourceLabel', 'stars', 'state', 'suggestedReply', 'text', 'themes',
     ]);
     const t = text(v);
     expect(t).not.toMatch(/priorityRank|priorityReasons|draftNotes|draftSource|redactions|clientId|matched a hint|low rating/);

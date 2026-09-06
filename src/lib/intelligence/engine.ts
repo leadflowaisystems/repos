@@ -984,16 +984,18 @@ export function buildIntelligence(input: IntelligenceInput): ClientIntelligence 
   const unread = Math.max(0, input.totalFeedback - analysed);
   if (analysed === 0) {
     limits.push(
-      'No feedback has been read yet, so RepOS has nothing to tell you about customers.',
+      unread > 0
+        ? `${unread} piece${unread === 1 ? '' : 's'} of feedback ${unread === 1 ? 'is' : 'are'} being read now. Nothing is counted until RepOS has read it.`
+        : 'No feedback has been read yet, so RepOS has nothing to tell you about customers.',
     );
   } else if (tier === 'INSUFFICIENT') {
     limits.push(
       `Only ${reviews(analysed)} have been read. Everything above is an early signal, not a conclusion.`,
     );
   }
-  if (unread > 0) {
+  if (unread > 0 && analysed > 0) {
     limits.push(
-      `${unread} piece${unread === 1 ? '' : 's'} of feedback ${unread === 1 ? 'has' : 'have'} not been read yet, so ${unread === 1 ? 'it is' : 'they are'} not counted above.`,
+      `${unread} more piece${unread === 1 ? '' : 's'} of feedback ${unread === 1 ? 'is' : 'are'} being read now and ${unread === 1 ? 'is' : 'are'} not counted above yet.`,
     );
   }
   if (!window.available && analysed > 0) {
