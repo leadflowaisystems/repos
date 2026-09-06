@@ -43,7 +43,16 @@ export type GatewayCopy = {
   thanksLine: string;
   shareQuestion: string;
   shareNote: string;
-  /** Printed under the QR on the counter card. */
+  /**
+   * What goes on the PRINTED piece.
+   *
+   * The pack keeps these apart from the on-screen wording, and it is right to:
+   * a card on a table has one line to earn a scan ("How was the food today?"),
+   * while the page that opens is a form and asks its own question. Reading the
+   * gateway block here made the printed card say the form's question instead of
+   * the vertical's own, so the tent and the counter card now agree with the
+   * pack and with each other.
+   */
   printHeadline: string;
   printLine: string;
   /** Where the vertical pack says the card should sit. */
@@ -87,8 +96,8 @@ export function buildGatewayCopy(pack: Pack, businessName: string): GatewayCopy 
     shareQuestion: 'Want to help others decide?',
     shareNote:
       'You can also leave a public review. Entirely optional — whatever you wrote here stays private.',
-    printHeadline: pick(g?.headline, 'How was your experience?'),
-    printLine: pick(g?.printLine, 'Your feedback helps us improve.'),
+    printHeadline: pick(kit?.headline, g?.headline, 'How was your experience?'),
+    printLine: pick(kit?.subhead, g?.printLine, 'Your feedback helps us improve.'),
     placement: pick(kit?.placement, 'Somewhere the customer looks while they are paying.'),
     assetLabel: pick(kit?.assetLabel, 'counter card'),
   };

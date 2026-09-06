@@ -951,6 +951,7 @@ describe('V1 hard rules — the customer feedback gateway is a front door, not a
       file.startsWith('src/components/feedback-gateway/') ||
       file === 'src/components/forms/gateway-forms.tsx' ||
       file.startsWith('src/app/(print)/print/feedback/') ||
+      file.startsWith('src/app/(print)/print/tent/') ||
       file.startsWith('src/app/(app)/clients/[id]/qr/'),
   );
 

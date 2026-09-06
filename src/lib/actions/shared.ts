@@ -6,6 +6,15 @@ export type ActionState = {
   message: string;
   /** Field name -> first error, rendered next to the input. */
   errors: Record<string, string>;
+  /**
+   * Values the form needs to render, rather than to read as a sentence.
+   *
+   * Added for the invitation link: an owner needs the link itself, as a thing
+   * to copy, and a message that happens to contain a URL is not that. Optional
+   * and string-only on purpose — this is a render hint crossing to the client,
+   * not a channel for a payload.
+   */
+  data?: Record<string, string>;
 };
 
 export const IDLE: ActionState = { ok: false, message: '', errors: {} };

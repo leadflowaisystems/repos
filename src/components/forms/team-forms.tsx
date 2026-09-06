@@ -9,6 +9,7 @@ import {
   setMembershipAction,
 } from '@/lib/actions/team';
 import { IDLE, type ActionState } from '@/lib/actions/shared';
+import { CopyButton } from '@/components/copy-button';
 
 /**
  * TEAM FORMS (M20 Stage 4).
@@ -85,10 +86,24 @@ export function InviteForm({ clientId }: { clientId: string }) {
         <p className="mt-1 text-[13px] text-bad-700">{state.errors.email}</p>
       ) : null}
       <p className="mt-2 text-[12px] leading-relaxed text-ink-500">
-        RepOS does not send email. You will get a link to pass on yourself, and it is shown
-        once.
+        RepOS emails them a sign-in link that opens this invitation. The link below is the same
+        invitation and is shown once, in case you would rather send it yourself.
       </p>
       <Notice state={state} />
+      {state.data?.link ? (
+        <div className="mt-3 rounded-xl border border-ink-200 bg-ink-50 p-3">
+          <p className="text-[12px] font-medium tracking-wide text-ink-500 uppercase">
+            {state.data.sent === 'yes' ? 'Invitation link — in case it does not arrive' : 'Send them this link'}
+          </p>
+          <p className="mt-1.5 font-mono text-[12px] break-all text-ink-700">{state.data.link}</p>
+          <div className="mt-2.5">
+            <CopyButton value={state.data.link} label="Copy invitation link" copiedLabel="Copied" />
+          </div>
+          <p className="mt-2 text-[12px] leading-relaxed text-ink-500">
+            It expires in 7 days, works once, and only for {state.data.email}.
+          </p>
+        </div>
+      ) : null}
     </form>
   );
 }

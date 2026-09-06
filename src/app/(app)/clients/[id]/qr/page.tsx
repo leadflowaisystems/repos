@@ -63,6 +63,7 @@ export default async function FeedbackQrPage({
 
   const previewHref = feedbackPath(view.token);
   const printHref = `/print/feedback/${id}`;
+  const tentHref = `/print/tent/${id}`;
   const fileBase = view.businessName
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -105,7 +106,8 @@ export default async function FeedbackQrPage({
           <div className="flex flex-wrap items-center gap-2">
             {live ? (
               <>
-                <OpenInNewTabButton href={printHref} label="Print card" variant="primary" />
+                <OpenInNewTabButton href={tentHref} label="Table tent (PDF)" variant="primary" />
+                <OpenInNewTabButton href={printHref} label="More printables" />
                 <OpenInNewTabButton href={previewHref} label="Preview customer page" />
                 <CopyButton value={view.feedbackUrl} label="Copy link" />
               </>

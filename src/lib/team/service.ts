@@ -19,10 +19,17 @@ import { withRlsContext } from '@/lib/db';
  *   Nothing in this module can grant platform admin. That privilege is not a
  *   membership, is not a role, and does not appear in any signature here.
  *
- * DELIVERY IS NOT IMPLEMENTED, deliberately. An invitation produces a token
- * and a link; putting that link in front of the person is the operator's job
- * until the Supabase project exists. RepOS sends no email and no message, by
- * rule, and inventing one here would break that rule for a convenience.
+ * DELIVERY LIVES NEXT DOOR, in `@/lib/invite/email`. It used to live nowhere:
+ * this module produced a token and a link and said, in a comment here, that
+ * putting that link in front of the person was the operator's job "until the
+ * Supabase project exists". It exists, so the invitation is emailed — through
+ * Supabase Auth, the same mechanism the product already sends password resets
+ * with, and never from this module, which stays pure enough to test against a
+ * database and nothing else.
+ *
+ * Sending is not allowed to decide whether the invitation was created. An
+ * invitation whose email bounced is still a valid invitation with a working
+ * link, and the owner is told exactly that.
  */
 
 export type ServiceOk<T> = { ok: true; data: T };
@@ -122,7 +129,7 @@ export async function inviteMember(
   clientId: string,
   input: { email: string; role: string; invitedById: string },
   options: { now?: Date } = {},
-): Promise<ServiceResult<{ inviteId: string; token: string; email: string }>> {
+): Promise<ServiceResult<{ inviteId: string; token: string; email: string; role: string; expiresAt: Date }>> {
   const email = (input.email ?? '').trim().toLowerCase();
   if (!email.includes('@') || email.length < 3) {
     return err('Some fields need attention.', { email: 'Add a valid email address.' });
@@ -151,19 +158,20 @@ export async function inviteMember(
   });
 
   const token = randomBytes(32).toString('base64url');
+  const expiresAt = new Date(now.getTime() + INVITE_TTL_MS);
   const invite = await db.invitation.create({
     data: {
       clientId,
       email,
       role,
       tokenHash: hashToken(token),
-      expiresAt: new Date(now.getTime() + INVITE_TTL_MS),
+      expiresAt,
       invitedById: input.invitedById,
     },
     select: { id: true },
   });
 
-  return { ok: true, data: { inviteId: invite.id, token, email } };
+  return { ok: true, data: { inviteId: invite.id, token, email, role, expiresAt } };
 }
 
 /**

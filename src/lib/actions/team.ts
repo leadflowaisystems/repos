@@ -6,6 +6,7 @@ import { tenantGate } from '@/lib/auth/guard';
 import { currentActor } from '@/lib/auth/authorize';
 import { inviteMember, revokeInvite, setMembership } from '@/lib/team/service';
 import { acceptInviteViaResolver } from '@/lib/team/service';
+import { deliverInvitation, invitationLink, roleLabel } from '@/lib/invite/email';
 import { failure, str, success, type ActionState } from './shared';
 
 /**
@@ -37,13 +38,36 @@ export async function inviteMemberAction(
   });
   if (!result.ok) return failure(result.message, result.errors);
 
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
+    select: { businessName: true },
+  });
+
+  // The invitation exists either way. Sending is reported separately, and only
+  // "sent" when the email provider actually accepted the message — an owner who
+  // is told an email went out and then waits for a reply that never comes is
+  // worse off than one who was told to send the link themselves.
+  const delivery = await deliverInvitation({
+    email: result.data.email,
+    token: result.data.token,
+    businessName: client?.businessName ?? 'your business',
+    roleLabel: roleLabel(result.data.role),
+    expiresAt: result.data.expiresAt,
+  });
+
+  // Shown once, because only the hash is stored. Absolute, so it can be pasted
+  // into a message and work; the relative path this used to return could not.
+  const link = (await invitationLink(result.data.token)) ?? `/invite/${result.data.token}`;
+
   revalidateTeam(clientId);
-  // The link is returned to the person who created it, once. RepOS sends
-  // nothing: delivery is the operator's job until an email provider exists,
-  // and the token is not stored anywhere it could be read again.
-  return success(
-    `Invitation ready for ${result.data.email}. Send them this link: /invite/${result.data.token}`,
-  );
+  return {
+    ok: true,
+    message: delivery.sent
+      ? `Invitation email sent to ${result.data.email}.`
+      : `Invitation created for ${result.data.email}, but no email was sent. ${delivery.reason}`,
+    errors: {},
+    data: { link, email: result.data.email, sent: delivery.sent ? 'yes' : 'no' },
+  };
 }
 
 export async function revokeInviteAction(
@@ -91,6 +115,20 @@ export async function acceptInviteAction(
   const result = await acceptInviteViaResolver(prisma, str(form, 'token'), actor.userId);
   if (!result.ok) return failure(result.message, result.errors);
 
+  // Now that they are a member, the business is theirs to see — so name it.
+  // Before accepting, this page cannot say which business invited them, and
+  // deliberately does not: see the note on the invitation page about what an
+  // unauthenticated lookup would tell anyone trying tokens.
+  const client = await prisma.client.findUnique({
+    where: { id: result.data.clientId },
+    select: { businessName: true },
+  });
+
   revalidateTeam(result.data.clientId);
-  return success('You have joined the team.');
+  return {
+    ok: true,
+    message: client ? `You have joined ${client.businessName}.` : 'You have joined the team.',
+    errors: {},
+    data: { workspace: `/workspace/${result.data.clientId}` },
+  };
 }
