@@ -299,20 +299,35 @@ export function Callout({
   );
 }
 
-export function Limits({ limits }: { limits: string[] }) {
+export function Limits({ limits, collapsed = false }: { limits: string[]; collapsed?: boolean }) {
   if (limits.length === 0) return null;
+  const list = (
+    <ul className="mt-3 space-y-1.5">
+      {limits.map((l) => (
+        <li key={l} className="text-[12px] leading-relaxed text-ink-500">
+          {l}
+        </li>
+      ))}
+    </ul>
+  );
+  // Home summarises, so the limits sit behind one tap there; Customers is the
+  // page that explains, so they are open on it. Same sentences either way.
+  if (collapsed) {
+    return (
+      <details className="group mt-10 border-t border-ink-200 pt-4">
+        <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-[11px] font-medium tracking-widest text-ink-500 uppercase hover:text-ink-900">
+          What we cannot tell you yet <span aria-hidden>›</span>
+        </summary>
+        {list}
+      </details>
+    );
+  }
   return (
     <section className="mt-12 border-t border-ink-200 pt-5">
       <h2 className="text-[11px] font-medium tracking-widest text-ink-500 uppercase">
         What we cannot tell you yet
       </h2>
-      <ul className="mt-3 space-y-1.5">
-        {limits.map((l) => (
-          <li key={l} className="text-[12px] leading-relaxed text-ink-500">
-            {l}
-          </li>
-        ))}
-      </ul>
+      {list}
     </section>
   );
 }
@@ -789,8 +804,7 @@ export function Knows({ items, basePath }: { items: PortalKnown[]; basePath: str
         ))}
       </ul>
       <p className="mt-3 text-[12px] leading-relaxed text-ink-500">
-        Headway keeps this apart from what customers said, and uses it to keep its suggestions
-        practical. Tell your Headway contact if any of it is no longer true.
+        Tell your Headway contact if any of this changes.
       </p>
     </div>
   );
@@ -812,8 +826,7 @@ export function Question({ q }: { q: PortalQuestion }) {
         ))}
       </ul>
       <p className="mt-2.5 text-[12px] leading-relaxed text-ink-500">
-        Tell your Headway contact which fits at your next check-in. It is kept on record for the
-        recommendations that follow.
+        Tell your Headway contact which fits.
       </p>
     </div>
   );
@@ -916,8 +929,7 @@ export function BeforeAfter({ outcome }: { outcome: PortalOutcome }) {
             What we cannot tell you
           </dt>
           <dd className="mt-0.5 text-[13px] leading-relaxed text-ink-700">
-            {outcome.note}
-            {outcome.caveat ? <span className="block">{outcome.caveat}</span> : null}
+            {outcome.caveat ? outcome.caveat : outcome.note}
           </dd>
         </div>
       </dl>
@@ -1111,10 +1123,7 @@ export function OutcomeRow({ action, basePath }: { action: PortalAction; basePat
         </p>
       ) : null}
       {a.outcome ? (
-        <p className="mt-0.5 text-[13px] leading-relaxed text-ink-700">
-          {a.outcome.headline}
-          <OutcomeNote outcome={a.outcome} />
-        </p>
+        <p className="mt-0.5 text-[13px] leading-relaxed text-ink-700">{a.outcome.headline}</p>
       ) : null}
     </li>
   );
@@ -1480,7 +1489,16 @@ export function StatusStrip({
  * RepOS is keeping an eye on. The note underneath says exactly that, so a
  * first week reads as a first week and never as a verdict.
  */
-export function SoFar({ soFar, basePath }: { soFar: PortalSoFar; basePath: string }) {
+export function SoFar({
+  soFar,
+  basePath,
+  explain = false,
+}: {
+  soFar: PortalSoFar;
+  basePath: string;
+  /** Customers explains what a pattern is; Home only shows the chips. */
+  explain?: boolean;
+}) {
   return (
     <div>
       <p className="text-[13px] leading-relaxed text-ink-600">
@@ -1535,7 +1553,9 @@ export function SoFar({ soFar, basePath }: { soFar: PortalSoFar; basePath: strin
         </dl>
       ) : null}
 
-      <p className="mt-3 text-[12px] leading-relaxed text-ink-500">{soFar.note}</p>
+      {explain ? (
+        <p className="mt-3 text-[12px] leading-relaxed text-ink-500">{soFar.note}</p>
+      ) : null}
     </div>
   );
 }

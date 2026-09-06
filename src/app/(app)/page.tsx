@@ -68,6 +68,28 @@ export default async function CommandCentrePage() {
         }
       />
 
+      {board.totals.continuationRequests > 0 ? (
+        <Notice tone="brand" title="Owners waiting to continue with Headway">
+          <ul className="mt-1 space-y-1">
+            {board.cards
+              .filter((card) => card.continuation?.status === 'NEW')
+              .map((card) => (
+                <li key={card.clientId}>
+                  <Link
+                    href={`/clients/${card.clientId}#commercial`}
+                    prefetch={false}
+                    className="underline underline-offset-2"
+                  >
+                    {card.businessName}
+                  </Link>{' '}
+                  asked on {card.continuation?.requestedOn}. Agree the amount and send the payment
+                  details.
+                </li>
+              ))}
+          </ul>
+        </Notice>
+      ) : null}
+
       {board.totals.clients === 0 ? (
         <Card>
           <EmptyState

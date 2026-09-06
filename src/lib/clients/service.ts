@@ -2,6 +2,7 @@ import type { PrismaClient } from '@prisma/client';
 import { newPublicToken } from '@/lib/tokens';
 import { isMissingDbFunction, withRlsContext } from '@/lib/db';
 import { createClientRow, setClientCommercials } from '@/lib/tenancy/service';
+import { getTrialDefaultDays, trialWindowFrom } from '@/lib/commercial/service';
 import {
   clientInputSchema,
   normaliseBusinessName,
@@ -174,11 +175,16 @@ export async function createClient(
 
   // Only where `rls.sql` has not been applied: the per-file schemas the test
   // suite creates, whose connection owns its own tables. Behaviourally the
-  // same, in one nested write rather than two statements.
+  // same, in one nested write rather than two statements — including the
+  // trial window `app.create_client` opens for every new business (M23).
   try {
+    const trial = trialWindowFrom(new Date(), await getTrialDefaultDays(db));
     const created = await db.client.create({
       data: {
         ...input,
+        subscriptionStatus: 'TRIAL',
+        trialStartsAt: trial.trialStartsAt,
+        trialEndsAt: trial.trialEndsAt,
         voiceProfile: { create: voiceDefaultsFor() },
         policy: { create: {} },
         kitConfig: {

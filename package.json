@@ -23,6 +23,8 @@
     "setup": "node scripts/ensure-env.mjs && prisma generate && prisma db push",
     "set-password": "node scripts/set-password.mjs",
     "backup": "node scripts/backup.mjs",
+    "backup:production": "node scripts/backup-production.mjs",
+    "backup:verify": "node scripts/verify-production-backup.mjs",
     "verify": "npm run typecheck && npm run lint && npm run test",
     "predev": "node scripts/ensure-env.mjs"
   },

@@ -307,7 +307,9 @@ GRANT UPDATE (
 
 -- `trialStartsAt` and `trialEndsAt` are deliberately absent, next to `plan`,
 -- `status` and `subscriptionStatus`. A business that could move its own trial
--- end date has no trial. They move through app.set_subscription below.
+-- end date has no trial. They move through app.set_subscription below. So are
+-- `servicePausedAt` and `serviceResumedAt` (M23): they record what the
+-- platform did and when, and are stamped by the same function.
 
 CREATE OR REPLACE FUNCTION app.set_subscription_status(target_client_id text, new_status text)
   RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
@@ -341,15 +343,20 @@ CREATE OR REPLACE FUNCTION app.set_subscription(
   SET search_path = pg_catalog, public
 AS $fn$
 DECLARE
-  v_now timestamp := p_now::timestamp;
+  v_now    timestamp := p_now::timestamp;
+  v_status text      := nullif(btrim(coalesce(p_status, '')), '');
 BEGIN
   IF NOT app.is_platform_admin() THEN
     RAISE EXCEPTION 'not authorised';
   END IF;
 
+  -- M23: the pause and the resume are stamped here, from the transition itself,
+  -- so the owner's Account page can say "paused since" and "resumed" as facts.
+  -- On the right-hand side of SET every column name is the OLD value, which is
+  -- what makes "was paused, is now not" expressible in one statement. At most
+  -- one of the two stamps is ever set.
   UPDATE public."Client"
-     SET "subscriptionStatus" =
-           coalesce(nullif(btrim(coalesce(p_status, '')), ''), "subscriptionStatus"),
+     SET "subscriptionStatus" = coalesce(v_status, "subscriptionStatus"),
          "trialStartsAt" =
            CASE
              WHEN p_trial_start IS NULL THEN "trialStartsAt"
@@ -361,6 +368,18 @@ BEGIN
              WHEN p_trial_end IS NULL THEN "trialEndsAt"
              WHEN btrim(p_trial_end) = '' THEN NULL
              ELSE p_trial_end::timestamp
+           END,
+         "servicePausedAt" =
+           CASE
+             WHEN v_status IN ('PAUSED', 'CANCELLED') AND "subscriptionStatus" NOT IN ('PAUSED', 'CANCELLED') THEN v_now
+             WHEN v_status IN ('TRIAL', 'ACTIVE') THEN NULL
+             ELSE "servicePausedAt"
+           END,
+         "serviceResumedAt" =
+           CASE
+             WHEN v_status IN ('TRIAL', 'ACTIVE') AND "subscriptionStatus" IN ('PAUSED', 'CANCELLED') THEN v_now
+             WHEN v_status IN ('PAUSED', 'CANCELLED') THEN NULL
+             ELSE "serviceResumedAt"
            END,
          "updatedAt" = v_now
    WHERE id = p_client_id;
@@ -687,6 +706,38 @@ END $fn$;
 
 REVOKE ALL ON FUNCTION app.provision_user(text, text, text, text) FROM PUBLIC;
 
+-- --- how long a new trial runs ---------------------------------------------------
+--
+-- M23. Every business starts on a trial with an explicit end date, and the
+-- length is the operator's to set without a schema change: one row in
+-- AppSetting, key `trial.default_days`, read here and nowhere else. AppSetting
+-- is admin-only under RLS, so this is SECURITY DEFINER for the one row it needs.
+-- Anything that is not a whole number of days between 1 and 365 -- a missing
+-- row, an old typo -- falls back to 14, which is the product's default.
+CREATE OR REPLACE FUNCTION app.trial_default_days()
+  RETURNS integer
+  LANGUAGE plpgsql
+  STABLE
+  SECURITY DEFINER
+  SET search_path = pg_catalog, public
+AS $fn$
+DECLARE
+  v_raw  text;
+  v_days integer;
+BEGIN
+  SELECT s.value INTO v_raw FROM public."AppSetting" s WHERE s.key = 'trial.default_days';
+  IF v_raw IS NULL OR btrim(v_raw) !~ '^[0-9]{1,3}$' THEN
+    RETURN 14;
+  END IF;
+  v_days := btrim(v_raw)::integer;
+  IF v_days < 1 OR v_days > 365 THEN
+    RETURN 14;
+  END IF;
+  RETURN v_days;
+END $fn$;
+
+REVOKE ALL ON FUNCTION app.trial_default_days() FROM PUBLIC;
+
 -- --- creating a business ------------------------------------------------------
 --
 -- And the fourth. `client_write` admits a row whose id is already in
@@ -717,7 +768,13 @@ REVOKE ALL ON FUNCTION app.provision_user(text, text, text, text) FROM PUBLIC;
 --                       only, checked here rather than trusted from the caller.
 --
 -- `subscriptionStatus` is never a parameter in either case. It is the platform's
--- decision and moves only through `app.set_subscription_status`.
+-- decision and moves only through `app.set_subscription`.
+--
+-- M23: the trial it starts on has an end date from the first second. The
+-- length is `app.trial_default_days()` -- 14 unless the operator has set
+-- otherwise -- and the operator can extend, restart or convert it afterwards
+-- through `app.set_subscription`. A trial with no end date was a real state
+-- before this and it read to an owner as "open-ended"; it no longer exists.
 CREATE OR REPLACE FUNCTION app.create_client(
   p_business_name text,
   p_vertical      text,
@@ -738,6 +795,7 @@ DECLARE
   v_id     text;
   v_status text;
   v_plan   text;
+  v_days   integer   := app.trial_default_days();
 BEGIN
   IF v_actor IS NULL THEN
     RAISE EXCEPTION 'not authorised';
@@ -771,9 +829,11 @@ BEGIN
   v_id := replace(gen_random_uuid()::text, '-', '');
 
   INSERT INTO public."Client"
-    (id, "businessName", vertical, plan, status, "subscriptionStatus", "createdAt", "updatedAt")
+    (id, "businessName", vertical, plan, status, "subscriptionStatus",
+     "trialStartsAt", "trialEndsAt", "createdAt", "updatedAt")
   VALUES
-    (v_id, btrim(p_business_name), btrim(p_vertical), v_plan, v_status, 'TRIAL', v_now, v_now);
+    (v_id, btrim(p_business_name), btrim(p_vertical), v_plan, v_status, 'TRIAL',
+     v_now, v_now + make_interval(days => v_days), v_now, v_now);
 
   IF p_as_owner THEN
     INSERT INTO public."Membership"
@@ -794,3 +854,4 @@ GRANT EXECUTE ON FUNCTION app.accept_invitation(text, text, text) TO repos_app;
 GRANT EXECUTE ON FUNCTION app.provision_user(text, text, text, text) TO repos_app;
 GRANT EXECUTE ON FUNCTION app.create_client(text, text, boolean, text, text, text) TO repos_app;
 GRANT EXECUTE ON FUNCTION app.set_client_commercials(text, text, text, text) TO repos_app;
+GRANT EXECUTE ON FUNCTION app.trial_default_days() TO repos_app;

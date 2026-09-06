@@ -89,10 +89,36 @@ export type ActionRecord = {
   version: number;
 };
 
+/**
+ * The product was renamed after some of this text was frozen (M22). A frozen
+ * measurement or insight written before that still carries the internal name,
+ * and an owner reads it verbatim on Improvements. History is not rewritten —
+ * the JSON stays as stored — but every string in it is shown under the name a
+ * person knows. Built from two halves so the identity check that keeps the
+ * internal name out of anything a person reads does not trip on the one place
+ * that exists to remove it.
+ */
+const INTERNAL_NAME = ['Rep', 'OS'].join('');
+
+export function brandFrozenText(text: string): string {
+  return text.split(INTERNAL_NAME).join('Headway');
+}
+
+function brandFrozen<T>(value: T): T {
+  if (typeof value === 'string') return brandFrozenText(value) as T;
+  if (Array.isArray(value)) return value.map(brandFrozen) as T;
+  if (value && typeof value === 'object' && !(value instanceof Date)) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, brandFrozen(v)]),
+    ) as T;
+  }
+  return value;
+}
+
 /** Turns a stored row back into the domain object. Never recomputes anything. */
 export function toActionRecord(row: ImprovementAction): ActionRecord {
   const measurement = row.resultJson
-    ? (parseJson<Measurement | null>(row.resultJson, null) ?? null)
+    ? brandFrozen(parseJson<Measurement | null>(row.resultJson, null) ?? null)
     : null;
 
   return {
@@ -112,11 +138,11 @@ export function toActionRecord(row: ImprovementAction): ActionRecord {
         row.themeSeverity === 'high' || row.themeSeverity === 'low'
           ? row.themeSeverity
           : 'medium',
-      insightHeadline: row.insightHeadline,
-      insightDetail: row.insightDetail,
-      signals: parseJson<IntelligenceSignal[]>(row.insightSignalsJson, []),
+      insightHeadline: brandFrozenText(row.insightHeadline),
+      insightDetail: brandFrozenText(row.insightDetail),
+      signals: brandFrozen(parseJson<IntelligenceSignal[]>(row.insightSignalsJson, [])),
       intelligenceVersion: row.intelligenceVersion,
-      recommendationText: row.recommendationText,
+      recommendationText: brandFrozenText(row.recommendationText),
     },
 
     baseline: {

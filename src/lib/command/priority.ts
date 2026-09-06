@@ -37,6 +37,7 @@ export type PrioritySignal = {
  * because RepOS does not record any of those.
  */
 export type NextActionKey =
+  | 'SEND_PAYMENT_DETAILS'
   | 'RESUME_FEEDBACK'
   | 'PRINT_CARDS'
   | 'SEND_OWNER_LINK'
@@ -115,6 +116,22 @@ export type PriorityInput = {
     awaitingDecision: number;
     readyToMeasure: number;
   };
+  /**
+   * The commercial side (M23), already read and dated by the board: whether the
+   * owner has asked to continue and where that request stands in the operator's
+   * own records, and how the trial clock reads. Optional so a caller that has
+   * nothing to say about it - a test, an older fixture - says nothing.
+   */
+  commercial?: {
+    /** Null until the owner asks; then where the operator has got to. */
+    status: 'NEW' | 'DETAILS_SENT' | 'PAID' | null;
+    /** Pre-formatted dates; this module does no formatting of its own. */
+    requestedOn: string | null;
+    detailsSentOn: string | null;
+    onTrial: boolean;
+    /** Whole days until the trial ends; negative once it has. Null without an end date. */
+    trialEndsInDays: number | null;
+  };
   now: Date;
 };
 
@@ -140,6 +157,43 @@ function daysBetween(from: Date, to: Date): number {
  */
 export function prioritySignals(input: PriorityInput): PrioritySignal[] {
   const signals: PrioritySignal[] = [];
+
+  // A paying customer waiting on the operator outranks everything (M23). The
+  // owner pressed the one button the product asks them to press; the request
+  // sits with nobody but the operator until the payment details go out.
+  const commercial = input.commercial;
+  if (commercial?.status === 'NEW') {
+    signals.push({
+      key: 'continuation_requested',
+      weight: 45,
+      reason: `The owner asked to continue with Headway${commercial.requestedOn ? ` on ${commercial.requestedOn}` : ''}. Payment details have not been sent yet.`,
+    });
+  } else if (commercial?.status === 'DETAILS_SENT') {
+    signals.push({
+      key: 'payment_awaited',
+      weight: 12,
+      reason: `Payment details were sent${commercial.detailsSentOn ? ` on ${commercial.detailsSentOn}` : ''}; no payment is recorded yet.`,
+    });
+  }
+  if (commercial?.onTrial && commercial.status === null && commercial.trialEndsInDays !== null) {
+    const left = commercial.trialEndsInDays;
+    if (left <= 0) {
+      signals.push({
+        key: 'trial_ended',
+        weight: 20,
+        reason:
+          left === 0
+            ? 'The trial ends today and the owner has not asked to continue.'
+            : `The trial ended ${-left} day${left === -1 ? '' : 's'} ago and the owner has not asked to continue.`,
+      });
+    } else if (left <= 3) {
+      signals.push({
+        key: 'trial_ending',
+        weight: 12,
+        reason: `The trial ends in ${left} day${left === 1 ? '' : 's'}.`,
+      });
+    }
+  }
 
   // Setup first (M17). A business whose feedback page is switched off, or
   // whose cards were never printed, is not quiet — it is not collecting. That
@@ -311,6 +365,18 @@ export const BAND_LABELS: Record<PriorityBand, string> = {
 export function nextActionFor(input: PriorityInput): NextAction {
   const base = `/clients/${input.clientId}`;
   const feedback = `${base}/feedback`;
+
+  // An owner who has asked to continue is waiting on one thing, and it is the
+  // operator's to do (M23). Nothing about their feedback changes that.
+  if (input.commercial?.status === 'NEW') {
+    return {
+      key: 'SEND_PAYMENT_DETAILS',
+      label: 'Send payment details',
+      detail:
+        'The owner asked to continue. Agree the amount and send them the payment information and QR.',
+      href: `${base}#commercial`,
+    };
+  }
 
   // Nothing downstream is worth asking for while the front door is shut.
   if (input.setup.gatewayPaused) {

@@ -17,6 +17,8 @@ import {
 } from '@/lib/intelligence/engine';
 import { categoryLabel, isForwardLooking } from '@/lib/minutes/service';
 import { listClientSetup } from '@/lib/clients/service';
+import { continuationStatus, type ContinuationStatus } from '@/lib/commercial/service';
+import { formatDate } from '@/lib/format';
 import { MIN_FEEDBACK_TO_MEASURE } from '@/lib/improve/measure';
 import { evidenceDateOf, toActionRecord } from '@/lib/improve/service';
 import { measurementWindowStart } from '@/lib/improve/model';
@@ -122,6 +124,13 @@ export type CommandCard = {
   nextAction: NextAction;
 
   /**
+   * The owner's request to continue with Headway, when there is one, and where
+   * it stands (M23). The amount itself is not on the card: it is on the client
+   * page, behind the operator's own gate.
+   */
+  continuation: { status: ContinuationStatus; requestedOn: string } | null;
+
+  /**
    * Set when this client cannot yet support conclusions. Carries what is
    * missing and why, so a new client reads as "not started" rather than broken.
    *
@@ -140,6 +149,8 @@ export type Board = {
     awaitingDraft: number;
     needsYou: number;
     lowData: number;
+    /** Owners who asked to continue and have not been sent payment details yet. */
+    continuationRequests: number;
   };
 };
 
@@ -349,7 +360,15 @@ export async function getBoard(
 ): Promise<Board> {
   const clients = await db.client.findMany({
     where: { archivedAt: null },
-    select: { id: true, businessName: true, vertical: true, status: true },
+    select: {
+      id: true,
+      businessName: true,
+      vertical: true,
+      status: true,
+      subscriptionStatus: true,
+      trialEndsAt: true,
+      paymentRequestedAt: true,
+    },
     orderBy: { businessName: 'asc' },
   });
 
@@ -368,13 +387,14 @@ export async function getBoard(
         awaitingDraft: 0,
         needsYou: 0,
         lowData: 0,
+        continuationRequests: 0,
       },
     };
   }
 
   const ids = clients.map((client) => client.id);
 
-  const [snapshots, feedback, minutes, improvements] = await Promise.all([
+  const [snapshots, feedback, minutes, improvements, commercials] = await Promise.all([
     db.snapshot.findMany({
       where: { clientId: { in: ids } },
       orderBy: { capturedAt: 'desc' },
@@ -427,7 +447,15 @@ export async function getBoard(
       where: { clientId: { in: ids } },
       orderBy: [{ updatedAt: 'desc' }],
     }),
+    // The operator's own records of what was sent and what was paid. Returns
+    // nothing for anyone the Commercial policy refuses, so a request then reads
+    // as new - which is the safe reading.
+    db.commercial.findMany({
+      where: { clientId: { in: ids } },
+      select: { clientId: true, instructionsSentAt: true, paidAt: true },
+    }),
   ]);
+  const commercialByClient = new Map(commercials.map((row) => [row.clientId, row]));
 
   const snapshotsByClient = new Map<string, StoredSnapshot[]>();
   for (const row of snapshots) {
@@ -502,6 +530,22 @@ export async function getBoard(
       ...clientFeedback.map((row) => row.createdAt),
     );
 
+    const record = commercialByClient.get(client.id);
+    const status = continuationStatus({
+      requestedAt: client.paymentRequestedAt,
+      instructionsSentAt: record?.instructionsSentAt ?? null,
+      paidAt: record?.paidAt ?? null,
+    });
+    const commercial = {
+      status,
+      requestedOn: client.paymentRequestedAt ? formatDate(client.paymentRequestedAt) : null,
+      detailsSentOn: record?.instructionsSentAt ? formatDate(record.instructionsSentAt) : null,
+      onTrial: client.subscriptionStatus === 'TRIAL',
+      trialEndsInDays: client.trialEndsAt
+        ? Math.ceil((client.trialEndsAt.getTime() - now.getTime()) / 86_400_000)
+        : null,
+    };
+
     const setup = setupByClient.get(client.id);
     const priority = prioritise({
       clientId: client.id,
@@ -532,6 +576,7 @@ export async function getBoard(
         awaitingDecision: actions.awaitingDecision,
         readyToMeasure: actions.readyToMeasure,
       },
+      commercial,
       lastFollowUpAt: memory.lastFollowUpAt,
       daysSinceLastSnapshot: card.coverage.daysSinceLastSnapshot,
       snapshotCount: card.coverage.snapshotCount,
@@ -572,6 +617,11 @@ export async function getBoard(
       reasons: priority.reasons,
       nextAction: priority.nextAction,
 
+      continuation:
+        status && client.paymentRequestedAt
+          ? { status, requestedOn: formatDate(client.paymentRequestedAt) }
+          : null,
+
       lowData: lowDataFor(boardFeedback),
     };
   });
@@ -587,6 +637,7 @@ export async function getBoard(
       awaitingDraft: cards.reduce((sum, c) => sum + c.feedback.awaitingDraft, 0),
       needsYou: cards.reduce((sum, c) => sum + c.feedback.needsYou, 0),
       lowData: cards.filter((c) => c.lowData !== null).length,
+      continuationRequests: cards.filter((c) => c.continuation?.status === 'NEW').length,
     },
   };
 }

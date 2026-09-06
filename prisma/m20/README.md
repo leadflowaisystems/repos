@@ -183,6 +183,59 @@ and the `app` schema holds **19** functions with `public-gateway.sql` applied,
 17 without.
 
 
+**A database from before M23 needs a schema change FIRST, then this file, then
+a backfill.** M23 rebuilt the owner's Account page around two facts the
+database has to hold: every trial has an end date, and a pause and a resume are
+recorded when they happen.
+
+```bash
+npx prisma db execute --file prisma/m23/migration.sql --schema prisma/schema.prisma   # 1
+npx prisma db execute --file prisma/m20/rls.sql       --schema prisma/schema.prisma   # 2
+npx prisma db execute --file prisma/m23/backfill.sql  --schema prisma/schema.prisma   # 3
+```
+
+Step 1 adds two nullable columns to `Client` (`servicePausedAt`,
+`serviceResumedAt`), guarded, nothing dropped. Step 2 is the same re-runnable
+file as always. Step 3 gives every existing trial that has no end date one —
+the configured default, measured from the day it runs — and replaces the
+internal product name in measurement text frozen before the rename. Both
+statements only touch rows that need it, so a second run changes nothing.
+
+**Run them in that order, and deploy the M23 code only afterwards.** The
+deployed code reads the two new columns on every owner's Account page and on
+Home's layout; before step 1 it fails the way M21 did.
+
+The file gained one function and changed two:
+
+* `app.trial_default_days` — how long a new trial runs. Reads one `AppSetting`
+  row, key `trial.default_days`, set from the operator's Settings page, and
+  returns 14 for anything missing or malformed. SECURITY DEFINER because
+  `AppSetting` is admin-only and the function is called on the signup path.
+* `app.create_client` — now opens the trial window it always should have:
+  `trialStartsAt = now`, `trialEndsAt = now + trial_default_days()`. Same
+  signature, so an older deployment keeps working against the new function.
+* `app.set_subscription` — stamps `servicePausedAt` on the move into PAUSED or
+  CANCELLED and `serviceResumedAt` on the move back out, clearing the other, so
+  at most one is ever set. Same signature.
+
+Afterwards there are still **17** tables with RLS enabled and forced, **20**
+policies, and the `app` schema holds **20** functions with
+`public-gateway.sql` applied, 18 without.
+
+
+## Taking a full backup of production
+
+There is no `pg_dump` in this repository's toolchain by default, and the one
+installed with PostgreSQL 16 refuses a PostgreSQL 17 server. pgAdmin ships a
+17.x client. `scripts/backup-production.mjs` takes a read-only backup — a
+REPEATABLE READ, READ ONLY per-table JSON snapshot with server-side digests,
+catalog snapshots, and `pg_dump` in three formats — into `backups/prod-<stamp>/`
+with a manifest of sha256s, and `scripts/verify-production-backup.mjs` restores
+it twice into the local test cluster and compares digests and catalogs. Both
+read `DIRECT_DATABASE_URL` from `.env.local` and print neither it nor any
+password. See the README each backup folder carries for how to restore.
+
+
 ## Invitation email — what Supabase has to be told
 
 RepOS sends the team invitation itself, from `src/lib/invite/email.ts`, through

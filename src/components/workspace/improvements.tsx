@@ -3,7 +3,6 @@ import { prisma } from '@/lib/db';
 import { getImprovementsView } from '@/lib/portal/service';
 import {
   ActionStory,
-  Limits,
   PageIntro,
   Quiet,
   Section,
@@ -16,18 +15,14 @@ export const metadata = { title: 'Improvements' };
 /**
  * IMPROVEMENTS — what did we actually do, and did it help? (M12)
  *
- * The loop, end to end, for every change: problem → what RepOS suggested →
+ * The loop, end to end, for every change: problem → what Headway suggested →
  * what you decided → the change → before → after → reading → what we learned
  * → what next. Honest on purpose: feedback that got worse after a change says
  * so, and a change that helped and is slipping says that too. The page is
- * also where the next decision starts.
- */
-/**
- * The improvements page, as one implementation behind two doors (M20).
+ * also where the next decision starts. Each reading carries its own limit
+ * beside the finding, so the page does not repeat it at the bottom.
  *
- * Reached either through the owner's secret link (/portal/[token]) or through
- * an authenticated workspace (/workspace/[clientId]). Both resolve to a client
- * id first and neither is trusted here: whoever renders this has already
+ * Reached through an authenticated workspace. Whoever renders this has already
  * decided the caller may see this business.
  */
 export async function PortalImprovements({
@@ -55,9 +50,8 @@ export async function PortalImprovements({
 
       {empty ? (
         <Quiet>
-          Nothing here yet. When you agree to act on something Headway suggested, it appears here,
-          and once enough new feedback has come in we compare how often it comes up before and
-          after the change.
+          Nothing here yet. When you act on something Headway suggested, this page remembers
+          the change and compares the feedback before and after it.
         </Quiet>
       ) : null}
 
@@ -96,16 +90,6 @@ export async function PortalImprovements({
           </div>
         </Section>
       ) : null}
-
-      <Limits
-        limits={
-          view.checked.length > 0
-            ? [
-                'A comparison shows how often a theme came up before and after a change. It cannot show that the change caused the difference.',
-              ]
-            : []
-        }
-      />
     </div>
   );
 }

@@ -41,7 +41,7 @@ export default async function PrintKitPage({
           <p className="mt-0.5 text-[13px] text-ink-600">
             {qrSvg
               ? 'Print on plain A4. Use "Save as PDF" in the print dialog if you want a file.'
-              : 'No review link has been added yet, so the QR areas are blank. Add the link first.'}
+              : 'The address customers open is not set yet, so the QR areas are blank. Set it on Settings first.'}
           </p>
         </div>
         <PrintNowButton />
@@ -210,7 +210,7 @@ function QrBlock({
         />
       ) : (
         <div className="grid h-full w-full place-items-center border border-dashed border-ink-400 p-2 text-center text-[7pt] leading-tight text-ink-400">
-          Add the public review link to generate the QR
+          Set the address customers open to generate the QR
         </div>
       )}
     </div>

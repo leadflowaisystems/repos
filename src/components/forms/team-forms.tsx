@@ -86,8 +86,7 @@ export function InviteForm({ clientId }: { clientId: string }) {
         <p className="mt-1 text-[13px] text-bad-700">{state.errors.email}</p>
       ) : null}
       <p className="mt-2 text-[12px] leading-relaxed text-ink-500">
-        Headway emails them a sign-in link that opens this invitation. The link below is the same
-        invitation and is shown once, in case you would rather send it yourself.
+        They get an email with a sign-in link. You can also copy the link and send it yourself.
       </p>
       <Notice state={state} />
       {state.data?.link ? (

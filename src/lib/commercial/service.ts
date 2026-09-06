@@ -19,9 +19,16 @@ import { isMissingDbFunction, withRlsContext } from '@/lib/db';
  * platform admin rather than for membership — so an owner's connection returns
  * no rows, not a blank amount.
  *
- * The owner's half of the conversation is one button: ask what this costs, and
- * confirm where to be reached. That writes their own contact details and a
- * timestamp, and nothing else.
+ * The owner's half of the conversation is one button: continue with Headway,
+ * confirming where to be reached. That writes their own contact details and a
+ * timestamp, and nothing else. The operator sees the request, agrees a number,
+ * and sends the payment details by hand.
+ *
+ * M23 added the two facts an owner's Account page rests on: every trial has an
+ * end date from the moment it starts (`DEFAULT_TRIAL_DAYS`, operator-adjustable
+ * without a schema change through one AppSetting row), and a pause and a
+ * resume are stamped when they happen, so "paused since" and "resumed" are
+ * records rather than guesses.
  */
 
 export type ServiceOk<T> = { ok: true; data: T };
@@ -53,35 +60,134 @@ export function isServicePaused(raw: string | null | undefined): boolean {
 
 const DAY = 86_400_000;
 
+// ---------------------------------------------------------------------------
+// How long a new trial runs
+// ---------------------------------------------------------------------------
+
+/**
+ * The product default, and the only place the number lives in TypeScript. The
+ * database function `app.trial_default_days()` carries the same default for the
+ * path that creates a business under the real policies.
+ */
+export const DEFAULT_TRIAL_DAYS = 14;
+export const MAX_TRIAL_DAYS = 365;
+/** One AppSetting row. The operator changes it from Settings; nothing else reads it. */
+export const TRIAL_DEFAULT_DAYS_SETTING = 'trial.default_days';
+
+/** A whole number of days between 1 and 365, or null for anything else. */
+export function normaliseTrialDays(raw: unknown): number | null {
+  const text = typeof raw === 'number' ? String(raw) : String(raw ?? '').trim();
+  if (!/^\d{1,3}$/.test(text)) return null;
+  const n = Number(text);
+  if (!Number.isInteger(n) || n < 1 || n > MAX_TRIAL_DAYS) return null;
+  return n;
+}
+
+/**
+ * The configured default, or the product default when none is set.
+ *
+ * AppSetting is admin-only under RLS, so a business owner's connection reads
+ * nothing here and gets 14 — which is fine, because nothing on the owner's
+ * side ever starts a trial. The operator's connection reads the real value.
+ */
+export async function getTrialDefaultDays(db: PrismaClient): Promise<number> {
+  try {
+    const row = await db.appSetting.findUnique({ where: { key: TRIAL_DEFAULT_DAYS_SETTING } });
+    return normaliseTrialDays(row?.value) ?? DEFAULT_TRIAL_DAYS;
+  } catch {
+    return DEFAULT_TRIAL_DAYS;
+  }
+}
+
+export async function saveTrialDefaultDays(
+  db: PrismaClient,
+  raw: string,
+): Promise<ServiceResult<{ days: number }>> {
+  const days = normaliseTrialDays(raw);
+  if (days === null) {
+    return err('Some fields need attention.', {
+      trialDays: `Use a whole number of days between 1 and ${MAX_TRIAL_DAYS}.`,
+    });
+  }
+  await db.appSetting.upsert({
+    where: { key: TRIAL_DEFAULT_DAYS_SETTING },
+    create: { key: TRIAL_DEFAULT_DAYS_SETTING, value: String(days) },
+    update: { value: String(days) },
+  });
+  return ok({ days });
+}
+
+/** The window a brand-new business starts with. */
+export function trialWindowFrom(now: Date, days: number): { trialStartsAt: Date; trialEndsAt: Date } {
+  return { trialStartsAt: now, trialEndsAt: new Date(now.getTime() + days * DAY) };
+}
+
+// ---------------------------------------------------------------------------
+// What the owner is told
+// ---------------------------------------------------------------------------
+
+/**
+ * The five situations an owner can be in, each with its own headline. TRIAL
+ * and TRIAL_ENDED are the same subscription state read against the clock.
+ */
+export type AccountPhase = 'TRIAL' | 'TRIAL_ENDED' | 'ACTIVE' | 'PAUSED' | 'CLOSED';
+
 export type AccountState = {
   state: SubscriptionState;
+  phase: AccountPhase;
+  /** "Your Headway trial", "Your trial has ended", "Headway is active", "Headway is paused". */
+  headline: string;
+  /** One sentence under it. Never a price, never a countdown to a sale. */
+  line: string;
+  /** A second fact when there is one: paused since, or resumed. */
+  note: string | null;
   trialStartsAt: Date | null;
   trialEndsAt: Date | null;
   /** Whole days remaining, negative once it is past. Null with no end date. */
   trialDaysLeft: number | null;
   trialExpired: boolean;
-  paymentRequestedAt: Date | null;
+  /** When the owner asked to continue with Headway. */
+  continuationRequestedAt: Date | null;
+  servicePausedAt: Date | null;
+  serviceResumedAt: Date | null;
   owner: { name: string; email: string; phone: string };
-  /** One sentence for the owner. Never a price, never a countdown to a sale. */
-  line: string;
 };
+
+/** "21 September 2026" — the long form an owner reads on their own page. */
+const LONG_DATE = new Intl.DateTimeFormat('en-IN', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'Asia/Kolkata',
+});
+
+export function formatLongDate(value: Date): string {
+  return LONG_DATE.format(value);
+}
 
 function daysBetween(from: Date, to: Date): number {
   return Math.ceil((to.getTime() - from.getTime()) / DAY);
 }
 
+/** A resume is news for two weeks; after that the account is simply active. */
+const RESUMED_IS_NEWS_FOR_DAYS = 14;
+
 /**
  * What the owner is told about their own account.
  *
- * Deliberately calm. A trial that is running says how long is left because that
- * is a fact they need; it does not count down in hours, colour itself red, or
- * suggest that acting today is cheaper than acting on Friday.
+ * Deliberately calm. A trial says the date it runs to, because that is a fact
+ * they need; it does not count down in hours, colour itself red, or suggest
+ * that acting today is cheaper than acting on Friday. An ended trial says the
+ * workspace and its history are still here, because they are. A pause says
+ * what is kept and what has stopped, and nothing else.
  */
 export function describeAccount(input: {
   subscriptionStatus: string;
   trialStartsAt: Date | null;
   trialEndsAt: Date | null;
   paymentRequestedAt: Date | null;
+  servicePausedAt?: Date | null;
+  serviceResumedAt?: Date | null;
   ownerName: string | null;
   ownerEmail: string | null;
   ownerPhone: string | null;
@@ -90,38 +196,66 @@ export function describeAccount(input: {
   const state = subscriptionState(input.subscriptionStatus);
   const trialDaysLeft = input.trialEndsAt ? daysBetween(input.now, input.trialEndsAt) : null;
   const trialExpired = trialDaysLeft !== null && trialDaysLeft <= 0;
+  const servicePausedAt = input.servicePausedAt ?? null;
+  const serviceResumedAt = input.serviceResumedAt ?? null;
+  const resumedRecently =
+    serviceResumedAt !== null &&
+    input.now.getTime() - serviceResumedAt.getTime() <= RESUMED_IS_NEWS_FOR_DAYS * DAY &&
+    input.now.getTime() >= serviceResumedAt.getTime();
 
+  let phase: AccountPhase;
+  let headline: string;
   let line: string;
+  let note: string | null = null;
+
   if (state === 'PAUSED') {
+    phase = 'PAUSED';
+    headline = 'Headway is paused';
     line =
-      'Your account is paused. Feedback is still being collected and kept — Headway will read it when the account is resumed.';
+      'Your customer history is safe. New feedback will be kept, but Headway is not actively processing it right now.';
+    note = servicePausedAt ? `Paused since ${formatLongDate(servicePausedAt)}.` : null;
   } else if (state === 'CANCELLED') {
-    line =
-      'This account is closed. Everything already collected is kept and nothing new is being read.';
+    phase = 'CLOSED';
+    headline = 'This account is closed';
+    line = 'Everything already collected is kept, and nothing new is being read.';
   } else if (state === 'ACTIVE') {
-    line = 'Your account is active.';
-  } else if (trialDaysLeft === null) {
-    line = 'You are on a trial. There is no end date set — talk to us whenever you are ready.';
+    phase = 'ACTIVE';
+    headline = 'Headway is active';
+    line = 'Your workspace is active.';
+    note = resumedRecently ? 'Headway has resumed reading new feedback.' : null;
   } else if (trialExpired) {
-    line =
-      'Your trial has ended. Everything you have collected is still here, and the team will be in touch about carrying on.';
+    phase = 'TRIAL_ENDED';
+    headline = 'Your trial has ended';
+    line = 'Your Headway workspace and history are still here.';
   } else {
-    line = `You are on a trial with ${trialDaysLeft} ${trialDaysLeft === 1 ? 'day' : 'days'} to go.`;
+    phase = 'TRIAL';
+    headline = 'Your Headway trial';
+    line = input.trialEndsAt
+      ? `Your trial is active until ${formatLongDate(input.trialEndsAt)}.`
+      : // Only for a business created before every trial carried a window, and
+        // only until the M23 backfill runs. Never "no end date".
+        'Your trial is active. Your Headway contact will confirm the end date.';
+    note = resumedRecently ? 'Headway has resumed reading new feedback.' : null;
   }
 
   return {
     state,
+    phase,
+    headline,
+    line,
+    note,
     trialStartsAt: input.trialStartsAt,
     trialEndsAt: input.trialEndsAt,
     trialDaysLeft,
     trialExpired,
-    paymentRequestedAt: input.paymentRequestedAt,
+    continuationRequestedAt: input.paymentRequestedAt,
+    servicePausedAt,
+    serviceResumedAt,
     owner: {
       name: (input.ownerName ?? '').trim(),
       email: (input.ownerEmail ?? '').trim(),
       phone: (input.ownerPhone ?? '').trim(),
     },
-    line,
   };
 }
 
@@ -138,6 +272,8 @@ export async function getAccountState(
       trialStartsAt: true,
       trialEndsAt: true,
       paymentRequestedAt: true,
+      servicePausedAt: true,
+      serviceResumedAt: true,
       ownerName: true,
       ownerEmail: true,
       ownerPhone: true,
@@ -162,7 +298,7 @@ export async function getAccountState(
  * runs where the DDL is not applied — the test suite, and an install that has
  * not run `rls.sql`. Under the real policies `repos_app` holds no UPDATE
  * privilege on these columns, so it returns nothing and the function is the
- * only way through.
+ * only way through. Both paths stamp the pause and the resume the same way.
  */
 export async function setSubscription(
   db: PrismaClient,
@@ -175,7 +311,10 @@ export async function setSubscription(
   options: { now?: Date } = {},
 ): Promise<ServiceResult<{ clientId: string }>> {
   const now = options.now ?? new Date();
-  const client = await db.client.findFirst({ where: { id: clientId }, select: { id: true } });
+  const client = await db.client.findFirst({
+    where: { id: clientId },
+    select: { id: true, subscriptionStatus: true },
+  });
   if (!client) return err('That business no longer exists.');
 
   const asArgument = (value: Date | null | undefined): string | null =>
@@ -205,38 +344,41 @@ export async function setSubscription(
     }
   }
 
+  const was = isServicePaused(client.subscriptionStatus);
+  const willBe = changes.status ? isServicePaused(changes.status) : was;
   await db.client.update({
     where: { id: clientId },
     data: {
       ...(changes.status ? { subscriptionStatus: changes.status } : {}),
       ...(changes.trialStartsAt !== undefined ? { trialStartsAt: changes.trialStartsAt } : {}),
       ...(changes.trialEndsAt !== undefined ? { trialEndsAt: changes.trialEndsAt } : {}),
+      ...(changes.status && willBe && !was ? { servicePausedAt: now, serviceResumedAt: null } : {}),
+      ...(changes.status && !willBe && was ? { serviceResumedAt: now, servicePausedAt: null } : {}),
+      ...(changes.status && !willBe && !was ? { servicePausedAt: null } : {}),
     },
   });
   return ok({ clientId });
 }
 
-/** Starts or restarts a trial of `days`, from now. */
+/**
+ * Starts or restarts a trial from now. `days` defaults to the configured
+ * default, which defaults to fourteen.
+ */
 export async function startTrial(
   db: PrismaClient,
   clientId: string,
-  days: number,
+  days?: number | null,
   options: { now?: Date } = {},
-): Promise<ServiceResult<{ clientId: string }>> {
+): Promise<ServiceResult<{ clientId: string; days: number }>> {
   const now = options.now ?? new Date();
-  if (!Number.isFinite(days) || days <= 0 || days > 365) {
-    return err('Some fields need attention.', { days: 'Pick between 1 and 365 days.' });
+  const length = days === undefined || days === null ? await getTrialDefaultDays(db) : days;
+  if (!Number.isFinite(length) || length <= 0 || length > MAX_TRIAL_DAYS) {
+    return err('Some fields need attention.', { days: `Pick between 1 and ${MAX_TRIAL_DAYS} days.` });
   }
-  return setSubscription(
-    db,
-    clientId,
-    {
-      status: 'TRIAL',
-      trialStartsAt: now,
-      trialEndsAt: new Date(now.getTime() + Math.round(days) * DAY),
-    },
-    { now },
-  );
+  const window = trialWindowFrom(now, Math.round(length));
+  const result = await setSubscription(db, clientId, { status: 'TRIAL', ...window }, { now });
+  if (!result.ok) return result;
+  return ok({ clientId, days: Math.round(length) });
 }
 
 /**
@@ -253,8 +395,8 @@ export async function extendTrial(
   options: { now?: Date } = {},
 ): Promise<ServiceResult<{ clientId: string; trialEndsAt: Date }>> {
   const now = options.now ?? new Date();
-  if (!Number.isFinite(days) || days <= 0 || days > 365) {
-    return err('Some fields need attention.', { days: 'Pick between 1 and 365 days.' });
+  if (!Number.isFinite(days) || days <= 0 || days > MAX_TRIAL_DAYS) {
+    return err('Some fields need attention.', { days: `Pick between 1 and ${MAX_TRIAL_DAYS} days.` });
   }
   const client = await db.client.findFirst({
     where: { id: clientId },
@@ -329,25 +471,14 @@ export async function resumeService(
 }
 
 // ---------------------------------------------------------------------------
-// The owner's one request
+// The owner's one request, and their own details
 // ---------------------------------------------------------------------------
 
-export type PaymentRequestInput = { name: string; email: string; phone: string };
+export type OwnerContactInput = { name: string; email: string; phone: string };
 
-/**
- * The owner asks what this costs, and confirms where to be reached.
- *
- * Everything this writes is the owner's own contact detail plus a timestamp.
- * No amount is created here, no invoice, no payment intent and no card: RepOS
- * takes no payments. The operator sees the request, agrees a number by hand,
- * and sends the UPI or bank details to the address confirmed here.
- */
-export async function requestPaymentDetails(
-  db: PrismaClient,
-  clientId: string,
-  input: PaymentRequestInput,
-  options: { now?: Date } = {},
-): Promise<ServiceResult<{ clientId: string; requestedAt: Date }>> {
+function cleanContact(
+  input: OwnerContactInput,
+): ServiceResult<{ name: string; email: string; phone: string }> {
   const name = (input.name ?? '').trim();
   const email = (input.email ?? '').trim().toLowerCase();
   const phone = (input.phone ?? '').replace(/[^\d+ ]/g, '').trim();
@@ -359,14 +490,59 @@ export async function requestPaymentDetails(
     errors.phone = 'Add a mobile or WhatsApp number we can reach you on.';
   }
   if (Object.keys(errors).length > 0) return err('Some fields need attention.', errors);
+  return ok({ name, email, phone });
+}
+
+/**
+ * The owner asks to continue with Headway, and confirms where to be reached.
+ *
+ * Everything this writes is the owner's own contact detail plus a timestamp.
+ * No amount is created here, no invoice, no payment intent and no card: RepOS
+ * takes no payments. The operator sees the request, agrees a number by hand,
+ * and sends the payment information and QR to the details confirmed here.
+ */
+export async function requestContinuation(
+  db: PrismaClient,
+  clientId: string,
+  input: OwnerContactInput,
+  options: { now?: Date } = {},
+): Promise<ServiceResult<{ clientId: string; requestedAt: Date }>> {
+  const clean = cleanContact(input);
+  if (!clean.ok) return clean;
 
   const now = options.now ?? new Date();
   const updated = await db.client.updateMany({
     where: { id: clientId },
-    data: { ownerName: name, ownerEmail: email, ownerPhone: phone, paymentRequestedAt: now },
+    data: {
+      ownerName: clean.data.name,
+      ownerEmail: clean.data.email,
+      ownerPhone: clean.data.phone,
+      paymentRequestedAt: now,
+    },
   });
   if (updated.count === 0) return err('That business no longer exists.');
   return ok({ clientId, requestedAt: now });
+}
+
+/** The same three details, kept up to date, without asking anything of anyone. */
+export async function updateOwnerContact(
+  db: PrismaClient,
+  clientId: string,
+  input: OwnerContactInput,
+): Promise<ServiceResult<{ clientId: string }>> {
+  const clean = cleanContact(input);
+  if (!clean.ok) return clean;
+
+  const updated = await db.client.updateMany({
+    where: { id: clientId },
+    data: {
+      ownerName: clean.data.name,
+      ownerEmail: clean.data.email,
+      ownerPhone: clean.data.phone,
+    },
+  });
+  if (updated.count === 0) return err('That business no longer exists.');
+  return ok({ clientId });
 }
 
 // ---------------------------------------------------------------------------
@@ -452,4 +628,89 @@ export async function saveCommercial(
     update: data,
   });
   return ok({ clientId });
+}
+
+// ---------------------------------------------------------------------------
+// What the operator has to answer
+// ---------------------------------------------------------------------------
+
+/** Where a continuation request stands, from the operator's own records. */
+export type ContinuationStatus = 'NEW' | 'DETAILS_SENT' | 'PAID';
+
+export function continuationStatus(input: {
+  requestedAt: Date | null;
+  instructionsSentAt: Date | null;
+  paidAt: Date | null;
+}): ContinuationStatus | null {
+  if (!input.requestedAt) return null;
+  if (input.paidAt && input.paidAt.getTime() >= input.requestedAt.getTime()) return 'PAID';
+  if (input.instructionsSentAt && input.instructionsSentAt.getTime() >= input.requestedAt.getTime()) {
+    return 'DETAILS_SENT';
+  }
+  return 'NEW';
+}
+
+export type ContinuationRequest = {
+  clientId: string;
+  businessName: string;
+  requestedAt: Date;
+  status: ContinuationStatus;
+  owner: { name: string; email: string; phone: string };
+  /** The operator's own figures. Never leave the operator console. */
+  amountInr: number | null;
+  cadence: string;
+  note: string;
+  instructionsSentAt: Date | null;
+  paidAt: Date | null;
+};
+
+/**
+ * Every owner who has asked to continue, newest first. Operator only: the
+ * Commercial join returns nothing for anyone else, and a request without its
+ * record still lists — a request is not made less real by the operator not
+ * having written the amount down yet.
+ */
+export async function listContinuationRequests(db: PrismaClient): Promise<ContinuationRequest[]> {
+  const clients = await db.client.findMany({
+    where: { paymentRequestedAt: { not: null }, archivedAt: null },
+    select: {
+      id: true,
+      businessName: true,
+      paymentRequestedAt: true,
+      ownerName: true,
+      ownerEmail: true,
+      ownerPhone: true,
+      commercial: {
+        select: { amountInr: true, cadence: true, note: true, instructionsSentAt: true, paidAt: true },
+      },
+    },
+    orderBy: { paymentRequestedAt: 'desc' },
+  });
+  return clients.flatMap((c) => {
+    if (!c.paymentRequestedAt) return [];
+    const status = continuationStatus({
+      requestedAt: c.paymentRequestedAt,
+      instructionsSentAt: c.commercial?.instructionsSentAt ?? null,
+      paidAt: c.commercial?.paidAt ?? null,
+    });
+    if (!status) return [];
+    return [
+      {
+        clientId: c.id,
+        businessName: c.businessName,
+        requestedAt: c.paymentRequestedAt,
+        status,
+        owner: {
+          name: (c.ownerName ?? '').trim(),
+          email: (c.ownerEmail ?? '').trim(),
+          phone: (c.ownerPhone ?? '').trim(),
+        },
+        amountInr: c.commercial?.amountInr ?? null,
+        cadence: c.commercial?.cadence ?? 'MONTHLY',
+        note: c.commercial?.note ?? '',
+        instructionsSentAt: c.commercial?.instructionsSentAt ?? null,
+        paidAt: c.commercial?.paidAt ?? null,
+      },
+    ];
+  });
 }

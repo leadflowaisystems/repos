@@ -1,10 +1,10 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { getCheckinView } from '@/lib/portal/service';
 import { getResponsibility } from '@/lib/responsibility/service';
 import {
   Callout,
-  Limits,
   OutcomeRow,
   PageIntro,
   PeriodSwitch,
@@ -22,19 +22,11 @@ export const metadata = { title: 'Check-in' };
  * CHECK-IN — what changed since the previous check-in? (M12, with M15's
  * "since then" thread)
  *
- * Movement only. Home already gives the picture; this page gives the delta:
- * what improved, what got worse, what came back, what was compared, and what
- * RepOS will look at next for the things that moved. When nothing moved, it
- * says so in one line. At the end, what RepOS did since this check-in and
- * when the next one would actually show something.
- */
-/**
- * The checkin page, as one implementation behind two doors (M20).
- *
- * Reached either through the owner's secret link (/portal/[token]) or through
- * an authenticated workspace (/workspace/[clientId]). Both resolve to a client
- * id first and neither is trusted here: whoever renders this has already
- * decided the caller may see this business.
+ * A recurring ritual, not a report. The owner should leave with one
+ * conclusion, one action if there is one, one thing to protect, and one thing
+ * Headway will watch next — so those four are said first, in four lines, and
+ * the movement is laid out underneath for anyone who wants it. Home already
+ * gives the picture; this page gives the delta.
  */
 export async function PortalCheckin({
   clientId,
@@ -50,20 +42,28 @@ export async function PortalCheckin({
     getResponsibility(prisma, client.id),
   ]);
   if (!view || !bundle) notFound();
+  const r = bundle.responsibility;
 
   const moved = view.better.length + view.worse.length + view.returning.length + view.checked.length > 0;
   // The page's own intro already names the two check-ins compared.
   const since = {
-    ...bundle.responsibility,
-    did: bundle.responsibility.did.filter((line) => !line.startsWith('Compared your check-ins')),
+    ...r,
+    did: r.did.filter((line) => !line.startsWith('Compared your check-ins')),
   };
+
+  // The four lines an owner leaves with.
+  const act = r.needsYou[0] ?? null;
+  const protect = r.watching.find((i) => i.state === 'KEEP_DOING') ?? null;
+  const next = view.next[0] ?? r.watching.find((i) => i.state !== 'KEEP_DOING') ?? null;
+  const nextLabel = next ? ('label' in next ? next.label : next.themeLabel) : null;
+  const nextLine = next ? ('next' in next ? next.next : next.watching) : null;
 
   return (
     <div className="max-w-3xl">
       <PageIntro eyebrow="Check-in" title={view.title} description={view.periodNote} />
       <PeriodSwitch basePath={basePath} current="checkin" />
 
-      <div className="mb-10">
+      <div className="mb-8">
         <Callout tone={view.worse.length > 0 || view.returning.length > 0 ? 'bad' : moved ? 'good' : 'neutral'}>
           {view.movementLine}
         </Callout>
@@ -71,6 +71,45 @@ export async function PortalCheckin({
           <p className="mt-2 pl-4 text-[13px] leading-relaxed text-ink-500">{view.unchangedNote}</p>
         ) : null}
       </div>
+
+      {act || protect || nextLabel ? (
+        <dl className="mb-10 divide-y divide-ink-200 border-y border-ink-200">
+          {act ? (
+            <div className="grid grid-cols-1 gap-x-6 gap-y-0.5 py-3 sm:grid-cols-[7rem_1fr]">
+              <dt className="text-[11px] font-semibold tracking-widest text-bad-700 uppercase">Do</dt>
+              <dd className="text-[15px] leading-snug text-ink-900">
+                {act.headline}{' '}
+                <Link
+                  href={basePath}
+                  className="inline-flex min-h-11 items-center text-[13px] font-medium text-ink-700 hover:text-ink-900 sm:min-h-0"
+                >
+                  See what to decide →
+                </Link>
+              </dd>
+            </div>
+          ) : null}
+          {protect ? (
+            <div className="grid grid-cols-1 gap-x-6 gap-y-0.5 py-3 sm:grid-cols-[7rem_1fr]">
+              <dt className="text-[11px] font-semibold tracking-widest text-good-700 uppercase">Protect</dt>
+              <dd className="text-[15px] leading-snug text-ink-900">
+                {protect.themeLabel ?? protect.headline}
+                {protect.evidence ? (
+                  <span className="text-[13px] text-ink-500"> · {protect.evidence.count} of {protect.evidence.outOf}</span>
+                ) : null}
+              </dd>
+            </div>
+          ) : null}
+          {nextLabel ? (
+            <div className="grid grid-cols-1 gap-x-6 gap-y-0.5 py-3 sm:grid-cols-[7rem_1fr]">
+              <dt className="text-[11px] font-semibold tracking-widest text-brand-700 uppercase">Watching</dt>
+              <dd className="text-[15px] leading-snug text-ink-900">
+                {nextLabel}
+                {nextLine ? <span className="block text-[13px] leading-relaxed text-ink-600">{nextLine}</span> : null}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+      ) : null}
 
       {view.returning.length > 0 ? (
         <Section eyebrow="Coming back">
@@ -113,25 +152,21 @@ export async function PortalCheckin({
         </Section>
       ) : null}
 
-      {view.next.length > 0 ? (
-        <Section eyebrow="What Headway will look at next">
-          <WatchList items={view.next} basePath={basePath} />
+      {view.next.length > 1 ? (
+        <Section eyebrow="Also being watched">
+          <WatchList items={view.next.slice(1)} basePath={basePath} />
         </Section>
       ) : null}
 
       {!moved && view.sinceCheckin.length === 0 && view.made.length === 0 ? (
-        <Quiet>
-          Nothing needs a decision from this check-in. The picture and the priorities are on Home.
-        </Quiet>
+        <Quiet>Nothing needs a decision from this check-in.</Quiet>
       ) : null}
 
-      {since.did.length > 0 || bundle.responsibility.basedOn > 0 ? (
+      {since.did.length > 0 || r.basedOn > 0 ? (
         <Section eyebrow={since.sinceLabel} note="What Headway did">
           <SinceThen r={since} />
         </Section>
       ) : null}
-
-      <Limits limits={view.limits} />
     </div>
   );
 }

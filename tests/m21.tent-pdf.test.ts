@@ -533,7 +533,8 @@ describe('the print kit is a section of the owner’s workspace, not an operator
   it('offers both a preview and a download, of the same bytes', () => {
     expect(page).toContain('src={href}');
     expect(page).toContain('href={`${href}?download=1`}');
-    expect(page).toContain('Download the PDF');
+    expect(page).toContain('Download print kit');
+    expect(page).toContain('Preview');
     expect(route).toContain("searchParams.get('download') === '1'");
     expect(route).toContain("`${download ? 'attachment' : 'inline'}; filename=");
   });
@@ -541,7 +542,9 @@ describe('the print kit is a section of the owner’s workspace, not an operator
   it('shows the four steps, in order, in the owner’s own words', () => {
     const words = [...page.matchAll(/word: '([^']+)'/g)].map((m) => m[1]);
     expect(words).toEqual(['Print', 'Cut', 'Fold', 'Place']);
-    expect(page).toMatch(/turn off Fit to Page/i);
+    // Shorter since M23, but the two things that ruin a print are still said:
+    // scale, and that nothing else is needed to stand it up.
+    expect(page).toMatch(/not "fit to page"/i);
     expect(page).toMatch(/no glue, no tape, no holder/i);
   });
 

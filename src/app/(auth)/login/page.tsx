@@ -63,8 +63,7 @@ export default async function LoginPage({
         Sign in
       </h1>
       <p className="mb-6 text-[13px] leading-relaxed text-ink-500">
-        This tool is for the operator. Customers and business owners have their own links and do
-        not sign in here.
+        Your Headway workspace: what your customers are saying, and what to do about it.
       </p>
 
       <SignInForm next={next} />

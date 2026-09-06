@@ -7,10 +7,12 @@ import {
   convertToActive,
   extendTrial,
   pauseService,
-  requestPaymentDetails,
+  requestContinuation,
   resumeService,
   saveCommercial,
+  saveTrialDefaultDays,
   startTrial,
+  updateOwnerContact,
 } from '@/lib/commercial/service';
 import { failure, optInt, str, success, text, type ActionState } from './shared';
 
@@ -19,9 +21,9 @@ import { failure, optInt, str, success, text, type ActionState } from './shared'
  *
  * Split down the middle, and the split is the point.
  *
- * ONE of these is the owner's: asking to be told what this costs, and
- * confirming where to be reached. It writes their own contact details and a
- * timestamp, and nothing else.
+ * TWO of these are the owner's: continuing with Headway, and keeping their own
+ * contact details right. Each writes their own name, email and number; the
+ * first also writes a timestamp. Nothing else.
  *
  * EVERY OTHER ONE is platform staff's, because they decide the state of an
  * account and what was agreed for it. `adminGate` is the outer check; the
@@ -35,14 +37,15 @@ import { failure, optInt, str, success, text, type ActionState } from './shared'
  */
 
 function revalidateCommercial(clientId: string) {
+  revalidatePath('/');
   revalidatePath(`/clients/${clientId}`);
   revalidatePath(`/workspace/${clientId}/account`);
   revalidatePath(`/workspace/${clientId}`);
 }
 
-// --- the owner's one request ------------------------------------------------
+// --- the owner's side ---------------------------------------------------------
 
-export async function requestPaymentDetailsAction(
+export async function continueWithHeadwayAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
@@ -50,7 +53,7 @@ export async function requestPaymentDetailsAction(
   if (!gate.ok) return gate.state;
   const { clientId } = gate;
 
-  const result = await requestPaymentDetails(prisma, clientId, {
+  const result = await requestContinuation(prisma, clientId, {
     name: str(form, 'ownerName'),
     email: str(form, 'ownerEmail'),
     phone: str(form, 'ownerPhone'),
@@ -59,11 +62,30 @@ export async function requestPaymentDetailsAction(
 
   revalidateCommercial(clientId);
   return success(
-    'Asked. Headway will get back to you with what this costs and how to pay, on the details above.',
+    "Thanks. We've got your details. We'll send the payment information and QR directly to you.",
   );
 }
 
-// --- the platform's decisions -----------------------------------------------
+export async function updateOwnerContactAction(
+  _prev: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const gate = await tenantGate(form, 'OWNER');
+  if (!gate.ok) return gate.state;
+  const { clientId } = gate;
+
+  const result = await updateOwnerContact(prisma, clientId, {
+    name: str(form, 'ownerName'),
+    email: str(form, 'ownerEmail'),
+    phone: str(form, 'ownerPhone'),
+  });
+  if (!result.ok) return failure(result.message, result.errors);
+
+  revalidateCommercial(clientId);
+  return success('Saved. These are the details Headway will use to reach you.');
+}
+
+// --- the platform's decisions -------------------------------------------------
 
 export async function startTrialAction(
   _prev: ActionState,
@@ -74,14 +96,15 @@ export async function startTrialAction(
 
   const clientId = str(form, 'clientId');
   const days = optInt(form, 'days');
-  if (days === null || Number.isNaN(days)) {
+  if (days !== null && Number.isNaN(days)) {
     return failure('Some fields need attention.', { days: 'Enter a whole number of days.' });
   }
+  // Blank means the configured default, which is what the button offers.
   const result = await startTrial(prisma, clientId, days);
   if (!result.ok) return failure(result.message, result.errors);
 
   revalidateCommercial(clientId);
-  return success(`Trial started, ${days} days.`);
+  return success(`Trial started, ${result.data.days} days.`);
 }
 
 export async function extendTrialAction(
@@ -180,4 +203,19 @@ export async function saveCommercialAction(
 
   revalidateCommercial(clientId);
   return success('Saved. This stays on the operator side.');
+}
+
+/** How long every new trial runs. One installation-wide setting, operator only. */
+export async function saveTrialDefaultDaysAction(
+  _prev: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const gate = await adminGate();
+  if (!gate.ok) return gate.state;
+
+  const result = await saveTrialDefaultDays(prisma, str(form, 'trialDays'));
+  if (!result.ok) return failure(result.message, result.errors);
+
+  revalidatePath('/settings');
+  return success(`New trials run for ${result.data.days} days.`);
 }

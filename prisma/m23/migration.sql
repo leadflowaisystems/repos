@@ -1,0 +1,32 @@
+-- M23 — the client portal pass: two stamps on Client.
+--
+-- PURELY ADDITIVE. Two nullable columns. Nothing is dropped, no type changes,
+-- no row is written or read. Every statement is guarded, so running this file
+-- twice is the same as running it once.
+--
+-- ORDER MATTERS, and it is the same order as M21:
+--
+--   1. this file                      -- the columns
+--   2. prisma/m20/rls.sql             -- the functions that write them, and the
+--                                        trial window every new business starts with
+--   3. prisma/m23/backfill.sql        -- every existing trial gets an end date
+--
+-- Run as the OWNER, through DIRECT_DATABASE_URL. `repos_app` cannot alter a
+-- table and should not be able to.
+--
+--   npx prisma db execute --file prisma/m23/migration.sql --schema prisma/schema.prisma
+--   npx prisma db execute --file prisma/m20/rls.sql       --schema prisma/schema.prisma
+--   npx prisma db execute --file prisma/m23/backfill.sql  --schema prisma/schema.prisma
+--
+-- WHAT THE COLUMNS ARE FOR
+--
+--   Client.servicePausedAt / serviceResumedAt
+--     When the platform paused this account, and when it last resumed. The
+--     owner's Account page says "Headway is paused — paused since 3 September"
+--     and, after a resume, "Headway has resumed reading new feedback", and both
+--     of those are facts only if they are recorded. Stamped by
+--     app.set_subscription from the transition itself; not in the repos_app
+--     UPDATE grant, because a business does not decide when it is paused.
+
+ALTER TABLE public."Client" ADD COLUMN IF NOT EXISTS "servicePausedAt"  TIMESTAMP(3);
+ALTER TABLE public."Client" ADD COLUMN IF NOT EXISTS "serviceResumedAt" TIMESTAMP(3);

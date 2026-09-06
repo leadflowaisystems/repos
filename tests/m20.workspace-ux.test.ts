@@ -210,13 +210,14 @@ describe('home, as an owner briefing', () => {
     // changing what an owner reads first, which is not a styling decision.
     const order = [
       '<Picture mood={view.mood}',                       // right now
-      '<FactsLine facts={view.facts} />',                // direction and rating
-      '<SinceVisit since={since}',                       // what changed while away
+      '<FactsLine facts={direction} />',                 // the direction, once; the rating is a tile
       '<Answer r={r} basePath={basePath} />',            // do I need to do anything
       '<WatchingPanel items={watching}',                 // what is being carried
       'eyebrow="Needs you"',                             // the thing itself
+      'eyebrow="Going well"',                            // what to protect
+      '<SinceVisit since={since}',                       // what changed while away
       '<Tallies tallies={tallies} />',                   // the supporting figures
-      '<Limits limits={r.limitations} />',               // what we cannot tell you
+      '<Limits limits={r.limitations} collapsed />',     // what we cannot tell you, one tap away
     ];
     const at = order.map((token) => {
       const i = home.indexOf(token);
@@ -302,8 +303,9 @@ describe('one word for one idea', () => {
     const ba = between(ui, 'export function BeforeAfter(', 'function Step(');
     expect(ba).toContain('What we know');
     expect(ba).toContain('What we cannot tell you');
-    expect(ba).toContain('{outcome.note}');
-    expect(ba).toContain('{outcome.caveat}');
+    // The engine's full sentence where it has one, its short one otherwise —
+    // never both, which used to say the same thing twice in two lengths.
+    expect(ba).toContain('outcome.caveat ? outcome.caveat : outcome.note');
     // The limit is a labelled statement beside the finding, not a collapsed note.
     expect(ba.indexOf('What we cannot tell you')).toBeLessThan(ba.indexOf('<details'));
 

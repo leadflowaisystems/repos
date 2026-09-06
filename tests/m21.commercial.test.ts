@@ -10,7 +10,7 @@ import {
   getCommercial,
   isServicePaused,
   pauseService,
-  requestPaymentDetails,
+  requestContinuation,
   resumeService,
   saveCommercial,
   setSubscription,
@@ -109,14 +109,16 @@ describe('what the owner is told', () => {
     });
     expect(state.trialDaysLeft).toBe(5);
     expect(state.trialExpired).toBe(false);
-    expect(state.line).toContain('5 days');
+    // The date, not a countdown: "until 6 June 2026".
+    expect(state.line).toContain('until 6 June 2026');
   });
 
-  it('does not pretend a trial with no end date is about to run out', () => {
+  it('does not pretend a trial with no end date is about to run out, nor call it open-ended', () => {
     const state = describeAccount({ ...base, subscriptionStatus: 'TRIAL' });
     expect(state.trialDaysLeft).toBeNull();
     expect(state.trialExpired).toBe(false);
-    expect(state.line).toContain('no end date');
+    expect(state.phase).toBe('TRIAL');
+    expect(state.line).not.toMatch(/no end date/i);
   });
 
   it('tells an expired trial that everything it collected is still there', () => {
@@ -131,8 +133,9 @@ describe('what the owner is told', () => {
 
   it('explains a pause as "kept, not read" rather than as "stopped"', () => {
     const state = describeAccount({ ...base, subscriptionStatus: 'PAUSED' });
-    expect(state.line).toContain('still being collected');
+    expect(state.headline).toBe('Headway is paused');
     expect(state.line).toContain('kept');
+    expect(state.line).toContain('not actively processing');
   });
 
   it('never puts a figure, a plan or a currency in the sentence', () => {
@@ -287,10 +290,10 @@ describe('pausing stops the reading and nothing else', () => {
   });
 });
 
-describe('the owner asking what this costs', () => {
+describe('the owner asking to continue', () => {
   it('records their own contact details and the fact that they asked', async () => {
     const id = await makeClient();
-    const result = await requestPaymentDetails(
+    const result = await requestContinuation(
       db,
       id,
       { name: 'Priya Shah', email: ' Priya@Cafe.test ', phone: '+91 98765 43210' },
@@ -302,12 +305,12 @@ describe('the owner asking what this costs', () => {
     expect(state?.owner.name).toBe('Priya Shah');
     expect(state?.owner.email).toBe('priya@cafe.test');
     expect(state?.owner.phone).toBe('+91 98765 43210');
-    expect(state?.paymentRequestedAt?.toISOString()).toBe(NOW.toISOString());
+    expect(state?.continuationRequestedAt?.toISOString()).toBe(NOW.toISOString());
   });
 
   it('asks for the three things and refuses to guess at any of them', async () => {
     const id = await makeClient();
-    const result = await requestPaymentDetails(db, id, { name: 'A', email: 'nope', phone: '12' });
+    const result = await requestContinuation(db, id, { name: 'A', email: 'nope', phone: '12' });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(Object.keys(result.errors).sort()).toEqual(['email', 'name', 'phone']);
@@ -316,7 +319,7 @@ describe('the owner asking what this costs', () => {
 
   it('creates no amount, no invoice and no commercial row of its own', async () => {
     const id = await makeClient();
-    await requestPaymentDetails(
+    await requestContinuation(
       db,
       id,
       { name: 'Priya Shah', email: 'priya@cafe.test', phone: '9876543210' },
@@ -434,7 +437,7 @@ const OWNER_FACING = sourceFiles(join(ROOT, 'src')).filter((file) => {
     rel.startsWith('src/app/(feedback)/') ||
     rel.startsWith('src/components/workspace/') ||
     rel.startsWith('src/components/portal/') ||
-    rel === 'src/components/forms/payment-request-form.tsx'
+    rel === 'src/components/forms/continue-form.tsx'
   );
 });
 

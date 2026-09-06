@@ -45,7 +45,7 @@ const SCHEMA = 'test_m20_rls_identity';
  * `vi.hoisted` runs above the imports, which is the only place that assumption
  * can actually be made true.
  */
-const { BASE, URL_ } = vi.hoisted(() => {
+vi.hoisted(() => {
   const base = process.env.REPOS_TEST_DATABASE_URL;
   const url = `${base}?schema=test_m20_rls_identity`;
   process.env.DATABASE_URL = url;

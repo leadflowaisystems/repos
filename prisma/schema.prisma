@@ -92,11 +92,24 @@ model Client {
   trialStartsAt DateTime?
   trialEndsAt   DateTime?
 
-  /// M21 - when the owner asked to be told what this costs.
+  /// M21 - when the owner asked to continue with Headway after the trial.
   ///
   /// Owner-writable, because it is their request. What it costs is not here:
   /// see Commercial, which a business owner's connection cannot read at all.
+  /// The column keeps its M21 name; the owner-facing words changed in M23 from
+  /// "ask what this costs" to "continue with Headway", which is what the
+  /// button now does.
   paymentRequestedAt DateTime?
+
+  /// M23 - when the platform paused this account, and when it last resumed.
+  ///
+  /// Both are stamped by app.set_subscription alongside subscriptionStatus, so
+  /// the owner's Account page can say "paused since" and "resumed" as facts
+  /// rather than inferring them. Pausing clears the resumed stamp and resuming
+  /// clears the paused one, so at most one is ever set. Not writable by
+  /// repos_app: like the trial window, these are the platform's decision.
+  servicePausedAt  DateTime?
+  serviceResumedAt DateTime?
 
   voiceProfile VoiceProfile?
   policy       BusinessPolicy?

@@ -24,7 +24,12 @@ import { ImprovementActionsPanel } from "@/components/forms/improvement-actions"
 import { evidenceLine } from "@/lib/improve/model";
 import { OwnerHandoverPanel } from "@/components/forms/owner-handover";
 import { CommercialPanel } from "@/components/forms/commercial-panel";
-import { getAccountState, getCommercial } from "@/lib/commercial/service";
+import {
+  continuationStatus,
+  getAccountState,
+  getCommercial,
+  getTrialDefaultDays,
+} from "@/lib/commercial/service";
 import { prisma } from "@/lib/db";
 import { getPackOrFallback } from "@/lib/packs";
 import {
@@ -60,9 +65,10 @@ export default async function ClientOverviewPage({
   // The commercial side. `getCommercial` returns the empty record for anybody
   // whose connection the Commercial policy refuses, so this page is safe to
   // render even if it ever escaped the operator console it lives in.
-  const [account, commercial] = await Promise.all([
+  const [account, commercial, defaultTrialDays] = await Promise.all([
     getAccountState(prisma, id),
     getCommercial(prisma, id),
+    getTrialDefaultDays(prisma),
   ]);
 
   // The action panel renders strings, not Dates: every figure and date is
@@ -231,7 +237,7 @@ export default async function ClientOverviewPage({
       ) : null}
 
       {account ? (
-        <Card>
+        <Card id="commercial">
           <CardHeader
             title="Trial, service and what was agreed"
             description="Operator only. The owner sees the state of their account and nothing about the amount — there is no price list in Headway."
@@ -243,9 +249,17 @@ export default async function ClientOverviewPage({
               trialStarted={account.trialStartsAt ? formatDate(account.trialStartsAt) : null}
               trialEnds={account.trialEndsAt ? formatDate(account.trialEndsAt) : null}
               trialDaysLeft={account.trialDaysLeft}
-              paymentRequested={
-                account.paymentRequestedAt ? formatDate(account.paymentRequestedAt) : null
-              }
+              defaultTrialDays={defaultTrialDays}
+              continuation={{
+                requestedOn: account.continuationRequestedAt
+                  ? formatDate(account.continuationRequestedAt)
+                  : null,
+                status: continuationStatus({
+                  requestedAt: account.continuationRequestedAt,
+                  instructionsSentAt: commercial.instructionsSentAt,
+                  paidAt: commercial.paidAt,
+                }),
+              }}
               owner={account.owner}
               commercial={{
                 amountInr: commercial.amountInr,

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { WorkspaceFooter, WorkspaceHeader } from '@/components/portal/workspace';
 import { SignOutButton } from '@/components/sign-out';
@@ -68,9 +69,13 @@ export default async function WorkspaceLayout({
       />
       {paused ? (
         <p className="mb-6 border-l-2 border-warn-600 bg-warn-50 px-4 py-3 text-[14px] leading-relaxed text-ink-800">
-          This account is paused. Your customers can still leave feedback and it is all being
-          kept — Headway starts reading it again as soon as the account is resumed. Nothing
-          already collected has changed.
+          Headway is paused. New feedback is kept but not read until the account is resumed.{' '}
+          <Link
+            href={`/workspace/${clientId}/account`}
+            className="inline-flex min-h-11 items-center font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
+          >
+            Account
+          </Link>
         </p>
       ) : null}
       {/* One <main> for every page under here, rather than four pages

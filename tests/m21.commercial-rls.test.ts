@@ -274,10 +274,10 @@ describe('a business cannot move its own subscription or its own trial', () => {
   });
 });
 
-describe('the owner asking what it costs is the owner’s to do', () => {
+describe('the owner asking to continue is the owner’s to do', () => {
   it('writes their own contact details and the timestamp, under the policies', async () => {
     session = { id: AUTH.alpha };
-    const result = await commercial.requestPaymentDetails(
+    const result = await commercial.requestContinuation(
       app,
       seeded.alphaClientId,
       { name: 'Priya Shah', email: 'priya@alpha.test', phone: '9876543210' },
@@ -292,7 +292,7 @@ describe('the owner asking what it costs is the owner’s to do', () => {
 
   it('cannot be done for somebody else’s business', async () => {
     session = { id: AUTH.beta };
-    const result = await commercial.requestPaymentDetails(
+    const result = await commercial.requestContinuation(
       app,
       seeded.alphaClientId,
       { name: 'Not Mine', email: 'x@beta.test', phone: '9876543210' },

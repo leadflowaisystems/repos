@@ -243,9 +243,8 @@ export async function PortalReviews({
 
       {view.total === 0 ? (
         <Quiet>
-          Once customers start scanning your QR code, each piece of feedback appears here exactly
-          as they gave it — the rating, what they tapped, and their words — with what Headway made
-          of it alongside.
+          Each piece of feedback appears here as the customer gave it, with what Headway made of
+          it alongside.
         </Quiet>
       ) : (
         <>

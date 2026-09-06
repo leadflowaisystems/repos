@@ -1,5 +1,7 @@
 import { Badge, Card, CardBody, CardHeader, DataRow, Notice } from '@/components/ui';
 import { TakeBackupForm } from '@/components/forms/backup-form';
+import { TrialSettingsForm } from '@/components/forms/trial-settings-form';
+import { getTrialDefaultDays } from '@/lib/commercial/service';
 import { SignOutButton } from '@/components/sign-out';
 import { prisma } from '@/lib/db';
 import { backupDir, databaseFile, listBackups } from '@/lib/backup/service';
@@ -23,10 +25,11 @@ function megabytes(bytes: number): string {
 }
 
 export default async function SettingsPage() {
-  const [setting, origin, backups] = await Promise.all([
+  const [setting, origin, backups, trialDays] = await Promise.all([
     getPublicBaseUrl(prisma),
     requestOrigin(),
     listBackups(),
+    getTrialDefaultDays(prisma),
   ]);
   const address = resolvePublicBaseUrl({ setting, requestOrigin: origin });
   const dbPath = databaseFile();
@@ -77,6 +80,18 @@ export default async function SettingsPage() {
               {address.reason}
             </Notice>
           )}
+        </CardBody>
+      </Card>
+
+      {/* ---- Trials ----------------------------------------------------- */}
+      <Card>
+        <CardHeader
+          title="New trials"
+          description="Every business starts on a trial with an end date. This is how long that trial runs unless you change it for one client."
+          action={<Badge tone="brand">{trialDays} DAYS</Badge>}
+        />
+        <CardBody>
+          <TrialSettingsForm days={trialDays} />
         </CardBody>
       </Card>
 

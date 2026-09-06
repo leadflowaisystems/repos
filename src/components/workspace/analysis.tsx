@@ -16,19 +16,15 @@ export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Customers' };
 
 /**
- * CUSTOMERS — why is RepOS saying this? (M12)
+ * CUSTOMERS — what are my customers collectively telling me? (M12)
  *
  * Every theme read in full: what customers say, what it means, why it
- * matters, what RepOS recommends, and the evidence — plus the movement, the
- * recurrence, the new, and the not-yet-clear. The owner does the synthesis
- * nowhere; it is done here.
- */
-/**
- * The analysis page, as one implementation behind two doors (M20).
+ * matters, what Headway recommends, and the evidence — plus what moved, what
+ * keeps coming back, and what is not yet clear. This is the one page that
+ * explains the method (what a pattern is, what was compared), so the other
+ * pages do not have to.
  *
- * Reached either through the owner's secret link (/portal/[token]) or through
- * an authenticated workspace (/workspace/[clientId]). Both resolve to a client
- * id first and neither is trusted here: whoever renders this has already
+ * Reached through an authenticated workspace. Whoever renders this has already
  * decided the caller may see this business.
  */
 export async function PortalAnalysis({
@@ -44,28 +40,23 @@ export async function PortalAnalysis({
   if (!view) notFound();
 
   const changing = view.better.length + view.worse.length > 0;
+  // The two-check-in comparison is Check-in's page. It is repeated here only
+  // when there is movement to show; "we need two check-ins" is said there.
+  const compared = changing || view.steadyLine !== null;
+  const acrossCheckins = view.recurring.length + view.fresh.length > 0;
 
   return (
     <div className="max-w-3xl">
-      <PageIntro eyebrow="Customers" title="Why Headway is saying this" description={view.basis} />
+      <PageIntro eyebrow="Customers" title="What your customers are telling you" description={view.basis} />
 
       {view.soFar.read > 0 || view.soFar.waiting > 0 ? (
-        <Section
-          eyebrow="What customers are mentioning so far"
-          note="Current signals, not conclusions"
-        >
-          <SoFar soFar={view.soFar} basePath={basePath} />
-        </Section>
-      ) : null}
-
-      {view.work.length > 0 ? (
-        <Section eyebrow="What Headway did with your feedback">
-          <WorkList work={view.work} />
+        <Section eyebrow="Current signals" note="What customers are mentioning, pattern or not">
+          <SoFar soFar={view.soFar} basePath={basePath} explain />
         </Section>
       ) : null}
 
       {view.telling.length > 0 ? (
-        <Section eyebrow="Customers are telling you">
+        <Section eyebrow="In short">
           <div className="space-y-2">
             {view.telling.map((t) => (
               <p key={t} className="text-[16px] leading-relaxed text-ink-900">
@@ -76,7 +67,7 @@ export async function PortalAnalysis({
         </Section>
       ) : null}
 
-      <Section eyebrow="What customers love">
+      <Section eyebrow="Strengths" note="Praised by three or more customers">
         {view.loved.length > 0 ? (
           <div>
             {view.loved.map((s) => (
@@ -84,14 +75,11 @@ export async function PortalAnalysis({
             ))}
           </div>
         ) : (
-          <Quiet>
-            Nothing has been praised often enough yet to name. We call something a strength
-            once at least three customers have mentioned it.
-          </Quiet>
+          <Quiet>Nothing praised by three or more customers yet.</Quiet>
         )}
       </Section>
 
-      <Section eyebrow="Where the experience falls short">
+      <Section eyebrow="Issues" note="Raised by three or more customers">
         {view.unhappy.length > 0 ? (
           <div>
             {view.unhappy.map((s) => (
@@ -99,76 +87,84 @@ export async function PortalAnalysis({
             ))}
           </div>
         ) : (
-          <Quiet>
-            No complaint has come up often enough to name. That is good news, with one caveat:
-            it only covers the feedback we have read.
-          </Quiet>
+          <Quiet>No complaint has come up often enough to name, in the feedback read so far.</Quiet>
         )}
       </Section>
 
-      <Section eyebrow="Between your last two check-ins" note={changing ? view.changedNote : null}>
-        {changing ? (
-          <div className="space-y-6">
-            {view.better.length > 0 ? (
-              <div>
-                <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-good-700 uppercase">
-                  Getting better
+      {compared ? (
+        <Section eyebrow="Between your last two check-ins" note={changing ? view.changedNote : null}>
+          {changing ? (
+            <div className="space-y-6">
+              {view.better.length > 0 ? (
+                <div>
+                  <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-good-700 uppercase">
+                    Getting better
+                  </p>
+                  <ThemeRows signals={view.better} basePath={basePath} line="movement" />
+                </div>
+              ) : null}
+              {view.worse.length > 0 ? (
+                <div>
+                  <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-bad-700 uppercase">
+                    Getting worse
+                  </p>
+                  <ThemeRows signals={view.worse} basePath={basePath} line="movement" />
+                </div>
+              ) : null}
+              {view.steady.length > 0 ? (
+                <p className="text-[13px] leading-relaxed text-ink-500">
+                  Holding steady: {view.steady.map((s) => s.themeLabel).join('; ')}.
                 </p>
-                <ThemeRows signals={view.better} basePath={basePath} line="movement" />
-              </div>
-            ) : null}
-            {view.worse.length > 0 ? (
-              <div>
-                <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-bad-700 uppercase">
-                  Getting worse
-                </p>
-                <ThemeRows signals={view.worse} basePath={basePath} line="movement" />
-              </div>
-            ) : null}
-            {view.steady.length > 0 ? (
-              <p className="text-[13px] leading-relaxed text-ink-500">
-                Holding steady: {view.steady.map((s) => s.themeLabel).join('; ')}.
-              </p>
-            ) : null}
-          </div>
-        ) : view.steadyLine ? (
-          <>
-            <Quiet>{view.steadyLine}</Quiet>
-            <p className="mt-2 text-[12px] leading-relaxed text-ink-500">{view.changedNote}</p>
-          </>
-        ) : (
-          <Quiet>{view.changedNote}</Quiet>
-        )}
-      </Section>
-
-      <Section eyebrow="Complaints that keep coming back">
-        {view.recurrenceNote ? (
-          <Quiet>{view.recurrenceNote}</Quiet>
-        ) : view.recurring.length > 0 ? (
-          <ThemeRows signals={view.recurring} basePath={basePath} line="none" />
-        ) : (
-          <Quiet>
-            No complaint has been a pattern (3 or more mentions) at more than one check-in yet.
-          </Quiet>
-        )}
-      </Section>
-
-      {!view.recurrenceNote ? (
-        <Section eyebrow="New complaints">
-          {view.fresh.length > 0 ? (
-            <ThemeRows signals={view.fresh} basePath={basePath} line="none" />
+              ) : null}
+            </div>
           ) : (
-            <Quiet>No complaint reached a pattern at your latest check-in for the first time.</Quiet>
+            <>
+              <Quiet>{view.steadyLine}</Quiet>
+              <p className="mt-2 text-[12px] leading-relaxed text-ink-500">{view.changedNote}</p>
+            </>
           )}
         </Section>
       ) : null}
 
+      <Section eyebrow="Across your check-ins" note={acrossCheckins ? 'Complaints that recur, and new ones' : null}>
+        {view.recurrenceNote ? (
+          <Quiet>{view.recurrenceNote}</Quiet>
+        ) : acrossCheckins ? (
+          <div className="space-y-6">
+            {view.recurring.length > 0 ? (
+              <div>
+                <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-ink-700 uppercase">
+                  Keeps coming back
+                </p>
+                <ThemeRows signals={view.recurring} basePath={basePath} line="none" />
+              </div>
+            ) : null}
+            {view.fresh.length > 0 ? (
+              <div>
+                <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-ink-700 uppercase">
+                  New at your latest check-in
+                </p>
+                <ThemeRows signals={view.fresh} basePath={basePath} line="none" />
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <Quiet>No complaint has been a pattern at more than one check-in, and none is new.</Quiet>
+        )}
+      </Section>
+
       {view.early.length > 0 ? (
-        <Section eyebrow="Not yet clear">
+        <Section eyebrow="Not yet clear" note="Mentioned, but not often enough to act on">
           <div className="mb-3">
             <ThemeRows signals={view.early} basePath={basePath} />
           </div>
           <Quiet>{view.noAction}</Quiet>
+        </Section>
+      ) : null}
+
+      {view.work.length > 0 ? (
+        <Section eyebrow="How Headway read this">
+          <WorkList work={view.work} />
         </Section>
       ) : null}
 

@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { ensureGateway } from '@/lib/gateway/service';
+import { getTrialDefaultDays, trialWindowFrom } from '@/lib/commercial/service';
 import { isMissingDbFunction, withRlsContext } from '@/lib/db';
 import { findPack, packOptions } from '@/lib/packs';
 import { createClientRow, ROLE_OWNER } from '@/lib/tenancy/service';
@@ -187,6 +188,9 @@ async function createOwnedClientDirect(
   input: z.output<typeof onboardingSchema>,
   now: Date,
 ): Promise<string> {
+  // The same window `app.create_client` opens: every business starts on a
+  // trial with an end date, the configured default long (14 unless changed).
+  const trial = trialWindowFrom(now, await getTrialDefaultDays(db));
   return withRlsContext(db, async (tx) => {
     const client = await tx.client.create({
       data: {
@@ -197,6 +201,8 @@ async function createOwnedClientDirect(
         ownerPhone: input.ownerPhone || null,
         status: 'ACTIVE',
         subscriptionStatus: 'TRIAL',
+        trialStartsAt: trial.trialStartsAt,
+        trialEndsAt: trial.trialEndsAt,
         onboardingDate: now,
         setupCompletedAt: now,
       },

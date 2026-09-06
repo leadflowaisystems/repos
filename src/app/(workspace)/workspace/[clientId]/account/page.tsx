@@ -1,27 +1,24 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { currentActor } from '@/lib/auth/authorize';
 import { tenantGateFor } from '@/lib/auth/guard';
 import { prisma } from '@/lib/db';
-import { getAccountState } from '@/lib/commercial/service';
+import { formatLongDate, getAccountState, type AccountState } from '@/lib/commercial/service';
+import { getResponsibility, type ResponsibilityBundle } from '@/lib/responsibility/service';
 import { PageIntro, Quiet, Section } from '@/components/portal/portal-ui';
-import { RequestPaymentDetailsForm } from '@/components/forms/payment-request-form';
+import { ContinueWithHeadwayForm } from '@/components/forms/continue-form';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = { title: 'Account' };
 
-const DATE = new Intl.DateTimeFormat('en-IN', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-});
-
 /**
- * THE OWNER'S ACCOUNT PAGE (M21).
+ * THE OWNER'S ACCOUNT PAGE (M21, rebuilt in M23).
  *
- * What state this account is in, who we would contact, and one button to ask
- * what it costs.
+ * Four things, in this order: where the account stands, in one headline and
+ * one sentence; what Headway has done so far, as facts; how to carry on, when
+ * that is the next step; and where Headway reaches the owner.
  *
  * THERE IS NO PRICE ON THIS PAGE, and that is not an oversight. RepOS has no
  * price list, no tier and no published number: what a business pays is
@@ -31,13 +28,91 @@ const DATE = new Intl.DateTimeFormat('en-IN', {
  * is nothing here for a mis-scoped query or a careless join to leak.
  *
  * Nothing on this page counts down, expires at midnight, or is worth more today
- * than on Friday. A trial with days left says how many, because that is a fact
- * the owner needs; it does not make an argument out of it.
+ * than on Friday. A trial says the date it runs to, because that is a fact the
+ * owner needs; it does not make an argument out of it. An ended trial says the
+ * workspace and its history are still here, because they are.
  *
- * STAFF SEE IT TOO, read-only. The form is owner-level and the action checks
+ * STAFF SEE IT TOO, read-only. The forms are owner-level and the actions check
  * again on the server, so a staff member sees the state of the business they
  * work in without being able to speak for it commercially.
  */
+
+type Fact = { label: string; value: string; href?: string };
+
+/**
+ * What the owner has to show for the trial so far. Every figure is one the
+ * rest of the workspace already states; nothing is invented to fill a row.
+ */
+function valueFacts(bundle: ResponsibilityBundle | null, basePath: string): Fact[] {
+  if (!bundle) return [];
+  const { view, responsibility: r } = bundle;
+  const collected = view.soFar.read + view.soFar.waiting;
+  if (collected === 0) return [];
+
+  const facts: Fact[] = [
+    { label: 'Feedback collected', value: String(collected), href: `${basePath}/reviews` },
+    { label: 'Read by Headway', value: String(view.basedOn) },
+  ];
+
+  const strongest = view.first ?? view.keep ?? null;
+  if (strongest) {
+    facts.push({
+      label: strongest.kind === 'ISSUE' ? 'Strongest signal right now' : 'Strongest signal right now',
+      value: `${strongest.themeLabel} · ${strongest.evidenceCount} of ${strongest.evidenceTotal}`,
+      href: `${basePath}/reviews?theme=${encodeURIComponent(strongest.themeKey)}`,
+    });
+  } else {
+    const top = view.soFar.mentions[0];
+    if (top) {
+      facts.push({
+        label: 'Mentioned most so far',
+        value: `${top.label} · ${top.count} ${top.count === 1 ? 'customer' : 'customers'}`,
+        href: `${basePath}/reviews?theme=${encodeURIComponent(top.themeKey)}`,
+      });
+    }
+  }
+
+  const carried = r.needsYou[0] ?? r.watching.find((i) => i.state !== 'KEEP_DOING') ?? null;
+  if (carried) {
+    facts.push({
+      label: r.needsYou[0] ? 'Needs you' : 'Headway is watching',
+      value: carried.headline,
+      href: basePath,
+    });
+  }
+  return facts;
+}
+
+function Facts({ facts }: { facts: Fact[] }) {
+  return (
+    <dl className="divide-y divide-ink-200 border-y border-ink-200 text-[14px]">
+      {facts.map((f) => (
+        <div key={f.label} className="grid grid-cols-1 gap-x-6 gap-y-0.5 py-2.5 sm:grid-cols-[12rem_1fr]">
+          <dt className="text-ink-500">{f.label}</dt>
+          <dd className="font-medium text-ink-900">
+            {f.href ? (
+              <Link
+                href={f.href}
+                className="inline-flex min-h-11 min-w-11 items-center underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900 sm:min-h-0"
+              >
+                {f.value}
+              </Link>
+            ) : (
+              f.value
+            )}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function Reach({ account }: { account: AccountState }) {
+  const bits = [account.owner.email, account.owner.phone].filter((s) => s.length > 0);
+  if (bits.length === 0) return null;
+  return <span>{bits.join(' · ')}</span>;
+}
+
 export default async function WorkspaceAccountPage({
   params,
 }: {
@@ -50,103 +125,113 @@ export default async function WorkspaceAccountPage({
     notFound();
   }
 
-  const account = await getAccountState(prisma, clientId);
+  const [account, bundle] = await Promise.all([
+    getAccountState(prisma, clientId),
+    getResponsibility(prisma, clientId),
+  ]);
   if (!account) notFound();
 
+  const basePath = `/workspace/${clientId}`;
   const isOwner = gate.role === 'BUSINESS_OWNER';
-  const paused = account.state === 'PAUSED' || account.state === 'CANCELLED';
+  const stopped = account.phase === 'PAUSED' || account.phase === 'CLOSED';
+  const onTrial = account.phase === 'TRIAL' || account.phase === 'TRIAL_ENDED';
+  const asked = account.continuationRequestedAt;
+  const facts = valueFacts(bundle, basePath);
 
   return (
-    <div>
-      <PageIntro
-        eyebrow="Account"
-        title="Where this account stands"
-        description="What Headway is doing for you right now, and how to reach us about carrying on."
-      />
+    <div className="max-w-3xl">
+      <PageIntro eyebrow="Account" title={account.headline} description={account.line} />
+      {account.note ? (
+        <p className="-mt-5 mb-8 text-[14px] leading-relaxed text-ink-600">{account.note}</p>
+      ) : null}
 
-      <Section eyebrow="Right now">
-        <p className="max-w-2xl text-[17px] leading-snug font-semibold tracking-tight text-ink-900">
-          {account.line}
-        </p>
-
-        <dl className="mt-4 divide-y divide-ink-200 border-y border-ink-200 text-[14px]">
-          <div className="flex items-baseline justify-between gap-4 py-2.5">
-            <dt className="text-ink-500">State</dt>
-            <dd className="text-right font-medium text-ink-900">
-              {account.state === 'TRIAL'
-                ? 'Trial'
-                : account.state === 'ACTIVE'
-                  ? 'Active'
-                  : account.state === 'PAUSED'
-                    ? 'Paused'
-                    : 'Closed'}
-            </dd>
-          </div>
-          {account.trialStartsAt ? (
-            <div className="flex items-baseline justify-between gap-4 py-2.5">
-              <dt className="text-ink-500">Trial started</dt>
-              <dd className="text-right font-medium text-ink-900">
-                {DATE.format(account.trialStartsAt)}
-              </dd>
-            </div>
-          ) : null}
-          {account.trialEndsAt ? (
-            <div className="flex items-baseline justify-between gap-4 py-2.5">
-              <dt className="text-ink-500">Trial {account.trialExpired ? 'ended' : 'runs to'}</dt>
-              <dd className="text-right font-medium text-ink-900">
-                {DATE.format(account.trialEndsAt)}
-              </dd>
-            </div>
-          ) : null}
-          {account.paymentRequestedAt ? (
-            <div className="flex items-baseline justify-between gap-4 py-2.5">
-              <dt className="text-ink-500">You asked about payment</dt>
-              <dd className="text-right font-medium text-ink-900">
-                {DATE.format(account.paymentRequestedAt)}
-              </dd>
-            </div>
-          ) : null}
-        </dl>
+      <Section eyebrow="What Headway has done for you">
+        {facts.length > 0 ? (
+          <Facts facts={facts} />
+        ) : (
+          <Quiet>
+            Nothing yet. Once customers start scanning your card, what Headway collects, reads
+            and finds appears here.
+          </Quiet>
+        )}
       </Section>
 
-      {paused ? (
-        <Section eyebrow="What paused means">
-          <Quiet>
-            Your QR code still works and your customers can still leave feedback — it arrives and
-            it is kept. Everything already collected stays exactly as it is: the comments, the
-            reading, the improvements and every result Headway measured. What stops is the reading
-            of anything new, and it starts again, from where it left off, the moment the account
-            is resumed.
-          </Quiet>
+      {stopped ? null : asked ? (
+        <Section eyebrow="Carrying on">
+          <p className="text-[17px] leading-snug font-semibold tracking-tight text-ink-900">
+            Thanks. We&rsquo;ve got your details.
+          </p>
+          <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink-700">
+            You asked to continue with Headway on {formatLongDate(asked)}. We&rsquo;ll send the
+            payment information and QR directly to you
+            {account.owner.email || account.owner.phone ? (
+              <>
+                {' '}
+                at <Reach account={account} />
+              </>
+            ) : null}
+            .
+          </p>
+          {isOwner ? (
+            <div className="mt-4">
+              <ContinueWithHeadwayForm
+                clientId={clientId}
+                ownerName={account.owner.name}
+                ownerEmail={account.owner.email}
+                ownerPhone={account.owner.phone}
+                mode="update"
+              />
+            </div>
+          ) : null}
+        </Section>
+      ) : onTrial ? (
+        <Section eyebrow="Carrying on">
+          <p className="text-[17px] leading-snug font-semibold tracking-tight text-ink-900">
+            {account.phase === 'TRIAL_ENDED' ? 'Ready to keep going?' : 'Want to carry on after the trial?'}
+          </p>
+          <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink-700">
+            One press. We send the payment information and QR to you; nothing is charged
+            automatically, and everything Headway has collected stays yours either way.
+          </p>
+          <div className="mt-5">
+            {isOwner ? (
+              <ContinueWithHeadwayForm
+                clientId={clientId}
+                ownerName={account.owner.name}
+                ownerEmail={account.owner.email}
+                ownerPhone={account.owner.phone}
+                mode="continue"
+              />
+            ) : (
+              <Quiet>The owner of this business can continue from this page.</Quiet>
+            )}
+          </div>
         </Section>
       ) : null}
 
-      <Section
-        eyebrow="What this costs"
-        note={account.paymentRequestedAt ? 'Asked' : 'Ask when you are ready'}
-      >
-        <p className="max-w-2xl text-[15px] leading-relaxed text-ink-900">
-          Headway does not publish a price. What a business pays depends on how much feedback it
-          gets and what it wants read, so we agree it with you rather than putting a number on a
-          page. Ask, and a person will come back to you with the figure and how to pay it — by
-          UPI or bank transfer. There is no card on file and nothing is ever charged
-          automatically.
-        </p>
-
-        {isOwner ? (
-          <RequestPaymentDetailsForm
-            clientId={clientId}
-            ownerName={account.owner.name}
-            ownerEmail={account.owner.email}
-            ownerPhone={account.owner.phone}
-            alreadyAsked={account.paymentRequestedAt !== null}
-          />
-        ) : (
-          <p className="mt-4 text-[14px] leading-relaxed text-ink-500">
-            The owner of this business can ask from this page.
+      {(account.phase === 'ACTIVE' || stopped) && isOwner ? (
+        <Section eyebrow="Where Headway reaches you">
+          <p className="text-[15px] leading-relaxed text-ink-700">
+            {account.owner.email || account.owner.phone ? (
+              <>
+                {account.owner.name ? `${account.owner.name} · ` : ''}
+                <Reach account={account} />
+              </>
+            ) : (
+              'No contact details on record yet.'
+            )}
           </p>
-        )}
-      </Section>
+          <div className="mt-4">
+            <ContinueWithHeadwayForm
+              clientId={clientId}
+              ownerName={account.owner.name}
+              ownerEmail={account.owner.email}
+              ownerPhone={account.owner.phone}
+              mode="update"
+            />
+          </div>
+        </Section>
+      ) : null}
     </div>
   );
 }

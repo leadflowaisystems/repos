@@ -34,7 +34,13 @@ export type CommercialPanelProps = {
   trialStarted: string | null;
   trialEnds: string | null;
   trialDaysLeft: number | null;
-  paymentRequested: string | null;
+  /** How long a fresh trial runs unless the operator types otherwise (Settings). */
+  defaultTrialDays: number;
+  /** The owner's request to continue, and where it stands in the operator's own records. */
+  continuation: {
+    requestedOn: string | null;
+    status: 'NEW' | 'DETAILS_SENT' | 'PAID' | null;
+  };
   owner: { name: string; email: string; phone: string };
   commercial: {
     amountInr: number | null;
@@ -138,9 +144,11 @@ export function CommercialPanel(props: CommercialPanelProps) {
                 ? ` · ${props.trialDaysLeft} days left`
                 : ''}
             </span>
-          ) : (
-            <span className="text-[13px] text-ink-500">No trial end date set</span>
-          )}
+          ) : state === 'TRIAL' ? (
+            <span className="text-[13px] text-bad-700">
+              No trial dates yet. Start one below so the owner sees an end date.
+            </span>
+          ) : null}
           {props.trialStarted ? (
             <span className="text-[13px] text-ink-500">Started {props.trialStarted}</span>
           ) : null}
@@ -161,14 +169,14 @@ export function CommercialPanel(props: CommercialPanelProps) {
           clientId={clientId}
           label="Start a trial"
           pendingLabel="Starting…"
-          days={14}
+          days={props.defaultTrialDays}
         />
         <ActionButton
           action={extendTrialAction}
           clientId={clientId}
           label="Extend the trial"
           pendingLabel="Extending…"
-          days={14}
+          days={props.defaultTrialDays}
         />
         <ActionButton
           action={convertToActiveAction}
@@ -198,17 +206,41 @@ export function CommercialPanel(props: CommercialPanelProps) {
 
       {/* --- what the owner asked for -------------------------------------- */}
       <div className="border-t border-ink-200 pt-4">
-        <p className="text-[13px] font-medium text-ink-700">The owner&rsquo;s request</p>
-        {props.paymentRequested ? (
-          <p className="mt-1 text-[13px] leading-relaxed text-ink-600">
-            Asked for payment details on {props.paymentRequested}. Reply to{' '}
-            {props.owner.name || 'the owner'}
-            {props.owner.email ? ` · ${props.owner.email}` : ''}
-            {props.owner.phone ? ` · ${props.owner.phone}` : ''}.
-          </p>
+        <p className="text-[13px] font-medium text-ink-700">Continuing with Headway</p>
+        {props.continuation.requestedOn ? (
+          <>
+            <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px] leading-relaxed text-ink-800">
+              <Badge
+                tone={
+                  props.continuation.status === 'PAID'
+                    ? 'good'
+                    : props.continuation.status === 'DETAILS_SENT'
+                      ? 'brand'
+                      : 'bad'
+                }
+              >
+                {props.continuation.status === 'PAID'
+                  ? 'Paid'
+                  : props.continuation.status === 'DETAILS_SENT'
+                    ? 'Details sent'
+                    : 'Waiting on you'}
+              </Badge>
+              <span>The owner asked to continue on {props.continuation.requestedOn}.</span>
+            </p>
+            <p className="mt-1 text-[13px] leading-relaxed text-ink-600">
+              {props.continuation.status === 'NEW'
+                ? 'Agree the amount, then send the payment information and QR to '
+                : props.continuation.status === 'DETAILS_SENT'
+                  ? 'Payment details are with '
+                  : 'Paid. Mark the account active if it is not already. Contact: '}
+              {props.owner.name || 'the owner'}
+              {props.owner.email ? ` · ${props.owner.email}` : ''}
+              {props.owner.phone ? ` · ${props.owner.phone}` : ''}.
+            </p>
+          </>
         ) : (
           <p className="mt-1 text-[13px] text-ink-500">
-            They have not asked what this costs yet.
+            The owner has not asked to continue yet. They can from their Account page.
           </p>
         )}
       </div>
