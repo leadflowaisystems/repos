@@ -59,8 +59,8 @@ model Client {
   /// timestamp, not a secret. This is the same 110-bit token shape the
   /// customer feedback page uses. Regenerating it revokes the old link.
   /// Nullable so existing rows load; created on demand, never reused.
-  portalToken   String?   @unique
-  portalTokenAt DateTime?
+  portalToken      String?   @unique
+  portalTokenAt    DateTime?
   /// When the operator recorded that they actually sent the owner their link
   /// (M17). Distinct from portalTokenAt, which only records that RepOS minted
   /// one — a token existing is not a business being onboarded.
@@ -81,6 +81,23 @@ model Client {
   /// the business on. This one is the owner's own progress through signup.
   setupCompletedAt DateTime?
 
+  /// M21 - the trial window, in the operator's gift.
+  ///
+  /// Dates rather than a duration, because "extend by two weeks" and "started
+  /// late because the kit was not printed" are both ordinary, and a duration
+  /// cannot express either without arithmetic somebody will get wrong. Both
+  /// null means a trial with no agreed end, which is a real state early on.
+  /// Not writable by `repos_app`: like plan and subscriptionStatus, the trial
+  /// is the platform's decision and moves through app.set_subscription.
+  trialStartsAt DateTime?
+  trialEndsAt   DateTime?
+
+  /// M21 - when the owner asked to be told what this costs.
+  ///
+  /// Owner-writable, because it is their request. What it costs is not here:
+  /// see Commercial, which a business owner's connection cannot read at all.
+  paymentRequestedAt DateTime?
+
   voiceProfile VoiceProfile?
   policy       BusinessPolicy?
   kitConfig    KitConfig?
@@ -94,6 +111,7 @@ model Client {
   gateway      FeedbackGateway?
   memberships  Membership[]
   invitations  Invitation[]
+  commercial   Commercial?
 
   @@index([status])
   @@index([vertical])
@@ -151,7 +169,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   memberships Membership[]
-  invitesSent Invitation[]         @relation("InvitedBy")
+  invitesSent Invitation[] @relation("InvitedBy")
 
   @@index([isPlatformAdmin])
   @@index([status])
@@ -179,12 +197,54 @@ model Membership {
   /// owner who removes someone by mistake should not lose the record of it.
   status String @default("ACTIVE")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  /// M21 - when this person last opened this workspace.
+  ///
+  /// The one honest reason to come back: "here is what happened since you were
+  /// last here". Written after the page has been served, so the visit being
+  /// described is the previous one and not this one. Set through
+  /// app.touch_membership because membership_write asks for OWNER and a staff
+  /// member is not one -- and widening that policy to let a person edit their
+  /// own row would let them edit their own role.
+  lastSeenAt DateTime?
 
   @@unique([userId, clientId])
   @@index([clientId, status])
   @@index([userId, status])
+}
+
+/// WHAT THE BUSINESS IS CHARGED, AND WHAT WAS AGREED (M21).
+///
+/// Separate from Client because it is not the owner's to read. The RLS policy
+/// on this table asks for platform admin rather than for membership, so a
+/// business owner's connection returns no rows here at all -- not a redacted
+/// row, not an empty string, nothing. That is the difference between a price
+/// the application declines to render and a price the database will not hand
+/// over.
+///
+/// There is no public price list anywhere in RepOS. What a business pays is
+/// negotiated, recorded here by the operator, and collected by hand.
+model Commercial {
+  id       String @id @default(cuid())
+  clientId String @unique
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// The agreed amount, in whole rupees. Null until something is agreed.
+  amountInr           Int?
+  /// MONTHLY | QUARTERLY | YEARLY | ONE_OFF.
+  cadence             String    @default("MONTHLY")
+  /// The operator's own note: what was discussed, what was promised.
+  note                String?
+  /// The UPI id or bank line the operator sends by hand. Never shown in the
+  /// owner's workspace; the operator passes it on through the contact details
+  /// the owner confirmed when they asked.
+  paymentInstructions String?
+  instructionsSentAt  DateTime?
+  paidAt              DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 /// An invitation to join one business.
@@ -263,24 +323,24 @@ model BusinessContext {
   client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   /// PRIORITY | FOCUS | OPERATING | CONSTRAINT | TRIED | DEFINITION | ANSWER
-  kind String
+  kind       String
   /// OWNER_TOLD_US | DERIVED_FROM_ACTION | DERIVED_FROM_FEEDBACK
   provenance String @default("OWNER_TOLD_US")
   /// The statement, in the owner's words.
-  text String
+  text       String
 
   /// Optional: the pack theme this explains, so it can sit beside the evidence.
-  themeKey String?
+  themeKey      String?
   /// CONSTRAINT only: STAFF | DISCOUNT | PRICE | SPEND | OTHER.
   constraintKey String?
   /// ANSWER only: which owner question this answers (the theme it was asked for).
-  questionKey String?
+  questionKey   String?
   /// TRIED only: the formal improvement action this refers to, when one exists.
-  actionId String?
+  actionId      String?
 
   /// When the owner told us. Not when the row was typed, if they differ.
-  recordedAt DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  recordedAt  DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   /// Set when the owner says it is no longer true. Retired context is kept,
   /// never shown as current.
   retiredAt   DateTime?
@@ -432,7 +492,7 @@ model ReviewItem {
   /// M19 — the quick options a customer tapped, as stable keys, e.g.
   /// ["service_slow"]. Additional evidence; never a substitute for what M6
   /// reads out of the words.
-  signalsJson    String @default("[]")
+  signalsJson String @default("[]")
 
   sentiment       String  @default("UNCLASSIFIED") // set by the analysis layer
   issueTags       String  @default("[]")

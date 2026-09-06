@@ -23,11 +23,13 @@ import { ResponsibilityPanel } from "@/components/responsibility-panel";
 import { ImprovementActionsPanel } from "@/components/forms/improvement-actions";
 import { evidenceLine } from "@/lib/improve/model";
 import { OwnerHandoverPanel } from "@/components/forms/owner-handover";
+import { CommercialPanel } from "@/components/forms/commercial-panel";
+import { getAccountState, getCommercial } from "@/lib/commercial/service";
 import { prisma } from "@/lib/db";
 import { getPackOrFallback } from "@/lib/packs";
 import {
   formatDate,
-  formatDecimal,
+  formatDecimal,
   formatNumber,
   formatRupees,
 } from "@/lib/format";
@@ -54,6 +56,14 @@ export default async function ClientOverviewPage({
 
   const pack = getPackOrFallback(client.vertical);
   const commsLanguage = query.commsLang ?? null;
+
+  // The commercial side. `getCommercial` returns the empty record for anybody
+  // whose connection the Commercial policy refuses, so this page is safe to
+  // render even if it ever escaped the operator console it lives in.
+  const [account, commercial] = await Promise.all([
+    getAccountState(prisma, id),
+    getCommercial(prisma, id),
+  ]);
 
   // The action panel renders strings, not Dates: every figure and date is
   // formatted once here so the client component adds no arithmetic of its own.
@@ -218,6 +228,38 @@ export default async function ClientOverviewPage({
           Setup is complete: the feedback page is live, the cards are on site and the owner has
           their link.
         </Notice>
+      ) : null}
+
+      {account ? (
+        <Card>
+          <CardHeader
+            title="Trial, service and what was agreed"
+            description="Operator only. The owner sees the state of their account and nothing about the amount — there is no price list in RepOS."
+          />
+          <CardBody>
+            <CommercialPanel
+              clientId={client.id}
+              state={account.state}
+              trialStarted={account.trialStartsAt ? formatDate(account.trialStartsAt) : null}
+              trialEnds={account.trialEndsAt ? formatDate(account.trialEndsAt) : null}
+              trialDaysLeft={account.trialDaysLeft}
+              paymentRequested={
+                account.paymentRequestedAt ? formatDate(account.paymentRequestedAt) : null
+              }
+              owner={account.owner}
+              commercial={{
+                amountInr: commercial.amountInr,
+                cadence: commercial.cadence,
+                note: commercial.note,
+                paymentInstructions: commercial.paymentInstructions,
+                instructionsSent: commercial.instructionsSentAt
+                  ? formatDate(commercial.instructionsSentAt)
+                  : null,
+                paid: commercial.paidAt ? formatDate(commercial.paidAt) : null,
+              }}
+            />
+          </CardBody>
+        </Card>
       ) : null}
 
       <Card>

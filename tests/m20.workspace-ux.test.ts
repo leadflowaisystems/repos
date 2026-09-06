@@ -132,8 +132,25 @@ describe('the workspace navigation', () => {
   const labels = [...block.matchAll(/label: '([^']+)'/g)].map((m) => m[1]);
   const slugs = [...block.matchAll(/slug: '([^']+)'/g)].map((m) => m[1]);
 
-  it('has six doors, in the order an owner thinks in', () => {
-    expect(labels).toEqual(['Home', 'Customers', 'Reviews', 'Improvements', 'Check-in', 'Team']);
+  it('has the doors an owner thinks in, in that order', () => {
+    // Five on the shared link; three more once somebody is signed in. M21 added
+    // the print kit (the one physical object in the product, which an owner
+    // previously had to be sent) and the account.
+    expect(labels).toEqual([
+      'Home',
+      'Customers',
+      'Reviews',
+      'Improvements',
+      'Check-in',
+      'Team',
+      'Print kit',
+      'Account',
+    ]);
+  });
+
+  it('keeps the extra doors out of the read-only shared link', () => {
+    const extras = [...block.matchAll(/label: '([^']+)', extra: true/g)].map((m) => m[1]);
+    expect(extras).toEqual(['Team', 'Print kit', 'Account']);
   });
 
   it('keeps every door on screen: wrapping on a phone, pinned from tablet up, finger-sized', () => {

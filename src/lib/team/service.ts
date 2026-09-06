@@ -264,6 +264,70 @@ export async function acceptInviteViaResolver(
   }
 }
 
+/**
+ * WHAT AN INVITEE MAY BE TOLD BEFORE THEY ACCEPT.
+ *
+ * The invitation page resolves nothing for a signed-out visitor, and that stays
+ * true: a stranger trying tokens must learn neither whether one is real nor
+ * which business it belongs to. But once somebody IS signed in as the address
+ * the invitation names, that argument stops applying to them -- they could
+ * press Accept and find out. So this answers for exactly that person and for
+ * nobody else, which is what lets the page carry the business name, the role
+ * and the expiry above a real Accept button instead of a generic sentence.
+ *
+ * Same shape as accepting: through the definer function under RLS, falling back
+ * to the equivalent query where the DDL is not applied. Never throws and never
+ * distinguishes its failures -- wrong token, spent, revoked, expired or
+ * addressed to somebody else all return null.
+ */
+export type InvitationPreview = { businessName: string; role: string; expiresAt: Date };
+
+export async function invitationPreview(
+  db: PrismaClient,
+  token: string,
+  userId: string,
+  options: { now?: Date } = {},
+): Promise<InvitationPreview | null> {
+  const now = options.now ?? new Date();
+  const hash = hashToken(token ?? '');
+  try {
+    const rows = await db.$queryRaw<
+      { business_name: string; member_role: string; expires_at: Date }[]
+    >`SELECT * FROM app.invitation_preview(${hash}::text, ${userId}::text, ${now.toISOString()}::text)`;
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      businessName: row.business_name,
+      role: row.member_role,
+      expiresAt: new Date(row.expires_at),
+    };
+  } catch (error) {
+    if (!String(error).includes('42883')) return null;
+  }
+
+  const user = await db.user.findUnique({ where: { id: userId }, select: { email: true } });
+  if (!user) return null;
+  const invite = await db.invitation.findUnique({
+    where: { tokenHash: hash },
+    select: {
+      email: true,
+      role: true,
+      expiresAt: true,
+      acceptedAt: true,
+      revokedAt: true,
+      client: { select: { businessName: true } },
+    },
+  });
+  if (!invite || invite.acceptedAt || invite.revokedAt) return null;
+  if (invite.expiresAt.getTime() < now.getTime()) return null;
+  if (invite.email.toLowerCase() !== user.email.toLowerCase()) return null;
+  return {
+    businessName: invite.client.businessName,
+    role: invite.role,
+    expiresAt: invite.expiresAt,
+  };
+}
+
 export async function revokeInvite(
   db: PrismaClient,
   clientId: string,

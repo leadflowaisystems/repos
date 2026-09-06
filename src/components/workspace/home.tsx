@@ -19,6 +19,8 @@ import {
   StrengthsList,
   WatchingList,
 } from '@/components/portal/responsibility';
+import { SinceVisit } from '@/components/workspace/since-visit';
+import type { SinceLastVisit } from '@/lib/retention/service';
 
 /**
  * HOME — what should I know, and do I need to do anything? (M12 + M15)
@@ -48,10 +50,17 @@ import {
 export async function PortalHome({
   clientId,
   basePath,
+  since = null,
 }: {
   clientId: string;
   /** Where this door lives, so links stay inside it. */
   basePath: string;
+  /**
+   * What happened while this person was away, when there is a person and
+   * something happened. The shared link has no visitor to remember, so it
+   * passes nothing and the panel does not exist there.
+   */
+  since?: SinceLastVisit | null;
 }) {
   const client = { id: clientId };
   const bundle = await getResponsibility(prisma, client.id);
@@ -83,6 +92,7 @@ export async function PortalHome({
     <>
       <Picture mood={view.mood} summary={view.summary} basis={view.basis} />
       <FactsLine facts={view.facts} />
+      {since ? <SinceVisit since={since} basePath={basePath} /> : null}
 
       <div className="grid grid-cols-1 gap-x-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="min-w-0">

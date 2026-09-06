@@ -302,8 +302,12 @@ GRANT UPDATE (
   "onboardingDate", "baselineRating", "baselineReviewCount",
   "baselineReviewsPerWeek", "baselineObservedAt", "kitInstalledDate",
   notes, "archivedAt", "portalToken", "portalTokenAt", "portalLinkSentAt",
-  "setupCompletedAt", "updatedAt"
+  "setupCompletedAt", "paymentRequestedAt", "updatedAt"
 ) ON public."Client" TO repos_app;
+
+-- `trialStartsAt` and `trialEndsAt` are deliberately absent, next to `plan`,
+-- `status` and `subscriptionStatus`. A business that could move its own trial
+-- end date has no trial. They move through app.set_subscription below.
 
 CREATE OR REPLACE FUNCTION app.set_subscription_status(target_client_id text, new_status text)
   RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
@@ -314,6 +318,55 @@ BEGIN
   UPDATE public."Client" SET "subscriptionStatus" = new_status, "updatedAt" = now()
   WHERE id = target_client_id;
 END $$;
+
+-- The subscription and the trial window move together, because they are one
+-- decision: "give them another two weeks" is a date change, "they are paying
+-- now" is a status change, and "they have stopped paying" is both. Splitting
+-- them across two calls would let a caller land halfway.
+--
+-- A NULL date argument leaves that date alone; the empty string clears it. That
+-- distinction is what lets "extend the trial" and "convert to paid, trial dates
+-- no longer meaningful" both be expressed without a second function.
+CREATE OR REPLACE FUNCTION app.set_subscription(
+  p_client_id   text,
+  p_status      text,
+  p_trial_start text,
+  p_trial_end   text,
+  p_now         text
+)
+  RETURNS void
+  LANGUAGE plpgsql
+  VOLATILE
+  SECURITY DEFINER
+  SET search_path = pg_catalog, public
+AS $fn$
+DECLARE
+  v_now timestamp := p_now::timestamp;
+BEGIN
+  IF NOT app.is_platform_admin() THEN
+    RAISE EXCEPTION 'not authorised';
+  END IF;
+
+  UPDATE public."Client"
+     SET "subscriptionStatus" =
+           coalesce(nullif(btrim(coalesce(p_status, '')), ''), "subscriptionStatus"),
+         "trialStartsAt" =
+           CASE
+             WHEN p_trial_start IS NULL THEN "trialStartsAt"
+             WHEN btrim(p_trial_start) = '' THEN NULL
+             ELSE p_trial_start::timestamp
+           END,
+         "trialEndsAt" =
+           CASE
+             WHEN p_trial_end IS NULL THEN "trialEndsAt"
+             WHEN btrim(p_trial_end) = '' THEN NULL
+             ELSE p_trial_end::timestamp
+           END,
+         "updatedAt" = v_now
+   WHERE id = p_client_id;
+END $fn$;
+
+REVOKE ALL ON FUNCTION app.set_subscription(text, text, text, text, text) FROM PUBLIC;
 
 -- --- the two columns a customer must not be able to set for themselves --------
 --
@@ -369,6 +422,90 @@ BEGIN
 END $fn$;
 
 REVOKE ALL ON FUNCTION app.set_client_commercials(text, text, text, text) FROM PUBLIC;
+
+-- --- what the business pays: the operator's, and only the operator's --------
+--
+-- Deliberately NOT in the tenant_tables loop above. Every other per-client
+-- table asks "does this person belong to this business"; this one asks "is this
+-- person platform staff", which is a different question with a different
+-- answer for the owner of the business it describes. A business owner's
+-- connection returns no rows here at all, so there is no negotiated amount for
+-- a mis-scoped query, a debug endpoint or a future careless join to leak.
+ALTER TABLE public."Commercial" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public."Commercial" FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS commercial_admin_only ON public."Commercial";
+CREATE POLICY commercial_admin_only ON public."Commercial"
+  USING (app.is_platform_admin())
+  WITH CHECK (app.is_platform_admin());
+
+-- --- "since you were last here" --------------------------------------------
+--
+-- membership_write asks for BUSINESS_OWNER, so a staff member cannot stamp
+-- their own row, and widening that policy so they could would also let them
+-- edit their own role. One column, their own row, nothing else.
+CREATE OR REPLACE FUNCTION app.touch_membership(p_client_id text, p_now text)
+  RETURNS void
+  LANGUAGE plpgsql
+  VOLATILE
+  SECURITY DEFINER
+  SET search_path = pg_catalog, public
+AS $fn$
+BEGIN
+  IF app.current_user_id() IS NULL THEN
+    RETURN;
+  END IF;
+  UPDATE public."Membership"
+     SET "lastSeenAt" = p_now::timestamp
+   WHERE "userId" = app.current_user_id()
+     AND "clientId" = p_client_id
+     AND status = 'ACTIVE';
+END $fn$;
+
+REVOKE ALL ON FUNCTION app.touch_membership(text, text) FROM PUBLIC;
+
+-- --- what an invitee may see before they accept -----------------------------
+--
+-- The invitation page resolves nothing for a signed-out visitor, so a stranger
+-- trying tokens learns neither whether one is real nor which business it
+-- belongs to. Once somebody IS signed in, that argument stops applying to
+-- them: they could press Accept and find out. So this answers for exactly the
+-- person the invitation names, and says nothing to anybody else -- which is
+-- what lets the page carry the business, the role and the expiry above a real
+-- Accept button instead of a generic sentence.
+CREATE OR REPLACE FUNCTION app.invitation_preview(
+  p_token_hash text,
+  p_user_id    text,
+  p_now        text
+)
+  RETURNS TABLE (business_name text, member_role text, expires_at timestamp)
+  LANGUAGE plpgsql
+  STABLE
+  SECURITY DEFINER
+  SET search_path = pg_catalog, public
+AS $fn$
+DECLARE
+  v_now   timestamp := p_now::timestamp;
+  v_email text;
+BEGIN
+  SELECT lower(u.email) INTO v_email
+    FROM public."User" u
+   WHERE u.id = p_user_id AND u.status = 'ACTIVE';
+  IF v_email IS NULL THEN
+    RETURN;
+  END IF;
+
+  RETURN QUERY
+  SELECT c."businessName", i.role, i."expiresAt"
+    FROM public."Invitation" i
+    JOIN public."Client" c ON c.id = i."clientId"
+   WHERE i."tokenHash" = p_token_hash
+     AND i."acceptedAt" IS NULL
+     AND i."revokedAt" IS NULL
+     AND i."expiresAt" > v_now
+     AND lower(i.email) = v_email;
+END $fn$;
+
+REVOKE ALL ON FUNCTION app.invitation_preview(text, text, text) FROM PUBLIC;
 
 -- Feedback belongs to the business it arrived at. Nobody moves a row between
 -- tenants, so the tenant key itself is not writable by the application.

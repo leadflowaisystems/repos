@@ -141,6 +141,48 @@ Afterwards the `app` schema holds **16** functions with `public-gateway.sql`
 applied, 14 without, and the policy count is unchanged at 19.
 
 
+**A database from before M21 needs a schema change FIRST, and then this file.**
+M21 added the commercial side and the record of a visit, and one of the tables
+it introduces has to exist before `rls.sql` can protect it:
+
+```bash
+npx prisma db execute --file prisma/m21/migration.sql --schema prisma/schema.prisma   # 1
+npx prisma db execute --file prisma/m20/rls.sql       --schema prisma/schema.prisma   # 2
+```
+
+Step 1 is purely additive — four nullable columns and one new table, every
+statement guarded, nothing dropped and no row touched. Step 2 is the same
+re-runnable file as always, and it is what switches Row Level Security on for
+the new table, creates its policy, and grants it to `repos_app`.
+
+**Run them in that order, and run the application only afterwards.** Between the
+two, `Commercial` exists with no policy on it. Before step 1, the deployed code
+asks for columns the database does not have, and the owner's Home page and the
+operator's client page both fail.
+
+The file gained three functions and one policy:
+
+* `app.set_subscription` — the subscription and the trial window, which move
+  together because they are one decision. `repos_app` holds no privilege on
+  `subscriptionStatus`, `trialStartsAt` or `trialEndsAt`, so this is the only
+  way through, and it refuses anyone who is not platform staff.
+* `app.touch_membership` — one column, `lastSeenAt`, on the caller's own
+  membership. `membership_write` asks for BUSINESS_OWNER, so a staff member
+  could not stamp their own row; widening that policy would also have let them
+  edit their own role.
+* `app.invitation_preview` — what an invitee may be told before they accept.
+  Answers for the signed-in account whose email the invitation names, and for
+  nobody else, so the invitation page can carry the business, the role and the
+  expiry above a real Accept button.
+* `commercial_admin_only` — the one policy in the file that asks
+  `app.is_platform_admin()` rather than for membership. A business owner's
+  connection returns no rows from `Commercial` at all.
+
+Afterwards there are **17** tables with RLS enabled and forced, **20** policies,
+and the `app` schema holds **19** functions with `public-gateway.sql` applied,
+17 without.
+
+
 ## Invitation email — what Supabase has to be told
 
 RepOS sends the team invitation itself, from `src/lib/invite/email.ts`, through
@@ -168,26 +210,42 @@ Authentication → Emails → SMTP Settings. Nothing in RepOS changes; the same
 call goes out through their server instead.
 
 **The wording.** The message body is the project's own template, not RepOS's —
-Supabase templates are per email type and cannot be set per send. The
-invitation arrives as a Magic Link, and the business name, the role, the expiry
-and the Accept button are on the RepOS page it opens. An owner who wants RepOS
-wording in the mail itself pastes this into Authentication → Emails → Magic
-Link; `{{ .Data.* }}` is populated by the invitation for exactly this purpose:
+Supabase templates are per email type and per project and cannot be supplied per
+send. RepOS controls the link and the page it opens; the body is the project's,
+so the wording ships in this directory as something to paste once.
 
-```html
-<h2>You have been invited to a RepOS workspace</h2>
-<p>You have been invited to join <strong>{{ .Data.repos_business }}</strong> as
-   {{ .Data.repos_role }}.</p>
-<p><a href="{{ .ConfirmationURL }}">Accept invitation</a></p>
-<p>The link signs you in and opens the invitation. It expires in 7 days and
-   works once. If you were not expecting this, ignore it — nothing happens
-   until you accept.</p>
+Paste `prisma/m20/invitation-email.html` into Authentication → Emails, into
+**both** templates:
+
+| Template | Who receives it |
+| --- | --- |
+| **Confirm signup** | a first-time invitee, who has no Supabase account yet |
+| **Magic Link** | somebody who already has an account |
+
+Both carry `{{ .ConfirmationURL }}`, and both are populated with
+`{{ .Data.repos_business }}` and `{{ .Data.repos_role }}` by `deliverInvitation`.
+Ordinary sign-in also uses the Magic Link template and sets neither, so the copy
+is written to read correctly with those fields empty.
+
+**This was measured, not assumed.** An invitation was sent to a disposable inbox
+with a public API and the message was fetched back:
+
+```
+supabase /auth/v1/otp        -> 200
+arrived                      -> yes, 7 seconds later
+from                         -> Supabase Auth <noreply@mail.app.supabase.io>
+subject                      -> "Confirm your email address"   (type=signup)
+link                         -> https://<domain>/auth/callback?next=%2Finvite%2F<token>
 ```
 
-Ordinary sign-in also uses the Magic Link template, so wording it as an
-invitation is a choice, not a requirement. RepOS reports what the provider
-said: the Team page says "Invitation email sent" only when the message was
-accepted, and otherwise says why and offers the link to send by hand.
+Two things follow. The transport works end to end and the link is correct, so
+"Invitation email sent" on the Team page is a true statement. And the untouched
+templates are Supabase's, which is why the copy above has to be pasted before
+this reads as a RepOS invitation rather than a confirmation notice.
+
+RepOS reports what the provider said: the Team page says "Invitation email sent"
+only when the message was accepted, and otherwise says why and offers the link
+to send by hand.
 
 
 ## The printed table tent

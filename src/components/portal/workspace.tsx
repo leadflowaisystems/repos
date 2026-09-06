@@ -30,10 +30,13 @@ const SECTIONS = [
   { slug: 'improvements', label: 'Improvements', extra: false },
   { slug: 'checkin', label: 'Check-in', extra: false },
   { slug: 'team', label: 'Team', extra: true },
+  { slug: 'kit', label: 'Print kit', extra: true },
+  { slug: 'account', label: 'Account', extra: true },
 ] as const;
 
 /**
- * Six tabs, not eight. The weekly Pulse and the monthly Review are still
+ * Five doors on the shared link, eight in the workspace. The weekly Pulse and
+ * the monthly Review are still
  * there — same routes, same reports — but they are two windows on the same
  * question Check-in answers ("what changed?"), so they live as a period
  * switch at the top of that page rather than as two more tabs an owner has to
@@ -86,7 +89,7 @@ export function WorkspaceHeader({
         </div>
       </div>
 
-      {/* The six doors, always on screen. On a phone they wrap into two rows
+      {/* The doors, always on screen. On a phone they wrap into rows
           rather than scrolling sideways — a tab nobody can see is a page
           nobody opens. From tablet width up the row stays put while the page
           scrolls, so "where am I" and "where else can I go" never leave. */}

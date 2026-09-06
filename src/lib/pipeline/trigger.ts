@@ -1,6 +1,6 @@
 import { after } from 'next/server';
 import { serviceScopedDb } from '@/lib/db';
-import { hasUnprocessedFeedback, processClientFeedback } from './feedback';
+import { hasUnprocessedFeedback, isServiceSuspended, processClientFeedback } from './feedback';
 
 /**
  * WHEN THE PIPELINE RUNS.
@@ -24,6 +24,10 @@ import { hasUnprocessedFeedback, processClientFeedback } from './feedback';
  * gateway resolved it from the customer's token inside the database, or a
  * tenant gate has already admitted the visitor to it.
  *
+ * WHEN IT DOES NOT RUN. A paused or closed account keeps collecting feedback
+ * and stops being read — see `isServiceSuspended`. Nothing is discarded; the
+ * rows wait, and the first run after the account resumes reads them.
+ *
  * `after()` is Next's own post-response hook: on Vercel the function stays
  * alive until the callback settles, and the route declares a `maxDuration`
  * long enough for a batch and a provider round trip. Outside a request — a
@@ -41,6 +45,9 @@ export function triggerFeedbackProcessing(clientId: string, reason: TriggerReaso
   const run = async () => {
     try {
       const db = serviceScopedDb(clientId);
+      // A paused account still collects. It does not get read until it is
+      // resumed, and then the backlog is read in the ordinary way.
+      if (await isServiceSuspended(db, clientId)) return;
       if (reason === 'VISIT' && !(await hasUnprocessedFeedback(db, clientId))) return;
       const result = await processClientFeedback(db, clientId);
       if (!result.ok || result.needsRetry > 0) {

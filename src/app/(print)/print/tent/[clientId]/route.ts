@@ -19,13 +19,16 @@ export const dynamic = 'force-dynamic';
  * So this is a file, not a page: one A4 sheet, two cards, cut and fold marks,
  * and the four steps printed in the margin that gets trimmed away.
  *
+ * `?download=1` returns the identical bytes as an attachment. That is the only
+ * difference between the owner's Preview and their Download.
+ *
  * AUTHORIZATION. The client id in the URL is a request, not a permission. The
  * gate answers it, and Row Level Security answers it again underneath — a
  * business somebody does not belong to is a 404, the same answer as a business
  * that does not exist.
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ clientId: string }> },
 ) {
   const { clientId } = await params;
@@ -59,12 +62,16 @@ export async function GET(
     brandSecondary: view.brandSecondary,
   });
 
+  // The same bytes either way. `inline` so the owner's Preview shows the sheet
+  // in the page; `attachment` so their Download button produces a file with a
+  // name a print shop can read, rather than a tab they have to save by hand.
+  const download = new URL(request.url).searchParams.get('download') === '1';
   const name = `${slug(view.businessName)}-feedback-tent.pdf`;
   return new NextResponse(pdf, {
     status: 200,
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `inline; filename="${name}"`,
+      'Content-Disposition': `${download ? 'attachment' : 'inline'}; filename="${name}"`,
       // The QR and the wording follow the client's settings, so a stale copy
       // in a proxy would be a card pointing at the wrong address.
       'Cache-Control': 'no-store',

@@ -1211,6 +1211,16 @@ describe('V1 hard rules — nothing acts without an operator behind it (M16)', (
     revokeInviteAction: 'OWNER',
     setMembershipAction: 'OWNER',
     completeOnboardingAction: 'MEMBER',
+    // M21 - the commercial side. Every state change is the platform's, so all
+    // of them are ADMIN; the one exception is the owner asking to be told what
+    // this costs, which writes their own contact details and a timestamp.
+    requestPaymentDetailsAction: 'OWNER',
+    startTrialAction: 'ADMIN',
+    extendTrialAction: 'ADMIN',
+    convertToActiveAction: 'ADMIN',
+    pauseServiceAction: 'ADMIN',
+    resumeServiceAction: 'ADMIN',
+    saveCommercialAction: 'ADMIN',
   };
 
   it('gates every action at the level the matrix says, as its first statement', () => {

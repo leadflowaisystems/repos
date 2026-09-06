@@ -171,14 +171,14 @@ describe('the role the application actually connects as', () => {
               count(*) AS total
          FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relkind = 'r'`,
     );
-    expect(Number(rls[0]?.total)).toBe(16);
-    expect(Number(rls[0]?.enabled)).toBe(16);
-    expect(Number(rls[0]?.forced)).toBe(16);
+    expect(Number(rls[0]?.total)).toBe(17);
+    expect(Number(rls[0]?.enabled)).toBe(17);
+    expect(Number(rls[0]?.forced)).toBe(17);
 
     const policies = await owner.$queryRawUnsafe<{ n: bigint }[]>(
       `SELECT count(*) AS n FROM pg_policies WHERE schemaname = 'public'`,
     );
-    expect(Number(policies[0]?.n)).toBe(19);
+    expect(Number(policies[0]?.n)).toBe(20);
   });
 
   it('ships the scope the pipeline runs under', async () => {

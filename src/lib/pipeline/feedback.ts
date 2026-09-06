@@ -61,6 +61,34 @@ export async function hasUnprocessedFeedback(
   return waiting > 0;
 }
 
+/**
+ * Whether RepOS should be doing work for this business right now (M21).
+ *
+ * A paused or closed account keeps COLLECTING — the QR on a table is not party
+ * to a billing conversation, and a customer who scans it must never meet a dead
+ * page because of one. What stops is RepOS's own reading. The rows land, keep
+ * their PENDING status, and are read in the ordinary way once the account is
+ * resumed, so nothing is lost and nothing has to be re-collected.
+ *
+ * This gates the AUTOMATIC pipeline only. An operator pressing Read on a
+ * specific business is a deliberate act by staff and is not stopped by it.
+ *
+ * A missing row answers "not paused": failing closed here would silently stop
+ * reading feedback for an installation whose Client row this scope cannot see,
+ * which is a worse failure than reading it.
+ */
+export async function isServiceSuspended(
+  db: PrismaClient,
+  clientId: string,
+): Promise<boolean> {
+  const client = await db.client.findFirst({
+    where: { id: clientId },
+    select: { subscriptionStatus: true },
+  });
+  if (!client) return false;
+  return client.subscriptionStatus === 'PAUSED' || client.subscriptionStatus === 'CANCELLED';
+}
+
 export async function processClientFeedback(
   db: PrismaClient,
   clientId: string,

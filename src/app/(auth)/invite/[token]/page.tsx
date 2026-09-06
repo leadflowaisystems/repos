@@ -3,26 +3,37 @@ import Link from 'next/link';
 import { AcceptInviteForm } from '@/components/forms/team-forms';
 import { currentActor } from '@/lib/auth/authorize';
 import { prisma } from '@/lib/db';
+import { invitationPreview } from '@/lib/team/service';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = { title: 'Invitation' };
 
+const DATE = new Intl.DateTimeFormat('en-IN', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+
 /**
- * ACCEPTING AN INVITATION (M20 Stage 4).
+ * ACCEPTING AN INVITATION (M20 Stage 4, extended in M21).
  *
- * This page deliberately knows almost nothing.
+ * This page deliberately knows almost nothing until it knows who is asking.
  *
- * It does NOT look the token up. A page that resolved the invitation before
- * anyone signed in would answer, for any token anyone cared to try, whether it
- * was real — and for a real one, which business it belonged to. So the token
- * stays an opaque string here and is only ever resolved inside the action,
- * which already checks that the signed-in account's email matches the address
- * the invitation was issued to.
+ * FOR A SIGNED-OUT VISITOR it does NOT look the token up, and that has not
+ * changed. A page that resolved the invitation before anyone signed in would
+ * answer, for any token anyone cared to try, whether it was real — and for a
+ * real one, which business it belonged to. So a wrong, expired, revoked, spent
+ * or invented token all look identical here.
  *
- * That means a wrong, expired, revoked, spent or invented token all look
- * identical until someone signs in and presses the button, and then they all
- * produce the same sentence.
+ * FOR THE PERSON THE INVITATION NAMES that argument does not apply: they could
+ * press Accept and find out. So once somebody is signed in, the invitation is
+ * resolved for their address only, inside the database, and the page can say
+ * what they are actually being asked to join. Which it must — "you have been
+ * invited to a workspace" above an Accept button is not something a careful
+ * person should press.
+ *
+ * Anyone else signed in sees the same nothing a stranger sees.
  */
 export default async function InvitePage({
   params,
@@ -31,6 +42,7 @@ export default async function InvitePage({
 }) {
   const { token } = await params;
   const actor = await currentActor(prisma);
+  const invite = actor ? await invitationPreview(prisma, token, actor.userId) : null;
 
   return (
     <main>
@@ -42,14 +54,55 @@ export default async function InvitePage({
       </div>
 
       <h1 className="text-[24px] leading-[1.2] font-semibold tracking-tight text-ink-900">
-        You have been invited to a RepOS workspace
+        {invite
+          ? `Join ${invite.businessName} on RepOS`
+          : 'You have been invited to a RepOS workspace'}
       </h1>
 
-      {actor ? (
+      {actor && invite ? (
+        <>
+          <p className="mt-2 text-[15px] leading-relaxed text-ink-600">
+            You have been invited to {invite.businessName} as{' '}
+            {invite.role === 'BUSINESS_OWNER' ? 'an owner' : 'a team member'}. RepOS reads what
+            this business&rsquo;s customers say and tells you what needs you.
+          </p>
+
+          <dl className="mt-6 divide-y divide-ink-200 border-y border-ink-200 text-[14px]">
+            <div className="flex items-baseline justify-between gap-4 py-2.5">
+              <dt className="text-ink-500">Business</dt>
+              <dd className="text-right font-medium text-ink-900">{invite.businessName}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-4 py-2.5">
+              <dt className="text-ink-500">Your role</dt>
+              <dd className="text-right font-medium text-ink-900">
+                {invite.role === 'BUSINESS_OWNER' ? 'Owner' : 'Team member'}
+              </dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-4 py-2.5">
+              <dt className="text-ink-500">Invitation for</dt>
+              <dd className="text-right font-medium text-ink-900">{actor.email}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-4 py-2.5">
+              <dt className="text-ink-500">Valid until</dt>
+              <dd className="text-right font-medium text-ink-900">
+                {DATE.format(invite.expiresAt)}
+              </dd>
+            </div>
+          </dl>
+
+          <AcceptInviteForm token={token} />
+
+          <p className="mt-4 text-[13px] leading-relaxed text-ink-500">
+            Accepting adds this business to your account. It works once, and only for{' '}
+            {actor.email}.
+          </p>
+        </>
+      ) : actor ? (
         <>
           <p className="mt-2 text-[15px] leading-relaxed text-ink-600">
             Signed in as {actor.email}. An invitation only works for the address it was sent
-            to, so if that is not you, sign out and sign in as the right account.
+            to, so if that is not you, sign out and sign in as the right account. An invitation
+            that has already been used, been withdrawn or run out of time will not open either.
           </p>
           <AcceptInviteForm token={token} />
         </>

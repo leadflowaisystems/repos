@@ -6,6 +6,7 @@ import { tenantGateFor } from '@/lib/auth/guard';
 import { prisma } from '@/lib/db';
 import { verticalLabel } from '@/lib/packs';
 import { triggerFeedbackProcessing } from '@/lib/pipeline/trigger';
+import { recordVisit } from '@/lib/retention/service';
 
 export const dynamic = 'force-dynamic';
 // Long enough for the post-response reading of a batch and one provider round trip.
@@ -35,14 +36,26 @@ export default async function WorkspaceLayout({
 
   const client = await prisma.client.findUnique({
     where: { id: clientId },
-    select: { businessName: true, vertical: true },
+    select: { businessName: true, vertical: true, subscriptionStatus: true },
   });
   if (!client) notFound();
+
+  // Paused is worth one line at the top of every page, because the difference
+  // between "nothing is arriving" and "arriving, kept, not being read yet" is
+  // exactly the thing an owner would otherwise get wrong.
+  const paused =
+    client.subscriptionStatus === 'PAUSED' || client.subscriptionStatus === 'CANCELLED';
 
   // Anything waiting to be read is read now, after this page has been served.
   // The gate above admitted this visitor to this client; that is the trust the
   // scoped run inherits.
   triggerFeedbackProcessing(clientId, 'VISIT');
+
+  // And this visit is remembered, so the next one can open with what happened
+  // in between. After the response, and after every page beneath here has read
+  // the PREVIOUS value — stamping first would report an empty week to
+  // everybody, forever.
+  recordVisit(prisma, clientId);
 
   return (
     <>
@@ -53,6 +66,13 @@ export default async function WorkspaceLayout({
         showExtras
         signOut={<SignOutButton variant="inline" />}
       />
+      {paused ? (
+        <p className="mb-6 rounded-xl border border-warn-200 bg-warn-50 px-4 py-3 text-[14px] leading-relaxed text-warn-700">
+          This account is paused. Your customers can still leave feedback and it is all being
+          kept — RepOS starts reading it again as soon as the account is resumed. Nothing
+          already collected has changed.
+        </p>
+      ) : null}
       {children}
     </>
   );

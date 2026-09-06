@@ -226,3 +226,62 @@ describe('the team page tells the truth about email', () => {
     expect(action).toMatch(/export async function inviteMemberAction[\s\S]*?await tenantGate\(form, 'OWNER'\)/);
   });
 });
+
+describe('the invitation page says what is being joined', () => {
+  const page = code(read('src', 'app', '(auth)', 'invite', '[token]', 'page.tsx'));
+
+  it('resolves nothing at all for a signed-out visitor', () => {
+    // The token stays an opaque string until somebody is signed in, so trying
+    // tokens tells a stranger neither whether one is real nor whose it is.
+    expect(page).toContain('const invite = actor ? await invitationPreview(prisma, token, actor.userId) : null;');
+  });
+
+  it('names the business, the role, the address and the expiry above the button', () => {
+    expect(page).toContain('invite.businessName');
+    expect(page).toContain("invite.role === 'BUSINESS_OWNER' ? 'Owner' : 'Team member'");
+    expect(page).toContain('DATE.format(invite.expiresAt)');
+    expect(page).toContain('<AcceptInviteForm token={token} />');
+  });
+
+  it('still offers a signed-out visitor a way in and no information', () => {
+    expect(page).toContain('You have been invited to a RepOS workspace');
+    expect(page).toMatch(/Sign in/);
+    expect(page).toMatch(/Create an account/);
+  });
+
+  it('says "Accept invitation" on the button itself', () => {
+    expect(code(read('src', 'components', 'forms', 'team-forms.tsx'))).toContain(
+      'Accept invitation',
+    );
+  });
+});
+
+describe('the RepOS wording for the message body ships with the repository', () => {
+  const template = read('prisma', 'm20', 'invitation-email.html');
+
+  it('is a RepOS invitation, not a provider notice', () => {
+    expect(template).toContain('RepOS');
+    expect(template).toContain('Accept invitation');
+    expect(template).toContain('{{ .ConfirmationURL }}');
+    expect(template).toContain('{{ .Data.repos_business }}');
+    expect(template).toContain('{{ .Data.repos_role }}');
+  });
+
+  it('carries the fields the sender actually sets, and never the token', () => {
+    const email = code(read('src', 'lib', 'invite', 'email.ts'));
+    for (const field of ['repos_business', 'repos_role']) {
+      expect(email, field).toContain(field);
+      expect(template, field).toContain(field);
+    }
+    expect(template).not.toMatch(/\{\{\s*\.Data\.repos_token/);
+  });
+
+  it('is documented as going into both templates, because a new invitee gets the other one', () => {
+    // Measured, not assumed: an address with no Supabase account receives the
+    // Confirm signup template, and an existing account receives Magic Link.
+    const readme = read('prisma', 'm20', 'README.md');
+    expect(readme).toContain('invitation-email.html');
+    expect(readme).toContain('Confirm signup');
+    expect(readme).toContain('Magic Link');
+  });
+});

@@ -1,6 +1,8 @@
 import { notFound, redirect } from 'next/navigation';
 import { tenantGateFor } from '@/lib/auth/guard';
+import { prisma } from '@/lib/db';
 import { PortalHome } from '@/components/workspace/home';
+import { sinceLastVisit } from '@/lib/retention/service';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,15 +23,19 @@ export default async function WorkspacePage({
   if (!gate.ok) {
     // Nobody signed in at all goes to sign in; anyone else gets a 404.
     const { currentActor } = await import('@/lib/auth/authorize');
-    const { prisma } = await import('@/lib/db');
     if (!(await currentActor(prisma))) redirect('/login');
     notFound();
   }
+
+  // Read BEFORE the visit is stamped, which the layout does after the response.
+  // The other order would report an empty week to everybody, forever.
+  const since = await sinceLastVisit(prisma, clientId, gate.actor.userId);
 
   return (
     <PortalHome
       clientId={clientId}
       basePath={`/workspace/${clientId}`}
+      since={since}
     />
   );
 }

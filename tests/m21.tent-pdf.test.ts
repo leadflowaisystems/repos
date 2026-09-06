@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join as joinPath, resolve as resolvePath } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   TENT,
@@ -410,5 +412,52 @@ describe('the wording stays the vertical’s own', () => {
     const body = composeTentSheet(RESTAURANT).content();
     expect((body.match(/\(RepOS\) Tj/g) ?? []).length).toBe(4); // once per face
     expect((body.match(/\(CORNER CAFE\) Tj/g) ?? []).length).toBe(4);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// THE OWNER'S DOOR ONTO IT (M21)
+// ---------------------------------------------------------------------------
+
+describe('the print kit is a section of the owner’s workspace, not an operator URL', () => {
+  const ROOT = resolvePath(__dirname, '..');
+  const read = (...parts: string[]) => readFileSync(joinPath(ROOT, ...parts), 'utf8');
+  const page = read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'kit', 'page.tsx');
+  const nav = read('src', 'components', 'portal', 'workspace.tsx');
+  const route = read('src', 'app', '(print)', 'print', 'tent', '[clientId]', 'route.ts');
+
+  it('has a door of its own in the workspace navigation', () => {
+    expect(nav).toContain("{ slug: 'kit', label: 'Print kit', extra: true }");
+  });
+
+  it('offers both a preview and a download, of the same bytes', () => {
+    expect(page).toContain('src={href}');
+    expect(page).toContain('href={`${href}?download=1`}');
+    expect(page).toContain('Download the PDF');
+    expect(route).toContain("searchParams.get('download') === '1'");
+    expect(route).toContain("`${download ? 'attachment' : 'inline'}; filename=");
+  });
+
+  it('shows the four steps, in order, in the owner’s own words', () => {
+    const words = [...page.matchAll(/word: '([^']+)'/g)].map((m) => m[1]);
+    expect(words).toEqual(['Print', 'Cut', 'Fold', 'Place']);
+    expect(page).toMatch(/turn off Fit to Page/i);
+    expect(page).toMatch(/no glue, no tape, no holder/i);
+  });
+
+  it('refuses to offer a card when there is no address for the QR to open', () => {
+    expect(page).toContain('const ready = Boolean(view.content.feedbackUrl)');
+    expect(page).toContain('view.addressError');
+  });
+
+  it('repeats the one rule about who is offered the card', () => {
+    // The QR is never a reward for a good visit. It is offered to everyone the
+    // same way, which is the only thing that makes the answers worth reading.
+    expect(page).toMatch(/Offer it to everyone, the same way/);
+  });
+
+  it('is gated like every other per-client surface', () => {
+    expect(page).toContain("await tenantGateFor(clientId, 'MEMBER')");
+    expect(route).toContain("await tenantGateFor(clientId, 'MEMBER')");
   });
 });
