@@ -26,6 +26,7 @@ const RESTAURANT: TentInput = {
   businessName: 'Corner Cafe',
   headline: 'How was the food today?',
   subhead: 'Scan and tell us honestly — good or bad.',
+  qrCaption: 'Scan to tell us how it was',
   thankYou: 'Thank you — this goes straight to the kitchen team.',
   placement: 'On each table, and one at the billing counter.',
   feedbackUrl: 'https://repos.example.com/feedback/Ab3xY9zQmN2pLr7TvW1kJd',
@@ -148,6 +149,19 @@ function ops(input: TentInput): string[] {
 describe('what is on the sheet', () => {
   const lines = ops(RESTAURANT);
   const g = tentGeometry();
+
+  it('gives the card a curved base rather than a straight band', () => {
+    // The shaped edge is the difference between a premium tabletop piece and a
+    // folded rectangle, so it is a property, not a flourish: a filled curve per
+    // face, and a gold curve stroked parallel above it.
+    const curves = lines.filter((l) => l.endsWith(' c'));
+    expect(curves).toHaveLength(8); // one filled, one stroked, per face
+    // The two curves of a face are the same shape at different heights, so
+    // their control points differ only in y.
+    const xs = (op: string) => op.split(' ').filter((_, i) => i % 2 === 0);
+    expect(xs(curves[0]!)).toEqual(xs(curves[1]!));
+    expect(curves[0]).not.toBe(curves[1]);
+  });
 
   it('draws each card once, cut border and fold line included', () => {
     // Two dashed rectangles: one per card, and they are the cut lines.
@@ -290,21 +304,18 @@ describe('the QR', () => {
     // Every black rectangle inside a card is a run of QR modules. Rebuild the
     // grid from what was drawn and compare it with what the encoder produced:
     // this is the difference between "a QR-shaped picture" and "this URL".
-    const rects = (colour: string) =>
-      lines
-        .map((line, i) => ({ line, prev: lines[i - 1] }))
-        .filter((x) => x.line.endsWith(' re f') && x.prev === colour)
-        .map((x) => x.line.split(' ').slice(0, 4).map(Number) as [number, number, number, number]);
+    const all = lines
+      .map((line, i) => ({ line, prev: lines[i - 1] }))
+      .filter((x) => x.line.endsWith(' re f') && x.prev === '0 0 0 rg')
+      .map((x) => x.line.split(' ').slice(0, 4).map(Number) as [number, number, number, number]);
 
-    // One face's worth: the modules that sit inside the first white panel. All
-    // four faces draw the identical grid, so one of them is the grid.
-    const panel = rects('1 1 1 rg')[0]!;
-    const black = rects('0 0 0 rg').filter(
-      (r) =>
-        r[0] >= panel[0] - 0.01 &&
-        r[1] >= panel[1] - 0.01 &&
-        r[0] + r[2] <= panel[0] + panel[2] + 0.01 &&
-        r[1] + r[3] <= panel[1] + panel[3] + 0.01,
+    // One face's worth. The four faces draw the identical grid and sit at least
+    // 50mm apart, so everything within one QR's reach of the first module
+    // belongs to the first QR.
+    const reach = 40 * PT_PER_MM;
+    const first = all[0]!;
+    const black = all.filter(
+      (r) => Math.abs(r[0] - first[0]) < reach && Math.abs(r[1] - first[1]) < reach,
     );
     expect(black.length).toBeGreaterThan(20);
 
@@ -334,23 +345,29 @@ describe('the QR', () => {
     expect(drawn.size).toBe(dark);
   });
 
-  it('leaves the quiet zone a scanner needs, on a white panel', () => {
+  it('is big enough to scan off a table, with room around it', () => {
     const lines = ops(RESTAURANT);
-    // Four white panels, one per face, each square.
-    const panels = lines
+    const all = lines
       .map((line, i) => ({ line, prev: lines[i - 1] }))
-      .filter((x) => x.line.endsWith(' re f') && x.prev === '1 1 1 rg')
+      .filter((x) => x.line.endsWith(' re f') && x.prev === '0 0 0 rg')
       .map((x) => x.line.split(' ').slice(0, 4).map(Number));
-    expect(panels).toHaveLength(4);
-    for (const [, , w, h] of panels) expect(w).toBeCloseTo(h!, 3);
+    const reach = 40 * PT_PER_MM;
+    const first = all[0]!;
+    const black = all.filter(
+      (r) => Math.abs(r[0]! - first[0]!) < reach && Math.abs(r[1]! - first[1]!) < reach,
+    );
 
-    const panel = panels[0]![2]! / PT_PER_MM;
-    const matrix = qrMatrix(RESTAURANT.feedbackUrl);
-    const unit = panel / (matrix.size + 8);
-    // Four modules of quiet zone on each side is the specified minimum.
-    expect(panel - matrix.size * unit).toBeCloseTo(8 * unit, 6);
-    // And a module large enough for a phone camera to resolve on paper.
-    expect(unit).toBeGreaterThan(0.4);
+    const unit = black[0]![3]! / PT_PER_MM;
+    const left = Math.min(...black.map((r) => r[0]!)) / PT_PER_MM;
+    const right = Math.max(...black.map((r) => r[0]! + r[2]!)) / PT_PER_MM;
+    // A module a phone camera can resolve on paper, and a code big enough to
+    // read from across a table rather than from arm's length.
+    expect(unit).toBeGreaterThan(0.45);
+    expect(right - left).toBeGreaterThan(24);
+    // The quiet zone is the cream around it: four modules of clear paper on
+    // the side nearest the edge of the card.
+    const g = tentGeometry();
+    expect(left - g.leftMm).toBeGreaterThan(4 * unit);
   });
 });
 

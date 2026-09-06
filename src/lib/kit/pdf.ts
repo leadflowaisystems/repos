@@ -191,6 +191,22 @@ export type TextOptions = {
  * for the caller: this is a drawing surface, and the tent layout that uses it
  * does its own arithmetic, where that arithmetic can be read and tested.
  */
+export type PathSegment =
+  | { kind: 'move'; x: number; y: number }
+  | { kind: 'line'; x: number; y: number }
+  | { kind: 'curve'; c1x: number; c1y: number; c2x: number; c2y: number; x: number; y: number };
+
+export const moveTo = (x: number, y: number): PathSegment => ({ kind: 'move', x, y });
+export const lineTo = (x: number, y: number): PathSegment => ({ kind: 'line', x, y });
+export const curveTo = (
+  c1x: number,
+  c1y: number,
+  c2x: number,
+  c2y: number,
+  x: number,
+  y: number,
+): PathSegment => ({ kind: 'curve', c1x, c1y, c2x, c2y, x, y });
+
 export type InkBounds = { leftMm: number; topMm: number; rightMm: number; bottomMm: number };
 
 export class PdfPage {
@@ -260,6 +276,53 @@ export class PdfPage {
       '[] 0 d',
     );
     this.mark(Math.min(x1Mm, x2Mm), Math.min(y1Mm, y2Mm), Math.max(x1Mm, x2Mm), Math.max(y1Mm, y2Mm));
+    return this;
+  }
+
+  /**
+   * An arbitrary path, so the card can have a shape rather than only corners.
+   *
+   * The base of the tent is a curve, not a straight band — that one edge is
+   * most of what separates a premium tabletop piece from a folded rectangle,
+   * and it costs nothing to print because it is vector, not an image.
+   */
+  path(
+    segments: PathSegment[],
+    options: { fill?: string; stroke?: string; widthPt?: number } = {},
+  ): this {
+    if (segments.length === 0) return this;
+    if (options.fill) {
+      const [r, g, b] = rgb(options.fill);
+      this.ops.push(`${n(r)} ${n(g)} ${n(b)} rg`);
+    }
+    if (options.stroke) {
+      const [r, g, b] = rgb(options.stroke);
+      this.ops.push(`${n(r)} ${n(g)} ${n(b)} RG`, `${n(options.widthPt ?? 0.5)} w`, '1 J', '[] 0 d');
+    }
+    for (const segment of segments) {
+      if (segment.kind === 'move') {
+        this.ops.push(`${n(mmToPt(segment.x))} ${n(this.y(segment.y))} m`);
+        this.mark(segment.x, segment.y, segment.x, segment.y);
+      } else if (segment.kind === 'line') {
+        this.ops.push(`${n(mmToPt(segment.x))} ${n(this.y(segment.y))} l`);
+        this.mark(segment.x, segment.y, segment.x, segment.y);
+      } else {
+        this.ops.push(
+          `${n(mmToPt(segment.c1x))} ${n(this.y(segment.c1y))} ` +
+            `${n(mmToPt(segment.c2x))} ${n(this.y(segment.c2y))} ` +
+            `${n(mmToPt(segment.x))} ${n(this.y(segment.y))} c`,
+        );
+        // A cubic curve is contained by the box around its own control points,
+        // which is all the bounds check needs to be safe.
+        this.mark(
+          Math.min(segment.c1x, segment.c2x, segment.x),
+          Math.min(segment.c1y, segment.c2y, segment.y),
+          Math.max(segment.c1x, segment.c2x, segment.x),
+          Math.max(segment.c1y, segment.c2y, segment.y),
+        );
+      }
+    }
+    this.ops.push(options.fill && options.stroke ? 'B' : options.fill ? 'f' : 'S');
     return this;
   }
 

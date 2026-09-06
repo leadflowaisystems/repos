@@ -1,5 +1,14 @@
 import QRCode from 'qrcode';
-import { buildPdf, PdfPage, textWidthMm, type PdfFont } from './pdf';
+import {
+  buildPdf,
+  curveTo,
+  lineTo,
+  moveTo,
+  PdfPage,
+  textWidthMm,
+  type PathSegment,
+  type PdfFont,
+} from './pdf';
 
 /**
  * THE TABLE TENT: one A4 sheet, two cards, one fold each.
@@ -122,6 +131,8 @@ export type TentInput = {
   headline: string;
   /** The vertical's own scan line. */
   subhead: string;
+  /** The short label under the QR, in the vertical's words. */
+  qrCaption: string;
   /** The vertical's own thank-you, printed on the base band. */
   thankYou: string;
   /** Where the vertical says the card should sit. Printed in the trim margin. */
@@ -132,88 +143,161 @@ export type TentInput = {
   brandSecondary: string;
 };
 
-const CREAM = '#FBF9F4';
+const CREAM = '#FAF7EF';
 const INK = '#1A1E29';
 const MUTED = '#545B6C';
 const FAINT = '#B6BDCB';
 
-/** The face, laid out once and drawn twice — the second time upside down. */
+/**
+ * The face, laid out once and drawn twice — the second time upside down.
+ *
+ * The shape is the point. A folded rectangle with a straight coloured strip
+ * along the bottom looks like a printout; the same card with a curved base and
+ * a gold line riding above it reads as a made thing, and costs exactly the same
+ * to print because it is vector, not an image. The curve is also what makes the
+ * silhouette work at two inches tall: it gives the composition a horizon
+ * without spending height on a border.
+ *
+ * Everything above the curve is centred, because a centred block is what reads
+ * as considered from across a table, and because the eye should land on the
+ * question rather than track a ragged left edge.
+ */
 function drawFace(page: PdfPage, x: number, y: number, input: TentInput, qr: QrMatrix) {
   const w = TENT.faceWidthMm;
   const h = TENT.faceHeightMm;
-  const bandHeight = 9;
-  const ruleHeight = 0.7;
-  const bandTop = h - bandHeight;
-  const contentHeight = bandTop - ruleHeight;
 
   page.rect(x, y, w, h, CREAM);
 
-  // The base band. It sits on the table, which is why the thank-you goes here:
-  // it is the last thing read and the first thing seen from across a room.
-  page.rect(x, y + bandTop, w, bandHeight, input.brandPrimary);
-  page.rect(x, y + bandTop - ruleHeight, w, ruleHeight, input.brandSecondary);
+  // ---- The base: a curve, not a band --------------------------------------
+  // One cubic sweep from the left edge to the right, rising through the middle.
+  // `lift` draws the same curve higher up, which is how the gold line stays
+  // exactly parallel to the navy edge instead of being a second guess at it.
+  // The control points matter: putting the first one close to the start in y
+  // and the second one high makes the line leave the left edge almost flat,
+  // swing up through the first half, and settle. Spreading them evenly instead
+  // draws a straight diagonal, which reads as a printing mistake rather than a
+  // designed edge.
+  const wave = (lift: number): PathSegment[] => [
+    moveTo(x, y + h - 8 - lift),
+    curveTo(
+      x + w * 0.3,
+      y + h - 8.5 - lift,
+      x + w * 0.45,
+      y + h - 13.5 - lift,
+      x + w,
+      y + h - 13.2 - lift,
+    ),
+  ];
+  page.path([...wave(0), lineTo(x + w, y + h), lineTo(x, y + h)], {
+    fill: input.brandPrimary,
+  });
+  page.path(wave(1.6), { stroke: input.brandSecondary, widthPt: 2.6 });
 
-  // A white panel behind the QR. A QR needs a light quiet zone to scan, and
-  // "light" should not be left to whatever the cream prints like on a given
-  // printer.
-  const panel = Math.min(35, contentHeight - 6);
-  const panelX = x + 7;
-  const panelY = y + (contentHeight - panel) / 2;
-  page.rect(panelX, panelY, panel, panel, '#FFFFFF');
-  drawQr(page, panelX, panelY, panel, qr);
+  // ---- The QR and the words, as one centred group -------------------------
+  const qrSize = 30;
+  const columnWidth = 95;
+  const gap = 7;
+  const left = x + (w - (qrSize + gap + columnWidth)) / 2;
+  drawQr(page, left, y + 2.5, qrSize, qr);
+  // Labelled, the way the reference labels it. A bare QR on a table is a thing
+  // people photograph without knowing why; a line under it is the difference.
+  page.text(input.qrCaption, left + qrSize / 2, y + 36.3, {
+    size: 6,
+    colour: MUTED,
+    align: 'centre',
+  });
 
-  const textLeft = panelX + panel + 5;
-  const textRight = x + w - 6.5;
-  const textWidth = textRight - textLeft;
+  const cx = left + qrSize + gap + columnWidth / 2;
 
-  page.text(input.businessName.toUpperCase(), textLeft, y + 12, {
+  page.text(input.businessName.toUpperCase(), cx, y + 11, {
     font: 'bold',
     size: 7,
     colour: input.brandPrimary,
-    tracking: 0.9,
+    align: 'centre',
+    tracking: 1,
   });
 
-  const headline = fit(input.headline, 'bold', [17, 15.5, 14, 12.5, 11], textWidth);
+  const headline = fit(input.headline, 'bold', [16, 14.5, 13, 11.5], columnWidth);
   if (headline.lines.length === 1) {
-    page.text(headline.lines[0]!, textLeft, y + 24, {
+    page.text(headline.lines[0]!, cx, y + 21.5, {
       font: 'bold',
       size: headline.size,
       colour: INK,
+      align: 'centre',
     });
-    page.text(input.subhead, textLeft, y + 33.5, { size: 8.5, colour: MUTED });
   } else {
-    page.text(headline.lines[0]!, textLeft, y + 21, {
+    page.text(headline.lines[0]!, cx, y + 19, {
       font: 'bold',
       size: headline.size,
       colour: INK,
+      align: 'centre',
     });
-    page.text(headline.lines[1]!, textLeft, y + 21 + headline.size * 0.42, {
+    page.text(headline.lines[1]!, cx, y + 19 + headline.size * 0.42, {
       font: 'bold',
       size: headline.size,
       colour: INK,
+      align: 'centre',
     });
-    page.text(input.subhead, textLeft, y + 37, { size: 8, colour: MUTED });
   }
 
-  const baseline = y + bandTop + bandHeight / 2 + 1.1;
-  page.text(input.thankYou, x + w / 2, baseline, {
-    size: 7.5,
+  const subhead = fit(input.subhead, 'regular', [8.5, 8, 7.5], columnWidth);
+  const subheadTop = headline.lines.length === 1 ? 30.5 : 33;
+  subhead.lines.forEach((line, i) => {
+    page.text(line, cx, y + subheadTop + i * 4, {
+      size: subhead.size,
+      colour: MUTED,
+      align: 'centre',
+    });
+  });
+
+  // ---- On the base ---------------------------------------------------------
+  // "Thank you" carries the weight and the rest explains it, the way the
+  // reference sets it. Two runs rather than one so the emphasis is real.
+  gratitude(page, input.thankYou, x + w / 2, y + h);
+  page.text('RepOS', x + w - 7, y + h - 2.9, {
+    size: 5.5,
+    colour: input.brandSecondary,
+    align: 'right',
+    tracking: 0.4,
+  });
+}
+
+/**
+ * The thanks, on the curve, in two lines.
+ *
+ * "Thank you — this goes straight to the kitchen team." is one sentence doing
+ * two jobs: the thanks, and the promise about where the words go. Stacking them
+ * the way the reference does gives the first the weight it deserves and turns
+ * the second into the reassurance it actually is — and it is the promise, not
+ * the thanks, that persuades somebody to type honestly.
+ */
+function gratitude(page: PdfPage, text: string, cx: number, faceBottom: number) {
+  const trimmed = text.trim();
+  const match = /^(thank you|thanks)\s*[—–-]?\s*/i.exec(trimmed);
+  if (!match) {
+    page.text(trimmed, cx, faceBottom - 3.6, { size: 7.5, colour: '#FFFFFF', align: 'centre' });
+    return;
+  }
+  const head = trimmed.slice(0, match[1]!.length);
+  const rest = trimmed.slice(match[0].length);
+  const tail = rest.charAt(0).toUpperCase() + rest.slice(1);
+  page.text(head, cx, faceBottom - 6.6, {
+    font: 'bold',
+    size: 8,
     colour: '#FFFFFF',
     align: 'centre',
   });
-  page.text('RepOS', textRight, baseline, {
-    size: 6.5,
-    colour: input.brandSecondary,
-    align: 'right',
-  });
+  if (tail) {
+    page.text(tail, cx, faceBottom - 2.9, { size: 6.5, colour: '#DDE4EE', align: 'centre' });
+  }
 }
 
 /**
  * The largest of the offered sizes that fits, wrapping to two lines only if
  * even the smallest will not fit on one.
  *
- * A question is the loudest thing on the card and should stay one line where
- * it can — "How was the food today?" reads as a question at a glance and as a
+ * A question is the loudest thing on the card and should stay one line where it
+ * can — "How was the food today?" reads as a question at a glance and as a
  * paragraph when it is broken in the wrong place.
  */
 function fit(

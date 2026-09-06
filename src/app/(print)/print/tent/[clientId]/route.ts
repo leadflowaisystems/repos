@@ -51,6 +51,7 @@ export async function GET(
     businessName: view.content.displayName || view.businessName,
     headline: view.content.headline,
     subhead: view.content.subhead,
+    qrCaption: view.content.qrCaption,
     thankYou: view.content.footerNote,
     placement: view.content.placement,
     feedbackUrl: url,
