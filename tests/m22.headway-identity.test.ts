@@ -154,10 +154,16 @@ describe('the name a customer reads is Headway', () => {
     expect(read('prisma', 'm20', 'rls.sql')).toContain('repos_app');
   });
 
-  it('says Headway in the invitation email and the printed card', () => {
+  it('says Headway in the invitation email and on the printed card', () => {
     expect(read('prisma', 'm20', 'invitation-email.html')).toContain('Headway');
-    expect(read('src', 'lib', 'kit', 'tent.ts')).toContain("'Headway'");
-    expect(read('src', 'lib', 'kit', 'tent.ts')).toContain('Prepared by Headway');
+    const tent = read('src', 'lib', 'kit', 'tent.ts');
+    // The card carries the mark itself now, drawn in PDF operators, rather
+    // than the words "Prepared by Headway" in the trim margin that gets cut
+    // off. A customer sees the same lockup on the table as on the page the
+    // code opens.
+    expect(tent).toContain("'Headway'");
+    expect(tent).toContain('function drawMark');
+    expect(tent).toContain('drawMark(page, lockupX');
   });
 
   it('draws the mark from one component, never by hand', () => {

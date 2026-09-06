@@ -59,42 +59,62 @@ describe('the physical card', () => {
     expect(g.pageHeightMm).toBe(297);
   });
 
-  it('shows a visible face of six inches by two', () => {
-    expect(g.faceWidthMm).toBeCloseTo(152.4, 6);
-    expect(g.faceHeightMm).toBeCloseTo(50.8, 6);
-    expect(g.faceWidthMm / 25.4).toBeCloseTo(6, 6);
-    expect(g.faceHeightMm / 25.4).toBeCloseTo(2, 6);
+  it('shows a portrait face at 1 : 1.40', () => {
+    // The ratio is the design. The size is what falls out of A4 once two tents
+    // and a printable margin are subtracted, and it is checked below rather
+    // than asserted as a number somebody chose.
+    expect(g.faceHeightMm / g.faceWidthMm).toBeCloseTo(1.4, 6);
+    expect(g.faceRatio).toBeCloseTo(1.4, 6);
+    expect(g.faceHeightMm).toBeGreaterThan(g.faceWidthMm);
+    expect(g.faceWidthMm).toBeCloseTo(88, 6);
+    expect(g.faceHeightMm).toBeCloseTo(123.2, 6);
+  });
+
+  it('is the largest face that fits, not an arbitrary one', () => {
+    // Width is the binding constraint: two faces and a gutter have to fit
+    // across 210 mm, and the leftover is the trim. Prove there is no room for
+    // a materially bigger card by showing the margins are already small.
+    const across = g.faceWidthMm * g.cardsPerSheet + TENT.gapMm;
+    expect(across).toBeLessThanOrEqual(g.pageWidthMm);
+    expect(g.pageWidthMm - across).toBeLessThan(30); // under 15 mm of trim a side
+    // And that it is genuinely bigger than the alternative arrangement: two
+    // tents stacked would be FOUR faces deep, which caps the face far lower.
+    const stackedMax = (g.pageHeightMm - 40) / 4 / 1.4;
+    expect(g.faceWidthMm).toBeGreaterThan(stackedMax * 1.8);
   });
 
   it('folds exactly in the middle, so both faces are the same size', () => {
     expect(g.cardHeightMm).toBeCloseTo(g.faceHeightMm * 2, 6);
-    g.cardTopsMm.forEach((top, i) => {
-      const fold = g.foldsMm[i]!;
-      // The two halves the fold makes are equal, which is what "both faces have
-      // identical physical dimensions" means in millimetres.
-      expect(fold - top).toBeCloseTo(g.cardHeightMm - (fold - top), 6);
-      expect(fold - top).toBeCloseTo(g.faceHeightMm, 6);
-    });
+    const above = g.foldMm - g.cardTopMm;
+    const below = g.cardTopMm + g.cardHeightMm - g.foldMm;
+    // The two halves the fold makes are equal, which is what "both faces have
+    // identical physical dimensions" means in millimetres.
+    expect(above).toBeCloseTo(below, 6);
+    expect(above).toBeCloseTo(g.faceHeightMm, 6);
   });
 
-  it('fits two whole cards on one sheet, with paper between them', () => {
+  it('fits two whole tents on one sheet, side by side, with paper between them', () => {
     expect(g.cardsPerSheet).toBe(2);
-    expect(g.cardTopsMm).toHaveLength(2);
-    const firstBottom = g.cardTopsMm[0]! + g.cardHeightMm;
-    expect(g.cardTopsMm[1]! - firstBottom).toBeCloseTo(TENT.gapMm, 6);
-    expect(g.cardTopsMm[1]! + g.cardHeightMm).toBeLessThanOrEqual(g.pageHeightMm);
-    expect(g.leftMm + g.cardWidthMm).toBeLessThanOrEqual(g.pageWidthMm);
+    expect(g.cardLeftsMm).toHaveLength(2);
+    const firstRight = g.cardLeftsMm[0]! + g.cardWidthMm;
+    expect(g.cardLeftsMm[1]! - firstRight).toBeCloseTo(TENT.gapMm, 6);
+    expect(g.cardLeftsMm[1]! + g.cardWidthMm).toBeLessThanOrEqual(g.pageWidthMm);
+    expect(g.cardTopMm + g.cardHeightMm).toBeLessThanOrEqual(g.pageHeightMm);
   });
 
-  it('centres the cards, so the trim is even on every side', () => {
-    expect(g.leftMm).toBeCloseTo((g.pageWidthMm - g.cardWidthMm) / 2, 6);
-    expect(g.marginTopMm).toBeCloseTo(g.marginBottomMm, 6);
+  it('centres the pair, and leaves room to print above and below', () => {
+    const across = g.cardWidthMm * g.cardsPerSheet + TENT.gapMm;
+    expect(g.marginLeftMm).toBeCloseTo((g.pageWidthMm - across) / 2, 6);
+    expect(g.marginTopMm).toBeGreaterThanOrEqual(10);
+    expect(g.marginBottomMm).toBeGreaterThanOrEqual(10);
   });
 
-  it('needs one fold per card and no other construction', () => {
+  it('needs one fold per tent and no other construction', () => {
     // A second fold, a tab or a slot would each show up as another line to
-    // follow. There is one, and it is the centre line.
-    expect(g.foldsMm).toHaveLength(g.cardsPerSheet);
+    // follow. There is one, at the same height for both tents, and it is the
+    // centre line of each.
+    expect(typeof g.foldMm).toBe('number');
+    expect(g.foldMm).toBeCloseTo(g.cardTopMm + g.cardHeightMm / 2, 6);
   });
 });
 
@@ -157,28 +177,37 @@ describe('what is on the sheet', () => {
     // folded rectangle, so it is a property, not a flourish: a filled curve per
     // face, and a gold curve stroked parallel above it.
     const curves = lines.filter((l) => l.endsWith(' c'));
-    expect(curves).toHaveLength(8); // one filled, one stroked, per face
-    // The two curves of a face are the same shape at different heights, so
+    // Three per face across four faces: the filled base, the gold line stroked
+    // parallel above it, and the rising path of the Headway mark on the base.
+    expect(curves).toHaveLength(12);
+    // The base and its gold line are the same shape at different heights, so
     // their control points differ only in y.
     const xs = (op: string) => op.split(' ').filter((_, i) => i % 2 === 0);
     expect(xs(curves[0]!)).toEqual(xs(curves[1]!));
     expect(curves[0]).not.toBe(curves[1]);
   });
 
-  it('draws each card once, cut border and fold line included', () => {
-    // Two dashed rectangles: one per card, and they are the cut lines.
-    expect(lines.filter((l) => l.endsWith(' re S'))).toHaveLength(2);
-    // One fold line per card, plus the eight crop-mark strokes.
+  it('draws each tent once, cut border and fold line included', () => {
+    // Six stroked rectangles: the cut border round each of the two tents, and
+    // the gold frame round each of the four codes.
+    expect(lines.filter((l) => l.endsWith(' re S'))).toHaveLength(2 + 4);
+    // Per tent: one fold line and eight crop-mark strokes. Plus the three
+    // segments of the single dashed line down the gutter, which is the cut
+    // that separates the pair.
     const strokes = lines.filter((l) => l.includes(' m ') && l.endsWith(' l S'));
-    expect(strokes).toHaveLength(2 + 8 * 2);
+    expect(strokes).toHaveLength(2 * (1 + 8) + 3);
   });
 
   it('says where to cut and where to fold, in words', () => {
+    // Once each, in the gutter. The gutter IS the cut that separates the two
+    // tents and the fold is at the same height on both, so one of each says
+    // everything — and set in the outer margins the words put ink 4.2 mm from
+    // the edge of the paper, inside the unprintable border of most printers.
     const body = lines.join('\n');
-    expect((body.match(/\(FOLD\) Tj/g) ?? []).length).toBe(2);
-    expect((body.match(/\(CUT\) Tj/g) ?? []).length).toBe(2);
+    expect((body.match(/\(FOLD\) Tj/g) ?? []).length).toBe(1);
+    expect((body.match(/\(CUT\) Tj/g) ?? []).length).toBe(1);
     expect(body).toContain('Cut out both cards along the dashed borders.');
-    expect(body).toContain('Fold each card along the dotted line, printed side out.');
+    expect(body).toContain('Fold each along the dotted line, printed side out.');
   });
 
   it('tells the printer not to scale it, which is the one way to get the size wrong', () => {
@@ -200,9 +229,8 @@ describe('what is on the sheet', () => {
       // nothing else, so the face lands back in its own box the other way up.
       expect([a, b, c, d]).toEqual([-1, 0, 0, -1]);
 
-      const top = g.cardTopsMm[index]!;
-      const centreXmm = g.leftMm + g.cardWidthMm / 2;
-      const centreYmm = top + g.faceHeightMm / 2;
+      const centreXmm = g.cardLeftsMm[index]! + g.cardWidthMm / 2;
+      const centreYmm = g.cardTopMm + g.faceHeightMm / 2;
       expect(e!).toBeCloseTo(2 * centreXmm * PT_PER_MM, 2);
       expect(f!).toBeCloseTo(2 * (g.pageHeightMm - centreYmm) * PT_PER_MM, 2);
     });
@@ -231,6 +259,75 @@ describe('what is on the sheet', () => {
     expect(upright.filter((l) => l.endsWith(' re f')).map(firstNumber)).toEqual(
       rotated.filter((l) => l.endsWith(' re f')).map(firstNumber),
     );
+  });
+});
+
+describe('the tent is two identical faces joined at the fold', () => {
+  const g = tentGeometry();
+
+  it('prints four faces: two per tent, two tents', () => {
+    const lines = ops(RESTAURANT);
+    // The cream ground of a face, at the face's exact size.
+    const cream = lines
+      .map((line, i) => ({ line, prev: lines[i - 1] }))
+      .filter((x) => x.line.endsWith(' re f') && x.prev === '0.98 0.969 0.937 rg')
+      .map((x) => x.line.split(' ').slice(0, 4).map(Number));
+    expect(cream).toHaveLength(4);
+    for (const [, , w, h] of cream) {
+      expect(w! / PT_PER_MM).toBeCloseTo(g.faceWidthMm, 3);
+      expect(h! / PT_PER_MM).toBeCloseTo(g.faceHeightMm, 3);
+    }
+    // Two distinct x positions and two distinct y positions: a 2 x 2 grid of
+    // faces, which is two tents side by side.
+    expect(new Set(cream.map((r) => Math.round(r[0]!))).size).toBe(2);
+    expect(new Set(cream.map((r) => Math.round(r[1]!))).size).toBe(2);
+  });
+
+  it('puts a code on both faces of both tents', () => {
+    const lines = ops(RESTAURANT);
+    const black = lines
+      .map((line, i) => ({ line, prev: lines[i - 1] }))
+      .filter((x) => x.line.endsWith(' re f') && x.prev === '0 0 0 rg')
+      .map((x) => x.line.split(' ').slice(0, 4).map(Number));
+    // Cluster by position: four codes, one per face.
+    const clusters: Array<{ x: number; y: number }> = [];
+    for (const [x, y] of black) {
+      const near = clusters.find(
+        (c) => Math.abs(c.x - x!) < 45 * PT_PER_MM && Math.abs(c.y - y!) < 45 * PT_PER_MM,
+      );
+      if (!near) clusters.push({ x: x!, y: y! });
+    }
+    expect(clusters).toHaveLength(4);
+  });
+
+  it('never lets a long business name print past the edge of the card', () => {
+    // It did. "The Very Long Restaurant And Banqueting Company" is set in
+    // tracked capitals, `fit` measured it without the tracking, and 116 mm of
+    // type went onto an 88 mm card and 2.2 mm off the sheet. Ink outside the
+    // page is the one fault a rendered preview cannot show you.
+    const page = composeTentSheet({
+      ...RESTAURANT,
+      businessName: 'The Very Long Restaurant And Banqueting Company Limited',
+    });
+    const ink = page.bounds()!;
+    expect(ink.leftMm).toBeGreaterThanOrEqual(0);
+    expect(ink.rightMm).toBeLessThanOrEqual(page.widthMm);
+    // And it stays inside the card, not merely inside the page.
+    expect(ink.leftMm).toBeGreaterThanOrEqual(g.cardLeftsMm[0]! - 6);
+  });
+
+  it('keeps every drop of ink clear of the printer’s own border', () => {
+    for (const input of [RESTAURANT, GYM]) {
+      const page = composeTentSheet(input);
+      const ink = page.bounds()!;
+      const smallest = Math.min(
+        ink.leftMm,
+        ink.topMm,
+        page.widthMm - ink.rightMm,
+        page.heightMm - ink.bottomMm,
+      );
+      expect(smallest).toBeGreaterThanOrEqual(5);
+    }
   });
 });
 
@@ -366,10 +463,13 @@ describe('the QR', () => {
     // read from across a table rather than from arm's length.
     expect(unit).toBeGreaterThan(0.45);
     expect(right - left).toBeGreaterThan(24);
-    // The quiet zone is the cream around it: four modules of clear paper on
-    // the side nearest the edge of the card.
+    // The quiet zone is the white panel around it: four modules of clear paper
+    // on the side nearest the edge of the card it sits on.
     const g = tentGeometry();
-    expect(left - g.leftMm).toBeGreaterThan(4 * unit);
+    const nearestCardLeft = g.cardLeftsMm.reduce((best, x) =>
+      Math.abs(left - x) < Math.abs(left - best) ? x : best,
+    );
+    expect(left - nearestCardLeft).toBeGreaterThan(4 * unit);
   });
 });
 
