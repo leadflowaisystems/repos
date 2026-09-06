@@ -14,7 +14,7 @@ import { signOutAction } from '@/lib/actions/account';
 const STYLES = {
   nav: 'w-full rounded-lg px-3 py-2 text-left text-[13px] font-medium text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900',
   inline:
-    'rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900',
+    'inline-flex min-h-11 items-center rounded-lg px-2.5 text-[13px] font-medium text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900',
 } as const;
 
 export function SignOutButton({ variant = 'nav' }: { variant?: keyof typeof STYLES }) {

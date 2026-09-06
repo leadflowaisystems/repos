@@ -279,7 +279,7 @@ export function EvidenceLink({
   return (
     <Link
       href={`${basePath}/reviews?theme=${encodeURIComponent(themeKey)}`}
-      className="inline-flex min-h-9 items-center gap-1.5 group text-[13px] font-medium text-ink-700 transition-colors hover:text-ink-900 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:ring-offset-2 focus-visible:outline-none"
+      className="inline-flex min-h-11 items-center gap-1.5 group text-[13px] font-medium text-ink-700 transition-colors hover:text-ink-900 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:ring-offset-2 focus-visible:outline-none"
     >
       {label ?? `Read the ${count} ${count === 1 ? 'comment' : 'comments'}`}
       <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
@@ -462,7 +462,7 @@ export function ThemeStory({
               <span className="mt-1 mb-1.5 block not-italic">
                 <Link
                   href={`${basePath}/improvements`}
-                  className="text-[13px] font-medium text-ink-700 hover:text-ink-900"
+                  className="inline-flex min-h-11 items-center text-[13px] font-medium text-ink-700 hover:text-ink-900"
                 >
                   What the feedback did afterwards →
                 </Link>
@@ -524,7 +524,7 @@ export function ThemeRow({
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <Link
           href={`${basePath}/reviews?theme=${encodeURIComponent(s.themeKey)}`}
-          className="text-[15px] font-semibold text-ink-900 hover:underline hover:underline-offset-2"
+          className="inline-flex min-h-11 items-center text-[15px] font-semibold text-ink-900 hover:underline hover:underline-offset-2"
         >
           {s.themeLabel}
         </Link>
@@ -603,7 +603,7 @@ export function WatchList({ items, basePath }: { items: PortalWatch[]; basePath:
             {w.themeKey ? (
               <Link
                 href={`${basePath}/reviews?theme=${encodeURIComponent(w.themeKey)}`}
-                className="text-[14px] font-medium text-ink-900 hover:underline hover:underline-offset-2"
+                className="inline-flex min-h-11 items-center text-[14px] font-medium text-ink-900 hover:underline hover:underline-offset-2"
               >
                 {w.label}
               </Link>
@@ -638,7 +638,7 @@ export function Knows({ items, basePath }: { items: PortalKnown[]; basePath: str
               {k.themeKey ? (
                 <Link
                   href={`${basePath}/reviews?theme=${encodeURIComponent(k.themeKey)}`}
-                  className="text-ink-700 hover:text-ink-900"
+                  className="inline-flex min-h-11 items-center text-ink-700 hover:text-ink-900"
                 >
                   the customer comments →
                 </Link>
@@ -783,7 +783,7 @@ export function BeforeAfter({ outcome }: { outcome: PortalOutcome }) {
         </div>
       </dl>
       <details className="mt-2 group">
-        <summary className="inline-flex min-h-9 cursor-pointer items-center list-none text-[12px] font-medium text-ink-600 hover:text-ink-900">
+        <summary className="inline-flex min-h-11 cursor-pointer items-center list-none text-[12px] font-medium text-ink-600 hover:text-ink-900">
           Why RepOS says this <span aria-hidden>›</span>
         </summary>
         <ul className="mt-1.5 space-y-1 border-l-2 border-ink-200 pl-3 text-[12px] leading-relaxed text-ink-600">
@@ -951,7 +951,7 @@ export function OutcomeRow({ action, basePath }: { action: PortalAction; basePat
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <Link
           href={`${basePath}/improvements`}
-          className="text-[15px] font-semibold text-ink-900 hover:underline hover:underline-offset-2"
+          className="inline-flex min-h-11 items-center text-[15px] font-semibold text-ink-900 hover:underline hover:underline-offset-2"
         >
           {a.about}
         </Link>
@@ -1192,7 +1192,7 @@ export function ReviewRow({ item }: { item: ReviewItem }) {
               ) : null}
               {item.suggestedReply ? (
                 <details className="group pt-1">
-                  <summary className="inline-flex min-h-9 cursor-pointer items-center list-none text-[12px] font-medium text-ink-600 hover:text-ink-900 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none">
+                  <summary className="inline-flex min-h-11 cursor-pointer items-center list-none text-[12px] font-medium text-ink-600 hover:text-ink-900 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none">
                     Suggested reply <span aria-hidden>›</span>
                   </summary>
                   <p className="mt-1.5 border-l-2 border-ink-200 pl-3 whitespace-pre-line text-ink-800">
@@ -1235,7 +1235,7 @@ export function RatingStrip({
         href={base}
         aria-current={active === null ? 'page' : undefined}
         className={clsx(
-          'inline-flex min-h-9 items-center rounded-full border px-3 text-[13px] transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
+          'inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border px-3 text-[13px] transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
           active === null
             ? 'border-ink-900 bg-ink-900 text-white'
             : 'border-ink-300 text-ink-700 hover:border-ink-900 hover:text-ink-900',
@@ -1252,7 +1252,7 @@ export function RatingStrip({
           aria-current={active === r.stars ? 'page' : undefined}
           aria-label={`${r.stars} star${r.stars === 1 ? '' : 's'}, ${r.count} ${r.count === 1 ? 'piece' : 'pieces'} of feedback`}
           className={clsx(
-            'inline-flex min-h-9 items-center rounded-full border px-3 text-[13px] tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
+            'inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border px-3 text-[13px] tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
             active === r.stars
               ? 'border-ink-900 bg-ink-900 text-white'
               : r.count === 0
@@ -1291,7 +1291,7 @@ export function PeriodSwitch({
           href={`${basePath}/${o.slug}`}
           aria-current={current === o.slug ? 'page' : undefined}
           className={clsx(
-            'inline-flex min-h-9 items-center rounded-full border px-3 text-[13px] transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
+            'inline-flex min-h-11 items-center rounded-full border px-3 text-[13px] transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
             current === o.slug
               ? 'border-ink-900 bg-ink-900 text-white'
               : 'border-ink-300 text-ink-700 hover:border-ink-900 hover:text-ink-900',
@@ -1358,7 +1358,7 @@ export function SoFar({ soFar, basePath }: { soFar: PortalSoFar; basePath: strin
               <Link
                 href={`${basePath}/reviews?theme=${encodeURIComponent(m.themeKey)}`}
                 className={clsx(
-                  'inline-flex min-h-9 items-center gap-2 rounded-full border px-3 text-[13px] transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
+                  'inline-flex min-h-11 items-center gap-2 rounded-full border px-3 text-[13px] transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
                   m.kind === 'ISSUE'
                     ? 'border-bad-200 bg-bad-50 text-bad-700 hover:border-bad-600'
                     : 'border-good-200 bg-good-50 text-good-700 hover:border-good-600',

@@ -54,7 +54,7 @@ function parseFilters(search: Search): ReviewFilters {
 }
 
 const control =
-  'h-10 w-full rounded-md border border-ink-300 bg-white px-2.5 text-[14px] text-ink-900 focus-visible:border-ink-500 focus-visible:ring-2 focus-visible:ring-ink-300 focus-visible:outline-none';
+  'h-11 w-full rounded-md border border-ink-300 bg-white px-2.5 text-[14px] text-ink-900 focus-visible:border-ink-500 focus-visible:ring-2 focus-visible:ring-ink-300 focus-visible:outline-none';
 const label = 'flex flex-col gap-1 text-[11px] tracking-wide text-ink-500 uppercase';
 
 /**
@@ -138,7 +138,7 @@ export async function PortalReviews({
                 <li key={q.query}>
                   <Link
                     href={`${base}?${q.query}`}
-                    className="inline-flex min-h-9 items-center rounded-full border border-ink-300 px-3 text-[13px] text-ink-800 hover:border-ink-900 hover:text-ink-900"
+                    className="inline-flex min-h-11 items-center rounded-full border border-ink-300 px-3 text-[13px] text-ink-800 hover:border-ink-900 hover:text-ink-900"
                   >
                     {q.label}
                   </Link>
@@ -227,15 +227,15 @@ export async function PortalReviews({
             ) : null}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
-            <label className="flex min-h-9 items-center gap-2 text-[13px] text-ink-700">
+            <label className="flex min-h-11 items-center gap-2 text-[13px] text-ink-700">
               <input type="checkbox" name="needs" value="reply" defaultChecked={view.filters.needs === 'reply'} className="h-4 w-4 rounded border-ink-300 accent-ink-900" />
               Only ones that need your answer
             </label>
-            <button type="submit" className="inline-flex min-h-9 items-center rounded-md bg-ink-900 px-3.5 text-[13px] font-medium text-white hover:bg-ink-800 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:ring-offset-2 focus-visible:outline-none">
+            <button type="submit" className="inline-flex min-h-11 items-center rounded-md bg-ink-900 px-3.5 text-[13px] font-medium text-white hover:bg-ink-800 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:ring-offset-2 focus-visible:outline-none">
               Show
             </button>
             {filtered ? (
-              <Link href={base} className="inline-flex min-h-9 items-center text-[13px] text-ink-500 hover:text-ink-900">Clear</Link>
+              <Link href={base} className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[13px] text-ink-500 hover:text-ink-900">Clear</Link>
             ) : null}
           </div>
         </form>

@@ -21,7 +21,7 @@ import { IDLE, type ActionState } from '@/lib/actions/shared';
 const BUTTON =
   'inline-flex min-h-11 items-center justify-center rounded-xl bg-ink-900 px-4 text-[15px] font-semibold text-white transition-colors hover:bg-ink-800 disabled:bg-ink-400';
 const QUIET =
-  'inline-flex min-h-9 items-center rounded-lg border border-ink-300 bg-white px-3 text-[13px] font-medium text-ink-700 hover:border-ink-400 disabled:text-ink-400';
+  'inline-flex min-h-11 items-center rounded-lg border border-ink-300 bg-white px-3 text-[13px] font-medium text-ink-700 hover:border-ink-400 disabled:text-ink-400';
 
 function Notice({ state }: { state: ActionState }) {
   if (!state.message) return null;

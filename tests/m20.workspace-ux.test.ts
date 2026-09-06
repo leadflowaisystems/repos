@@ -305,6 +305,23 @@ describe('the pipeline is wired to the product', () => {
     expect(db).toContain('return scopeToClient(base, clientId);');
   });
 
+  it('gives every tappable control a 44px hit area, never a 36px one', () => {
+    for (const file of [
+      ['components', 'portal', 'portal-ui.tsx'],
+      ['components', 'portal', 'responsibility.tsx'],
+      ['components', 'portal', 'workspace.tsx'],
+      ['components', 'workspace', 'reviews.tsx'],
+      ['components', 'sign-out.tsx'],
+      ['app', '(workspace)', 'workspace', '[clientId]', 'error.tsx'],
+    ] as const) {
+      const source = code(read(...file));
+      expect(source, file.join('/')).not.toMatch(/min-h-9|min-h-10|h-10 w-full/);
+    }
+    const ui = code(read('components', 'portal', 'portal-ui.tsx'));
+    expect(between(ui, 'export function RatingStrip(', 'export function PeriodSwitch(')).toContain('min-w-11');
+    expect(code(read('components', 'workspace', 'reviews.tsx'))).toContain("'h-11 w-full rounded-md");
+  });
+
   it('has a calm error state for the workspace', () => {
     const error = code(read('app', '(workspace)', 'workspace', '[clientId]', 'error.tsx'));
     expect(error).toContain("'use client'");

@@ -100,7 +100,7 @@ export function Answer({ r, basePath }: { r: Responsibility; basePath: string })
       {top && evidence ? (
         <Link
           href={evidence}
-          className="mt-3 inline-flex min-h-9 items-center gap-1.5 text-[13px] font-medium text-ink-900 underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none"
+          className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-[13px] font-medium text-ink-900 underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none"
         >
           {top.themeLabel ? `Read what customers said about ${top.themeLabel.toLowerCase()}` : 'Read the comments that need you'}{' '}
           <span aria-hidden>→</span>
@@ -175,7 +175,7 @@ export function NeedsYouItem({
           </p>
           <Link
             href={`${basePath}/reviews?needs=reply`}
-            className="inline-flex min-h-9 items-center gap-1.5 text-[13px] font-medium text-ink-700 hover:text-ink-900"
+            className="inline-flex min-h-11 items-center gap-1.5 text-[13px] font-medium text-ink-700 hover:text-ink-900"
           >
             Read them <span aria-hidden>→</span>
           </Link>
@@ -184,7 +184,7 @@ export function NeedsYouItem({
 
       {item.thread.length > 1 ? (
         <details className="mt-3 group">
-          <summary className="inline-flex min-h-9 cursor-pointer items-center list-none text-[12px] font-medium text-ink-600 hover:text-ink-900">
+          <summary className="inline-flex min-h-11 cursor-pointer items-center list-none text-[12px] font-medium text-ink-600 hover:text-ink-900">
             How we got here <span aria-hidden>›</span>
           </summary>
           <Thread steps={item.thread} />
@@ -195,7 +195,7 @@ export function NeedsYouItem({
         <div className="mt-2">
           <Link
             href={`${basePath}/improvements`}
-            className="inline-flex min-h-9 items-center text-[13px] font-medium text-ink-700 hover:text-ink-900"
+            className="inline-flex min-h-11 items-center text-[13px] font-medium text-ink-700 hover:text-ink-900"
           >
             See the improvement →
           </Link>
