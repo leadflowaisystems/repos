@@ -37,7 +37,8 @@ const STEPS: Array<{ word: string; detail: string }> = [
   },
   {
     word: 'Cut',
-    detail: 'Once, along the line across the middle. That gives you two cards.',
+    detail:
+      'Cut out both cards along their dashed borders. The line down the middle separates the pair.',
   },
   {
     word: 'Fold',
