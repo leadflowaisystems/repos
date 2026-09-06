@@ -178,6 +178,16 @@ describe('the name a customer reads is Headway', () => {
       expect(svg, icon).toContain('#B78A3B');
     }
   });
+
+  it('lets a signed-out visitor actually load those icons', () => {
+    // They shipped behind the auth redirect and 307'd to the sign-in page, so
+    // the tab was blank for every customer with a QR code and every invitee —
+    // exactly the people the mark exists for.
+    const matcher = read('src', 'middleware.ts');
+    expect(matcher).toContain('icon.svg');
+    expect(matcher).toContain('apple-icon.svg');
+    expect(matcher).toContain('favicon.ico');
+  });
 });
 
 describe('the palette is the one the brand specifies', () => {

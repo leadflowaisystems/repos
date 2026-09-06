@@ -113,5 +113,15 @@ function toLogin(
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)'],
+  // The brand icons belong beside favicon.ico in this list. Next serves
+  // `app/icon.svg` at `/icon.svg?<hash>` and `app/apple-icon.svg` at
+  // `/apple-icon.svg`, and without them here the middleware sent both to the
+  // sign-in page — so the one visitor who most needs to see the mark, a
+  // customer standing at a table with a QR code, got a blank tab.
+  //
+  // Safe to exempt for the same reason favicon.ico always was: they are static
+  // files that carry no data about anybody.
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.svg|sitemap.xml|robots.txt).*)',
+  ],
 };
