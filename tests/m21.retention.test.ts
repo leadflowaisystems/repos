@@ -78,14 +78,99 @@ async function feedback(at: Date, analysed: boolean) {
 // ---------------------------------------------------------------------------
 
 describe('remembering that somebody was here', () => {
+  // This database has no `app` schema, so every case below exercises the
+  // FALLBACK path inside touchLastSeen rather than app.touch_membership. That
+  // is deliberate: the definer function narrows its UPDATE to the caller's own
+  // row, and the point of these cases is that the fallback narrows it the same
+  // way. The definer path is covered against real policies in
+  // tests/m21.commercial-rls.test.ts.
   it('starts empty, and is written for the person who visited', async () => {
     expect(await lastSeenAt(db, clientId, userId)).toBeNull();
-    await touchLastSeen(db, clientId, { now: NOW });
+    await touchLastSeen(db, clientId, { now: NOW, userId });
     expect((await lastSeenAt(db, clientId, userId))?.toISOString()).toBe(NOW.toISOString());
   });
 
   it('never throws, even for a business that is not there', async () => {
-    await expect(touchLastSeen(db, 'clientthatneverexisted', { now: NOW })).resolves.toBeUndefined();
+    await expect(
+      touchLastSeen(db, 'clientthatneverexisted', { now: NOW, userId }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('stamps the visitor and nobody else on the same team', async () => {
+    // The regression. The fallback used to narrow by client alone, so one
+    // person opening the workspace marked every colleague as having been there
+    // — and "since your last visit" then reported an empty week to someone who
+    // had not visited.
+    const colleague = await db.user.create({
+      data: { email: 'staff@sunrise.test' },
+      select: { id: true },
+    });
+    await db.membership.create({
+      data: { userId: colleague.id, clientId, role: 'BUSINESS_STAFF', status: 'ACTIVE' },
+    });
+
+    await touchLastSeen(db, clientId, { now: NOW, userId });
+
+    const rows = await db.membership.findMany({
+      where: { clientId },
+      select: { userId: true, lastSeenAt: true, role: true },
+    });
+    expect(rows).toHaveLength(2);
+    expect(rows.find((r) => r.userId === userId)?.lastSeenAt?.toISOString()).toBe(
+      NOW.toISOString(),
+    );
+    expect(rows.find((r) => r.userId === colleague.id)?.lastSeenAt).toBeNull();
+    // And the visit changed nothing else about either membership.
+    expect(rows.find((r) => r.userId === colleague.id)?.role).toBe('BUSINESS_STAFF');
+  });
+
+  it('leaves the colleague’s own "since your last visit" intact', async () => {
+    // The consequence the bug actually had, asserted end to end rather than as
+    // a column value: B must still be told what arrived while B was away.
+    const colleague = await db.user.create({
+      data: { email: 'staff@sunrise.test' },
+      select: { id: true },
+    });
+    await db.membership.create({
+      data: {
+        userId: colleague.id,
+        clientId,
+        role: 'BUSINESS_STAFF',
+        status: 'ACTIVE',
+        lastSeenAt: LAST_WEEK,
+      },
+    });
+    await feedback(new Date(NOW.getTime() - DAY), true);
+
+    await touchLastSeen(db, clientId, { now: NOW, userId });
+
+    const theirs = await sinceLastVisit(db, clientId, colleague.id, { now: NOW });
+    expect(theirs?.arrived).toBe(1);
+  });
+
+  it('writes nothing at all when it cannot tell who is asking', async () => {
+    // Failing closed. Stamping everyone would be worse than not recording it.
+    await touchLastSeen(db, clientId, { now: NOW, userId: null });
+    const stamped = await db.membership.count({ where: { lastSeenAt: { not: null } } });
+    expect(stamped).toBe(0);
+  });
+
+  it('touches no other business', async () => {
+    const other = await db.client.create({
+      data: { businessName: 'Somebody Else', vertical: 'gym' },
+      select: { id: true },
+    });
+    await db.membership.create({
+      data: { userId, clientId: other.id, role: 'BUSINESS_OWNER', status: 'ACTIVE' },
+    });
+
+    await touchLastSeen(db, clientId, { now: NOW, userId });
+
+    const elsewhere = await db.membership.findFirstOrThrow({
+      where: { clientId: other.id, userId },
+      select: { lastSeenAt: true },
+    });
+    expect(elsewhere.lastSeenAt).toBeNull();
   });
 });
 

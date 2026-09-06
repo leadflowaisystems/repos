@@ -2,7 +2,7 @@ import { after } from 'next/server';
 import type { PrismaClient } from '@prisma/client';
 import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
 import { evidenceDateOf } from '@/lib/improve/service';
-import { isMissingDbFunction, withRlsContext } from '@/lib/db';
+import { currentUserId, isMissingDbFunction, withRlsContext } from '@/lib/db';
 
 /**
  * SINCE YOU WERE LAST HERE (M21).
@@ -70,6 +70,20 @@ export async function lastSeenAt(
  * they could stamp their own row would also let them edit their own role. The
  * function writes one column, on the caller's own row, and nothing else.
  *
+ * BOTH PATHS MUST MEAN THE SAME THING, and for a while they did not. The
+ * function narrows its UPDATE to `"userId" = app.current_user_id()`; the
+ * fallback below narrowed only by client, so where the DDL was absent one
+ * person opening the workspace stamped every colleague as having been there
+ * too. Nobody lost data, but "since your last visit" then reported an empty
+ * week to someone who had not visited — which is the one thing that panel
+ * exists to get right.
+ *
+ * So the fallback resolves the caller and refuses to write without one.
+ * `userId` is an argument rather than always resolved here because the only
+ * production path is the definer function, which derives the identity inside
+ * the database; passing it explicitly is what lets a test exercise the fallback
+ * as a named person rather than as nobody.
+ *
  * Never throws. Failing to record a visit is not worth failing a page load
  * over, and the worst consequence is one "since your last visit" that reaches
  * back further than it should.
@@ -77,7 +91,7 @@ export async function lastSeenAt(
 export async function touchLastSeen(
   db: PrismaClient,
   clientId: string,
-  options: { now?: Date } = {},
+  options: { now?: Date; userId?: string | null } = {},
 ): Promise<void> {
   const now = options.now ?? new Date();
   try {
@@ -88,10 +102,16 @@ export async function touchLastSeen(
   } catch (error) {
     if (!isMissingDbFunction(error)) return;
   }
-  // Only where rls.sql has not been applied: one role owns everything.
+
+  // Only where rls.sql has not been applied: one role owns everything, so the
+  // narrowing the function would have done has to be written out here.
+  const who = options.userId === undefined ? await currentUserId() : options.userId;
+  // No identity, no stamp. Writing to every member of the business would be
+  // worse than not recording the visit at all.
+  if (!who) return;
   try {
     await db.membership.updateMany({
-      where: { clientId, status: 'ACTIVE' },
+      where: { clientId, userId: who, status: 'ACTIVE' },
       data: { lastSeenAt: now },
     });
   } catch {
