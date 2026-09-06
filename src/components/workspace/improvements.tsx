@@ -55,7 +55,7 @@ export async function PortalImprovements({
 
       {empty ? (
         <Quiet>
-          Nothing here yet. When you agree to act on something RepOS suggested, it appears here,
+          Nothing here yet. When you agree to act on something Headway suggested, it appears here,
           and once enough new feedback has come in we compare how often it comes up before and
           after the change.
         </Quiet>

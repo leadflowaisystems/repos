@@ -5,6 +5,7 @@ import { currentActor } from '@/lib/auth/authorize';
 import { prisma } from '@/lib/db';
 import { landingPathFor } from '@/lib/onboarding/service';
 import { safeNextPath } from '@/lib/auth/redirect';
+import { HeadwayWordmark } from '@/components/brand';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,12 +57,7 @@ export default async function LoginPage({
 
   return (
     <main>
-      <div className="mb-8 flex items-center gap-2.5">
-        <span className="grid h-8 w-8 place-items-center rounded-md bg-ink-900 text-[15px] font-bold text-white">
-          R
-        </span>
-        <span className="text-[17px] font-semibold tracking-tight text-ink-900">RepOS</span>
-      </div>
+      <HeadwayWordmark className="mb-8" />
 
       <h1 className="mb-1.5 text-[22px] leading-tight font-semibold tracking-tight text-ink-900">
         Sign in
@@ -83,7 +79,7 @@ export default async function LoginPage({
           </Link>
         </p>
         <p>
-          New to RepOS?{' '}
+          New to Headway?{' '}
           <Link href="/signup" className="font-medium text-ink-900 underline underline-offset-4">
             Create an account
           </Link>

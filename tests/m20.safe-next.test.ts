@@ -148,7 +148,7 @@ describe('safeNextPath is idempotent, because the chain depends on it', () => {
   });
 });
 
-describe('safeNextPath keeps every path RepOS actually produces', () => {
+describe('safeNextPath keeps every path Headway actually produces', () => {
   const LEGITIMATE = [
     '/',
     '/onboarding',

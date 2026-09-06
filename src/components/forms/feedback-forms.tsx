@@ -150,7 +150,7 @@ export function AddFeedbackPanel({
         title={mode === 'paste' ? 'Paste your reviews' : 'Add one piece of feedback'}
         description={
           mode === 'paste'
-            ? 'Paste as many as you like in one go. RepOS will read them and analyse them for you.'
+            ? 'Paste as many as you like in one go. Headway will read them and analyse them for you.'
             : 'For something a customer said in person or by message.'
         }
         action={
@@ -185,7 +185,7 @@ export function AddFeedbackPanel({
       <CardBody className="space-y-4">
         <Notice tone="warn">
           Paste the feedback text only. If a name, phone number, email or address
-          slips in, RepOS strips it before saving — but the rule is that customer
+          slips in, Headway strips it before saving — but the rule is that customer
           feedback is anonymous.
         </Notice>
 

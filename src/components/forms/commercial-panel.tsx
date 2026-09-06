@@ -148,7 +148,7 @@ export function CommercialPanel(props: CommercialPanelProps) {
 
         {paused ? (
           <p className="mt-2 text-[13px] leading-relaxed text-ink-600">
-            Feedback is still being collected and kept. RepOS is not reading anything new for
+            Feedback is still being collected and kept. Headway is not reading anything new for
             this business until it is resumed, and then it reads the backlog.
           </p>
         ) : null}
@@ -247,7 +247,7 @@ export function CommercialPanel(props: CommercialPanelProps) {
         <div className="mt-4 grid gap-4">
           <Field
             label="Payment instructions"
-            hint="The UPI id or bank line you send by hand. RepOS takes no payments and stores no card."
+            hint="The UPI id or bank line you send by hand. Headway takes no payments and stores no card."
           >
             <Textarea
               name="paymentInstructions"

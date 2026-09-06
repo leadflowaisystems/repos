@@ -57,11 +57,11 @@ export default async function WorkspaceAccountPage({
   const paused = account.state === 'PAUSED' || account.state === 'CANCELLED';
 
   return (
-    <main>
+    <div>
       <PageIntro
         eyebrow="Account"
         title="Where this account stands"
-        description="What RepOS is doing for you right now, and how to reach us about carrying on."
+        description="What Headway is doing for you right now, and how to reach us about carrying on."
       />
 
       <Section eyebrow="Right now">
@@ -114,7 +114,7 @@ export default async function WorkspaceAccountPage({
           <Quiet>
             Your QR code still works and your customers can still leave feedback — it arrives and
             it is kept. Everything already collected stays exactly as it is: the comments, the
-            reading, the improvements and every result RepOS measured. What stops is the reading
+            reading, the improvements and every result Headway measured. What stops is the reading
             of anything new, and it starts again, from where it left off, the moment the account
             is resumed.
           </Quiet>
@@ -126,7 +126,7 @@ export default async function WorkspaceAccountPage({
         note={account.paymentRequestedAt ? 'Asked' : 'Ask when you are ready'}
       >
         <p className="max-w-2xl text-[15px] leading-relaxed text-ink-900">
-          RepOS does not publish a price. What a business pays depends on how much feedback it
+          Headway does not publish a price. What a business pays depends on how much feedback it
           gets and what it wants read, so we agree it with you rather than putting a number on a
           page. Ask, and a person will come back to you with the figure and how to pay it — by
           UPI or bank transfer. There is no card on file and nothing is ever charged
@@ -147,6 +147,6 @@ export default async function WorkspaceAccountPage({
           </p>
         )}
       </Section>
-    </main>
+    </div>
   );
 }

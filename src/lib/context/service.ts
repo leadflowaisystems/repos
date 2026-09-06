@@ -128,7 +128,7 @@ async function validate(
   }
 
   if (input.kind === 'CONSTRAINT' && !input.constraintKey) {
-    return err('Some fields need attention.', { constraintKey: 'Say what RepOS should not suggest.' });
+    return err('Some fields need attention.', { constraintKey: 'Say what Headway should not suggest.' });
   }
   if (input.kind === 'ANSWER' && !input.questionKey) {
     return err('Some fields need attention.', { questionKey: 'An answer needs the question it answers.' });

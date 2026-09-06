@@ -305,7 +305,7 @@ function ActionCard({ clientId, action }: { clientId: string; action: ActionView
 
         {/* ---- 2. What RepOS suggested, frozen ---------------------------- */}
         {action.recommendationText ? (
-          <Row label="RepOS suggested">
+          <Row label="Headway suggested">
             <p className="text-ink-700">{action.recommendationText}</p>
           </Row>
         ) : null}
@@ -483,7 +483,7 @@ function ActionControls({ clientId, action }: { clientId: string; action: Action
             <p className="text-[13px] leading-relaxed text-ink-700">
               {action.status === 'MEASURED'
                 ? `${action.newFeedbackSinceMeasured} more ${action.newFeedbackSinceMeasured === 1 ? 'piece' : 'pieces'} of feedback have been read since this was last measured.`
-                : `${action.newFeedbackSinceDone} pieces of feedback have been read since the change. RepOS will compare them with the baseline.`}
+                : `${action.newFeedbackSinceDone} pieces of feedback have been read since the change. Headway will compare them with the baseline.`}
             </p>
           </ActionForm>
         ) : (
@@ -497,8 +497,8 @@ function ActionControls({ clientId, action }: { clientId: string; action: Action
             </p>
             <p className="mt-0.5 text-[12px] leading-relaxed text-ink-600">
               {action.status === 'MEASURED'
-                ? 'Bring in the reviews collected since, and RepOS will check the result again.'
-                : 'Paste in the reviews you have collected since then, read them, and RepOS can compare before and after.'}
+                ? 'Bring in the reviews collected since, and Headway will check the result again.'
+                : 'Paste in the reviews you have collected since then, read them, and Headway can compare before and after.'}
             </p>
             <a
               href={`/clients/${clientId}/feedback`}
@@ -570,9 +570,9 @@ export function ImprovementActionsPanel({
               No improvement actions yet.
             </p>
             <p className="mt-1 text-[13px] leading-relaxed text-ink-600">
-              When RepOS names something customers keep raising, turn it into an
+              When Headway names something customers keep raising, turn it into an
               action from the panel above. Then record what the business decided,
-              mark it done, and RepOS will show you what the feedback did next.
+              mark it done, and Headway will show you what the feedback did next.
             </p>
           </div>
         ) : null}

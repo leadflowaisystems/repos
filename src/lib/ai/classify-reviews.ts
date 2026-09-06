@@ -36,7 +36,7 @@ export type ClassificationOutcome = {
   notes: string[];
 };
 
-const SYSTEM_PROMPT = `You are a classification engine inside RepOS, a customer-feedback tool for local Indian small businesses.
+const SYSTEM_PROMPT = `You are a classification engine inside Headway, a customer-feedback tool for local Indian small businesses.
 
 You will be given a fixed taxonomy of ISSUE keys and PRAISE keys, then a numbered list of anonymous customer reviews. Reviews may be in English, Hindi, Marathi, romanised Hinglish, or a mix.
 

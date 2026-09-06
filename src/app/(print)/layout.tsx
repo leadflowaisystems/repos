@@ -3,7 +3,7 @@ import { requireOperator } from '@/lib/auth/guard';
 import '../globals.css';
 
 export const metadata: Metadata = {
-  title: 'RepOS — print',
+  title: 'Headway — print',
   robots: { index: false, follow: false },
 };
 

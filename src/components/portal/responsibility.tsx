@@ -23,11 +23,21 @@ import { EvidenceLink, ThemeStory } from './portal-ui';
  * labelled layers, placed under the state that explains why they are here.
  */
 
+/**
+ * The state chips.
+ *
+ * Only DO_NOW keeps a saturated fill, and it is navy: white on #102A43 is
+ * 14.6:1 and it is the one chip that should stop an owner. The rest became pale
+ * grounds with dark type, for two reasons that arrived together. White on gold
+ * is 3.1:1 and on green 3.3:1 — both fail — and a second saturated gold chip a
+ * few hundred pixels under the gold call to action was competing with the one
+ * thing gold is supposed to mean.
+ */
 const STATE_TONE: Record<ResponsibilityState, string> = {
   DO_NOW: 'bg-ink-900 text-white',
-  FOLLOW_UP: 'bg-warn-600 text-white',
+  FOLLOW_UP: 'bg-warn-50 text-warn-700 ring-1 ring-warn-200 ring-inset',
   WATCH: 'bg-ink-100 text-ink-700',
-  KEEP_DOING: 'bg-good-600 text-white',
+  KEEP_DOING: 'bg-good-50 text-good-700 ring-1 ring-good-200 ring-inset',
   WAITING_FOR_EVIDENCE: 'bg-ink-100 text-ink-600',
   CLEAR: 'bg-ink-100 text-ink-600',
 };
@@ -44,7 +54,7 @@ const ANSWER_DOT: Record<ResponsibilityState, string> = {
 const SOURCE_LABELS: Record<ThreadStep['source'], string> = {
   CUSTOMERS: 'Customers',
   YOU: 'You',
-  REPOS: 'RepOS',
+  REPOS: 'Headway',
 };
 
 function StateChip({ item }: { item: ResponsibilityItem }) {
@@ -63,20 +73,16 @@ function StateChip({ item }: { item: ResponsibilityItem }) {
   );
 }
 
-const ANSWER_CARD: Record<ResponsibilityState, string> = {
-  DO_NOW: 'border-ink-900 bg-white',
-  FOLLOW_UP: 'border-warn-200 bg-warn-50',
-  WATCH: 'border-ink-200 bg-white',
-  KEEP_DOING: 'border-good-200 bg-good-50',
-  WAITING_FOR_EVIDENCE: 'border-ink-200 bg-white',
-  CLEAR: 'border-good-200 bg-good-50',
-};
-
 /**
- * The answer, as the one card on the page — and a door.
+ * THE DECISION CARD.
  *
- * When something needs the owner, the card names it and links straight to
- * the comments behind it, so "yes" is never a sentence to scroll away from.
+ * White, bordered, and quiet: the card does not change colour with the answer,
+ * because a page whose largest object turns red every time something needs
+ * doing teaches an owner to dread opening it. The dot carries the state; the
+ * sentence carries the meaning; the gold button carries the way out.
+ *
+ * The button is the only gold fill on Home. That is what keeps gold meaning
+ * "this is the one thing" rather than meaning "decoration".
  */
 export function Answer({ r, basePath }: { r: Responsibility; basePath: string }) {
   const top = r.needsYou[0] ?? null;
@@ -86,25 +92,112 @@ export function Answer({ r, basePath }: { r: Responsibility; basePath: string })
       ? `${basePath}/reviews?needs=reply`
       : null;
   return (
-    <section className={clsx('mb-8 rounded-xl border p-4 sm:p-5', ANSWER_CARD[r.state])}>
-      <div className="mb-2 flex items-center gap-2">
+    <section className="rounded-xl border border-ink-200 bg-white p-5 sm:p-6">
+      <div className="mb-3 flex items-center gap-2">
         <span className={clsx('h-2 w-2 rounded-full', ANSWER_DOT[r.state])} aria-hidden />
         <h2 className="text-[11px] font-medium tracking-widest text-ink-500 uppercase">
           Do I need to do anything?
         </h2>
       </div>
-      <p className="text-[20px] leading-snug font-semibold tracking-tight text-ink-900 sm:text-[22px]">
+      <p className="text-[21px] leading-snug font-semibold tracking-[-0.015em] text-ink-900 sm:text-[24px]">
         {r.answer}
       </p>
-      <p className="mt-1.5 text-[14px] leading-relaxed text-ink-600">{r.answerDetail}</p>
+      <p className="mt-2 text-[14px] leading-relaxed text-ink-600">{r.answerDetail}</p>
       {top && evidence ? (
         <Link
           href={evidence}
-          className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-[13px] font-medium text-ink-900 underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none"
+          className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-700 px-4 text-[14px] font-semibold text-white transition-colors hover:bg-brand-900 focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:outline-none"
         >
-          {top.themeLabel ? `Read what customers said about ${top.themeLabel.toLowerCase()}` : 'Read the comments that need you'}{' '}
-          <span aria-hidden>→</span>
+          {top.themeLabel
+            ? `Read what customers said about ${top.themeLabel.toLowerCase()}`
+            : 'Read the comments that need you'}{' '}
+          <span aria-hidden>&rarr;</span>
         </Link>
+      ) : null}
+    </section>
+  );
+}
+
+/**
+ * WHAT HEADWAY IS CARRYING.
+ *
+ * The counterweight to the decision card, and the reason an owner believes that
+ * card when it says "no". Warm cream rather than white, because this is Headway
+ * speaking rather than reporting: here is a thing we are holding for you, here
+ * is why, and here is exactly what would make us interrupt you about it.
+ *
+ * "We'll flag it" is the open loop. It is a promise with a condition attached,
+ * which is what makes coming back next month worth doing, and the reason this
+ * product needs no streak to bring anyone back.
+ */
+export function WatchingPanel({
+  items,
+  basePath,
+}: {
+  items: ResponsibilityItem[];
+  basePath: string;
+}) {
+  const lead = items[0];
+  if (!lead) return null;
+  const href = lead.themeKey
+    ? `${basePath}/reviews?theme=${encodeURIComponent(lead.themeKey)}`
+    : `${basePath}/improvements`;
+  const rest = items.length - 1;
+
+  return (
+    <section className="rounded-xl border border-brand-200 bg-brand-50 p-5 sm:p-6">
+      <div className="mb-3 flex items-center gap-2">
+        <span aria-hidden className="text-[13px] leading-none text-brand-600">
+          &#9670;
+        </span>
+        <h2 className="text-[11px] font-medium tracking-widest text-brand-700 uppercase">
+          Headway is watching
+        </h2>
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <span className="rounded-full bg-white px-2.5 py-1 text-[12px] font-medium text-ink-700">
+          {lead.instruction}
+        </span>
+        {lead.evidence ? (
+          <span className="text-[12px] text-ink-500 tabular-nums">
+            {lead.evidence.count} of {lead.evidence.outOf}
+          </span>
+        ) : null}
+      </div>
+
+      <p className="text-[17px] leading-snug font-semibold tracking-tight text-ink-900">
+        {lead.headline}
+      </p>
+
+      <dl className="mt-4 space-y-3">
+        <div className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-[5.5rem_1fr]">
+          <dt className="text-[11px] font-medium tracking-widest text-ink-500 uppercase">Why</dt>
+          <dd className="text-[13px] leading-relaxed text-ink-700">{lead.whyItMatters}</dd>
+        </div>
+        <div className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-[5.5rem_1fr]">
+          <dt className="text-[11px] font-medium tracking-widest text-ink-500 uppercase">
+            We&rsquo;ll flag it
+          </dt>
+          <dd className="text-[13px] leading-relaxed text-ink-700">{lead.watching}</dd>
+        </div>
+      </dl>
+
+      <Link
+        href={href}
+        className="mt-4 inline-flex min-h-11 items-center gap-1.5 text-[13px] font-medium text-ink-900 underline decoration-brand-400 underline-offset-4 hover:decoration-ink-900 focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:outline-none"
+      >
+        {lead.themeLabel
+          ? `See what customers said about ${lead.themeLabel.toLowerCase()}`
+          : 'See the detail'}
+        <span aria-hidden>&rarr;</span>
+      </Link>
+
+      {rest > 0 ? (
+        <p className="mt-3 text-[12px] text-ink-500">
+          Headway is also watching {rest} other {rest === 1 ? 'thing' : 'things'}.{' '}
+          {rest === 1 ? 'It does not need' : 'None of them need'} you today.
+        </p>
       ) : null}
     </section>
   );

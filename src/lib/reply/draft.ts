@@ -379,7 +379,7 @@ export function templateDraft(context: DraftContext): DraftOutcome {
 
   const body = [greeting, ...lines].filter((line) => line.trim().length > 0);
 
-  notes.push('Written by RepOS from your saved wording — edit it to sound more like you.');
+  notes.push('Written by Headway from your saved wording — edit it to sound more like you.');
   return finish(
     `${body.join(' ')}\n\n${signOff}`.trim(),
     'TEMPLATE',
@@ -448,8 +448,8 @@ export async function draftReply(
       notes: [
         ...template.notes,
         error instanceof Error
-          ? `The writing assistant could not be reached (${error.message}). This is RepOS’s own wording.`
-          : 'The writing assistant could not be reached. This is RepOS’s own wording.',
+          ? `The writing assistant could not be reached (${error.message}). This is Headway’s own wording.`
+          : 'The writing assistant could not be reached. This is Headway’s own wording.',
       ],
     };
   }
@@ -459,7 +459,7 @@ export async function draftReply(
       ...template,
       notes: [
         ...template.notes,
-        `The writing assistant was unavailable, so this is RepOS’s own wording. (${attempt.reason})`,
+        `The writing assistant was unavailable, so this is Headway’s own wording. (${attempt.reason})`,
       ],
     };
   }

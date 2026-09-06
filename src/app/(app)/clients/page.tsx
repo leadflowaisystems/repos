@@ -105,7 +105,7 @@ export default async function ClientsPage({
           ) : (
             <EmptyState
               title="No clients yet"
-              description="Add the first business you are working with. Only the business name and vertical are required — RepOS never invents a figure you have not entered."
+              description="Add the first business you are working with. Only the business name and vertical are required — Headway never invents a figure you have not entered."
               action={
                 <div className="flex flex-wrap justify-center gap-2">
                   <LinkButton href="/clients/new" variant="primary">

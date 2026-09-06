@@ -18,13 +18,13 @@ const with3 = () =>
     },
   });
 
-describe('what the owner told RepOS, on their pages', () => {
+describe('what the owner told Headway, on their pages', () => {
   it('is listed as "You told us", priorities first, and linked to its theme', () => {
     const v = buildPortalView(with3());
     expect(v.knows.map((k) => k.line)).toEqual([
       'You told us your current focus: waiting time is my biggest concern right now.',
       'You told us: Friday and Saturday evenings are much busier than other days.',
-      'You told us: do not recommend discounts. RepOS will not suggest a discount or offer.',
+      'You told us: do not recommend discounts. Headway will not suggest a discount or offer.',
     ]);
     expect(v.knows[0]?.themeKey).toBe('wait_time');
     expect(v.knows[2]?.themeKey).toBeNull();
@@ -97,7 +97,7 @@ describe('what the owner told RepOS, on their pages', () => {
     );
   });
 
-  it('is empty, not broken, for an owner who has told RepOS nothing', () => {
+  it('is empty, not broken, for an owner who has told Headway nothing', () => {
     const v = buildPortalView(input());
     expect(v.knows).toEqual([]);
     expect(v.first?.ownerContext).toEqual([]);

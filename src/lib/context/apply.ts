@@ -154,7 +154,7 @@ export function applyConstraints(
   return {
     text: action,
     constraint: hit,
-    note: `You told us ${noun} is not possible right now. This suggestion needs it, so ask your RepOS contact for a version that does not.`,
+    note: `You told us ${noun} is not possible right now. This suggestion needs it, so ask your Headway contact for a version that does not.`,
     blocked: true,
   };
 }
@@ -183,7 +183,7 @@ export function youToldUs(item: ContextItem, question?: string | null): string {
     case 'CONSTRAINT': {
       const consequence =
         item.constraintKey && item.constraintKey !== 'OTHER'
-          ? ` RepOS will not suggest ${CONSTRAINT_NOUNS[item.constraintKey]}.`
+          ? ` Headway will not suggest ${CONSTRAINT_NOUNS[item.constraintKey]}.`
           : '';
       return `You told us: ${lowerFirst(text)}.${consequence}`;
     }

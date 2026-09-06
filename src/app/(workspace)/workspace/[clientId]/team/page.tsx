@@ -38,7 +38,7 @@ export default async function TeamPage({
   const team = await getTeam(prisma, clientId);
 
   return (
-    <main>
+    <div>
       <h1 className="text-[26px] leading-[1.15] font-semibold tracking-tight text-ink-900">
         Team
       </h1>
@@ -101,6 +101,6 @@ export default async function TeamPage({
           </ul>
         </Section>
       ) : null}
-    </main>
+    </div>
   );
 }

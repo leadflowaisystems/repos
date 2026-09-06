@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { HeadwayWordmark } from '@/components/brand';
 
 const ITEMS = [
   { href: '/', label: 'Dashboard' },
@@ -92,14 +93,5 @@ export function Nav({
 }
 
 function Wordmark() {
-  return (
-    <span className="flex items-center gap-2">
-      <span className="grid h-7 w-7 place-items-center rounded-md bg-ink-900 text-[13px] font-bold text-white">
-        R
-      </span>
-      <span className="text-[15px] font-semibold tracking-tight text-ink-900">
-        RepOS
-      </span>
-    </span>
-  );
+  return <HeadwayWordmark markClassName="h-6 w-6" nameClassName="text-[16px]" />;
 }

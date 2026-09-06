@@ -57,12 +57,12 @@ describe('copy-ready output', () => {
     expect(new Set(greetings).size).toBe(4);
   });
 
-  it('never says or implies that RepOS sent anything', () => {
+  it('never says or implies that Headway sent anything', () => {
     for (const language of ['ENGLISH', 'HINDI', 'HINGLISH', 'MARATHI', 'MIXED'] as const) {
       const c = channelsFor(BODY, 'OWNER_UPDATE', language, 'Corner Cafe');
       const all = `${c.whatsapp} ${c.email.subject} ${c.email.body}`;
-      expect(all, language).not.toMatch(/\b(sent|delivered|emailed|messaged) (by|from) RepOS\b/i);
-      expect(all, language).not.toMatch(/RepOS has (sent|emailed|messaged)/i);
+      expect(all, language).not.toMatch(/\b(sent|delivered|emailed|messaged) (by|from) Headway\b/i);
+      expect(all, language).not.toMatch(/Headway has (sent|emailed|messaged)/i);
     }
   });
 });

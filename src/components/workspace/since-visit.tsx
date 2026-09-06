@@ -26,10 +26,10 @@ function arrivedLine(since: SinceLastVisit): string | null {
   if (since.arrived === 0) return null;
   const items = since.arrived === 1 ? '1 customer' : `${since.arrived} customers`;
   if (since.read >= since.arrived) {
-    return `${items} left feedback, and RepOS has read all of it.`;
+    return `${items} left feedback, and Headway has read all of it.`;
   }
   if (since.read === 0) {
-    return `${items} left feedback. RepOS is reading it now.`;
+    return `${items} left feedback. Headway is reading it now.`;
   }
   return `${items} left feedback. ${since.read} read so far, the rest is being read now.`;
 }
@@ -48,7 +48,7 @@ export function SinceVisit({
       : null;
 
   return (
-    <section className="mb-8 border-l-2 border-ink-300 pl-4">
+    <section className="mb-8 max-w-3xl border-l-2 border-brand-400 pl-4">
       <h2 className="text-[11px] font-medium tracking-widest text-ink-500 uppercase">
         {sinceLabel(since.daysAgo)}
       </h2>
@@ -69,7 +69,7 @@ export function SinceVisit({
         <ul className="mt-2 space-y-1.5">
           {since.measured.map((m) => (
             <li key={m.id} className="text-[15px] leading-relaxed text-ink-900">
-              RepOS checked <span className="font-medium">{m.title}</span> against the feedback
+              Headway checked <span className="font-medium">{m.title}</span> against the feedback
               that has come in since, and it{' '}
               {RESULT_WORD[m.result] ?? 'has been measured'}.{' '}
               <Link

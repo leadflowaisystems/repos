@@ -234,7 +234,7 @@ export default async function ClientOverviewPage({
         <Card>
           <CardHeader
             title="Trial, service and what was agreed"
-            description="Operator only. The owner sees the state of their account and nothing about the amount — there is no price list in RepOS."
+            description="Operator only. The owner sees the state of their account and nothing about the amount — there is no price list in Headway."
           />
           <CardBody>
             <CommercialPanel

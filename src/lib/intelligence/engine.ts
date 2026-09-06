@@ -803,7 +803,7 @@ export function overallTrendFrom(
       state: 'INSUFFICIENT_DATA',
       note:
         pulse.reason ||
-        'There is only one check-in so far, so RepOS cannot say which way things are going.',
+        'There is only one check-in so far, so Headway cannot say which way things are going.',
     };
   }
 
@@ -843,7 +843,7 @@ function belowFloor(rows: ThemeSummaryRow[]): ThemeSummaryRow[] {
 function headlineNoteFor(count: number): string {
   switch (count) {
     case 0:
-      return 'Nothing has been said often enough yet for RepOS to call it a pattern.';
+      return 'Nothing has been said often enough yet for Headway to call it a pattern.';
     case 1:
       return 'Only 1 clear signal so far. More will appear as feedback comes in.';
     case 2:
@@ -985,8 +985,8 @@ export function buildIntelligence(input: IntelligenceInput): ClientIntelligence 
   if (analysed === 0) {
     limits.push(
       unread > 0
-        ? `${unread} piece${unread === 1 ? '' : 's'} of feedback ${unread === 1 ? 'is' : 'are'} being read now. Nothing is counted until RepOS has read it.`
-        : 'No feedback has been read yet, so RepOS has nothing to tell you about customers.',
+        ? `${unread} piece${unread === 1 ? '' : 's'} of feedback ${unread === 1 ? 'is' : 'are'} being read now. Nothing is counted until Headway has read it.`
+        : 'No feedback has been read yet, so Headway has nothing to tell you about customers.',
     );
   } else if (tier === 'INSUFFICIENT') {
     limits.push(

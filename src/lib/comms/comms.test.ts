@@ -633,7 +633,7 @@ describe('owner communication is held to the same safety rules', () => {
     );
   });
 
-  it('passes everything RepOS actually composes', () => {
+  it('passes everything Headway actually composes', () => {
     for (const pack of listPacks()) {
       const issue = pack.issueTaxonomy[0];
       const praise = pack.praiseTaxonomy[0];

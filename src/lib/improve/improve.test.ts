@@ -171,7 +171,7 @@ function measure(
 
 // ---------------------------------------------------------------------------
 
-describe('an action freezes what RepOS said at the time', () => {
+describe('an action freezes what Headway said at the time', () => {
   it('copies the insight, the recommendation and the evidence onto the action', () => {
     const intel = intelligence();
     const insight = intel.attention;
@@ -336,7 +336,7 @@ describe('the state machine is small and every state means one thing', () => {
     expect(canTransition('DONE', 'ACCEPTED')).toBe(true);
   });
 
-  it('invents no workflow state RepOS does not record', () => {
+  it('invents no workflow state Headway does not record', () => {
     const serialised = JSON.stringify({ ACTION_STATUSES, TRANSITIONS, STATUS_MEANINGS });
     expect(serialised).not.toMatch(
       /assigned|snoozed|overdue|escalated|waiting.for.client|in.progress|due.date/i,

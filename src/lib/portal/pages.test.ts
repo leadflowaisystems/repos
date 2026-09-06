@@ -28,13 +28,13 @@ const text = (v: unknown) => JSON.stringify(v);
 // Customers
 // ---------------------------------------------------------------------------
 
-describe('customers — why RepOS is saying this', () => {
+describe('customers — why Headway is saying this', () => {
   it('opens with the interpretation, not a list', () => {
     const v = buildAnalysisView(input());
     expect(v.telling).toEqual([
       "Customers praise your doctor's care and explanation most.",
       'Long waiting time is where the experience falls short most often — 9 of the 50 pieces of feedback we have read.',
-      '1 other complaint is worth watching; RepOS is not asking you to act on it yet.',
+      '1 other complaint is worth watching; Headway is not asking you to act on it yet.',
     ]);
   });
 
@@ -263,13 +263,13 @@ function reviews(f: Partial<ReviewFilters> = {}, rows = ROWS) {
 }
 
 describe('reviews — the evidence', () => {
-  it('says what RepOS found before showing a single review, with every count scoped', () => {
+  it('says what Headway found before showing a single review, with every count scoped', () => {
     const v = reviews();
     expect(v.found).toEqual([
       'Across all 5 pieces of feedback read: 1 positive, 0 mixed, 1 neutral, 3 negative.',
       "The two things praised most are doctor's care and explanation and friendly, helpful staff.",
       'The complaint that matters most is long waiting time. It appears in 9 of the 50 comments.',
-      '2 of the 5 need an answer from you. A draft is attached where RepOS could write one safely; the rest need your own words.',
+      '2 of the 5 need an answer from you. A draft is attached where Headway could write one safely; the rest need your own words.',
     ]);
     expect(v.quick).toEqual([
       { label: 'Long waiting time (9 comments)', query: 'theme=wait_time' },
@@ -369,7 +369,7 @@ describe('check-in — what changed', () => {
     // Measured on 1 Jun, after the May check-in: reported as "since this check-in", not inside it.
     expect(v.checked).toEqual([]);
     expect(v.sinceCheckin).toHaveLength(1);
-    expect(v.unchangedNote).toMatch(/^Everything else RepOS could compare held steady, including doctor's care and explanation\./);
+    expect(v.unchangedNote).toMatch(/^Everything else Headway could compare held steady, including doctor's care and explanation\./);
     expect(v.unchangedNote).toMatch(/2 themes had too few mentions at one of the two check-ins to compare\.$/);
     expect(v.next.map((w) => w.themeKey)).toEqual(['wait_time']);
   });

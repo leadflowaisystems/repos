@@ -139,11 +139,11 @@ const MEDICAL_PATTERNS: Array<[RegExp, string]> = [
   ],
 ];
 
-/** RepOS's own vocabulary. A customer must never see any of it. */
+/** Headway's own vocabulary. A customer must never see any of it. */
 const INTERNAL_PATTERNS: Array<[RegExp, string]> = [
   [
     /\b(?:repos|sentiment\s+(?:score|analysis)|taxonomy|classifier|our\s+(?:ai|analysis|system)\s+(?:flagged|detected|classified)|confidence\s+level|theme\s+key)\b/i,
-    'mentions RepOS or its internal analysis',
+    'mentions Headway or its internal analysis',
   ],
   [
     /\b(?:as\s+an\s+ai|language\s+model|i\s+am\s+an\s+ai|generated\s+(?:reply|response)\b)/i,
@@ -227,7 +227,7 @@ export function checkDraft(draft: string, context: SafetyContext): SafetyResult 
   // --- Never allowed -------------------------------------------------------
   for (const [pattern, what] of INCENTIVE_PATTERNS) {
     if (pattern.test(text)) {
-      add('incentive', `The reply ${what}. RepOS never does that.`, true);
+      add('incentive', `The reply ${what}. Headway never does that.`, true);
     }
   }
 

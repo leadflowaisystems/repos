@@ -255,7 +255,7 @@ export async function buildPeriodReport(
   } else if (!enoughEvidence) {
     headline = `Not enough new feedback this ${period} to identify a reliable trend yet.`;
     limits.push(
-      `${plural(volume.current, 'piece', 'pieces')} of feedback arrived. RepOS names a theme once at least ${MIN_MENTIONS_TO_NAME} customers have raised it.`,
+      `${plural(volume.current, 'piece', 'pieces')} of feedback arrived. Headway names a theme once at least ${MIN_MENTIONS_TO_NAME} customers have raised it.`,
     );
   } else if (!comparable) {
     headline = `${plural(volume.current, 'piece', 'pieces')} of feedback this ${period}. Not enough in the ${period} before to compare against.`;

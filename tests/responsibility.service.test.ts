@@ -117,7 +117,7 @@ describe('from nothing to something', () => {
     await paste(id, waits(4));
     const r = await responsibility(id);
     expect(r.state).toBe('WAITING_FOR_EVIDENCE');
-    expect(r.answerDetail).toMatch(/^4 pieces of feedback have arrived and RepOS is reading them now/);
+    expect(r.answerDetail).toMatch(/^4 pieces of feedback have arrived and Headway is reading them now/);
     expect(r.did).toEqual(['4 pieces of feedback are being read now.']);
   });
 
@@ -162,7 +162,7 @@ describe('the loop, end to end', () => {
     // Suggested: still the owner's decision.
     let r = await responsibility(id);
     expect(r.state).toBe('DO_NOW');
-    expect(r.needsYou[0]?.recommendedNextStep).toBe('RepOS has suggested a change for this. It is waiting on your decision.');
+    expect(r.needsYou[0]?.recommendedNextStep).toBe('Headway has suggested a change for this. It is waiting on your decision.');
 
     // Agreed: follow through.
     const agreed = await decideAction(
@@ -363,7 +363,7 @@ describe('isolation and honesty', () => {
     await archiveClient(db, id, NOW);
     const r = await responsibility(id);
     expect(r.state).toBe('DO_NOW');
-    expect(r.limitations).toContain('This account is no longer active, so RepOS is not collecting anything new for it.');
+    expect(r.limitations).toContain('This account is no longer active, so Headway is not collecting anything new for it.');
   });
 
   it('returns nothing for a business that does not exist', async () => {

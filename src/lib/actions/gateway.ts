@@ -83,7 +83,7 @@ export async function savePublicBaseUrlAction(
   return success(
     result.data.url
       ? `Saved. Every feedback QR now opens at ${result.data.url}.`
-      : 'Cleared. QR codes use the address RepOS is opened on.',
+      : 'Cleared. QR codes use the address Headway is opened on.',
   );
 }
 

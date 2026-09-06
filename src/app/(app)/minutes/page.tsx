@@ -41,7 +41,7 @@ export default async function MinutesPage() {
         <Card>
           <EmptyState
             title="No clients yet"
-            description="Minutes are recorded against a client, so add your first client to start building RepOS's memory of the business."
+            description="Minutes are recorded against a client, so add your first client to start building Headway's memory of the business."
             action={
               <LinkButton href="/clients/new" variant="primary">
                 Add your first client
@@ -57,7 +57,7 @@ export default async function MinutesPage() {
     <>
       <PageHeader
         title="Minutes"
-        description="What happened with each client — conversations, decisions and things to chase. RepOS keeps this so next month you can see what you did, not just what changed."
+        description="What happened with each client — conversations, decisions and things to chase. Headway keeps this so next month you can see what you did, not just what changed."
       />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
@@ -66,7 +66,7 @@ export default async function MinutesPage() {
             <Card>
               <EmptyState
                 title="No minutes yet"
-                description="Record important conversations, decisions and context here. RepOS will use this memory later."
+                description="Record important conversations, decisions and context here. Headway will use this memory later."
                 action={
                   <span className="text-[13px] text-ink-500">
                     Use the form to record the first one.

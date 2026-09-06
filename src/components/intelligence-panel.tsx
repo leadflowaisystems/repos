@@ -136,7 +136,7 @@ function InsightBlock({
 
       <details className="mt-2 group">
         <summary className="cursor-pointer list-none text-[12px] text-ink-500 underline underline-offset-2 hover:text-ink-700">
-          Why did RepOS pick this?
+          Why did Headway pick this?
         </summary>
         <ul className="mt-2 space-y-1 border-l-2 border-ink-100 pl-3">
           {insight.signals.map((signal) => (
@@ -253,7 +253,7 @@ export function IntelligencePanel({
               Nothing has been said often enough to call a pattern yet.
             </p>
             <p className="mt-1 text-[13px] leading-relaxed text-ink-600">
-              RepOS names something once at least three customers have raised it.
+              Headway names something once at least three customers have raised it.
               Until then it would be guessing, and a guess is worse than nothing.
             </p>
           </div>
@@ -339,7 +339,7 @@ export function IntelligencePanel({
             </ul>
             <p className="mt-1.5 text-[12px] leading-relaxed text-ink-500">
               Context for you while you read the above. None of it is counted as
-              something a customer said, and RepOS does not claim any of it
+              something a customer said, and Headway does not claim any of it
               worked.
             </p>
           </div>
@@ -349,7 +349,7 @@ export function IntelligencePanel({
         {limits.length > 0 ? (
           <div>
             <p className="mb-1 text-[11px] font-semibold tracking-wide text-ink-500 uppercase">
-              What RepOS cannot tell you yet
+              What Headway cannot tell you yet
             </p>
             <ul className="space-y-1">
               {limits.map((limit) => (

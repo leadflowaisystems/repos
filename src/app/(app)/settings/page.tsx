@@ -36,7 +36,7 @@ export default async function SettingsPage() {
       <div>
         <h1 className="text-[22px] font-semibold text-ink-900">This installation</h1>
         <p className="mt-1 text-[13px] text-ink-600">
-          Settings for RepOS itself. Nothing here changes a client&rsquo;s data.
+          Settings for Headway itself. Nothing here changes a client&rsquo;s data.
         </p>
       </div>
 
@@ -58,15 +58,15 @@ export default async function SettingsPage() {
                 <DataRow label="Address">{address.url}</DataRow>
                 <DataRow label="Where it comes from">
                   {address.source === 'ENV'
-                    ? `${PUBLIC_BASE_URL_VAR}, set when RepOS was installed`
+                    ? `${PUBLIC_BASE_URL_VAR}, set when Headway was installed`
                     : address.source === 'SETTING'
-                      ? 'Saved inside RepOS, on a client’s Feedback QR page'
+                      ? 'Saved inside Headway, on a client’s Feedback QR page'
                       : 'The address this page was opened on'}
                 </DataRow>
               </dl>
               {address.source !== 'ENV' ? (
                 <Notice tone="warn" title="Fine for testing, not for a real shop">
-                  This address is worked out as RepOS runs, so it can change. Before printing
+                  This address is worked out as Headway runs, so it can change. Before printing
                   cards for a real business, set <code>{PUBLIC_BASE_URL_VAR}</code> to the
                   permanent https address in the installation&rsquo;s environment file.
                 </Notice>
@@ -84,12 +84,12 @@ export default async function SettingsPage() {
       <Card>
         <CardHeader
           title="Who can get in"
-          description="RepOS is for one person: you."
+          description="Headway is for one person: you."
           action={<SignOutButton />}
         />
         <CardBody className="space-y-3">
           <p className="text-[13px] leading-relaxed text-ink-800">
-            Every page and every button in RepOS needs your password. There are no other
+            Every page and every button in Headway needs your password. There are no other
             accounts, no invitations, and no way for a customer or a business owner to sign in
             — because there is nothing for them to sign in to.
           </p>
@@ -111,7 +111,7 @@ export default async function SettingsPage() {
       <Card>
         <CardHeader
           title="Backups"
-          description="Everything RepOS knows is in one file. A copy takes a second and is worth taking before anything unusual."
+          description="Everything Headway knows is in one file. A copy takes a second and is worth taking before anything unusual."
           action={<Badge tone={backups.files.length > 0 ? 'good' : 'warn'}>
             {backups.files.length > 0 ? `${backups.files.length} SAVED` : 'NONE YET'}
           </Badge>}
@@ -157,14 +157,14 @@ export default async function SettingsPage() {
               Putting a backup back
             </p>
             <ol className="mt-2 list-decimal space-y-1 pl-5 text-[13px] leading-relaxed text-ink-800">
-              <li>Stop RepOS.</li>
+              <li>Stop Headway.</li>
               <li>
                 Rename the live database file so you still have it, rather than deleting it.
               </li>
               <li>
                 Copy the backup you want into its place and give it the live file&rsquo;s name.
               </li>
-              <li>Start RepOS and open a client to check the history is there.</li>
+              <li>Start Headway and open a client to check the history is there.</li>
             </ol>
             <p className="mt-2 text-[12px] text-ink-500">
               A backup holds clients, feedback and history. It holds no password and no keys, so

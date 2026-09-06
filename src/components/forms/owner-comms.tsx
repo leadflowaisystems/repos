@@ -164,7 +164,7 @@ ${message.emailSignOff}`;
             </Button>
           </div>
           <p className="text-[12px] text-ink-500">
-            RepOS does not send anything. Copy it and send it yourself, however you already talk
+            Headway does not send anything. Copy it and send it yourself, however you already talk
             to this owner.
           </p>
         </div>
@@ -204,7 +204,7 @@ export function OwnerCommsPanel({
       {ownerContext.length > 0 ? (
         <div className="rounded-lg border border-ink-200 bg-ink-50 px-4 py-3">
           <p className="text-[11px] font-semibold tracking-wide text-ink-500 uppercase">
-            Keep in mind — the owner told RepOS
+            Keep in mind — the owner told Headway
           </p>
           <ul className="mt-1.5 space-y-1">
             {ownerContext.map((line) => (

@@ -106,7 +106,7 @@ export default async function SnapshotDetailPage({
             />
             <Stat
               label="Wording written by"
-              value={snapshot.narrativeSource === 'TEMPLATE' ? 'RepOS' : 'AI draft'}
+              value={snapshot.narrativeSource === 'TEMPLATE' ? 'Headway' : 'AI draft'}
               hint={
                 snapshot.narrativeSource === 'TEMPLATE'
                   ? 'Every figure computed in code'

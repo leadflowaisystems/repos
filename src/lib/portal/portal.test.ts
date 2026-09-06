@@ -204,7 +204,7 @@ describe('every theme carries its layers, kept apart', () => {
     expect(v.first?.outcome?.note).toBe('This does not show the change caused the difference.');
     expect(v.first?.advice).toBe('KEEP_CHANGE');
     expect(v.first?.brief).toBe(
-      `In the feedback after your change on ${changed} it has come up less often (18% of feedback before, 7% after), but it is still the complaint RepOS would watch most closely.`,
+      `In the feedback after your change on ${changed} it has come up less often (18% of feedback before, 7% after), but it is still the complaint Headway would watch most closely.`,
     );
     expect(v.first?.meaning).toMatch(/This does not show the change caused the difference\.$/);
     expect(v.first?.nextStep).toMatch(/^Nothing in the feedback after the change says to undo it\./);
@@ -294,7 +294,7 @@ describe('every theme carries its layers, kept apart', () => {
 // ---------------------------------------------------------------------------
 
 describe('the invisible work, the watch list and the one question', () => {
-  it('states what RepOS did, with the real numbers', () => {
+  it('states what Headway did, with the real numbers', () => {
     const v = buildPortalView(input({ actions: [action('MEASURED')] }));
     expect(v.work).toEqual([
       'Read 50 pieces of feedback.',
@@ -313,7 +313,7 @@ describe('the invisible work, the watch list and the one question', () => {
   it('watches the first and the keep themes with full sentences, without repeating the watch rows', () => {
     const v = buildPortalView(input());
     expect(v.watching.map((w) => w.themeKey)).toEqual(['wait_time', 'doctor_care', null]);
-    expect(v.watching[0]?.next).toMatch(/^RepOS is checking whether long waiting time comes up more or less at your next check-in, and will flag a move of 2 or more mentions\./);
+    expect(v.watching[0]?.next).toMatch(/^Headway is checking whether long waiting time comes up more or less at your next check-in, and will flag a move of 2 or more mentions\./);
     expect(v.watching[1]?.next).toMatch(/will flag it if the praise drops by 2 or more/);
     expect(v.watching[2]?.label).toBe('Friendly, helpful staff');
     expect(v.watch[0]?.watchLine).toMatch(/will flag a move of 2 or more mentions/);
@@ -322,7 +322,7 @@ describe('the invisible work, the watch list and the one question', () => {
   it('keeps watching a change that is waiting for feedback', () => {
     const v = buildPortalView(input({ actions: [action('DONE')] }));
     expect(v.watching[0]?.state).toBe('change in progress');
-    expect(v.watching[0]?.next).toMatch(/^RepOS is waiting for feedback that arrives after your change/);
+    expect(v.watching[0]?.next).toMatch(/^Headway is waiting for feedback that arrives after your change/);
   });
 
   it('asks the one question the pack has for the leading complaint, only before anything is tried, without claiming to have read the answer', () => {
@@ -330,7 +330,7 @@ describe('the invisible work, the watch list and the one question', () => {
     expect(v.question?.themeKey).toBe('wait_time');
     expect(v.question?.options).toHaveLength(3);
     expect(v.question?.why).toBe(
-      '9 comments mention long waiting time. RepOS cannot tell from the feedback alone which of these fits best, and it shapes what to try first.',
+      '9 comments mention long waiting time. Headway cannot tell from the feedback alone which of these fits best, and it shapes what to try first.',
     );
     expect(buildPortalView(input({ actions: [action('ACCEPTED')] })).question).toBeNull();
     expect(buildPortalView(input({ actions: [action('DECLINED')] })).question).toBeNull();
@@ -339,7 +339,7 @@ describe('the invisible work, the watch list and the one question', () => {
   it('says plainly what is not worth the owner\'s time, once', () => {
     const v = buildPortalView(input());
     expect(v.noAction).toBe(
-      'Nothing else needs your attention first. Friendly, helpful staff has come up, but not often enough to act on yet. 1 other topic was mentioned once or twice. RepOS is not recommending action on any of these until more customers raise them.',
+      'Nothing else needs your attention first. Friendly, helpful staff has come up, but not often enough to act on yet. 1 other topic was mentioned once or twice. Headway is not recommending action on any of these until more customers raise them.',
     );
     expect(v.quietNote).toBe('1 other topic was mentioned once or twice — not enough to call a pattern.');
     expect(v.limits.some((l) => /once or twice/.test(l))).toBe(false);

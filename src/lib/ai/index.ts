@@ -77,10 +77,10 @@ export function aiStatus(): AiStatus {
   let note: string;
   if (disabledByFlag) {
     note =
-      'AI is switched off (REPOS_AI_DISABLED=1). RepOS is running fully offline: keyword classification and template prose.';
+      'AI is switched off (REPOS_AI_DISABLED=1). Headway is running fully offline: keyword classification and template prose.';
   } else if (chain.length === 0) {
     note =
-      'No AI key is configured. RepOS is running in deterministic-only mode: keyword classification and template prose. Every number is unaffected.';
+      'No AI key is configured. Headway is running in deterministic-only mode: keyword classification and template prose. Every number is unaffected.';
   } else {
     note = `AI drafting via ${chain.map((c) => `${c.label} (${c.model})`).join(', then ')}. All counts remain deterministic.`;
   }

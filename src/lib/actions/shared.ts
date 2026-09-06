@@ -145,4 +145,4 @@ export const nullableUrl = z
 
 export const hexColour = z
   .string()
-  .regex(/^#[0-9a-fA-F]{6}$/, 'Use a 6-digit hex colour such as #1F3A5F');
+  .regex(/^#[0-9a-fA-F]{6}$/, 'Use a 6-digit hex colour such as #102A43');

@@ -1,46 +1,80 @@
 @import 'tailwindcss';
 
 @theme {
+  /* -------------------------------------------------------------------------
+     HEADWAY.
+
+     The palette is applied by REDEFINING the existing token names rather than
+     by introducing new ones. Every class already written across the product —
+     `text-ink-900`, `border-ink-200`, `bg-warn-50` — keeps its meaning and
+     changes its colour, which is what makes a brand change reviewable: the
+     diff is this block, not four hundred class strings whose intent nobody can
+     re-check.
+
+     The names still say what they mean:
+
+       ink    the navy interface. Ground, borders, body, headings.
+       brand  Headway gold. Rare on purpose.
+       good   a customer strength, or something improving.
+       bad    a problem, or something getting worse.
+       warn   Headway's own neutral emphasis — "we are watching this". Gold,
+              because that is what gold means here, and never a third alarm
+              colour competing with red.
+  ------------------------------------------------------------------------- */
+
+  /* Inter where a machine has it, the platform's own face otherwise. No web
+     font is loaded: this product contacts no Google endpoint, at runtime or at
+     build time, and a typeface is not worth the exception. */
   --font-sans:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
-    Arial, 'Noto Sans Devanagari', sans-serif;
+    Inter, 'Inter var', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans Devanagari', sans-serif;
   --font-mono: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Consolas, monospace;
 
-  --color-ink-50: #f6f7f9;
-  --color-ink-100: #eceef2;
-  --color-ink-200: #d9dde5;
-  --color-ink-300: #b6bdcb;
-  --color-ink-400: #8b94a8;
-  --color-ink-500: #6b7488;
-  --color-ink-600: #545b6c;
-  --color-ink-700: #434857;
-  --color-ink-800: #2c3140;
-  --color-ink-900: #1a1e29;
-  --color-ink-950: #0f121a;
+  /* --- the navy interface ------------------------------------------------ */
+  --color-ink-50: #f7f8fa;  /* page ground */
+  --color-ink-100: #edf1f5; /* quiet chips and fills */
+  --color-ink-200: #d9e0e8; /* the one border colour */
+  --color-ink-300: #b9c4d0;
+  /* The lightest grey that is still TEXT. The Headway palette names exactly two
+     text greys, Text Primary and Text Secondary, so there is no legible step
+     below this one: at #8a99ac the eyebrows and dates sat at 2.7:1 on every
+     ground the product uses. ink-300 is the decorative step; anything lighter
+     than this is a border or a disabled mark, never a word. */
+  --color-ink-400: #607089;
+  --color-ink-500: #607089; /* secondary text, eyebrows */
+  --color-ink-600: #4a5a72; /* body */
+  --color-ink-700: #33455c;
+  --color-ink-800: #1f2937; /* primary text */
+  --color-ink-900: #102a43; /* headings, navigation, the interface itself */
+  --color-ink-950: #0b1f33; /* the footer bar, and nothing else */
 
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-200: #c7d2fe;
-  --color-brand-400: #818cf8;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
-  --color-brand-900: #312e81;
+  /* --- Headway gold ------------------------------------------------------ */
+  --color-brand-50: #faf7ef;  /* warm cream: the surface Headway speaks from */
+  --color-brand-100: #f4ecda;
+  --color-brand-200: #e7d9b4;
+  --color-brand-400: #cba85e;
+  --color-brand-500: #b78a3b; /* the accent */
+  --color-brand-600: #a67c34;
+  --color-brand-700: #8a6529; /* gold that still passes on white */
+  --color-brand-900: #5c4419;
 
-  --color-good-50: #ecfdf5;
-  --color-good-200: #a7f3d0;
-  --color-good-600: #059669;
-  --color-good-700: #047857;
+  /* --- a customer strength, or something improving ----------------------- */
+  --color-good-50: #eff7f1;
+  --color-good-200: #bfe0ca;
+  --color-good-600: #16a34a;
+  --color-good-700: #12813b;
 
-  --color-warn-50: #fffbeb;
-  --color-warn-200: #fde68a;
-  --color-warn-600: #d97706;
-  --color-warn-700: #b45309;
+  /* --- Headway's own emphasis. Gold, deliberately not a third alarm. ------ */
+  --color-warn-50: #faf7ef;
+  --color-warn-200: #e7d9b4;
+  --color-warn-600: #b78a3b;
+  --color-warn-700: #8a6529;
 
-  --color-bad-50: #fef2f2;
-  --color-bad-200: #fecaca;
+  /* --- a problem, or something getting worse ----------------------------- */
+  --color-bad-50: #fdf2f2;
+  --color-bad-200: #f6c9c9;
   --color-bad-600: #dc2626;
-  --color-bad-700: #b91c1c;
+  --color-bad-700: #b42121;
 }
 
 /* ---------------------------------------------------------------------------
@@ -58,11 +92,19 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* A single visible focus treatment everywhere, for keyboard-first operation. */
+/* A single visible focus treatment everywhere, for keyboard-first operation.
+   Navy rather than gold: gold is the accent and would read as decoration on
+   the surfaces that already use it, and navy holds contrast on cream, on white
+   and on the gold button alike. */
 :focus-visible {
-  outline: 2px solid var(--color-brand-600);
+  outline: 2px solid var(--color-ink-900);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* Anything sitting ON navy needs the opposite treatment or the ring vanishes. */
+.on-navy :focus-visible {
+  outline-color: var(--color-brand-400);
 }
 
 /* Native inputs should not zoom the page on iOS. */

@@ -115,7 +115,7 @@ describe('readiness — nothing here depends on a public listing', () => {
     ).toBe(true);
   });
 
-  it('blocks only when RepOS does not know its own address', () => {
+  it('blocks only when Headway does not know its own address', () => {
     const r = computeReadiness({ businessName: 'Sunrise Clinic', feedbackUrl: null });
     expect(r.ready).toBe(false);
     expect(r.label).toBe('NEEDS ONE THING');
@@ -140,14 +140,14 @@ describe('readiness — nothing here depends on a public listing', () => {
 });
 
 describe('the optional public review link', () => {
-  it('refuses a RepOS address, which is the mistake an operator would make', () => {
+  it('refuses a Headway address, which is the mistake an operator would make', () => {
     // An operator who works out that the QR should point at RepOS pastes the
     // feedback address here, and sends people who just left feedback back to
     // the same form.
     for (const own of [FEEDBACK_URL, 'https://repos.example.com/portal/abc123']) {
       const r = checkReviewUrl(own);
       expect(r.ok).toBe(false);
-      if (!r.ok) expect(r.reason).toContain('RepOS address');
+      if (!r.ok) expect(r.reason).toContain('Headway address');
     }
   });
 

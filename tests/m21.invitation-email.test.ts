@@ -133,7 +133,7 @@ describe('delivering an invitation', () => {
     }
   });
 
-  it('sends nothing, and says why, when RepOS has no public address', async () => {
+  it('sends nothing, and says why, when Headway has no public address', async () => {
     sent.baseUrl = null;
     const result = await deliverInvitation(INVITE);
     expect(result.sent).toBe(false);
@@ -185,9 +185,9 @@ describe('the team page tells the truth about email', () => {
     expect(action).toMatch(/but no email was sent\. \$\{delivery\.reason\}/);
   });
 
-  it('no longer says RepOS does not send email', () => {
-    expect(form).not.toMatch(/RepOS does not send email/i);
-    expect(action).not.toMatch(/RepOS sends nothing/i);
+  it('no longer says Headway does not send email', () => {
+    expect(form).not.toMatch(/Headway does not send email/i);
+    expect(action).not.toMatch(/Headway sends nothing/i);
     expect(code(read('src', 'lib', 'team', 'service.ts'))).not.toMatch(
       /DELIVERY IS NOT IMPLEMENTED/,
     );
@@ -244,7 +244,7 @@ describe('the invitation page says what is being joined', () => {
   });
 
   it('still offers a signed-out visitor a way in and no information', () => {
-    expect(page).toContain('You have been invited to a RepOS workspace');
+    expect(page).toContain('You have been invited to a Headway workspace');
     expect(page).toMatch(/Sign in/);
     expect(page).toMatch(/Create an account/);
   });
@@ -256,11 +256,11 @@ describe('the invitation page says what is being joined', () => {
   });
 });
 
-describe('the RepOS wording for the message body ships with the repository', () => {
+describe('the Headway wording for the message body ships with the repository', () => {
   const template = read('prisma', 'm20', 'invitation-email.html');
 
-  it('is a RepOS invitation, not a provider notice', () => {
-    expect(template).toContain('RepOS');
+  it('is a Headway invitation, not a provider notice', () => {
+    expect(template).toContain('Headway');
     expect(template).toContain('Accept invitation');
     expect(template).toContain('{{ .ConfirmationURL }}');
     expect(template).toContain('{{ .Data.repos_business }}');

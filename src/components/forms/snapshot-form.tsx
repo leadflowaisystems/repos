@@ -42,7 +42,7 @@ export function SnapshotForm({
       <Card>
         <CardHeader
           title="What you observed"
-          description="Open the client's public listing yourself and type in what you can see. Leave anything you did not check blank — RepOS reports it as not observed rather than guessing."
+          description="Open the client's public listing yourself and type in what you can see. Leave anything you did not check blank — Headway reports it as not observed rather than guessing."
         />
         <CardBody className="space-y-4">
           <FormGrid>
@@ -172,7 +172,7 @@ export function SnapshotForm({
         />
         <CardBody className="space-y-4">
           <Notice tone="warn" title="Paste review text only">
-            Do not paste reviewer names, phone numbers or email addresses. RepOS
+            Do not paste reviewer names, phone numbers or email addresses. Headway
             strips them automatically before anything is written to disk, but the
             rule is: feedback is anonymous by default.
           </Notice>

@@ -74,7 +74,7 @@ export function checkPublicBaseUrl(
   if ((parsed.pathname !== '/' && parsed.pathname !== '') || parsed.search || parsed.hash) {
     return {
       ok: false,
-      reason: 'Enter just the address, without anything after the port — RepOS adds the rest.',
+      reason: 'Enter just the address, without anything after the port — Headway adds the rest.',
     };
   }
   return { ok: true, url: parsed.origin };
@@ -152,6 +152,6 @@ export function resolvePublicBaseUrl(input: ResolveInput): BaseUrlResolution {
 
   return {
     ok: false,
-    reason: 'RepOS could not work out the address customers would open.',
+    reason: 'Headway could not work out the address customers would open.',
   };
 }

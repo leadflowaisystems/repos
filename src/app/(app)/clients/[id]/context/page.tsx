@@ -78,17 +78,17 @@ export default async function ClientContextPage({
     query.retired ? 'Marked as no longer true. The owner will not see it as current.' :
     query.restored ? 'Marked as true again.' :
     query.deleted ? 'Removed.' :
-    query.answered ? 'Answer saved. RepOS has stopped asking and shows it as "You told us".' :
+    query.answered ? 'Answer saved. Headway has stopped asking and shows it as "You told us".' :
     null;
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-[20px] font-semibold tracking-tight text-ink-900">
-          What should RepOS know about {client.businessName}?
+          What should Headway know about {client.businessName}?
         </h2>
         <p className="mt-1 max-w-2xl text-[14px] leading-relaxed text-ink-600">
-          Record what the owner tells you, in their words. RepOS shows it back to them as
+          Record what the owner tells you, in their words. Headway shows it back to them as
           &ldquo;You told us&rdquo;, keeps it apart from what customers said, and uses it to make
           suggestions practical. Everything is optional; one line is enough to start.
         </p>

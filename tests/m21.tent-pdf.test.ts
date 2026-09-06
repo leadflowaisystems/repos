@@ -408,9 +408,9 @@ describe('the wording stays the vertical’s own', () => {
     expect(textWidthMm('Hello', 'regular', 10)).toBeCloseTo((em / 1000) * 10 / PT_PER_MM, 6);
   });
 
-  it('carries RepOS quietly, and the business loudly', () => {
+  it('carries Headway quietly, and the business loudly', () => {
     const body = composeTentSheet(RESTAURANT).content();
-    expect((body.match(/\(RepOS\) Tj/g) ?? []).length).toBe(4); // once per face
+    expect((body.match(/\(Headway\) Tj/g) ?? []).length).toBe(4); // once per face
     expect((body.match(/\(CORNER CAFE\) Tj/g) ?? []).length).toBe(4);
   });
 });

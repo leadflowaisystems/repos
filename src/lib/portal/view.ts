@@ -520,7 +520,7 @@ export function outcomeFrom(progress: ActionProgress | undefined): PortalOutcome
 }
 
 /**
- * The next move, given where the loop stands. Process, not advice: RepOS can
+ * The next move, given where the loop stands. Process, not advice: Headway can
  * say what it will check and when, and repeat the pack's own suggestion. It
  * cannot invent a different fix, and it never turns a before/after into a
  * cause.
@@ -541,12 +541,12 @@ function nextStepFor(args: {
 
   if (!a) {
     if (args.kind === 'PRAISE') {
-      return 'Keep doing what customers describe here. RepOS will flag it if the praise starts to drop.';
+      return 'Keep doing what customers describe here. Headway will flag it if the praise starts to drop.';
     }
     if (bucket === 'WATCH') {
       return suggestion
         ? `No action needed yet. If you want to get ahead of it, the usual fix is: ${suggestion}`
-        : 'No action needed yet. RepOS will flag it if it starts climbing.';
+        : 'No action needed yet. Headway will flag it if it starts climbing.';
     }
     if (args.easing) {
       return suggestion
@@ -560,7 +560,7 @@ function nextStepFor(args: {
 
   switch (a.status) {
     case 'RECOMMENDED':
-      return 'RepOS has suggested a change for this. It is waiting on your decision.';
+      return 'Headway has suggested a change for this. It is waiting on your decision.';
     case 'ACCEPTED':
       return 'Tell us once the change is in place, so we can start comparing the feedback that comes after it.';
     case 'PAUSED':
@@ -572,18 +572,18 @@ function nextStepFor(args: {
       const made = `Made${a.doneAt ? ` on ${formatDate(a.doneAt)}` : ''}.`;
       return have >= MIN_FEEDBACK_TO_MEASURE
         ? `${made} ${have} ${have === 1 ? 'piece' : 'pieces'} of feedback have come in since — enough to compare before and after.`
-        : `${made} RepOS is waiting for enough new feedback to compare — ${have} of the ${MIN_FEEDBACK_TO_MEASURE} needed so far.`;
+        : `${made} Headway is waiting for enough new feedback to compare — ${have} of the ${MIN_FEEDBACK_TO_MEASURE} needed so far.`;
     }
     case 'MEASURED': {
       switch (a.measurement?.result) {
         case 'IMPROVED':
-          return `Nothing in the feedback after the change says to undo it. RepOS will keep comparing as more comes in.${returnNote}`;
+          return `Nothing in the feedback after the change says to undo it. Headway will keep comparing as more comes in.${returnNote}`;
         case 'WORSENED':
           return `It came up more often in the feedback after the change. That does not show the change caused it — before undoing anything, check what else changed.${suggestion ? ` The original suggestion still stands: ${suggestion}` : ''}`;
         case 'NO_CLEAR_CHANGE':
-          return 'The feedback after the change reads about the same as before. Keep collecting it; RepOS will compare again.';
+          return 'The feedback after the change reads about the same as before. Keep collecting it; Headway will compare again.';
         default:
-          return `Not enough feedback after the change to compare yet. RepOS will compare once at least ${MIN_FEEDBACK_TO_MEASURE} pieces have come in after it.`;
+          return `Not enough feedback after the change to compare yet. Headway will compare once at least ${MIN_FEEDBACK_TO_MEASURE} pieces have come in after it.`;
       }
     }
     default:
@@ -714,7 +714,7 @@ function meaningFor(args: {
       switch (outcome.result) {
         case 'IMPROVED':
           primary = `In the feedback after your change${when} it has come up less often${range}${
-            args.isAttention ? ', but it is still the complaint RepOS would watch most closely' : ''
+            args.isAttention ? ', but it is still the complaint Headway would watch most closely' : ''
           }.`;
           afterNote = outcome.note;
           break;
@@ -792,19 +792,19 @@ function watchLineFor(
   const label = lower(insight.themeLabel);
   if (bucket === 'EARLY') {
     return insight.sentiment === 'PRAISE'
-      ? `RepOS is watching whether ${label} is praised often enough to count as a strength — it calls it one once ${MIN_MENTIONS_TO_NAME * 2} comments have.`
-      : `RepOS is watching whether more customers raise ${label} — it names a pattern once ${MIN_MENTIONS_TO_NAME} have.`;
+      ? `Headway is watching whether ${label} is praised often enough to count as a strength — it calls it one once ${MIN_MENTIONS_TO_NAME * 2} comments have.`
+      : `Headway is watching whether more customers raise ${label} — it names a pattern once ${MIN_MENTIONS_TO_NAME} have.`;
   }
   if (insight.sentiment === 'PRAISE') {
-    return `RepOS is checking that ${label} keeps being praised, and will flag it if the praise drops by ${MIN_CHANGE_TO_REPORT} or more mentions at a check-in.`;
+    return `Headway is checking that ${label} keeps being praised, and will flag it if the praise drops by ${MIN_CHANGE_TO_REPORT} or more mentions at a check-in.`;
   }
   if (state === 'CHECKED' && outcome?.result === 'IMPROVED') {
-    return `RepOS is checking whether ${label} keeps coming up less often as new feedback arrives, and will flag it if it starts rising again.`;
+    return `Headway is checking whether ${label} keeps coming up less often as new feedback arrives, and will flag it if it starts rising again.`;
   }
   if (state === 'IN_PROGRESS') {
-    return `RepOS is waiting for feedback that arrives after your change, to compare how often ${label} comes up.`;
+    return `Headway is waiting for feedback that arrives after your change, to compare how often ${label} comes up.`;
   }
-  return `RepOS is checking whether ${label} comes up more or less at your next check-in, and will flag a move of ${MIN_CHANGE_TO_REPORT} or more mentions.`;
+  return `Headway is checking whether ${label} comes up more or less at your next check-in, and will flag a move of ${MIN_CHANGE_TO_REPORT} or more mentions.`;
 }
 
 /**
@@ -882,7 +882,7 @@ export function toSignal(insight: Insight, ctx: ThemeContext): PortalSignal {
     : state === 'DECLINED'
       ? `You decided not to pursue this.`
       : state === 'SUGGESTED'
-        ? `RepOS has suggested a change; it is waiting on your decision.`
+        ? `Headway has suggested a change; it is waiting on your decision.`
         : decision
           ? `You ${state === 'CHECKED' || progress.action.status === 'DONE' ? 'changed' : 'agreed to change'}: ${decision}`
           : `A change is ${state === 'CHECKED' ? 'checked' : 'in progress'}.`;
@@ -940,7 +940,7 @@ export function toSignal(insight: Insight, ctx: ThemeContext): PortalSignal {
             themeLabel: insight.themeLabel,
             question: ask.question,
             options: ask.options,
-            why: `${comments(count)} mention ${lower(insight.themeLabel)}. RepOS cannot tell from the feedback alone which of these fits best, and it shapes what to try first.`,
+            why: `${comments(count)} mention ${lower(insight.themeLabel)}. Headway cannot tell from the feedback alone which of these fits best, and it shapes what to try first.`,
           }
         : null,
   };
@@ -968,7 +968,7 @@ export function summaryFor(
       mood: 'TOO_EARLY',
       summary:
         arrived > 0
-          ? `${pieces(arrived)} ${arrived === 1 ? 'has' : 'have'} arrived and RepOS is reading ${arrived === 1 ? 'it' : 'them'} now.`
+          ? `${pieces(arrived)} ${arrived === 1 ? 'has' : 'have'} arrived and Headway is reading ${arrived === 1 ? 'it' : 'them'} now.`
           : 'We have not collected any feedback yet, so there is nothing to tell you about your customers.',
     };
   }
@@ -1134,10 +1134,10 @@ export function buildPortalView(input: PortalInput): PortalView {
     rated,
     note:
       mentions.length === 0 && rated.length === 0
-        ? 'Once RepOS has read some feedback, what customers mention appears here.'
+        ? 'Once Headway has read some feedback, what customers mention appears here.'
         : mentions.some((m) => m.pattern)
-          ? `Marked ones are patterns — raised by ${MIN_MENTIONS_TO_NAME} or more customers. The rest are mentions RepOS is keeping an eye on, not conclusions.`
-          : `So far these are single mentions. RepOS calls something a pattern once ${MIN_MENTIONS_TO_NAME} customers have raised it, and says nothing about direction until there is history to compare.`,
+          ? `Marked ones are patterns — raised by ${MIN_MENTIONS_TO_NAME} or more customers. The rest are mentions Headway is keeping an eye on, not conclusions.`
+          : `So far these are single mentions. Headway calls something a pattern once ${MIN_MENTIONS_TO_NAME} customers have raised it, and says nothing about direction until there is history to compare.`,
   };
 
   // ---- Facts, each with its own scope ---------------------------------------
@@ -1214,7 +1214,7 @@ export function buildPortalView(input: PortalInput): PortalView {
   const lead = watch.length > 0 ? 'Nothing else needs your attention first.' : 'Nothing else needs your attention.';
   const noAction =
     early.length > 0 || quiet > 0
-      ? `${lead} ${earlyNames.length ? `${joinNames(earlyNames).replace(/^./, (c) => c.toUpperCase())} ${earlyNames.length === 1 ? 'has' : 'have'} come up, but not often enough to act on yet. ` : ''}${quiet > 0 ? `${quiet} other ${quiet === 1 ? 'topic was' : 'topics were'} mentioned once or twice. ` : ''}RepOS is not recommending action on any of these until more customers raise them.`
+      ? `${lead} ${earlyNames.length ? `${joinNames(earlyNames).replace(/^./, (c) => c.toUpperCase())} ${earlyNames.length === 1 ? 'has' : 'have'} come up, but not often enough to act on yet. ` : ''}${quiet > 0 ? `${quiet} other ${quiet === 1 ? 'topic was' : 'topics were'} mentioned once or twice. ` : ''}Headway is not recommending action on any of these until more customers raise them.`
       : intel.evidence.analysed > 0
         ? watch.length > 0
           ? `${lead} Everything else customers raised is in the watch list above, and none of it needs action yet.`
@@ -1254,7 +1254,7 @@ export function buildPortalView(input: PortalInput): PortalView {
       // which names a different pile.
       problem: `${a.baseline.count} of the ${pieces(a.baseline.total)} read by ${formatDate(a.baseline.capturedAt)} (${shareText(a.baseline.count, a.baseline.total)}) mentioned it.`,
       suggestedAt: a.createdAt,
-      suggested: a.provenance.recommendationText || 'RepOS raised this without a specific suggestion.',
+      suggested: a.provenance.recommendationText || 'Headway raised this without a specific suggestion.',
       decision: a.description.trim(),
       decidedAt: a.decidedAt,
       decisionNote: a.statusNote.trim(),
@@ -1349,7 +1349,7 @@ export function buildPortalView(input: PortalInput): PortalView {
         label: a.about,
         state: 'awaiting feedback after your change',
         tone: 'neutral',
-        next: `RepOS is waiting for enough new feedback to compare — ${a.awaiting.have} of ${a.awaiting.need} so far.`,
+        next: `Headway is waiting for enough new feedback to compare — ${a.awaiting.have} of ${a.awaiting.need} so far.`,
       });
     }
   }
@@ -1362,7 +1362,7 @@ export function buildPortalView(input: PortalInput): PortalView {
       next:
         early.length === 1 && early[0]
           ? early[0].watchLine
-          : `RepOS is watching whether more customers raise these before it says anything about them.`,
+          : `Headway is watching whether more customers raise these before it says anything about them.`,
     });
   }
 
@@ -1409,7 +1409,7 @@ export function buildPortalView(input: PortalInput): PortalView {
     basis:
       intel.evidence.analysed === 0
         ? intel.evidence.unread > 0
-          ? 'Usually read within a minute of arriving. Reload to see what RepOS found.'
+          ? 'Usually read within a minute of arriving. Reload to see what Headway found.'
           : 'No feedback collected yet.'
         : intel.evidence.unread > 0
           ? `Based on ${pieces(intel.evidence.analysed)} we have read; ${intel.evidence.unread} more ${intel.evidence.unread === 1 ? 'is' : 'are'} being read now.`

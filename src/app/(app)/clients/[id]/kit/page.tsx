@@ -112,7 +112,7 @@ export default async function KitPage({
           <ReviewLinkForm
             clientId={id}
             defaultValue={kit.config.qrTargetUrl}
-            hint="Open the business's public listing yourself, copy its “write a review” link, and paste it here. RepOS never fetches or looks up a listing. Leave it blank if the business has no public listing."
+            hint="Open the business's public listing yourself, copy its “write a review” link, and paste it here. Headway never fetches or looks up a listing. Leave it blank if the business has no public listing."
           />
         </CardBody>
       </Card>
@@ -166,7 +166,7 @@ export default async function KitPage({
           <Card>
             <CardHeader
               title="Message to send"
-              description="Written for this vertical. Send it yourself — RepOS never sends anything."
+              description="Written for this vertical. Send it yourself — Headway never sends anything."
             />
             <CardBody className="space-y-3">
               {content.messages.map((message) => (

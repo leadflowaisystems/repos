@@ -49,7 +49,7 @@ export function checkBaseUrl(raw: string | null | undefined): BaseUrlCheck {
   if ((parsed.pathname !== '/' && parsed.pathname !== '') || parsed.search || parsed.hash) {
     return {
       ok: false,
-      reason: 'Enter just the address, without anything after the port — RepOS adds the rest.',
+      reason: 'Enter just the address, without anything after the port — Headway adds the rest.',
     };
   }
   return { ok: true, url: parsed.origin };

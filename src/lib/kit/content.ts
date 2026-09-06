@@ -144,7 +144,7 @@ export function checkReviewUrl(raw: string | null | undefined): UrlCheck {
     return {
       ok: false,
       reason:
-        'That is a RepOS address. The card already sends customers to their own feedback page — this field is only for a public review site, if the business has one.',
+        'That is a Headway address. The card already sends customers to their own feedback page — this field is only for a public review site, if the business has one.',
     };
   }
 
@@ -197,7 +197,7 @@ export function computeReadiness(input: {
     blockers.push({
       key: 'feedbackUrl',
       label: 'Set the address customers open',
-      hint: 'RepOS builds this from the address this installation runs on. Set that once on Settings and every card for every client is ready.',
+      hint: 'Headway builds this from the address this installation runs on. Set that once on Settings and every card for every client is ready.',
     });
   }
 
@@ -345,7 +345,7 @@ export function buildKitContent(input: KitInput): KitContent {
     feedbackUrl,
     publicReviewUrl,
     publicReviewNote: publicReviewUrl
-      ? 'After a customer sends their feedback, RepOS offers them the public review link too. Everyone is offered it, whatever they wrote.'
+      ? 'After a customer sends their feedback, Headway offers them the public review link too. Everyone is offered it, whatever they wrote.'
       : null,
   };
 }

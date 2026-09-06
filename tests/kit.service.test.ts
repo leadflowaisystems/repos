@@ -173,7 +173,7 @@ describe('the optional public review link is one value everywhere', () => {
     expect((await getGatewayView(db, id, { requestOrigin: null }))?.publicReviewUrl).toBe('');
   });
 
-  it('refuses a RepOS address, so the two paths cannot be crossed', async () => {
+  it('refuses a Headway address, so the two paths cannot be crossed', async () => {
     const id = await makeClient('clinic', 'Sunrise Clinic');
     const gateway = await getGatewayView(db, id, { requestOrigin: null });
 

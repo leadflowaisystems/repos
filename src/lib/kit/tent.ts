@@ -254,7 +254,7 @@ function drawFace(page: PdfPage, x: number, y: number, input: TentInput, qr: QrM
   // "Thank you" carries the weight and the rest explains it, the way the
   // reference sets it. Two runs rather than one so the emphasis is real.
   gratitude(page, input.thankYou, x + w / 2, y + h);
-  page.text('RepOS', x + w - 7, y + h - 2.9, {
+  page.text('Headway', x + w - 7, y + h - 2.9, {
     size: 5.5,
     colour: input.brandSecondary,
     align: 'right',
@@ -490,7 +490,7 @@ export function composeTentSheet(input: TentInput): PdfPage {
   steps.forEach((step, i) => {
     page.text(step, centre, bottom + 14.5 + i * 5, { size: 8, colour: MUTED, align: 'centre' });
   });
-  page.text('Prepared by RepOS', centre, bottom + 36.5, {
+  page.text('Prepared by Headway', centre, bottom + 36.5, {
     size: 6.5,
     colour: FAINT,
     align: 'centre',

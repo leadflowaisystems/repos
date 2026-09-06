@@ -96,9 +96,9 @@ export async function PortalReviews({
         title="What your customers actually wrote"
         description={
           view.total === 0
-            ? 'Your first customer signals will appear here. RepOS is ready.'
+            ? 'Your first customer signals will appear here. Headway is ready.'
             : view.analysed === 0 && inHand > 0
-              ? 'Feedback has arrived and RepOS is reading it now — usually done within a minute. Reload to see what it found.'
+              ? 'Feedback has arrived and Headway is reading it now — usually done within a minute. Reload to see what it found.'
               : null
         }
       />
@@ -107,7 +107,7 @@ export async function PortalReviews({
         <StatusStrip
           items={[
             { label: 'collected', value: view.total },
-            { label: 'read by RepOS', value: view.analysed },
+            { label: 'read by Headway', value: view.analysed },
             ...(inHand > 0 ? [{ label: 'being read now', value: inHand, tone: 'warn' as const }] : []),
             ...(view.failed > 0
               ? [{ label: view.failed === 1 ? 'could not be read yet' : 'could not be read yet', value: view.failed, tone: 'bad' as const }]
@@ -124,7 +124,7 @@ export async function PortalReviews({
       ) : null}
 
       {view.found.length > 0 ? (
-        <Section eyebrow="What RepOS found in them">
+        <Section eyebrow="What Headway found in them">
           <ul className="space-y-1.5">
             {view.found.map((f) => (
               <li key={f} className="text-[15px] leading-relaxed text-ink-900">
@@ -244,7 +244,7 @@ export async function PortalReviews({
       {view.total === 0 ? (
         <Quiet>
           Once customers start scanning your QR code, each piece of feedback appears here exactly
-          as they gave it — the rating, what they tapped, and their words — with what RepOS made
+          as they gave it — the rating, what they tapped, and their words — with what Headway made
           of it alongside.
         </Quiet>
       ) : (

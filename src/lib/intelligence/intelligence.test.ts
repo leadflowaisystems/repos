@@ -759,7 +759,7 @@ describe('what the action loop will be able to read, and what it will not', () =
     }
   });
 
-  it('tracks no action state, because nothing in RepOS records one yet', () => {
+  it('tracks no action state, because nothing in Headway records one yet', () => {
     const serialised = JSON.stringify(build());
     expect(serialised).not.toMatch(
       /"(status|completed|done|assignee|dueDate|snoozed|resolvedAt|outcome|reminder)"/i,

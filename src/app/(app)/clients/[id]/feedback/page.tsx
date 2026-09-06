@@ -195,7 +195,7 @@ export default async function FeedbackPage({
         <Card>
           <EmptyState
             title="No feedback yet"
-            description="Paste your reviews here and RepOS will read them for you. Bring in as many as you like at once — from a public listing, a feedback form, or something a customer said in person."
+            description="Paste your reviews here and Headway will read them for you. Bring in as many as you like at once — from a public listing, a feedback form, or something a customer said in person."
             action={
               <AddFeedbackPanel
                 clientId={id}
@@ -215,7 +215,7 @@ export default async function FeedbackPage({
               hint={stats.newestAt ? `Latest ${formatDate(stats.newestAt)}` : undefined}
             />
             <Stat
-              label="Read by RepOS"
+              label="Read by Headway"
               value={formatNumber(coverage.analysed)}
               hint={
                 coverage.upToDate
@@ -266,7 +266,7 @@ export default async function FeedbackPage({
 
           {!coverage.upToDate ? (
             <Notice tone="warn" title={`${coverage.needsAnalysis} not read yet`}>
-              RepOS has read {coverage.analysed} of {coverage.total}. Read the rest
+              Headway has read {coverage.analysed} of {coverage.total}. Read the rest
               so what customers are saying stays up to date.
               {coverage.failed > 0
                 ? ` ${coverage.failed} did not go through last time and will be tried again.`
@@ -279,7 +279,7 @@ export default async function FeedbackPage({
             <Card>
               <CardHeader
                 title="What customers are saying"
-                description={`From the ${coverage.analysed} ${coverage.analysed === 1 ? 'review' : 'reviews'} RepOS has read. Counts only — every one links back to the reviews behind it.`}
+                description={`From the ${coverage.analysed} ${coverage.analysed === 1 ? 'review' : 'reviews'} Headway has read. Counts only — every one links back to the reviews behind it.`}
               />
               <CardBody className="grid gap-6 sm:grid-cols-2">
                 <ThemeColumn

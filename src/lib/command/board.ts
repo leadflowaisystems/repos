@@ -309,7 +309,7 @@ function lowDataFor(feedback: BoardFeedback): CommandCard['lowData'] {
   if (feedback.total === 0) {
     return {
       missing: 'No feedback yet',
-      why: 'RepOS has nothing to read, so it cannot tell you what customers think.',
+      why: 'Headway has nothing to read, so it cannot tell you what customers think.',
       supersedes: ['no_feedback'],
     };
   }

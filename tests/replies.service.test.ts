@@ -505,7 +505,7 @@ describe('the operator stays in control', () => {
     expect(row?.handledAt).toBeNull();
   });
 
-  it('does not relabel RepOS’s own wording as the operator’s on reopen', async () => {
+  it('does not relabel Headway’s own wording as the operator’s on reopen', async () => {
     // Reopening used to set draftStatus to EDITED whenever draft text existed,
     // so one mis-click permanently claimed RepOS's words as the operator's and
     // exempted them from ever being rewritten.
@@ -582,13 +582,13 @@ describe('AI is optional at the service layer too', () => {
     }
   });
 
-  it('says plainly that RepOS wrote them itself', async () => {
+  it('says plainly that Headway wrote them itself', async () => {
     const clientId = await makeClient();
     await prepare(clientId, CLINIC_BATCH);
     const run = await draftClientReplies(db, clientId, OFFLINE);
     expect(run.ok).toBe(true);
     if (!run.ok) return;
-    expect(run.data.notes.join(' ')).toMatch(/RepOS/);
+    expect(run.data.notes.join(' ')).toMatch(/Headway/);
   });
 });
 

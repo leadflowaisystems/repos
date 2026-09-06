@@ -65,7 +65,7 @@ export function OwnerQuestionCard({
   return (
     <Card>
       <CardHeader
-        title="RepOS is asking the owner"
+        title="Headway is asking the owner"
         description={`Shown on their Home page under ${question.themeLabel}. Record the answer here and it stops asking.`}
       />
       <CardBody>
@@ -126,7 +126,7 @@ export function ContextPrompts({
       </Card>
 
       <Card>
-        <CardHeader title="How does the business operate?" description="Busy periods, who does what, anything RepOS could otherwise get wrong." />
+        <CardHeader title="How does the business operate?" description="Busy periods, who does what, anything Headway could otherwise get wrong." />
         <CardBody>
           <ActionForm action={createContextAction} submitLabel="Save" footerNote={PII_NOTE}>
             <input type="hidden" name="clientId" value={clientId} />
@@ -144,7 +144,7 @@ export function ContextPrompts({
       </Card>
 
       <Card>
-        <CardHeader title="Anything RepOS should not recommend?" description="RepOS keeps the complaint visible; it only changes which suggestion is practical." />
+        <CardHeader title="Anything Headway should not recommend?" description="Headway keeps the complaint visible; it only changes which suggestion is practical." />
         <CardBody>
           <ActionForm action={createContextAction} submitLabel="Save" footerNote={PII_NOTE}>
             <input type="hidden" name="clientId" value={clientId} />
@@ -162,7 +162,7 @@ export function ContextPrompts({
       </Card>
 
       <Card>
-        <CardHeader title="Anything else RepOS should remember?" description="Something already tried, or a definition RepOS should keep in mind." />
+        <CardHeader title="Anything else Headway should remember?" description="Something already tried, or a definition Headway should keep in mind." />
         <CardBody>
           <ActionForm action={createContextAction} submitLabel="Save" footerNote={PII_NOTE}>
             <input type="hidden" name="clientId" value={clientId} />
@@ -246,7 +246,7 @@ function EditForm({
         <SelectField
           name="actionId"
           label="Same as an improvement already on record?"
-          options={[{ value: '', label: 'No — this was outside RepOS' }, ...actions]}
+          options={[{ value: '', label: 'No — this was outside Headway' }, ...actions]}
           defaultValue={row.actionId ?? ''}
           hint="If it is, link it rather than describing it twice."
         />
@@ -374,7 +374,7 @@ export function ContextList({
     <div className="space-y-4">
       <Card>
         <CardHeader
-          title="What the owner has told RepOS"
+          title="What the owner has told Headway"
           description={
             active.length === 0
               ? 'Nothing yet. Anything recorded above appears on the owner\'s pages as "You told us".'

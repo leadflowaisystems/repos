@@ -42,7 +42,7 @@ export default async function ClientMinutesPage({
         <Card>
           <EmptyState
             title="No minutes yet"
-            description="Record important conversations, decisions and context here. RepOS will use this memory later — so next month you can see not just what changed, but what you did about it."
+            description="Record important conversations, decisions and context here. Headway will use this memory later — so next month you can see not just what changed, but what you did about it."
             action={
               <AddMinutePanel
                 clientId={id}

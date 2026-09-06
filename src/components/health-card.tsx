@@ -105,7 +105,7 @@ export function HealthCardPanel({
             </p>
           </div>
           <div>
-            <p className="text-[12px] font-medium text-ink-500">Feedback in RepOS</p>
+            <p className="text-[12px] font-medium text-ink-500">Feedback in Headway</p>
             <p className="mt-1.5 text-[14px] font-medium tabular-nums text-ink-900">
               {formatNumber(health.coverage.totalFeedbackStored)}
             </p>
@@ -118,7 +118,7 @@ export function HealthCardPanel({
 
         {health.status === 'INSUFFICIENT_DATA' ? (
           <Notice tone="neutral">
-            RepOS will not give this client a status until there is something
+            Headway will not give this client a status until there is something
             real to base one on. Get the feedback cards on site, then take a
             check-in once some has come in — that is what it compares against
             later. Public listing figures are optional and can be left blank.

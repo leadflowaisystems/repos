@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ForgotPasswordForm } from '@/components/forms/account-forms';
+import { HeadwayWordmark } from '@/components/brand';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,12 +18,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <main>
-      <div className="mb-8 flex items-center gap-2.5">
-        <span className="grid h-8 w-8 place-items-center rounded-md bg-ink-900 text-[15px] font-bold text-white">
-          R
-        </span>
-        <span className="text-[15px] font-semibold tracking-tight text-ink-900">RepOS</span>
-      </div>
+      <HeadwayWordmark className="mb-8" />
       <h1 className="text-[24px] leading-[1.2] font-semibold tracking-tight text-ink-900">
         Reset your password
       </h1>

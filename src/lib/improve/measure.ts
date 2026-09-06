@@ -183,7 +183,7 @@ export function measureAction(input: MeasurementInput): Measurement {
       : null;
 
   const limits: string[] = [
-    'This compares feedback before and after the change. It cannot show that the change caused the difference — nothing RepOS can see would prove that.',
+    'This compares feedback before and after the change. It cannot show that the change caused the difference — nothing Headway can see would prove that.',
   ];
   if (betweenCount > 0) {
     limits.push(
@@ -211,7 +211,7 @@ export function measureAction(input: MeasurementInput): Measurement {
     const why: string[] = [];
     if (thinBefore) {
       why.push(
-        `The baseline rests on ${before.total} read ${before.total === 1 ? 'review' : 'reviews'}, under the ${MIN_FEEDBACK_TO_MEASURE} RepOS needs before quoting a share.`,
+        `The baseline rests on ${before.total} read ${before.total === 1 ? 'review' : 'reviews'}, under the ${MIN_FEEDBACK_TO_MEASURE} Headway needs before quoting a share.`,
       );
     }
     if (thinAfter) {
@@ -256,8 +256,8 @@ export function measureAction(input: MeasurementInput): Measurement {
   const why = [
     comparison,
     moved
-      ? `The share moved by ${formatShare(Math.abs(shareDelta as number))}, past the ${formatShare(MIN_SHARE_MOVE)} RepOS needs before calling a direction.`
-      : `The share moved by ${formatShare(Math.abs(shareDelta ?? 0))}, under the ${formatShare(MIN_SHARE_MOVE)} RepOS needs before calling a direction.`,
+      ? `The share moved by ${formatShare(Math.abs(shareDelta as number))}, past the ${formatShare(MIN_SHARE_MOVE)} Headway needs before calling a direction.`
+      : `The share moved by ${formatShare(Math.abs(shareDelta ?? 0))}, under the ${formatShare(MIN_SHARE_MOVE)} Headway needs before calling a direction.`,
   ];
 
   if (!moved) {

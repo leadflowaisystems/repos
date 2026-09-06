@@ -94,7 +94,7 @@ export function describeAccount(input: {
   let line: string;
   if (state === 'PAUSED') {
     line =
-      'Your account is paused. Feedback is still being collected and kept — RepOS will read it when the account is resumed.';
+      'Your account is paused. Feedback is still being collected and kept — Headway will read it when the account is resumed.';
   } else if (state === 'CANCELLED') {
     line =
       'This account is closed. Everything already collected is kept and nothing new is being read.';

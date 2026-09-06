@@ -204,7 +204,7 @@ function loadAll(): Map<string, Pack> {
     files = readdirSync(PACKS_DIR).filter((f) => f.endsWith('.json'));
   } catch {
     throw new Error(
-      `RepOS could not read the packs directory at ${PACKS_DIR}. Vertical playbooks are required.`,
+      `Headway could not read the packs directory at ${PACKS_DIR}. Vertical playbooks are required.`,
     );
   }
 

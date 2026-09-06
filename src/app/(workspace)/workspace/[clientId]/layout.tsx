@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
-import { WorkspaceHeader } from '@/components/portal/workspace';
+import { WorkspaceFooter, WorkspaceHeader } from '@/components/portal/workspace';
 import { SignOutButton } from '@/components/sign-out';
 import { currentActor } from '@/lib/auth/authorize';
 import { tenantGateFor } from '@/lib/auth/guard';
@@ -67,13 +67,18 @@ export default async function WorkspaceLayout({
         signOut={<SignOutButton variant="inline" />}
       />
       {paused ? (
-        <p className="mb-6 rounded-xl border border-warn-200 bg-warn-50 px-4 py-3 text-[14px] leading-relaxed text-warn-700">
+        <p className="mb-6 border-l-2 border-warn-600 bg-warn-50 px-4 py-3 text-[14px] leading-relaxed text-ink-800">
           This account is paused. Your customers can still leave feedback and it is all being
-          kept — RepOS starts reading it again as soon as the account is resumed. Nothing
+          kept — Headway starts reading it again as soon as the account is resumed. Nothing
           already collected has changed.
         </p>
       ) : null}
-      {children}
+      {/* One <main> for every page under here, rather than four pages
+          remembering to bring their own and five forgetting. The header and the
+          footer sit outside it, which is what makes "skip to content" mean
+          something. */}
+      <main>{children}</main>
+      <WorkspaceFooter businessName={client.businessName} />
     </>
   );
 }

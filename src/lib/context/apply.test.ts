@@ -88,7 +88,7 @@ describe('context is attributed to the owner, always', () => {
       'You told us: Friday and Saturday evenings are much busier.',
     );
     expect(youToldUs(item('CONSTRAINT', 'No discounts please', { constraintKey: 'DISCOUNT' }))).toBe(
-      'You told us: no discounts please. RepOS will not suggest a discount or offer.',
+      'You told us: no discounts please. Headway will not suggest a discount or offer.',
     );
     expect(youToldUs(item('CONSTRAINT', 'Nothing that needs a licence', { constraintKey: 'OTHER' }))).toBe(
       'You told us: nothing that needs a licence.',

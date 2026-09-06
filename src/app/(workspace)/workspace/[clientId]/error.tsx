@@ -22,7 +22,7 @@ export default function WorkspaceError({ reset }: { error: Error & { digest?: st
         This page could not be shown just now.
       </h1>
       <p className="mt-2 text-[14px] leading-relaxed text-ink-600">
-        Your feedback and everything RepOS has read are safe. Try again in a moment, or go back to
+        Your feedback and everything Headway has read are safe. Try again in a moment, or go back to
         Home.
       </p>
       <div className="mt-6 flex flex-wrap gap-3">

@@ -269,7 +269,7 @@ export function summariseDistribution(feedback: StoredFeedback[]): Distribution 
     reliable,
     note: reliable
       ? `Based on ${total} stored feedback items.`
-      : `Only ${total} feedback item${total === 1 ? '' : 's'} stored — below the ${MIN_FEEDBACK_FOR_SHARE_CLAIMS} needed before RepOS treats a share as meaningful.`,
+      : `Only ${total} feedback item${total === 1 ? '' : 's'} stored — below the ${MIN_FEEDBACK_FOR_SHARE_CLAIMS} needed before Headway treats a share as meaningful.`,
   };
 }
 
@@ -469,7 +469,7 @@ export function computeTrend(snapshots: StoredSnapshot[]): Trend {
     available: true,
     reason:
       moving.length === 0
-        ? `Nothing moved by more than the thresholds RepOS requires, across ${comparable.length} comparable measurement${comparable.length === 1 ? '' : 's'}.`
+        ? `Nothing moved by more than the thresholds Headway requires, across ${comparable.length} comparable measurement${comparable.length === 1 ? '' : 's'}.`
         : moving.map((m) => m.note).join(' '),
     metrics,
     comparedSnapshotIds: [current.id, previous.id],
@@ -764,7 +764,7 @@ export function computePulse(input: HealthInput): Pulse {
   if (!currentSnapshot) {
     return {
       available: false,
-      reason: 'No check-in recorded yet. Once two are on record, RepOS can say which way things are moving.',
+      reason: 'No check-in recorded yet. Once two are on record, Headway can say which way things are moving.',
       direction: 'NONE',
       directionLabel: TREND_LABELS.NONE,
       current: null,
@@ -842,7 +842,7 @@ export function computePulse(input: HealthInput): Pulse {
     metrics,
     notableChanges,
     sampleWarning: tooSmall
-      ? `Small samples: ${previous.feedbackCount} feedback item${previous.feedbackCount === 1 ? '' : 's'} in the previous period and ${current.feedbackCount} in the current one. RepOS needs ${MIN_FEEDBACK_FOR_TREND_CLAIMS} on both sides before treating a change in feedback as a trend — read these as counts, not as a pattern.`
+      ? `Small samples: ${previous.feedbackCount} feedback item${previous.feedbackCount === 1 ? '' : 's'} in the previous period and ${current.feedbackCount} in the current one. Headway needs ${MIN_FEEDBACK_FOR_TREND_CLAIMS} on both sides before treating a change in feedback as a trend — read these as counts, not as a pattern.`
       : null,
   };
 }

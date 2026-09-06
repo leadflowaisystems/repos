@@ -45,7 +45,7 @@ export async function GET(
   if (!url) {
     return new NextResponse(
       view.addressError ??
-        'RepOS does not know what address a customer would open, so there is no card to print yet.',
+        'Headway does not know what address a customer would open, so there is no card to print yet.',
       { status: 409, headers: { 'Content-Type': 'text/plain; charset=utf-8' } },
     );
   }

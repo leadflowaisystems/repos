@@ -146,7 +146,7 @@ export function ClientForm({
         />
         <CardBody className="space-y-4">
           <Notice tone="neutral">
-            RepOS never opens or fetches these links, and never connects to any
+            Headway never opens or fetches these links, and never connects to any
             platform account. They are here so you can click through manually
             when you go and look.
           </Notice>
@@ -164,7 +164,7 @@ export function ClientForm({
               type="url"
               defaultValue={values.reviewLinkUrl}
               placeholder="https://…"
-              hint="Paste the link the owner already has. RepOS does not generate one."
+              hint="Paste the link the owner already has. Headway does not generate one."
             />
           </FormGrid>
         </CardBody>
@@ -178,7 +178,7 @@ export function ClientForm({
         <CardBody className="space-y-4">
           <Notice tone="warn">
             Owner details only. Never store an end customer&rsquo;s name, phone
-            number or email anywhere in RepOS.
+            number or email anywhere in Headway.
           </Notice>
           <FormGrid cols={3}>
             <TextField
@@ -247,7 +247,7 @@ export function ClientForm({
         />
         <CardBody className="space-y-4">
           <Notice tone="neutral">
-            Enter only what you actually saw. Blank means not observed — RepOS
+            Enter only what you actually saw. Blank means not observed — Headway
             will say so in the report rather than guess.
           </Notice>
           <FormGrid cols={3}>

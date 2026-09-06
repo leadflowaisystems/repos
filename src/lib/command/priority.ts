@@ -194,7 +194,7 @@ export function prioritySignals(input: PriorityInput): PrioritySignal[] {
     signals.push({
       key: 'needs_you',
       weight: 30,
-      reason: `${input.feedback.needsYou} review${input.feedback.needsYou === 1 ? '' : 's'} RepOS will not answer — ${input.feedback.needsYou === 1 ? 'it needs' : 'they need'} your own words.`,
+      reason: `${input.feedback.needsYou} review${input.feedback.needsYou === 1 ? '' : 's'} Headway will not answer — ${input.feedback.needsYou === 1 ? 'it needs' : 'they need'} your own words.`,
     });
   }
 
@@ -242,7 +242,7 @@ export function prioritySignals(input: PriorityInput): PrioritySignal[] {
     signals.push({
       key: 'unread_feedback',
       weight: 12,
-      reason: `${input.feedback.unread} piece${input.feedback.unread === 1 ? '' : 's'} of feedback RepOS has not read yet.`,
+      reason: `${input.feedback.unread} piece${input.feedback.unread === 1 ? '' : 's'} of feedback Headway has not read yet.`,
     });
   }
 
@@ -393,7 +393,7 @@ export function nextActionFor(input: PriorityInput): NextAction {
     return {
       key: 'DECIDE_ACTION',
       label: `Get a decision on ${input.actions.awaitingDecision}`,
-      detail: 'RepOS suggested a change. Record what the business decided.',
+      detail: 'Headway suggested a change. Record what the business decided.',
       href: `${base}#actions`,
     };
   }
@@ -404,7 +404,7 @@ export function nextActionFor(input: PriorityInput): NextAction {
     return {
       key: 'SEND_OWNER_LINK',
       label: 'Send the owner their link',
-      detail: 'RepOS has something to show them and nobody has the address yet.',
+      detail: 'Headway has something to show them and nobody has the address yet.',
       href: base,
     };
   }

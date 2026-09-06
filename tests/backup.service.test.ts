@@ -153,7 +153,7 @@ describe('listing what has been taken', () => {
     expect(listed.dir).toBe(dir);
   });
 
-  it('ignores files that are not RepOS backups', async () => {
+  it('ignores files that are not Headway backups', async () => {
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, 'notes.txt'), 'not a backup', 'utf8');
     writeFileSync(join(dir, 'something-else.db'), 'not a backup', 'utf8');

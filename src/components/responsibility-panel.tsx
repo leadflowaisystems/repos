@@ -108,7 +108,7 @@ export function ResponsibilityPanel({
           </div>
           <div>
             <p className="mb-1 text-[11px] font-semibold tracking-wide text-ink-500 uppercase">
-              RepOS is carrying
+              Headway is carrying
             </p>
             {carried > 0 ? (
               <ul className="space-y-1">

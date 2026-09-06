@@ -47,7 +47,7 @@ export const kitConfigSchema = z.object({
     .string()
     .refine((v) => v.trim().length === 0 || checkReviewUrl(v).ok, {
       message:
-        'Paste the full public review link, starting with https:// — RepOS never looks it up for you.',
+        'Paste the full public review link, starting with https:// — Headway never looks it up for you.',
     }),
   displayName: z.string().max(80, 'Keep the printed name short.'),
   headline: z.string().max(120, 'Keep the headline short enough to read at a glance.'),
@@ -86,8 +86,11 @@ export type KitView = {
   kitInstalledDate: Date | null;
 };
 
-const DEFAULT_PRIMARY = '#1F3A5F';
-const DEFAULT_SECONDARY = '#C9A227';
+// Headway's own two colours. A business that has set its own keeps them: the
+// card is theirs and carries their name, and Headway is the small mark at the
+// bottom. These are the default, not the rule.
+const DEFAULT_PRIMARY = '#102A43';
+const DEFAULT_SECONDARY = '#B78A3B';
 
 /**
  * Everything the kit page needs, resolved through the vertical pack.

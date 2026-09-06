@@ -458,7 +458,7 @@ export function buildPdf(
   );
   object(
     3,
-    `<< /Producer (RepOS) /Creator (RepOS)${options.title ? ` /Title ${pdfString(options.title)}` : ''} >>`,
+    `<< /Producer (Headway) /Creator (Headway)${options.title ? ` /Title ${pdfString(options.title)}` : ''} >>`,
   );
 
   pages.forEach((page, i) => {

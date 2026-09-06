@@ -6,7 +6,7 @@ import { requireOperator } from '@/lib/auth/guard';
 import '../globals.css';
 
 export const metadata: Metadata = {
-  title: 'RepOS',
+  title: 'Headway',
   description:
     'Local-first customer intelligence operating system. Internal operator tool.',
   robots: { index: false, follow: false },

@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import '../globals.css';
 
 export const metadata: Metadata = {
-  title: 'Sign in · RepOS',
+  title: 'Sign in · Headway',
   robots: { index: false, follow: false },
 };
 

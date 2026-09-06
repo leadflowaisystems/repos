@@ -246,10 +246,10 @@ export function evidenceTier(reviewCount: number): EvidenceTier {
 
 function evidenceStatement(tier: EvidenceTier, n: number): string {
   if (tier === 'INSUFFICIENT') {
-    return `Only ${n} review${n === 1 ? '' : 's'} analysed. That is below the ${TIER_LIMITED_MIN}-review floor RepOS requires before calling anything a pattern, so no Customer Pulse theme is claimed this month.`;
+    return `Only ${n} review${n === 1 ? '' : 's'} analysed. That is below the ${TIER_LIMITED_MIN}-review floor Headway requires before calling anything a pattern, so no Customer Pulse theme is claimed this month.`;
   }
   if (tier === 'LIMITED') {
-    return `${n} reviews analysed. Themes are reported only where at least ${MIN_MENTIONS_FOR_THEME} reviews mention them. Below ${TIER_STANDARD_MIN} reviews RepOS does not make trend claims.`;
+    return `${n} reviews analysed. Themes are reported only where at least ${MIN_MENTIONS_FOR_THEME} reviews mention them. Below ${TIER_STANDARD_MIN} reviews Headway does not make trend claims.`;
   }
   return `${n} reviews analysed. Themes are reported only where at least ${MIN_MENTIONS_FOR_THEME} reviews mention them. Trend claims are made only against comparable historical data.`;
 }
@@ -587,7 +587,7 @@ export function aggregate(input: AggregateInput): AnalysisResult {
     if (!themeTrendAllowed) {
       themeTrendBlockedReason =
         tier !== 'STANDARD'
-          ? `This month has ${total} reviews. RepOS requires ${TIER_STANDARD_MIN}+ on both sides before comparing themes over time.`
+          ? `This month has ${total} reviews. Headway requires ${TIER_STANDARD_MIN}+ on both sides before comparing themes over time.`
           : `The previous snapshot analysed ${previous.totalReviewsAnalysed} reviews, below the ${TIER_STANDARD_MIN} needed to compare themes over time.`;
     }
 
@@ -866,7 +866,7 @@ export function aggregate(input: AggregateInput): AnalysisResult {
       confidence: tier === 'INSUFFICIENT' ? 'INSUFFICIENT' : 'LOW',
       caveat:
         tier === 'INSUFFICIENT'
-          ? `RepOS will not invent a pattern from ${total} review${total === 1 ? '' : 's'}.`
+          ? `Headway will not invent a pattern from ${total} review${total === 1 ? '' : 's'}.`
           : 'No theme cleared the evidence floor, so this action comes from the Health Card side.',
     };
   }

@@ -90,7 +90,7 @@ describe('working out the one address to use', () => {
     expect(resolved).toMatchObject({ ok: true, url: 'https://saved.example.com', source: 'SETTING' });
   });
 
-  it('falls back to the address RepOS was opened on, in development only', () => {
+  it('falls back to the address Headway was opened on, in development only', () => {
     const resolved = resolvePublicBaseUrl({
       setting: null,
       requestOrigin: 'http://192.168.1.7:3000',

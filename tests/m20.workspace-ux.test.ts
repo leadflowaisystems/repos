@@ -47,10 +47,10 @@ describe('every piece of feedback', () => {
   const ui = code(read('components', 'portal', 'portal-ui.tsx'));
   const row = between(ui, 'export function ReviewRow(', 'export function RatingStrip(');
 
-  it('separates what the customer gave from what RepOS understood', () => {
+  it('separates what the customer gave from what Headway understood', () => {
     expect(row).toContain('Customer gave');
-    expect(row).toContain('RepOS understood');
-    expect(row.indexOf('Customer gave')).toBeLessThan(row.indexOf('RepOS understood'));
+    expect(row).toContain('Headway understood');
+    expect(row.indexOf('Customer gave')).toBeLessThan(row.indexOf('Headway understood'));
   });
 
   it('shows the overall stars, each part rated out of 5, the selected specifics and the words', () => {
@@ -68,20 +68,20 @@ describe('every piece of feedback', () => {
     expect(row).toContain('Nothing written — the ratings above are the whole message.');
   });
 
-  it('keeps the themes on the RepOS side, joined as a reading', () => {
-    const understood = row.slice(row.indexOf('RepOS understood'));
+  it('keeps the themes on the Headway side, joined as a reading', () => {
+    const understood = row.slice(row.indexOf('Headway understood'));
     expect(understood).toContain("{item.state === 'ANALYSED' ? (");
     expect(understood).toContain("item.themes.join(' · ')");
-    expect(understood).toContain('Nothing here matched a theme RepOS tracks.');
+    expect(understood).toContain('Nothing here matched a theme Headway tracks.');
     expect(understood).toContain('in tone');
     expect(understood).toContain('Sorted as');
   });
 
   it('tells the four states apart: read, being read, waiting, could not read', () => {
-    const understood = row.slice(row.indexOf('RepOS understood'));
-    expect(understood).toContain('RepOS is reading this now.');
-    expect(understood).toContain('Waiting for RepOS to read it — usually within a minute of arriving.');
-    expect(understood).toContain('RepOS could not read this one yet. It will try again on its own.');
+    const understood = row.slice(row.indexOf('Headway understood'));
+    expect(understood).toContain('Headway is reading this now.');
+    expect(understood).toContain('Waiting for Headway to read it — usually within a minute of arriving.');
+    expect(understood).toContain('Headway could not read this one yet. It will try again on its own.');
     expect(understood).not.toContain('Not read yet');
   });
 });
@@ -101,16 +101,16 @@ describe('the reviews page', () => {
   });
 
   it('is hopeful before the first customer, never empty', () => {
-    expect(page).toContain('Your first customer signals will appear here. RepOS is ready.');
+    expect(page).toContain('Your first customer signals will appear here. Headway is ready.');
     expect(page).not.toContain('No feedback has been collected yet');
     expect(page).not.toMatch(/No data/i);
   });
 
-  it('opens with the counts that matter and says when RepOS is still reading', () => {
+  it('opens with the counts that matter and says when Headway is still reading', () => {
     expect(page).toContain('<StatusStrip');
-    expect(page).toContain("{ label: 'read by RepOS', value: view.analysed }");
+    expect(page).toContain("{ label: 'read by Headway', value: view.analysed }");
     expect(page).toContain("{ label: 'being read now', value: inHand, tone: 'warn' as const }");
-    expect(page).toContain('Feedback has arrived and RepOS is reading it now');
+    expect(page).toContain('Feedback has arrived and Headway is reading it now');
   });
 
   it('lays the filters out as a grid, never a sideways scroll', () => {
@@ -198,18 +198,63 @@ describe('home, as an owner briefing', () => {
     expect(home).toContain("r.watching.filter((i) => i.state === 'KEEP_DOING')");
     expect(home).toContain("r.watching.filter((i) => i.state !== 'KEEP_DOING')");
     expect(home).toContain('eyebrow="Going well"');
-    expect(home).toContain('eyebrow="RepOS is watching"');
-    expect(home.indexOf('eyebrow="Needs you"')).toBeLessThan(home.indexOf('eyebrow="Going well"'));
-    expect(home.indexOf('eyebrow="Going well"')).toBeLessThan(
-      home.indexOf('eyebrow="RepOS is watching"'),
+    // What Headway is carrying is no longer a list in the margin: it is the
+    // panel beside the decision, so "no, nothing today" arrives with the
+    // reason to believe it. The overflow, if there is any, keeps the margin.
+    expect(home).toContain('<WatchingPanel items={watching} basePath={basePath} />');
+    expect(home).toContain('eyebrow="Also being watched"');
+  });
+
+  it('answers the four questions in the order an owner asks them', () => {
+    // The hierarchy IS the design. Anything that reorders these blocks is
+    // changing what an owner reads first, which is not a styling decision.
+    const order = [
+      '<Picture mood={view.mood}',                       // right now
+      '<FactsLine facts={view.facts} />',                // direction and rating
+      '<SinceVisit since={since}',                       // what changed while away
+      '<Answer r={r} basePath={basePath} />',            // do I need to do anything
+      '<WatchingPanel items={watching}',                 // what is being carried
+      'eyebrow="Needs you"',                             // the thing itself
+      '<Tallies tallies={tallies} />',                   // the supporting figures
+      '<Limits limits={r.limitations} />',               // what we cannot tell you
+    ];
+    const at = order.map((token) => {
+      const i = home.indexOf(token);
+      expect(i, token).toBeGreaterThan(-1);
+      return i;
+    });
+    expect(at).toEqual([...at].sort((a, b) => a - b));
+  });
+
+  it('pairs the decision with what is being carried, and stacks them on a phone', () => {
+    expect(home).toContain(
+      'grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-5',
+    );
+    expect(home).toContain('<aside');
+    expect(home.indexOf('<Answer r={r} basePath={basePath} />')).toBeLessThan(
+      home.indexOf('<aside'),
     );
   });
 
-  it('is laid out once and adapted: one column on a phone, two on a laptop, main first', () => {
-    expect(home).toContain('grid grid-cols-1 gap-x-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]');
-    expect(home).toContain('<aside');
-    expect(home.indexOf('<Answer r={r} basePath={basePath} />')).toBeLessThan(home.indexOf('<aside'));
-    expect(home.indexOf('eyebrow="RepOS is watching"')).toBeGreaterThan(home.indexOf('<aside'));
+  it('puts the figures below the answer, never above it', () => {
+    // An earlier version opened with arithmetic. The owner met a row of
+    // numbers before meeting the sentence they were meant to support.
+    expect(home.indexOf('<Picture mood={view.mood}')).toBeLessThan(
+      home.indexOf('<Tallies tallies={tallies} />'),
+    );
+    expect(home.indexOf('<Answer r={r} basePath={basePath} />')).toBeLessThan(
+      home.indexOf('<Tallies tallies={tallies} />'),
+    );
+  });
+
+  it('builds its figures from a module that can be tested without React', () => {
+    // The rules about what may honestly be shown live in
+    // src/lib/portal/tallies.ts, asserted behaviourally in
+    // tests/m22.headway-identity.test.ts. Inline in this page they could only
+    // ever be grepped for, and two of them were wrong.
+    expect(home).toContain("import { talliesFor } from '@/lib/portal/tallies'");
+    expect(home).toContain('const tallies = talliesFor(view, basePath);');
+    expect(home).not.toMatch(/\+\d+%/);
   });
 
   it('shows the first customers\' signals before anything is a pattern, and never a blank', () => {
@@ -239,7 +284,7 @@ describe('home, as an owner briefing', () => {
 
   it('calls the check-in thread progress, and stays hopeful before the first customer', () => {
     expect(home).toContain('note="Your progress"');
-    expect(home).toContain('Your first customer signals will appear here. RepOS is ready');
+    expect(home).toContain('Your first customer signals will appear here. Headway is ready');
     expect(home).not.toMatch(/No data/i);
   });
 });
@@ -249,7 +294,7 @@ describe('one word for one idea', () => {
 
   it('says Watching wherever a theme is being watched', () => {
     expect(ui).toContain("watch: 'Watching',");
-    expect(ui).not.toContain('RepOS will watch');
+    expect(ui).not.toContain('Headway will watch');
     expect(ui).not.toContain("'Watch this'");
   });
 

@@ -16,7 +16,7 @@ export default function AppError({ reset }: { error: Error & { digest?: string }
     <div className="mx-auto max-w-xl py-16">
       <h1 className="text-[20px] font-semibold text-ink-900">Something went wrong.</h1>
       <p className="mt-2 text-[14px] leading-relaxed text-ink-600">
-        Nothing was lost — RepOS could not finish drawing this page. Try again, and if it keeps
+        Nothing was lost — Headway could not finish drawing this page. Try again, and if it keeps
         happening, take a backup before doing anything else.
       </p>
       <div className="mt-6">

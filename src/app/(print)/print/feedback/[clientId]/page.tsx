@@ -40,8 +40,8 @@ export default async function PrintFeedbackCardPage({
         </p>
         <p className="mt-2 text-[13px] leading-relaxed text-ink-600">
           {view.baseUrlError ??
-            'RepOS does not know what address a customer would open.'}{' '}
-          Until that is set, a printed QR would open nothing — so RepOS has not made one.
+            'Headway does not know what address a customer would open.'}{' '}
+          Until that is set, a printed QR would open nothing — so Headway has not made one.
         </p>
       </div>
     );

@@ -10,6 +10,7 @@ import {
   Quiet,
   Section,
   SoFar,
+  Tallies,
   ThemeRows,
 } from '@/components/portal/portal-ui';
 import {
@@ -18,35 +19,39 @@ import {
   SinceThen,
   StrengthsList,
   WatchingList,
+  WatchingPanel,
 } from '@/components/portal/responsibility';
 import { SinceVisit } from '@/components/workspace/since-visit';
 import type { SinceLastVisit } from '@/lib/retention/service';
+import { talliesFor } from '@/lib/portal/tallies';
 
 /**
- * HOME — what should I know, and do I need to do anything? (M12 + M15)
+ * HOME — the briefing.
  *
- * Four questions, answered in the first screen and routed deeper:
+ * An owner gives this page five seconds standing behind a counter. In that time
+ * it has to answer four questions, in this order and no other:
  *
- *   1. What is happening with customers right now?   the picture
- *   2. Do I need to do anything?                      the answer, and the one thing
- *   3. What is RepOS watching?                        the side column
- *   4. What is still too early to know?               the limits
+ *   RIGHT NOW               what are my customers saying?
+ *   DO I NEED TO DO ANYTHING?   one decision, or an honest no
+ *   HEADWAY IS WATCHING     what is being carried, so the no is believable
+ *   NEEDS YOU               the thing itself, if there is one
+ *   WHAT CUSTOMERS SAID     the evidence under all of it
+ *   WHAT WE CANNOT TELL YOU the limits, stated rather than implied
  *
- * Every theme appears once, under the state that explains why it is here.
- * The full reading is on Customers; the loop is on Improvements; the words
- * are on Reviews; the movement is on Check-in. Home summarises and points.
+ * The order is the whole design. An earlier version put the figures at the top
+ * and the decision below the fold, which meant the first thing an owner saw was
+ * arithmetic and the last thing was the point.
  *
- * Laid out once and adapted, not written twice: on a phone the main column
- * comes first and the side column follows; on a laptop they sit together.
+ * IT IS A BRIEFING, NOT AN ARTICLE. Every block is scannable: an eyebrow, a
+ * conclusion, and at most two supporting lines. The long reading lives on
+ * Customers, the words on Reviews, the loop on Improvements, the movement on
+ * Check-in. Home summarises and points.
+ *
+ * Laid out once and adapted: on a phone the decision comes first and what
+ * Headway is carrying follows it; on a laptop they sit side by side, which is
+ * the pairing that makes "no, nothing today" trustworthy rather than thin.
  */
-/**
- * The home page, as one implementation behind two doors (M20).
- *
- * Reached either through the owner's secret link (/portal/[token]) or through
- * an authenticated workspace (/workspace/[clientId]). Both resolve to a client
- * id first and neither is trusted here: whoever renders this has already
- * decided the caller may see this business.
- */
+
 export async function PortalHome({
   clientId,
   basePath,
@@ -88,32 +93,47 @@ export async function PortalHome({
   const reading = view.basedOn === 0 && view.soFar.waiting > 0;
   const showSoFar = !named && (view.basedOn > 0 || reading);
 
+  const tallies = talliesFor(view, basePath);
+
   return (
     <>
       <Picture mood={view.mood} summary={view.summary} basis={view.basis} />
       <FactsLine facts={view.facts} />
       {since ? <SinceVisit since={since} basePath={basePath} /> : null}
 
-      <div className="grid grid-cols-1 gap-x-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      {/* The pairing. One decision, and the reason to trust it. */}
+      {/* items-start, so each card is as tall as what it holds. Stretched to
+          match, the shorter one ends in a panel of empty white that reads as a
+          missing paragraph. */}
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-5">
+        <Answer r={r} basePath={basePath} />
+        {watching.length > 0 ? <WatchingPanel items={watching} basePath={basePath} /> : null}
+      </div>
+
+      {r.needsYou.length > 0 ? (
+        <Section eyebrow="Needs you">
+          {/* A measure, not the container width. At 1366 the container is a
+              thousand pixels across and a sentence set to it runs past a
+              hundred and twenty characters, which is a paragraph nobody
+              finishes. The empty space to the right is the point. */}
+          <div className="max-w-3xl">
+            {r.needsYou.map((item, index) => (
+              <NeedsYouItem
+                key={item.id}
+                item={item}
+                signal={item.themeKey ? (signalByTheme.get(item.themeKey) ?? null) : null}
+                basePath={basePath}
+                lead={index === 0}
+              />
+            ))}
+          </div>
+        </Section>
+      ) : null}
+
+      <Tallies tallies={tallies} />
+
+      <div className="mt-10 grid grid-cols-1 items-start gap-x-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="min-w-0">
-          <Answer r={r} basePath={basePath} />
-
-          {r.needsYou.length > 0 ? (
-            <Section eyebrow="Needs you">
-              <div>
-                {r.needsYou.map((item, index) => (
-                  <NeedsYouItem
-                    key={item.id}
-                    item={item}
-                    signal={item.themeKey ? (signalByTheme.get(item.themeKey) ?? null) : null}
-                    basePath={basePath}
-                    lead={index === 0}
-                  />
-                ))}
-              </div>
-            </Section>
-          ) : null}
-
           {showSoFar ? (
             <Section
               eyebrow="What customers are mentioning so far"
@@ -130,7 +150,7 @@ export async function PortalHome({
           ) : null}
 
           {view.question ? (
-            <Section eyebrow="What RepOS needs from you">
+            <Section eyebrow="What Headway needs from you">
               <Question q={view.question} />
             </Section>
           ) : null}
@@ -138,18 +158,18 @@ export async function PortalHome({
           {view.basedOn === 0 && !reading ? (
             <Section eyebrow="What customers are telling you">
               <Quiet>
-                Your first customer signals will appear here. RepOS is ready — once feedback starts
-                arriving through your QR code, this page will say what matters and whether anything
-                needs you.
+                Your first customer signals will appear here. Headway is ready — once feedback
+                starts arriving through your QR code, this page will say what matters and whether
+                anything needs you.
               </Quiet>
             </Section>
           ) : null}
         </div>
 
         <aside className="min-w-0 lg:border-l lg:border-ink-200 lg:pl-8">
-          {watching.length > 0 ? (
-            <Section eyebrow="RepOS is watching">
-              <WatchingList items={watching} basePath={basePath} />
+          {watching.length > 1 ? (
+            <Section eyebrow="Also being watched">
+              <WatchingList items={watching.slice(1)} basePath={basePath} />
             </Section>
           ) : null}
 
@@ -160,7 +180,7 @@ export async function PortalHome({
           ) : null}
 
           {view.knows.length > 0 ? (
-            <Section eyebrow="What RepOS knows about your business" note="In your words">
+            <Section eyebrow="What Headway knows about your business" note="In your words">
               <Knows items={view.knows} basePath={basePath} />
             </Section>
           ) : null}
@@ -180,11 +200,6 @@ export async function PortalHome({
           <Limits limits={r.limitations} />
         </aside>
       </div>
-
-      <p className="mt-10 max-w-3xl border-t border-ink-200 pt-5 text-[12px] leading-relaxed text-ink-400">
-        Prepared for {view.businessName} from the feedback your customers have left. Every theme
-        links to the comments it came from.
-      </p>
     </>
   );
 }

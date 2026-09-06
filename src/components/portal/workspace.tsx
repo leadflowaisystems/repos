@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
+import { HeadwayWordmark, HEADWAY_CUSTOMER_LINE } from '@/components/brand';
 
 /**
  * WORKSPACE CHROME (M12).
@@ -74,19 +75,18 @@ export function WorkspaceHeader({
 
   return (
     <header className="mb-6 sm:mb-8">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <div className="min-w-0">
-          <p className="truncate text-[15px] font-semibold tracking-tight text-ink-900">
-            {businessName}
-          </p>
-          <p className="text-[12px] text-ink-500">{verticalLabel}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <p className="hidden text-[11px] font-medium tracking-widest text-ink-400 uppercase sm:block">
-            Prepared by RepOS
-          </p>
-          {signOut}
-        </div>
+      {/* Whose software this is, then whose business it is about. Two rows
+          rather than one, because on a phone a wordmark and a business name
+          fighting for the same line makes both of them small. */}
+      <div className="flex items-center justify-between gap-4">
+        <HeadwayWordmark markClassName="h-6 w-6" nameClassName="text-[17px]" />
+        {signOut}
+      </div>
+      <div className="mt-3 min-w-0">
+        <h1 className="truncate text-[20px] leading-tight font-semibold tracking-tight text-ink-900 sm:text-[22px]">
+          {businessName}
+        </h1>
+        <p className="mt-0.5 text-[13px] text-ink-500">{verticalLabel}</p>
       </div>
 
       {/* The doors, always on screen. On a phone they wrap into rows
@@ -95,7 +95,7 @@ export function WorkspaceHeader({
           scrolls, so "where am I" and "where else can I go" never leave. */}
       <nav
         aria-label="Sections"
-        className="-mx-4 mt-3 border-b border-ink-200 bg-ink-50/95 px-4 backdrop-blur sm:sticky sm:top-0 sm:z-30 sm:mx-0 sm:px-0"
+        className="-mx-4 mt-4 border-b border-ink-200 bg-ink-50/95 px-4 backdrop-blur sm:sticky sm:top-0 sm:z-30 sm:mx-0 sm:px-0"
       >
         <ul className="flex flex-wrap gap-x-1">
           {SECTIONS.filter((s) => showExtras || !s.extra).map((s) => {
@@ -121,5 +121,33 @@ export function WorkspaceHeader({
         </ul>
       </nav>
     </header>
+  );
+}
+
+/**
+ * The bar that closes every page.
+ *
+ * Deep navy, edge to edge, and the only place on the surface where the mark
+ * appears a second time. It carries the one sentence that says whose product
+ * this is and who it serves: the customer leads, Headway follows them.
+ *
+ * IT CARRIED A TIMESTAMP FOR AN HOUR. "Last updated" was fed `new Date()` on a
+ * force-dynamic page, so it printed the moment the page rendered, to the
+ * minute, every time. A clock that can only ever say "now" answers nothing, and
+ * this product has already settled what that phrase means elsewhere: it is the
+ * date of the evidence, not of the render. Home says that honestly in
+ * `view.basis`, so the footer says nothing.
+ */
+export function WorkspaceFooter({ businessName }: { businessName: string }) {
+  return (
+    <footer className="on-navy -mx-4 mt-12 bg-ink-950 px-4 py-4 sm:-mx-6 sm:px-6">
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-2">
+        <div className="flex items-center gap-3">
+          <HeadwayWordmark tone="dark" markClassName="h-5 w-5" nameClassName="text-[15px]" />
+          <span className="text-[13px] text-ink-300">{HEADWAY_CUSTOMER_LINE}</span>
+        </div>
+        <p className="text-[12px] text-ink-300">{businessName}</p>
+      </div>
+    </footer>
   );
 }

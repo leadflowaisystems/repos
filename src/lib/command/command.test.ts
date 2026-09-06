@@ -224,7 +224,7 @@ describe('the ordering explains itself', () => {
 
 // ---------------------------------------------------------------------------
 
-describe('the next action is always something RepOS can actually do', () => {
+describe('the next action is always something Headway can actually do', () => {
   const cases: Array<[string, Partial<PriorityInput>, NextActionKey, string]> = [
     [
       'no feedback at all',
@@ -299,7 +299,7 @@ describe('the next action is always something RepOS can actually do', () => {
     expect(action.key).toBe('READ_FEEDBACK');
   });
 
-  it('never invents a workflow state RepOS does not record', () => {
+  it('never invents a workflow state Headway does not record', () => {
     for (const [, overrides] of cases) {
       const action = nextActionFor(input(overrides));
       expect(`${action.label} ${action.detail}`).not.toMatch(
@@ -308,7 +308,7 @@ describe('the next action is always something RepOS can actually do', () => {
     }
   });
 
-  it('only ever links inside RepOS', () => {
+  it('only ever links inside Headway', () => {
     for (const [, overrides] of cases) {
       const action = nextActionFor(input(overrides));
       expect(action.href.startsWith('/')).toBe(true);

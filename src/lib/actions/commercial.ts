@@ -59,7 +59,7 @@ export async function requestPaymentDetailsAction(
 
   revalidateCommercial(clientId);
   return success(
-    'Asked. RepOS will get back to you with what this costs and how to pay, on the details above.',
+    'Asked. Headway will get back to you with what this costs and how to pay, on the details above.',
   );
 }
 
@@ -131,7 +131,7 @@ export async function pauseServiceAction(
 
   revalidateCommercial(clientId);
   return success(
-    'Service paused. Feedback still arrives and is kept; RepOS stops reading it until this is resumed.',
+    'Service paused. Feedback still arrives and is kept; Headway stops reading it until this is resumed.',
   );
 }
 

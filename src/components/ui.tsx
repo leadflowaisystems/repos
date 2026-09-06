@@ -55,8 +55,10 @@ export function CardBody({ children, className }: ComponentProps<'div'>) {
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
 const BUTTON_STYLES: Record<ButtonVariant, string> = {
+  // brand-700, not brand-600: white on #A67C34 is 3.78:1 and this is 13px
+  // label text, which needs 4.5. #8A6529 is 5.28:1 and still unmistakably gold.
   primary:
-    'bg-brand-600 text-white hover:bg-brand-700 disabled:bg-brand-600/50 border-transparent',
+    'bg-brand-700 text-white hover:bg-brand-900 disabled:bg-brand-700/50 border-transparent',
   secondary:
     'bg-white text-ink-800 hover:bg-ink-50 border-ink-300 disabled:text-ink-400',
   ghost:

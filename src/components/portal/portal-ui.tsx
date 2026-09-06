@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import clsx from 'clsx';
+import type { PortalTally } from '@/lib/portal/tallies';
 import type {
   PortalAction,
   PortalAdvice,
@@ -98,7 +99,13 @@ const MOOD_DOT: Record<PortalMood, string> = {
   TOO_EARLY: 'bg-ink-300',
 };
 
-/** The picture, in the largest type on the page. A sentence, not a number. */
+/**
+ * THE PICTURE — the largest type on the page, and a sentence rather than a number.
+ *
+ * Everything below it is support. If an owner reads one thing and closes the
+ * tab, this is the thing, so it gets the width, the weight and the dot that
+ * says in colour what the sentence says in words.
+ */
 export function Picture({
   mood,
   summary,
@@ -116,28 +123,143 @@ export function Picture({
           Right now
         </span>
       </div>
-      <p className="max-w-3xl text-[20px] leading-[1.28] font-semibold tracking-tight text-balance text-ink-900 sm:text-[24px]">
+      <p className="max-w-3xl text-[22px] leading-[1.24] font-semibold tracking-[-0.015em] text-balance text-ink-900 sm:text-[27px]">
         {summary}
       </p>
-      <p className="mt-2.5 text-[13px] text-ink-500">{basis}</p>
+      <p className="mt-3 text-[13px] text-ink-500">{basis}</p>
     </section>
   );
 }
 
-/** Supporting figures on one line. Each says what it counts. */
+/**
+ * The two standing figures, on one rule.
+ *
+ * Direction is the only place on Home where a whole word is coloured, because
+ * "Needs attention" and "Improving" are the two readings an owner acts on
+ * differently. The pill is small and the ground is barely tinted: red here is
+ * a status, not an alarm. Everything else on the strip stays navy.
+ */
+const DIRECTION_PILL: Array<[RegExp, string]> = [
+  [/improving/i, 'border-good-200 bg-good-50 text-good-700'],
+  [/needs attention|worsening/i, 'border-bad-200 bg-bad-50 text-bad-700'],
+  [/steady/i, 'border-ink-200 bg-ink-100 text-ink-700'],
+];
+
+function pillFor(value: string): string | null {
+  for (const [pattern, cls] of DIRECTION_PILL) if (pattern.test(value)) return cls;
+  return null;
+}
+
 export function FactsLine({ facts }: { facts: PortalFact[] }) {
   return (
-    <dl className="mb-8 flex flex-wrap gap-x-6 gap-y-2 border-y border-ink-200 py-3">
-      {facts.map((f) => (
-        <div key={f.label} className="flex items-baseline gap-2">
-          <dt className="text-[11px] tracking-wide text-ink-500 uppercase">{f.label}</dt>
-          <dd className="text-[14px] font-semibold text-ink-900">
-            {f.value}
-            <span className="ml-1.5 text-[11px] font-normal text-ink-400">{f.scope}</span>
-          </dd>
-        </div>
-      ))}
+    <dl className="mb-8 flex flex-wrap items-center gap-x-8 gap-y-3 border-y border-ink-200 py-3.5">
+      {facts.map((f) => {
+        const pill = pillFor(f.value);
+        return (
+          <div key={f.label} className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+            <dt className="text-[11px] font-medium tracking-widest text-ink-500 uppercase">
+              {f.label}
+            </dt>
+            <dd className="flex flex-wrap items-baseline gap-x-2">
+              {pill ? (
+                <span
+                  className={clsx(
+                    'rounded-full border px-2 py-0.5 text-[12px] font-semibold',
+                    pill,
+                  )}
+                >
+                  {f.value}
+                </span>
+              ) : (
+                <span className="text-[16px] font-semibold text-ink-900 tabular-nums">
+                  {f.value}
+                </span>
+              )}
+              <span className="text-[12px] font-normal text-ink-500">{f.scope}</span>
+            </dd>
+          </div>
+        );
+      })}
     </dl>
+  );
+}
+
+/**
+ * THE FOUR FIGURES, AT THE BOTTOM WHERE THEY BELONG.
+ *
+ * How much was read, what the public listing says, the strongest complaint and
+ * the strongest strength. Colour appears only on the last two, only as an icon
+ * and a word, and only because a complaint and a strength are the two things an
+ * owner treats differently. A movement arrow appears ONLY when the engine
+ * actually compared two check-ins — no arrow is invented to make the row look
+ * busy.
+ */
+
+const TALLY_ICON: Record<PortalTally['tone'], string> = {
+  neutral: 'text-ink-400',
+  good: 'text-good-600',
+  bad: 'text-bad-600',
+};
+
+function TallyBody({ tally }: { tally: PortalTally }) {
+  return (
+    <>
+      <div className="flex items-baseline gap-2">
+        <span
+          aria-hidden
+          className={clsx('text-[13px] leading-none', TALLY_ICON[tally.tone])}
+        >
+          {tally.tone === 'good' ? '●' : tally.tone === 'bad' ? '▲' : '○'}
+        </span>
+        <span className="text-[15px] font-semibold tracking-tight text-ink-900">
+          {tally.value}
+        </span>
+      </div>
+      <p className="mt-1 text-[13px] leading-snug text-ink-600">{tally.label}</p>
+      <p className="mt-0.5 flex items-center gap-1 text-[12px] text-ink-500">
+        {tally.movement ? (
+          <span
+            className={clsx(
+              'font-medium',
+              tally.movement === 'up'
+                ? tally.tone === 'bad'
+                  ? 'text-bad-600'
+                  : 'text-good-600'
+                : tally.tone === 'bad'
+                  ? 'text-good-600'
+                  : 'text-bad-600',
+            )}
+          >
+            <span aria-hidden>{tally.movement === 'up' ? '↑' : '↓'}</span>
+            <span className="sr-only">{tally.movement === 'up' ? 'up,' : 'down,'}</span>
+          </span>
+        ) : null}
+        {tally.note}
+      </p>
+    </>
+  );
+}
+
+export function Tallies({ tallies }: { tallies: PortalTally[] }) {
+  if (tallies.length === 0) return null;
+  return (
+    <section className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {tallies.map((t) =>
+        t.href ? (
+          <Link
+            key={t.key}
+            href={t.href}
+            className="min-h-11 rounded-xl border border-ink-200 bg-white p-4 transition-colors hover:border-ink-300 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none"
+          >
+            <TallyBody tally={t} />
+          </Link>
+        ) : (
+          <div key={t.key} className="rounded-xl border border-ink-200 bg-white p-4">
+            <TallyBody tally={t} />
+          </div>
+        ),
+      )}
+    </section>
   );
 }
 
@@ -145,18 +267,31 @@ export function Quiet({ children }: { children: React.ReactNode }) {
   return <p className="text-[14px] leading-relaxed text-ink-500">{children}</p>;
 }
 
+/**
+ * A one-line conclusion behind a coloured rule.
+ *
+ * `bad` exists because `warn` stopped meaning "something is wrong" when the
+ * palette moved: warn is now Headway's own gold emphasis. A check-in whose
+ * summary is that things got worse needs red, and used to get amber.
+ */
 export function Callout({
   tone,
   children,
 }: {
-  tone: 'good' | 'warn' | 'neutral';
+  tone: 'good' | 'bad' | 'warn' | 'neutral';
   children: React.ReactNode;
 }) {
   return (
     <p
       className={clsx(
         'border-l-2 pl-4 text-[15px] leading-relaxed font-medium text-ink-900',
-        tone === 'good' ? 'border-good-600' : tone === 'warn' ? 'border-warn-600' : 'border-ink-300',
+        tone === 'good'
+          ? 'border-good-600'
+          : tone === 'bad'
+            ? 'border-bad-600'
+            : tone === 'warn'
+              ? 'border-warn-600'
+              : 'border-ink-300',
       )}
     >
       {children}
@@ -192,7 +327,7 @@ const LAYER_LABELS: Record<LayerKind, string> = {
   fact: 'Customers say',
   meaning: 'What it means',
   why: 'Why it matters',
-  recommend: 'RepOS recommends',
+  recommend: 'Headway recommends',
   owner: 'You told us',
   next: 'Next',
   watch: 'Watching',
@@ -228,8 +363,8 @@ export function Layer({
 
 const BUCKET_TONE: Record<PortalBucket, string> = {
   FIRST: 'bg-ink-900 text-white',
-  KEEP: 'bg-good-600 text-white',
-  WATCH: 'bg-warn-600 text-white',
+  KEEP: 'bg-good-50 text-good-700 ring-1 ring-good-200 ring-inset',
+  WATCH: 'bg-warn-50 text-warn-700 ring-1 ring-warn-200 ring-inset',
   EARLY: 'bg-ink-100 text-ink-600',
 };
 
@@ -340,7 +475,11 @@ function readingOf(outcome: PortalOutcome): { label: string; tone: string } {
     case 'IMPROVED':
       return { label: 'Less often after the change', tone: 'text-good-700' };
     case 'WORSENED':
-      return { label: 'More often after the change', tone: 'text-warn-700' };
+      // Red, not gold. A theme that came up MORE after a change is the
+      // definition of something getting worse, and gold means Headway is
+      // watching — a different thing entirely. This read as gold for exactly
+      // as long as it took to re-check every use of the token.
+      return { label: 'More often after the change', tone: 'text-bad-700' };
     case 'NO_CLEAR_CHANGE':
       return { label: 'No clear change after the change', tone: 'text-ink-500' };
     default:
@@ -650,8 +789,8 @@ export function Knows({ items, basePath }: { items: PortalKnown[]; basePath: str
         ))}
       </ul>
       <p className="mt-3 text-[12px] leading-relaxed text-ink-500">
-        RepOS keeps this apart from what customers said, and uses it to keep its suggestions
-        practical. Tell your RepOS contact if any of it is no longer true.
+        Headway keeps this apart from what customers said, and uses it to keep its suggestions
+        practical. Tell your Headway contact if any of it is no longer true.
       </p>
     </div>
   );
@@ -673,7 +812,7 @@ export function Question({ q }: { q: PortalQuestion }) {
         ))}
       </ul>
       <p className="mt-2.5 text-[12px] leading-relaxed text-ink-500">
-        Tell your RepOS contact which fits at your next check-in. It is kept on record for the
+        Tell your Headway contact which fits at your next check-in. It is kept on record for the
         recommendations that follow.
       </p>
     </div>
@@ -741,7 +880,7 @@ export function BeforeAfter({ outcome }: { outcome: PortalOutcome }) {
                         ? outcome.result === 'IMPROVED'
                           ? 'bg-good-600'
                           : outcome.result === 'WORSENED'
-                            ? 'bg-warn-600'
+                            ? 'bg-bad-600'
                             : 'bg-ink-400'
                         : 'bg-ink-400',
                     )}
@@ -784,7 +923,7 @@ export function BeforeAfter({ outcome }: { outcome: PortalOutcome }) {
       </dl>
       <details className="mt-2 group">
         <summary className="inline-flex min-h-11 cursor-pointer items-center list-none text-[12px] font-medium text-ink-600 hover:text-ink-900">
-          Why RepOS says this <span aria-hidden>›</span>
+          Why Headway says this <span aria-hidden>›</span>
         </summary>
         <ul className="mt-1.5 space-y-1 border-l-2 border-ink-200 pl-3 text-[12px] leading-relaxed text-ink-600">
           {outcome.why.map((w) => (
@@ -856,7 +995,7 @@ export function ActionStory({ action, basePath }: { action: PortalAction; basePa
 
       {a.returning ? (
         <div className="mt-4">
-          <Callout tone="warn">
+          <Callout tone="bad">
             This improved after your change but is starting to come up more again. Check whether
             the earlier conditions have returned before making another change.
           </Callout>
@@ -868,7 +1007,7 @@ export function ActionStory({ action, basePath }: { action: PortalAction; basePa
           <Step label="The problem" when={a.suggestedAt} done>
             {a.problem}
           </Step>
-          <Step label="RepOS suggested" when={null} done>
+          <Step label="Headway suggested" when={null} done>
             {a.suggested}
           </Step>
           <Step label={declined ? 'Not pursued' : 'You decided'} when={a.decidedAt} done={a.decidedAt !== null}>
@@ -1160,14 +1299,14 @@ export function ReviewRow({ item }: { item: ReviewItem }) {
 
         <div className="border-t border-dashed border-ink-200 pt-3 md:border-t-0 md:border-l md:pt-0 md:pl-6">
           <p className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
-            RepOS understood
+            Headway understood
           </p>
           {item.state === 'ANALYSED' ? (
             <div className="mt-1.5 space-y-1.5 text-[13px] leading-relaxed text-ink-700">
               {item.themes.length > 0 ? (
                 <p className="text-ink-900">{item.themes.join(' · ')}</p>
               ) : (
-                <p className="text-ink-500">Nothing here matched a theme RepOS tracks.</p>
+                <p className="text-ink-500">Nothing here matched a theme Headway tracks.</p>
               )}
               <p className="flex items-center gap-1.5">
                 <span
@@ -1204,10 +1343,10 @@ export function ReviewRow({ item }: { item: ReviewItem }) {
           ) : (
             <p className="mt-1.5 text-[13px] leading-relaxed text-ink-500 italic">
               {item.state === 'PROCESSING'
-                ? 'RepOS is reading this now.'
+                ? 'Headway is reading this now.'
                 : item.state === 'FAILED'
-                  ? 'RepOS could not read this one yet. It will try again on its own.'
-                  : 'Waiting for RepOS to read it — usually within a minute of arriving.'}
+                  ? 'Headway could not read this one yet. It will try again on its own.'
+                  : 'Waiting for Headway to read it — usually within a minute of arriving.'}
             </p>
           )}
         </div>

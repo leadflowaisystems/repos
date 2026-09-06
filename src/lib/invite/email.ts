@@ -80,7 +80,7 @@ export async function deliverInvitation(input: InvitationEmail): Promise<InviteD
     return {
       sent: false,
       reason:
-        'RepOS does not know its own public address yet, so it cannot put a working link in an email. Set it on Settings.',
+        'Headway does not know its own public address yet, so it cannot put a working link in an email. Set it on Settings.',
     };
   }
 

@@ -65,7 +65,7 @@ const THREE = [
 
 // ---------------------------------------------------------------------------
 
-describe('what the owner tells RepOS is kept, in their words, with a date', () => {
+describe('what the owner tells Headway is kept, in their words, with a date', () => {
   it('creates, lists, updates, retires, restores and removes a line', async () => {
     const cafe = await makeClient('Corner Cafe');
     const created = await createContext(db, cafe, THREE[0], { now: NOW });
@@ -181,7 +181,7 @@ describe('the required human test — Corner Cafe', () => {
     expect(after.view.knows.map((k) => k.line)).toEqual([
       'You told us your current focus: slow service is my biggest concern right now.',
       'You told us: Friday and Saturday evenings are much busier than other days.',
-      'You told us: I do not want discount recommendations. RepOS will not suggest a discount or offer.',
+      'You told us: I do not want discount recommendations. Headway will not suggest a discount or offer.',
     ]);
     expect(after.view.first?.ownerPriority).toBe(
       'You told us your current focus: slow service is my biggest concern right now.',

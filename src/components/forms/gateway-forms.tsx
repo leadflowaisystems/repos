@@ -40,7 +40,7 @@ export function PublicReviewUrlForm({
         defaultValue={defaultValue}
         placeholder="https://…"
         autoComplete="off"
-        hint="Open the business's public listing yourself, copy its “write a review” link and paste it here. RepOS never looks it up, never opens it, and never posts to it."
+        hint="Open the business's public listing yourself, copy its “write a review” link and paste it here. Headway never looks it up, never opens it, and never posts to it."
       />
     </ActionForm>
   );
@@ -103,8 +103,8 @@ export function PublicBaseUrlForm({
         autoComplete="off"
         hint={
           fromSetting
-            ? 'Saved by you. Leave it blank and save to go back to the address RepOS is opened on.'
-            : 'Blank means the address RepOS is opened on right now. Save one so the QR stays the same whichever way you open RepOS.'
+            ? 'Saved by you. Leave it blank and save to go back to the address Headway is opened on.'
+            : 'Blank means the address Headway is opened on right now. Save one so the QR stays the same whichever way you open Headway.'
         }
       />
       {suggestions.length > 0 ? (

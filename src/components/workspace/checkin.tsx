@@ -64,7 +64,7 @@ export async function PortalCheckin({
       <PeriodSwitch basePath={basePath} current="checkin" />
 
       <div className="mb-10">
-        <Callout tone={view.worse.length > 0 || view.returning.length > 0 ? 'warn' : moved ? 'good' : 'neutral'}>
+        <Callout tone={view.worse.length > 0 || view.returning.length > 0 ? 'bad' : moved ? 'good' : 'neutral'}>
           {view.movementLine}
         </Callout>
         {view.unchangedNote ? (
@@ -114,7 +114,7 @@ export async function PortalCheckin({
       ) : null}
 
       {view.next.length > 0 ? (
-        <Section eyebrow="What RepOS will look at next">
+        <Section eyebrow="What Headway will look at next">
           <WatchList items={view.next} basePath={basePath} />
         </Section>
       ) : null}
@@ -126,7 +126,7 @@ export async function PortalCheckin({
       ) : null}
 
       {since.did.length > 0 || bundle.responsibility.basedOn > 0 ? (
-        <Section eyebrow={since.sinceLabel} note="What RepOS did">
+        <Section eyebrow={since.sinceLabel} note="What Headway did">
           <SinceThen r={since} />
         </Section>
       ) : null}

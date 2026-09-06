@@ -173,20 +173,20 @@ export async function createBackup(
     if ((env.DATABASE_URL ?? '').trim().startsWith('postgres')) {
       return {
         ok: false,
-        reason: 'Backups are handled by the database provider, not by RepOS.',
+        reason: 'Backups are handled by the database provider, not by Headway.',
         detail:
-          'RepOS runs on PostgreSQL. There is no local database file to copy — ' +
+          'Headway runs on PostgreSQL. There is no local database file to copy — ' +
           'take backups and restore points from the Supabase project dashboard.',
       };
     }
     return {
       ok: false,
-      reason: 'RepOS cannot tell where its own database file is, so it did not copy anything.',
+      reason: 'Headway cannot tell where its own database file is, so it did not copy anything.',
       detail: 'DATABASE_URL is missing or is not a local file: path.',
     };
   }
   if (!existsSync(source)) {
-    return { ok: false, reason: 'The database file is not where RepOS expects it to be.' };
+    return { ok: false, reason: 'The database file is not where Headway expects it to be.' };
   }
 
   const dir = backupDir(env);
@@ -202,7 +202,7 @@ export async function createBackup(
   } catch (error) {
     return {
       ok: false,
-      reason: 'RepOS could not create the backups folder.',
+      reason: 'Headway could not create the backups folder.',
       detail: message(error),
     };
   }

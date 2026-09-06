@@ -221,7 +221,7 @@ describe('an action is created from an insight and freezes it', () => {
 // ---------------------------------------------------------------------------
 
 describe('the human decision is recorded, and it is not the recommendation', () => {
-  it('stores what the business actually decided, alongside what RepOS said', async () => {
+  it('stores what the business actually decided, alongside what Headway said', async () => {
     const clientId = await clinicWithWaitingProblem();
     const actionId = await runLoopToDone(
       clientId,
@@ -651,7 +651,7 @@ describe('the same loop works for every vertical', () => {
 
 // ---------------------------------------------------------------------------
 
-describe('the rest of RepOS knows about the loop', () => {
+describe('the rest of Headway knows about the loop', () => {
   it('never lets an owner update claim a result before it is measured', async () => {
     const clientId = await clinicWithWaitingProblem();
     await runLoopToDone(clientId, 'Reduced evening bookings to five an hour');

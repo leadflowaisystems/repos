@@ -99,7 +99,7 @@ async function world() {
 // ---------------------------------------------------------------------------
 
 describe('the identity chain', () => {
-  it('resolves a Supabase identity to the RepOS user behind it', async () => {
+  it('resolves a Supabase identity to the Headway user behind it', async () => {
     const w = await world();
     const actor = await loadActor(db, 'sb_a');
 
@@ -109,7 +109,7 @@ describe('the identity chain', () => {
     expect(accessibleClientIds(actor!)).toEqual([w.a]);
   });
 
-  it('resolves nothing for an identity RepOS has never seen', async () => {
+  it('resolves nothing for an identity Headway has never seen', async () => {
     await world();
     expect(await loadActor(db, 'sb_forged')).toBeNull();
   });
@@ -141,7 +141,7 @@ describe('the identity chain', () => {
 });
 
 describe('provisioning a user from a verified identity', () => {
-  it('creates the RepOS user on first sign-in', async () => {
+  it('creates the Headway user on first sign-in', async () => {
     const result = await provisionUser(db, { providerId: 'sb_new', email: 'New@Example.com ' });
 
     expect(result.created).toBe(true);

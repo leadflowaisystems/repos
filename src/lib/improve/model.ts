@@ -59,12 +59,12 @@ export const STATUS_LABELS: Record<ActionStatus, string> = {
  * does not carry it.
  */
 export const STATUS_MEANINGS: Record<ActionStatus, string> = {
-  RECOMMENDED: 'RepOS suggested this from the feedback. Nobody has decided yet.',
+  RECOMMENDED: 'Headway suggested this from the feedback. Nobody has decided yet.',
   ACCEPTED: 'The business agreed to make this change. It has not been made yet.',
   DONE: 'The business says the change was made. This is not evidence that it worked.',
   MEASURED:
     'Feedback that arrived after the change has been compared with the baseline.',
-  PAUSED: 'Agreed but on hold. Nothing is waiting on RepOS.',
+  PAUSED: 'Agreed but on hold. Nothing is waiting on Headway.',
   DECLINED: 'The business decided not to do this.',
 };
 
@@ -263,7 +263,7 @@ export function decisionMinute(
     title: `Agreed a change for ${action.themeLabel.toLowerCase()}`.slice(0, 140),
     body: [
       chosen ? `Decided: ${chosen}` : '',
-      action.recommendationText ? `RepOS suggested: ${action.recommendationText}` : '',
+      action.recommendationText ? `Headway suggested: ${action.recommendationText}` : '',
     ]
       .filter(Boolean)
       .join('\n\n'),

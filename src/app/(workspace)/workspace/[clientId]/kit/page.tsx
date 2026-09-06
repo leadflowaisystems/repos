@@ -69,7 +69,7 @@ export default async function WorkspaceKitPage({
   const ready = Boolean(view.content.feedbackUrl);
 
   return (
-    <main>
+    <div>
       <PageIntro
         eyebrow="Print kit"
         title="The card that goes on your tables"
@@ -147,10 +147,10 @@ export default async function WorkspaceKitPage({
         <Section eyebrow="Your sheet">
           <Quiet>
             {view.addressError ??
-              'RepOS does not yet know what address a customer would open, so there is no card to print. The team is setting this up.'}
+              'Headway does not yet know what address a customer would open, so there is no card to print. The team is setting this up.'}
           </Quiet>
         </Section>
       )}
-    </main>
+    </div>
   );
 }

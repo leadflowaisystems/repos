@@ -72,7 +72,7 @@ export default async function CommandCentrePage() {
         <Card>
           <EmptyState
             title="No clients yet"
-            description="Add the business you are working with, paste in the feedback you have collected, and RepOS will tell you what matters and what to do about it."
+            description="Add the business you are working with, paste in the feedback you have collected, and Headway will tell you what matters and what to do about it."
             action={
               <div className="flex flex-wrap justify-center gap-2">
                 <LinkButton href="/clients/new" variant="primary">
@@ -202,7 +202,7 @@ export default async function CommandCentrePage() {
               </p>
               <p>
                 Nothing is fetched and nothing is sent. You enter what you
-                observed; RepOS reads it, tells you what changed, and prepares
+                observed; Headway reads it, tells you what changed, and prepares
                 the message for you to copy.
               </p>
               <Notice tone={ai.enabled ? 'brand' : 'neutral'}>{ai.note}</Notice>

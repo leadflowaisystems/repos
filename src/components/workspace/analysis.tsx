@@ -47,7 +47,7 @@ export async function PortalAnalysis({
 
   return (
     <div className="max-w-3xl">
-      <PageIntro eyebrow="Customers" title="Why RepOS is saying this" description={view.basis} />
+      <PageIntro eyebrow="Customers" title="Why Headway is saying this" description={view.basis} />
 
       {view.soFar.read > 0 || view.soFar.waiting > 0 ? (
         <Section
@@ -59,7 +59,7 @@ export async function PortalAnalysis({
       ) : null}
 
       {view.work.length > 0 ? (
-        <Section eyebrow="What RepOS did with your feedback">
+        <Section eyebrow="What Headway did with your feedback">
           <WorkList work={view.work} />
         </Section>
       ) : null}

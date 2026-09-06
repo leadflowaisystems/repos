@@ -54,7 +54,7 @@ export default async function SnapshotsPage({
         {snapshots.length === 0 ? (
           <EmptyState
             title="No snapshots yet"
-            description="A check-in is a moment: it captures the feedback that has come in since the last one, so RepOS has something to compare against later. Public listing figures are optional — leave them blank if the business has none. RepOS never fetches anything."
+            description="A check-in is a moment: it captures the feedback that has come in since the last one, so Headway has something to compare against later. Public listing figures are optional — leave them blank if the business has none. Headway never fetches anything."
             action={
               <LinkButton href={`/clients/${id}/snapshots/new`} variant="primary">
                 Take the first snapshot
@@ -102,7 +102,7 @@ export default async function SnapshotsPage({
                     </td>
                     <td className="px-5 py-3 text-ink-600">
                       {snapshot.narrativeSource === 'TEMPLATE'
-                        ? 'RepOS wording'
+                        ? 'Headway wording'
                         : (snapshot.narrativeSource ?? '—')}
                     </td>
                   </tr>

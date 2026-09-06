@@ -253,7 +253,7 @@ export function action(status: ActionStatus, result: ActionResult = 'IMPROVED'):
                     : 'Not enough feedback yet to say whether long waiting time changed.',
             why: ['The share moved.'],
             limits: [
-              'This compares feedback before and after the change. It cannot show that the change caused the difference — nothing RepOS can see would prove that.',
+              'This compares feedback before and after the change. It cannot show that the change caused the difference — nothing Headway can see would prove that.',
             ],
             betweenCount: 0,
             measuredAt: NOW,

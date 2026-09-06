@@ -519,7 +519,7 @@ describe('safety refuses what must never be published', () => {
     blocked('Sorry about that. See https://example.com/contact for help.', 'link');
   });
 
-  it('refuses to mention RepOS or its analysis', () => {
+  it('refuses to mention Headway or its analysis', () => {
     blocked('Our analysis classified this as negative. We are sorry.', 'internal');
   });
 
@@ -726,7 +726,7 @@ describe('AI is optional and never trusted', () => {
     });
     // Fallback, clearly labelled — not a pretend AI answer.
     expect(outcome.source).toBe('TEMPLATE');
-    expect(outcome.notes.join(' ')).toMatch(/RepOS/);
+    expect(outcome.notes.join(' ')).toMatch(/Headway/);
   });
 });
 

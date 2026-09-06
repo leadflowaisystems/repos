@@ -4,6 +4,7 @@ import { AcceptInviteForm } from '@/components/forms/team-forms';
 import { currentActor } from '@/lib/auth/authorize';
 import { prisma } from '@/lib/db';
 import { invitationPreview } from '@/lib/team/service';
+import { HeadwayWordmark } from '@/components/brand';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,24 +47,19 @@ export default async function InvitePage({
 
   return (
     <main>
-      <div className="mb-8 flex items-center gap-2.5">
-        <span className="grid h-8 w-8 place-items-center rounded-md bg-ink-900 text-[15px] font-bold text-white">
-          R
-        </span>
-        <span className="text-[15px] font-semibold tracking-tight text-ink-900">RepOS</span>
-      </div>
+      <HeadwayWordmark className="mb-8" />
 
       <h1 className="text-[24px] leading-[1.2] font-semibold tracking-tight text-ink-900">
         {invite
-          ? `Join ${invite.businessName} on RepOS`
-          : 'You have been invited to a RepOS workspace'}
+          ? `Join ${invite.businessName} on Headway`
+          : 'You have been invited to a Headway workspace'}
       </h1>
 
       {actor && invite ? (
         <>
           <p className="mt-2 text-[15px] leading-relaxed text-ink-600">
             You have been invited to {invite.businessName} as{' '}
-            {invite.role === 'BUSINESS_OWNER' ? 'an owner' : 'a team member'}. RepOS reads what
+            {invite.role === 'BUSINESS_OWNER' ? 'an owner' : 'a team member'}. Headway reads what
             this business&rsquo;s customers say and tells you what needs you.
           </p>
 

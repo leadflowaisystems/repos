@@ -30,7 +30,7 @@ describe('the runtime-role tests must be able to run', () => {
       hasRlsRuntimeDb(),
       `\n\n  ${APP_DATABASE_URL_VAR} (and ${OWNER_DATABASE_URL_VAR}) must be set to a LOCAL\n` +
         '  cluster carrying the non-owner `repos_app` role.\n\n' +
-        '  These are the only tests that exercise RepOS as the role production connects\n' +
+        '  These are the only tests that exercise Headway as the role production connects\n' +
         '  as. Skipping them is how signup, onboarding and password reset shipped broken\n' +
         '  behind a green suite.\n\n' +
         '  Put both in .env.repos-test (git-ignored, read only for REPOS_TEST_* keys),\n' +

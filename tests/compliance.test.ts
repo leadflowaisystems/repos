@@ -385,7 +385,7 @@ describe('V1 hard rules — the command centre only reads what is stored (M9)', 
     expect(offenders).toEqual([]);
   });
 
-  it('links only inside RepOS — no external destination anywhere on the board', () => {
+  it('links only inside Headway — no external destination anywhere on the board', () => {
     const offenders = COMMAND_FILES.filter(({ code }) =>
       EXTERNAL_LINK.test(code),
     ).map(({ file }) => file);
@@ -414,7 +414,7 @@ describe('V1 hard rules — the command centre only reads what is stored (M9)', 
     expect(all.filter((dep) => external.test(dep) && !sanctioned.includes(dep))).toEqual([]);
   });
 
-  it('offers no action RepOS cannot actually perform', async () => {
+  it('offers no action Headway cannot actually perform', async () => {
     const { nextActionFor } = await import('@/lib/command/priority');
 
     const base = {
@@ -512,7 +512,7 @@ describe('V1 hard rules — customer intelligence is deterministic and local (M1
     expect(offenders).toEqual([]);
   });
 
-  it('links only inside RepOS', () => {
+  it('links only inside Headway', () => {
     const offenders = INTELLIGENCE_FILES.filter(({ code }) =>
       EXTERNAL_LINK.test(code),
     ).map(({ file }) => file);
@@ -687,7 +687,7 @@ describe('V1 hard rules — the action loop is human-driven and evidence-bound (
     expect(offenders).toEqual([]);
   });
 
-  it('links only inside RepOS', () => {
+  it('links only inside Headway', () => {
     const offenders = IMPROVE_FILES.filter(({ code }) => EXTERNAL_LINK.test(code)).map(
       ({ file }) => file,
     );
@@ -767,7 +767,7 @@ describe('V1 hard rules — the action loop is human-driven and evidence-bound (
     }
   });
 
-  it('invents no workflow state RepOS does not record', async () => {
+  it('invents no workflow state Headway does not record', async () => {
     const { ACTION_STATUSES, TRANSITIONS, STATUS_LABELS, STATUS_MEANINGS } = await import(
       '@/lib/improve/model'
     );
@@ -987,7 +987,7 @@ describe('V1 hard rules — the customer feedback gateway is a front door, not a
     expect(offenders).toEqual([]);
   });
 
-  it('shows a customer nothing the owner told RepOS and nothing RepOS concluded', () => {
+  it('shows a customer nothing the owner told Headway and nothing Headway concluded', () => {
     const offenders = PUBLIC_FILES.filter(({ code }) =>
       /@\/lib\/(intelligence|improve|context|comms|portal|minutes|snapshots|health|command|reply|analysis)\b/.test(
         code,
@@ -1103,7 +1103,7 @@ describe('V1 hard rules — responsibility is computed, never scheduled or fetch
     expect(engine?.code).toMatch(/@\/lib\/intelligence\/engine/);
   });
 
-  it('links only inside RepOS', () => {
+  it('links only inside Headway', () => {
     const offenders = RESPONSIBILITY_FILES.filter(({ code }) => EXTERNAL_LINK.test(code)).map(
       ({ file }) => file,
     );
@@ -1340,7 +1340,7 @@ describe('V1 hard rules — secrets stay on the server (M16)', () => {
   });
 
   it('keeps the password out of the database, so a stolen backup is not a key', () => {
-    // M20 strengthened this rather than relaxing it. RepOS used to hold one
+    // M20 strengthened this rather than relaxing it. Headway used to hold one
     // operator password hash in the environment; it now holds none at all,
     // because Supabase Auth owns identity outright. There is no password
     // column, no reset-token table and no second sign-in path to forget about.
@@ -1373,7 +1373,7 @@ describe('V1 hard rules — the address in a printed QR is deliberate (M16)', ()
     expect(gateway?.code).toMatch(/resolvePublicBaseUrl/);
   });
 
-  it('still sends customers to the RepOS feedback page, never straight to a review site', () => {
+  it('still sends customers to the Headway feedback page, never straight to a review site', () => {
     // M14's canonical flow, unchanged by M16: no gating, no branch on rating.
     const gateway = EXECUTABLE.find(({ file }) => file === 'src/lib/gateway/service.ts');
     expect(gateway?.code).toMatch(/feedbackUrl\(/);
@@ -1418,7 +1418,7 @@ describe('V1 hard rules — the printed card asks everyone, every time (M17)', (
    * Phrasing that makes the ask conditional on the customer already being
    * pleased.
    *
-   * This is the one place real sentiment gating ever existed in RepOS, and it
+   * This is the one place real sentiment gating ever existed in Headway, and it
    * was not in code: every vertical's staff script told staff to mention the
    * QR "after the guest said they enjoyed the meal", "once the client has seen
    * the finished result", "if you are happy with how it turned out". The same
@@ -1500,7 +1500,7 @@ describe('V1 hard rules — the printed card asks everyone, every time (M17)', (
   });
 });
 
-describe('V1 hard rules — one QR, and it is RepOS (M17)', () => {
+describe('V1 hard rules — one QR, and it is Headway (M17)', () => {
   it('builds the printed kit from the feedback gateway, not a pasted link', () => {
     const kit = EXECUTABLE.find(({ file }) => file === 'src/lib/kit/service.ts');
     expect(kit).toBeDefined();
@@ -1530,7 +1530,7 @@ describe('V1 hard rules — one QR, and it is RepOS (M17)', () => {
     expect(JSON.stringify(ready)).not.toMatch(/review link/i);
   });
 
-  it('refuses to point the optional public link back at RepOS', async () => {
+  it('refuses to point the optional public link back at Headway', async () => {
     const { checkReviewUrl } = await import('@/lib/kit/content');
     expect(checkReviewUrl('https://repos.example.com/feedback/abc').ok).toBe(false);
     expect(checkReviewUrl('https://repos.example.com/portal/abc').ok).toBe(false);

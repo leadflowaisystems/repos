@@ -272,7 +272,7 @@ function evidenceFor(signal: PortalSignal, insight: Insight | null): Responsibil
     count: signal.evidenceCount,
     outOf: signal.evidenceTotal,
     line: signal.fact,
-    scope: 'across everything RepOS has read so far',
+    scope: 'across everything Headway has read so far',
     certainty: CERTAINTY[insight?.confidence ?? 'EARLY'],
   };
 }
@@ -321,7 +321,7 @@ function placeSignal(signal: PortalSignal, progress: ActionProgress | undefined)
   if (progress?.action.status === 'DECLINED' && signal.kind === 'ISSUE') {
     return {
       state: 'WATCH',
-      instruction: 'You decided not to act; RepOS keeps watching',
+      instruction: 'You decided not to act; Headway keeps watching',
       headline: signal.bucket === 'FIRST'
         ? `${signal.themeLabel} is still the clearest complaint. You decided not to pursue a change.`
         : `${signal.themeLabel} is still a pattern. You decided not to pursue a change.`,
@@ -381,7 +381,7 @@ function placeSignal(signal: PortalSignal, progress: ActionProgress | undefined)
       return {
         state: 'WAITING_FOR_EVIDENCE',
         instruction: 'Change made, not yet checked',
-        headline: `Your change for ${label} is in place. RepOS is waiting for enough new feedback to compare.`,
+        headline: `Your change for ${label} is in place. Headway is waiting for enough new feedback to compare.`,
         extra,
       };
     }
@@ -553,7 +553,7 @@ function threadFor(signal: PortalSignal, action: PortalAction | null): ThreadSte
   if (now) {
     steps.push({ key: 'now', label: 'Now', text: now, at: null, source: 'REPOS' });
   }
-  steps.push({ key: 'next', label: 'RepOS will watch', text: signal.watchLine, at: null, source: 'REPOS' });
+  steps.push({ key: 'next', label: 'Headway will watch', text: signal.watchLine, at: null, source: 'REPOS' });
 
   void label;
   return steps;
@@ -646,13 +646,13 @@ function needsYourWordsItem(input: ResponsibilityInput): ResponsibilityItem | nu
     relatedAction: null,
     headline: `${n} ${n === 1 ? 'piece' : 'pieces'} of feedback ${n === 1 ? 'needs' : 'need'} your own words.`,
     whyItMatters:
-      'RepOS does not suggest a reply where someone mentions harm, safety, money back or taking things further. A person should read and answer those.',
-    recommendedNextStep: 'Read them on the Reviews page and answer in your own words, or tell your RepOS contact how you want them handled.',
+      'Headway does not suggest a reply where someone mentions harm, safety, money back or taking things further. A person should read and answer those.',
+    recommendedNextStep: 'Read them on the Reviews page and answer in your own words, or tell your Headway contact how you want them handled.',
     evidence: null,
     contextUsed: [],
     contextNote: null,
     thread: [],
-    watching: 'RepOS will flag any new feedback of this kind the moment it is read.',
+    watching: 'Headway will flag any new feedback of this kind the moment it is read.',
     limitations: [],
   };
 }
@@ -683,15 +683,15 @@ function earlyItem(input: ResponsibilityInput): ResponsibilityItem | null {
           ? `${single.themeLabel} is praised, but not yet often enough to call a strength.`
           : `${single.themeLabel} has come up, but not often enough to act on.`
         : `${joined} have come up, but not often enough to act on.`,
-    whyItMatters: `RepOS names something once ${MIN_MENTIONS_TO_NAME} customers have raised it. Until then it would be guessing.`,
-    recommendedNextStep: 'Nothing to do. RepOS will say so when any of these clears the floor.',
+    whyItMatters: `Headway names something once ${MIN_MENTIONS_TO_NAME} customers have raised it. Until then it would be guessing.`,
+    recommendedNextStep: 'Nothing to do. Headway will say so when any of these clears the floor.',
     evidence: null,
     contextUsed: [],
     contextNote: null,
     thread: [],
     watching:
       single?.watchLine ??
-      'RepOS is watching whether more customers raise these before it says anything about them.',
+      'Headway is watching whether more customers raise these before it says anything about them.',
     limitations: [],
   };
 }
@@ -799,15 +799,15 @@ function nextCheckFor(args: {
       : `${args.comparisonsDue} comparisons are due now: enough feedback has come in after those changes to compare before and after.`;
   }
   if (intel.evidence.analysed === 0) {
-    return 'Once feedback starts coming in, a first check-in gives RepOS something to compare against later.';
+    return 'Once feedback starts coming in, a first check-in gives Headway something to compare against later.';
   }
   if (!latest) {
-    return 'A first check-in now would give RepOS something to compare your next one against.';
+    return 'A first check-in now would give Headway something to compare your next one against.';
   }
   const days = daysBetween(latest.capturedAt, input.now);
   if (checkins.length === 1) {
     return f.read >= MIN_FEEDBACK_TO_MEASURE
-      ? `A second check-in now would let RepOS show what changed — ${pieces(f.read)} ${f.read === 1 ? 'has' : 'have'} come in since the first.`
+      ? `A second check-in now would let Headway show what changed — ${pieces(f.read)} ${f.read === 1 ? 'has' : 'have'} come in since the first.`
       : `A second check-in will show what changed. So far ${f.read} of the ${MIN_FEEDBACK_TO_MEASURE} pieces of new feedback that make a comparison worthwhile ${f.read === 1 ? 'has' : 'have'} come in.`;
   }
   if (f.read >= MIN_FEEDBACK_TO_MEASURE) {
@@ -816,7 +816,7 @@ function nextCheckFor(args: {
   if (days >= STALE_SNAPSHOT_DAYS) {
     return `Worth a check-in now: it has been ${days} days since your last one, even though only ${pieces(f.read)} ${f.read === 1 ? 'has' : 'have'} come in since.`;
   }
-  return `Not yet. ${f.read === 0 ? 'No new feedback has' : `${pieces(f.read)} ${f.read === 1 ? 'has' : 'have'}`} come in since your check-in on ${formatDate(latest.capturedAt)}; RepOS will say when another check-in would show something new.`;
+  return `Not yet. ${f.read === 0 ? 'No new feedback has' : `${pieces(f.read)} ${f.read === 1 ? 'has' : 'have'}`} come in since your check-in on ${formatDate(latest.capturedAt)}; Headway will say when another check-in would show something new.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -837,8 +837,8 @@ function answerFor(args: {
       answer: 'Nothing to decide yet.',
       detail:
         intel.evidence.unread > 0
-          ? `${pieces(intel.evidence.unread)} ${intel.evidence.unread === 1 ? 'has' : 'have'} arrived and RepOS is reading ${intel.evidence.unread === 1 ? 'it' : 'them'} now — usually done within a minute. Reload to see what it found.`
-          : 'RepOS has no customer feedback to work from yet. Once it starts coming in, this page will say what needs you.',
+          ? `${pieces(intel.evidence.unread)} ${intel.evidence.unread === 1 ? 'has' : 'have'} arrived and Headway is reading ${intel.evidence.unread === 1 ? 'it' : 'them'} now — usually done within a minute. Reload to see what it found.`
+          : 'Headway has no customer feedback to work from yet. Once it starts coming in, this page will say what needs you.',
     };
   }
 
@@ -859,7 +859,7 @@ function answerFor(args: {
           : `Yes — ${bits.join(', ')}.`,
       detail:
         watching.length > 0
-          ? `RepOS is watching ${watching.length} other ${watching.length === 1 ? 'thing' : 'things'} for you; none of them needs you right now.`
+          ? `Headway is watching ${watching.length} other ${watching.length === 1 ? 'thing' : 'things'} for you; none of them needs you right now.`
           : 'Nothing else needs you.',
     };
   }
@@ -868,7 +868,7 @@ function answerFor(args: {
     return {
       state: 'WAITING_FOR_EVIDENCE',
       answer: 'Not enough feedback yet to say.',
-      detail: `RepOS has read ${pieces(intel.evidence.analysed)} — enough to start looking, not enough to be sure of anything. Nothing is being recommended until more comes in.`,
+      detail: `Headway has read ${pieces(intel.evidence.analysed)} — enough to start looking, not enough to be sure of anything. Nothing is being recommended until more comes in.`,
     };
   }
 
@@ -877,8 +877,8 @@ function answerFor(args: {
     answer: 'Nothing needs you right now.',
     detail:
       watching.length > 0
-        ? `RepOS is watching ${watching.length} ${watching.length === 1 ? 'thing' : 'things'} for you and will say when one of them needs a decision.`
-        : 'Nothing is coming up often enough to act on. RepOS will say when that changes.',
+        ? `Headway is watching ${watching.length} ${watching.length === 1 ? 'thing' : 'things'} for you and will say when one of them needs a decision.`
+        : 'Nothing is coming up often enough to act on. Headway will say when that changes.',
   };
 }
 
@@ -957,7 +957,7 @@ export function buildResponsibility(input: ResponsibilityInput): Responsibility 
     );
   }
   if (input.archived) {
-    limitations.push('This account is no longer active, so RepOS is not collecting anything new for it.');
+    limitations.push('This account is no longer active, so Headway is not collecting anything new for it.');
   }
   if (!intel.window.available && input.checkins.length >= 2 && intel.evidence.analysed > 0) {
     // The engine already says why the two check-ins could not be compared;

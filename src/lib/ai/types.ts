@@ -55,7 +55,7 @@ export class AiError extends Error {
 export function assertServerOnly(): void {
   if (typeof window !== 'undefined') {
     throw new Error(
-      'RepOS AI providers are server-only. API keys must never reach the browser.',
+      'Headway AI providers are server-only. API keys must never reach the browser.',
     );
   }
 }

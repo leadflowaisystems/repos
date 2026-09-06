@@ -206,18 +206,18 @@ describe('processing newly submitted feedback', () => {
 });
 
 describe('what the owner sees', () => {
-  it('while RepOS is reading, every page says so — never that there is nothing', async () => {
+  it('while Headway is reading, every page says so — never that there is nothing', async () => {
     const { clientId, token } = await gym();
     await twoSubmissions(token);
 
     const home = await getPortalView(db, clientId);
     expect(home?.view.basedOn).toBe(0);
-    expect(home?.view.summary).toBe('2 pieces of feedback have arrived and RepOS is reading them now.');
+    expect(home?.view.summary).toBe('2 pieces of feedback have arrived and Headway is reading them now.');
     expect(home?.view.basis).toMatch(/Usually read within a minute/);
     expect(home?.view.soFar.waiting).toBe(2);
 
     const bundle = await getResponsibility(db, clientId);
-    expect(bundle?.responsibility.answerDetail).toMatch(/2 pieces of feedback have arrived and RepOS is reading them now/);
+    expect(bundle?.responsibility.answerDetail).toMatch(/2 pieces of feedback have arrived and Headway is reading them now/);
     expect(bundle?.responsibility.did).toEqual(['2 pieces of feedback are being read now.']);
 
     const reviews = await getReviewsView(db, clientId, filters());

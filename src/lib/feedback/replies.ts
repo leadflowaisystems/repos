@@ -384,13 +384,13 @@ export async function draftClientReplies(
   }
 
   if (!useAi) {
-    notes.push('Written by RepOS itself — the writing assistant is not switched on.');
+    notes.push('Written by Headway itself — the writing assistant is not switched on.');
   } else if (!usedAi) {
-    notes.push('The writing assistant was unavailable, so RepOS wrote these itself.');
+    notes.push('The writing assistant was unavailable, so Headway wrote these itself.');
   }
   if (leftForYou > 0) {
     notes.push(
-      `${leftForYou} left for you to handle personally — RepOS does not write those.`,
+      `${leftForYou} left for you to handle personally — Headway does not write those.`,
     );
   }
 
@@ -434,7 +434,7 @@ export async function regenerateDraft(
   });
   if (!row) return err('That feedback item no longer exists.');
   if (row.analysisStatus !== 'ANALYSED') {
-    return err('RepOS has not read this one yet, so it cannot suggest a reply.');
+    return err('Headway has not read this one yet, so it cannot suggest a reply.');
   }
 
   const now = options.now ?? new Date();
@@ -456,7 +456,7 @@ export async function regenerateDraft(
         data: { draftStatus: 'FAILED', draftError: reason.slice(0, 500) },
       });
       return err(
-        `RepOS cannot write this one without breaking your own wording rules. ${reason}`,
+        `Headway cannot write this one without breaking your own wording rules. ${reason}`,
       );
     }
 
@@ -484,7 +484,7 @@ export async function regenerateDraft(
         data: { draftStatus: 'FAILED', draftError: reason.slice(0, 500) },
       })
       .catch(() => undefined);
-    return err('RepOS could not write a suggestion for this one. Try again.');
+    return err('Headway could not write a suggestion for this one. Try again.');
   }
 }
 

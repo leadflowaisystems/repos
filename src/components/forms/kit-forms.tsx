@@ -83,7 +83,7 @@ export function KitSettingsForm({
   return (
     <div className="space-y-4">
       <Notice tone="neutral">
-        Leave anything blank to use the {verticalLabel} wording. RepOS only
+        Leave anything blank to use the {verticalLabel} wording. Headway only
         overrides a line when you actually type one.
       </Notice>
 
@@ -104,7 +104,7 @@ export function KitSettingsForm({
           type="url"
           defaultValue={values.qrTargetUrl}
           placeholder="https://…"
-          hint="Pasted in by you. RepOS never looks this up."
+          hint="Pasted in by you. Headway never looks this up."
         />
 
         <FormGrid>

@@ -7,6 +7,7 @@ import { CustomerFeedbackForm } from '@/components/feedback-gateway/customer-for
 import { publicDb } from '@/lib/db-public';
 import { resolvePublicGateway } from '@/lib/gateway/service';
 import { newFormNonce } from '@/lib/gateway/throttle';
+import { HeadwayMark } from '@/components/brand';
 
 export const dynamic = 'force-dynamic';
 // The submit action runs on this route; the reading it starts continues after
@@ -31,6 +32,24 @@ export async function generateMetadata({
  * customers said, or what RepOS concluded. Those live in modules this route
  * never imports, and a compliance test keeps it that way.
  */
+/**
+ * The one mark on a customer's screen.
+ *
+ * Small, at the bottom, after the thing they came to do. This page belongs to
+ * the business whose name is at the top; Headway is the tool behind it, and the
+ * only reason to say so at all is that the card on the table carries the same
+ * mark in the same place. A customer who scans a Headway tent should land on a
+ * Headway page, or the two look like unrelated things.
+ */
+function PoweredByHeadway() {
+  return (
+    <p className="mt-12 flex items-center justify-center gap-1.5 border-t border-ink-200 pt-5 text-[11px] tracking-wide text-ink-400">
+      <HeadwayMark className="h-3.5 w-3.5 opacity-70" />
+      Feedback by Headway
+    </p>
+  );
+}
+
 export default async function CustomerFeedbackPage({
   params,
 }: {
@@ -58,6 +77,7 @@ export default async function CustomerFeedbackPage({
         nonce={newFormNonce()}
         dimensions={gateway.dimensions}
       />
+      <PoweredByHeadway />
     </main>
   );
 }

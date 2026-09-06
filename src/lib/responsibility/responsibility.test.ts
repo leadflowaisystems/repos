@@ -184,7 +184,7 @@ describe('do I need to do anything?', () => {
     const keep = r.watching.find((i) => i.themeKey === 'doctor_care');
     expect(keep?.state).toBe('KEEP_DOING');
     expect(keep?.headline).toBe("Customers praise your doctor's care and explanation.");
-    expect(keep?.watching).toMatch(/^RepOS is checking that doctor's care and explanation keeps being praised/);
+    expect(keep?.watching).toMatch(/^Headway is checking that doctor's care and explanation keeps being praised/);
   });
 
   it('11. too little feedback overall is said plainly, with nothing recommended', () => {
@@ -202,7 +202,7 @@ describe('do I need to do anything?', () => {
 
 // ---------------------------------------------------------------------------
 
-describe('what the owner told RepOS', () => {
+describe('what the owner told Headway', () => {
   const restaurant = getPackOrFallback('restaurant');
   const cafeThemes = themes(
     [theme('food_quality', 'Food taste and quality', 'PRAISE', 10)],
@@ -442,7 +442,7 @@ describe('honesty', () => {
 // ---------------------------------------------------------------------------
 
 describe('continuity', () => {
-  it('connects what customers said, what you decided, what happened, and what RepOS watches', () => {
+  it('connects what customers said, what you decided, what happened, and what Headway watches', () => {
     const r = build({ portal: { actions: [action('MEASURED', 'IMPROVED')] } });
     const item = r.watching.find((i) => i.themeKey === 'wait_time')!;
     expect(item.thread.map((s) => `${s.key}:${s.source}`)).toEqual([
@@ -457,7 +457,7 @@ describe('continuity', () => {
     expect(item.thread.find((s) => s.key === 'result')?.text).toMatch(
       /^Customers are mentioning long waiting time less often since the change\. This does not show the change caused the difference\.$/,
     );
-    expect(item.thread.find((s) => s.key === 'next')?.text).toMatch(/^RepOS is checking whether long waiting time keeps coming up less often/);
+    expect(item.thread.find((s) => s.key === 'next')?.text).toMatch(/^Headway is checking whether long waiting time keeps coming up less often/);
   });
 
   it('records a declined decision as the owner\'s, and keeps watching without nagging', () => {
@@ -497,19 +497,19 @@ describe('continuity', () => {
   });
 
   it('says when the next check would show something, as a condition, never a countdown', () => {
-    expect(build().nextUsefulCheck).toBe('A first check-in now would give RepOS something to compare your next one against.');
+    expect(build().nextUsefulCheck).toBe('A first check-in now would give Headway something to compare your next one against.');
     const one = build({ checkins: [checkin('s1', new Date(2026, 2, 1))], feedbackSince: { total: 4, read: 4, unread: 0, direct: 0 } });
     expect(one.nextUsefulCheck).toBe(
       'A second check-in will show what changed. So far 4 of the 10 pieces of new feedback that make a comparison worthwhile have come in.',
     );
     const enough = build({ checkins: [checkin('s1', new Date(2026, 2, 1))], feedbackSince: { total: 12, read: 12, unread: 0, direct: 0 } });
-    expect(enough.nextUsefulCheck).toBe('A second check-in now would let RepOS show what changed — 12 pieces of feedback have come in since the first.');
+    expect(enough.nextUsefulCheck).toBe('A second check-in now would let Headway show what changed — 12 pieces of feedback have come in since the first.');
     const two = build({
       checkins: [checkin('s2', new Date(2026, 4, 20)), checkin('s1', new Date(2026, 2, 1))],
       feedbackSince: { total: 3, read: 3, unread: 0, direct: 0 },
     });
     expect(two.nextUsefulCheck).toBe(
-      'Not yet. 3 pieces of feedback have come in since your check-in on 20 May 2026; RepOS will say when another check-in would show something new.',
+      'Not yet. 3 pieces of feedback have come in since your check-in on 20 May 2026; Headway will say when another check-in would show something new.',
     );
     const stale = build({
       checkins: [checkin('s2', new Date(2026, 1, 1)), checkin('s1', new Date(2025, 11, 1))],
@@ -537,7 +537,7 @@ describe('the edges', () => {
 
   it('an archived business is said to be inactive, and still computes', () => {
     const r = build({ archived: true });
-    expect(r.limitations).toContain('This account is no longer active, so RepOS is not collecting anything new for it.');
+    expect(r.limitations).toContain('This account is no longer active, so Headway is not collecting anything new for it.');
     expect(r.needsYou.length).toBe(1);
   });
 
@@ -579,6 +579,6 @@ describe('the edges', () => {
     const early = r.watching.filter((i) => i.state === 'WAITING_FOR_EVIDENCE');
     expect(early).toHaveLength(1);
     expect(early[0]?.headline).toBe('Friendly, helpful staff is praised, but not yet often enough to call a strength.');
-    expect(early[0]?.recommendedNextStep).toBe('Nothing to do. RepOS will say so when any of these clears the floor.');
+    expect(early[0]?.recommendedNextStep).toBe('Nothing to do. Headway will say so when any of these clears the floor.');
   });
 });

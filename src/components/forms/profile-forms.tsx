@@ -221,7 +221,7 @@ export function CompetitorsForm({
         <ActionForm action={saveCompetitorsAction} submitLabel="Save competitors">
           <input type="hidden" name="clientId" value={clientId} />
           <Notice tone="neutral">
-            RepOS never fetches competitor data. Leave a row completely blank to
+            Headway never fetches competitor data. Leave a row completely blank to
             remove it.
           </Notice>
 

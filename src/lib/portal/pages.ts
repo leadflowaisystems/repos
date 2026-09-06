@@ -110,7 +110,7 @@ export function buildAnalysisView(input: PortalInput): AnalysisView {
   const otherIssues = v.unhappy.filter((s) => s.bucket === 'WATCH').length;
   if (otherIssues > 0) {
     telling.push(
-      `${otherIssues} other ${otherIssues === 1 ? 'complaint is' : 'complaints are'} worth watching; RepOS is not asking you to act on ${otherIssues === 1 ? 'it' : 'them'} yet.`,
+      `${otherIssues} other ${otherIssues === 1 ? 'complaint is' : 'complaints are'} worth watching; Headway is not asking you to act on ${otherIssues === 1 ? 'it' : 'them'} yet.`,
     );
   }
 
@@ -118,8 +118,8 @@ export function buildAnalysisView(input: PortalInput): AnalysisView {
   const recurrenceNote =
     readable < 2
       ? readable === 0
-        ? 'No check-in has been recorded yet, so RepOS cannot tell what keeps coming back.'
-        : 'Only one check-in so far. From the next one, RepOS can tell you what keeps coming back and what is new.'
+        ? 'No check-in has been recorded yet, so Headway cannot tell what keeps coming back.'
+        : 'Only one check-in so far. From the next one, Headway can tell you what keeps coming back and what is new.'
       : null;
 
   const better = v.changed.filter((s) => s.movementDirection === 'IMPROVING');
@@ -395,7 +395,7 @@ export function buildReviewsView(input: {
     }
     if (input.replyWorth > 0) {
       found.push(
-        `${input.replyWorth} of the ${analysed} ${input.replyWorth === 1 ? 'needs' : 'need'} an answer from you. A draft is attached where RepOS could write one safely; the rest need your own words.`,
+        `${input.replyWorth} of the ${analysed} ${input.replyWorth === 1 ? 'needs' : 'need'} an answer from you. A draft is attached where Headway could write one safely; the rest need your own words.`,
       );
     }
   }
@@ -534,8 +534,8 @@ export function buildCheckinView(
     : !moved
       ? comparedNote.trim()
       : v.steady.length > 0
-        ? `Everything else RepOS could compare held steady, including ${joinNames(v.steady.slice(0, 3).map((s) => spoken(s.themeLabel)))}.${comparedNote}`
-        : `Everything else RepOS could compare held steady.${comparedNote}`;
+        ? `Everything else Headway could compare held steady, including ${joinNames(v.steady.slice(0, 3).map((s) => spoken(s.themeLabel)))}.${comparedNote}`
+        : `Everything else Headway could compare held steady.${comparedNote}`;
 
   const movedKeys = new Set([...better, ...worse, ...returning].map((s) => s.themeKey));
   const next = v.watching.filter((w) => w.themeKey !== null && movedKeys.has(w.themeKey));

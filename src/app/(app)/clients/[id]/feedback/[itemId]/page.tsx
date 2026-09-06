@@ -171,7 +171,7 @@ export default async function FeedbackItemPage({
 
           {item.redacted ? (
             <Notice tone="neutral" title="Personal details were removed">
-              Before saving, RepOS stripped:{' '}
+              Before saving, Headway stripped:{' '}
               {item.redactions.length > 0
                 ? item.redactions.join(', ')
                 : 'personal details'}
@@ -188,13 +188,13 @@ export default async function FeedbackItemPage({
       {/* ---- What RepOS made of it ---- */}
       <Card>
         <CardHeader
-          title="What RepOS made of this"
+          title="What Headway made of this"
           description="The reading behind the summary on the feedback page."
         />
         <CardBody className="space-y-5">
           {!item.analysed ? (
             <Notice tone="warn" title="Not read yet">
-              RepOS has not read this one. Use{' '}
+              Headway has not read this one. Use{' '}
               <Link href={base} className="underline underline-offset-2">
                 Read new
               </Link>{' '}
@@ -272,7 +272,7 @@ export default async function FeedbackItemPage({
         <Card>
           <CardHeader
             title="What to do about it"
-            description="RepOS suggests. You decide, and you do the sending."
+            description="Headway suggests. You decide, and you do the sending."
           />
           <CardBody className="space-y-5">
             <div className="grid gap-5 sm:grid-cols-3">
@@ -315,7 +315,7 @@ export default async function FeedbackItemPage({
             ) : null}
 
             {item.responseAction === 'NEEDS_HUMAN' ? (
-              <Notice tone="bad" title="RepOS has not written anything for this one">
+              <Notice tone="bad" title="Headway has not written anything for this one">
                 This needs your own words and your own judgement. A suggested reply
                 would be the wrong tool here.
               </Notice>
