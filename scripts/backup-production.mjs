@@ -68,13 +68,36 @@ function findPgBin(majorVersion) {
   return null;
 }
 
+/**
+ * `.env.local` WINS, AND process.env IS NOT TRUSTED HERE.
+ *
+ * Importing `@prisma/client` loads `.env` into `process.env` before a single
+ * line of this script runs, and `.env` in this repository points at the LOCAL
+ * development cluster. Reading `process.env.DIRECT_DATABASE_URL ?? ...` therefore
+ * resolved the dev database and called it production — which fails loudly today
+ * only because that local port is dead. Point `.env` at a cluster that is
+ * running and the same code would have written a "production backup" of a
+ * developer's scratch database, verified it happily, and reported success.
+ *
+ * So the production address comes from `.env.local` and from nowhere else, and
+ * a local host is refused outright: whatever this script is pointed at, it is
+ * never the thing a backup of production is supposed to be.
+ */
 const env = loadEnv(join(ROOT, '.env.local'));
-const url = process.env.DIRECT_DATABASE_URL ?? env.DIRECT_DATABASE_URL;
+const url = env.DIRECT_DATABASE_URL;
 if (!url) {
-  console.error('DIRECT_DATABASE_URL is not set (in the environment or .env.local).');
+  console.error('DIRECT_DATABASE_URL is not in .env.local, so there is no production database to back up.');
   process.exit(1);
 }
 const u = new URL(url);
+if (['localhost', '127.0.0.1', '::1', '[::1]'].includes(u.hostname)) {
+  console.error(
+    `Refusing to take a PRODUCTION backup of a local database (${u.hostname}). ` +
+      'This script exists to copy the live Supabase database; point .env.local at it, ' +
+      'or use `npm run backup` for the local SQLite file.',
+  );
+  process.exit(1);
+}
 const conn = { host: u.hostname, port: u.port || '5432', user: decodeURIComponent(u.username), database: u.pathname.slice(1) || 'postgres' };
 if (existsSync(OUT)) {
   console.error(`${OUT} already exists.`);

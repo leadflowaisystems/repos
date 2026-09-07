@@ -146,8 +146,10 @@ M21 added the commercial side and the record of a visit, and one of the tables
 it introduces has to exist before `rls.sql` can protect it:
 
 ```bash
-npx prisma db execute --file prisma/m21/migration.sql --schema prisma/schema.prisma   # 1
-npx prisma db execute --file prisma/m20/rls.sql       --schema prisma/schema.prisma   # 2
+# See "Applying SQL to production" below. NOT `prisma db execute`, which reads
+# .env and would aim these at the local development cluster.
+psql -X -1 -v ON_ERROR_STOP=1 -c "SET lock_timeout = '5s'" -f prisma/m21/migration.sql   # 1
+psql -X -1 -v ON_ERROR_STOP=1 -c "SET lock_timeout = '5s'" -f prisma/m20/rls.sql         # 2
 ```
 
 Step 1 is purely additive — four nullable columns and one new table, every
@@ -189,9 +191,35 @@ database has to hold: every trial has an end date, and a pause and a resume are
 recorded when they happen.
 
 ```bash
-npx prisma db execute --file prisma/m23/migration.sql --schema prisma/schema.prisma   # 1
-npx prisma db execute --file prisma/m20/rls.sql       --schema prisma/schema.prisma   # 2
-npx prisma db execute --file prisma/m23/backfill.sql  --schema prisma/schema.prisma   # 3
+# See "Applying SQL to production" below. NOT `prisma db execute`, which reads
+# .env and would aim these at the local development cluster.
+psql -X -1 -v ON_ERROR_STOP=1 -c "SET lock_timeout = '5s'" -f prisma/m23/migration.sql   # 1
+psql -X -1 -v ON_ERROR_STOP=1 -c "SET lock_timeout = '5s'" -f prisma/m20/rls.sql         # 2
+psql -X -1 -v ON_ERROR_STOP=1 -c "SET lock_timeout = '5s'" -f prisma/m23/backfill.sql    # 3
+```
+
+**Verify between steps 1 and 2, every time.** `rls.sql` re-creates
+`app.set_subscription`, whose body writes `servicePausedAt`. plpgsql only
+raw-parses a body at creation and binds names at first execution, so if step 1
+did not land, step 2 still commits with a zero exit status and the function is
+silently broken until somebody pauses an account. Step 1's own
+`ADD COLUMN IF NOT EXISTS` is equally quiet about whether it did anything. So
+prove it, rather than trusting the exit code:
+
+```sql
+SELECT count(*) FROM information_schema.columns
+ WHERE table_schema='public' AND table_name='Client'
+   AND column_name IN ('servicePausedAt','serviceResumedAt');   -- must be 2
+```
+
+and after step 3, force the plan to build inside a transaction you roll back —
+this is the only thing that proves the function actually resolves:
+
+```sql
+BEGIN;
+SELECT set_config('app.user_id', '<a platform admin User.id>', true);
+SELECT app.set_subscription('<a real client id>', 'PAUSED', NULL, NULL, now()::text);
+ROLLBACK;
 ```
 
 Step 1 adds two nullable columns to `Client` (`servicePausedAt`,
@@ -221,6 +249,51 @@ The file gained one function and changed two:
 Afterwards there are still **17** tables with RLS enabled and forced, **20**
 policies, and the `app` schema holds **20** functions with
 `public-gateway.sql` applied, 18 without.
+
+
+## Applying SQL to production
+
+**Never `npx prisma db execute` against production. It aims at the wrong
+database.** With `--schema`, the connection comes from the datasource block,
+which reads `DATABASE_URL` and `DIRECT_DATABASE_URL` — and the Prisma CLI
+populates those from `.env`. It has no knowledge of `.env.local` at all. `.env`
+in this repository points at the LOCAL development cluster, so that command
+targets a developer's scratch database while appearing to do the right thing.
+It fails loudly today only because the port in `.env` happens to be dead; point
+`.env` at a cluster that is running and the same command would apply a
+production migration to a dev database and report success. The same trap is
+written up in `scripts/backup-production.mjs`, which was bitten by it.
+
+`npx` is a second hazard on its own: from outside the repository root it
+resolves a *published* Prisma rather than the pinned 6.19.3 in `node_modules`,
+which is how a phantom 8.0.0-rc.13 with no `db execute` subcommand appeared
+during the M23 cutover.
+
+Use `psql`, which is what the top of this file has always prescribed, with four
+things set:
+
+| | Why |
+| --- | --- |
+| the **17.x** client | `C:/Program Files/pgAdmin 4/runtime/psql.exe` on this machine. The one on PATH is 16.8, which does not match the 17.6 server. |
+| `-1` (`--single-transaction`) | **Load-bearing for `rls.sql`, not tidiness.** That file issues a blanket table-level `GRANT ... UPDATE ... TO repos_app` and only narrows it back 61–174 lines later, and it DROPs each policy before re-CREATEing it. Run without a transaction, a failure part-way leaves either a committed window where the runtime role can update `User.isPlatformAdmin`, or a table with RLS forced and zero policies — which denies every row, silently. |
+| `-v ON_ERROR_STOP=1` | Without it psql keeps going after an error and exits 0. |
+| `SET lock_timeout` | Every `ALTER TABLE` and `CREATE POLICY` takes an ACCESS EXCLUSIVE lock, and under `-1` `rls.sql` holds them on all 17 tables until COMMIT. Acquiring is instant; *waiting* is not, and while it waits every query on those tables queues behind it. With a timeout the worst case is a clean abort and whole-file rollback you retry. |
+
+`PGOPTIONS='-c lock_timeout=...'` does **not** work here — Supavisor rewrites
+the startup packet and drops it (you can see it do so: `application_name` comes
+back as `Supavisor`). Pass it as a statement instead, which psql runs before the
+file and which holds for the rest of the transaction:
+
+```bash
+psql -X -1 -v ON_ERROR_STOP=1 -c "SET lock_timeout = '5s'" -f <file>
+```
+
+Supply the connection through `PGHOST` / `PGPORT` / `PGUSER` / `PGPASSWORD` /
+`PGDATABASE` / `PGSSLMODE=require` in the environment, never on the command
+line — and read the password from `.env.local` programmatically rather than
+typing it, so it reaches neither argv nor shell history. Port must be **5432**,
+the session pooler; the 6543 transaction pooler cannot hold the session a schema
+change needs.
 
 
 ## Taking a full backup of production

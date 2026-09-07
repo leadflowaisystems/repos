@@ -236,17 +236,48 @@ alone (arrows and dots are `aria-hidden` beside words), disclosures are native
   matrix (owner-level for the owner's two, admin for the setting); the public
   gateway is untouched.
 
-## 13. What has to happen before this deploys
+## 13. The production cutover — applied 2026-09-07
 
-The deployed code reads two new columns and calls one new function. Apply, in
-this order, as the owner over the session pooler (see `prisma/m20/README.md`):
+All three files are **applied to production and verified**. What follows is the
+record, including the two things that were wrong when this document was first
+written.
+
+**The command originally printed here was dangerous and has been corrected.**
+It read `npx prisma db execute --file ... --schema prisma/schema.prisma`. With
+`--schema`, Prisma takes the connection from the datasource block, which it
+populates from `.env` — it never reads `.env.local`. `.env` in this repository
+points at the LOCAL development cluster, so that command would have applied a
+production migration to a dev database. It fails loudly today only because that
+local port is dead. See "Applying SQL to production" in `prisma/m20/README.md`
+for the mechanism that was actually used.
+
+**The second correction: `--single-transaction` is load-bearing.** `rls.sql`
+grants `repos_app` table-wide UPDATE at line 124 and narrows it back 174 lines
+later, and drops every policy before re-creating it. Applied without a
+transaction, a mid-file failure leaves either a committed privilege-escalation
+window on `User.isPlatformAdmin`, or a table with RLS forced and zero policies,
+which denies every row silently. `prisma db execute` offers no such flag.
+
+What was actually run, per file, against the session pooler as the owner:
 
 ```bash
-npx prisma db execute --file prisma/m23/migration.sql --schema prisma/schema.prisma
-npx prisma db execute --file prisma/m20/rls.sql       --schema prisma/schema.prisma
-npx prisma db execute --file prisma/m23/backfill.sql  --schema prisma/schema.prisma
+psql -X -1 -v ON_ERROR_STOP=1 -c "SET lock_timeout = '5s'" -f prisma/m23/migration.sql
+psql -X -1 -v ON_ERROR_STOP=1 -c "SET lock_timeout = '5s'" -f prisma/m20/rls.sql
+psql -X -1 -v ON_ERROR_STOP=1 -c "SET lock_timeout = '5s'" -f prisma/m23/backfill.sql
 ```
 
-Rehearsed on the restored production copy: all three succeed, the six trials
-end 14 days after the run, the `app` schema holds 20 functions, and no frozen
-text carries the internal name. Then merge and deploy.
+Result: `ALTER TABLE` ×2, then 18 `CREATE FUNCTION` / 14 `DROP POLICY` /
+11 `CREATE POLICY` / 13 `GRANT` / 13 `REVOKE` with no errors, then `UPDATE 6`
+and `UPDATE 2`. Verified afterwards: 20 `app` functions, 20 policies, RLS
+enabled and forced on all 17 tables, `repos_app` still not `BYPASSRLS` and
+holding **no** UPDATE grant on either new column, all six trials ending exactly
+14 days after the run with each start taken from `coalesce(onboardingDate,
+createdAt)`, zero rows still carrying the internal name in `resultJson`, and
+`app.set_subscription` proven to actually resolve the new columns by executing
+it inside a transaction that was rolled back.
+
+A pre-cutover backup (`backups/prod-2026-09-07-020939`) and a post-cutover
+backup (`backups/prod-2026-09-07-123836`) were taken and diffed: every expected
+M23 change present, and the only differences beyond them were ordinary live
+traffic that arrived during the window — one customer's QR submission, one
+`lastSeenAt` stamp, one sign-in.
