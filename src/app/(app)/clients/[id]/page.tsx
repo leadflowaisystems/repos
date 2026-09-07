@@ -25,6 +25,7 @@ import { evidenceLine } from "@/lib/improve/model";
 import { OwnerHandoverPanel } from "@/components/forms/owner-handover";
 import { CommercialPanel } from "@/components/forms/commercial-panel";
 import {
+  EXTEND_TRIAL_DAYS,
   continuationStatus,
   getAccountState,
   getCommercial,
@@ -250,6 +251,7 @@ export default async function ClientOverviewPage({
               trialEnds={account.trialEndsAt ? formatDate(account.trialEndsAt) : null}
               trialDaysLeft={account.trialDaysLeft}
               defaultTrialDays={defaultTrialDays}
+              extendTrialDays={EXTEND_TRIAL_DAYS}
               continuation={{
                 requestedOn: account.continuationRequestedAt
                   ? formatDate(account.continuationRequestedAt)

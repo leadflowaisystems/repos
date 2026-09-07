@@ -237,8 +237,12 @@ The file gained one function and changed two:
 
 * `app.trial_default_days` — how long a new trial runs. Reads one `AppSetting`
   row, key `trial.default_days`, set from the operator's Settings page, and
-  returns 14 for anything missing or malformed. SECURITY DEFINER because
-  `AppSetting` is admin-only and the function is called on the signup path.
+  returns the product default for anything missing or malformed — **30 since
+  M27**, 14 when M23 shipped. SECURITY DEFINER because `AppSetting` is
+  admin-only and the function is called on the signup path. The fallback must
+  stay equal to `DEFAULT_TRIAL_DAYS` in `src/lib/commercial/service.ts`; see
+  `prisma/m27/migration.sql`, which is how an already-built database is moved
+  forward without replaying this whole file.
 * `app.create_client` — now opens the trial window it always should have:
   `trialStartsAt = now`, `trialEndsAt = now + trial_default_days()`. Same
   signature, so an older deployment keeps working against the new function.

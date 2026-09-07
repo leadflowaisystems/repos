@@ -33,7 +33,8 @@ import { createTestDb, resetDb, validClientInput } from './helpers/test-db';
  * button they press:
  *
  *   1. A trial has an end date, always. New businesses get one at creation
- *      (14 days unless the operator changes the default) and no owner-facing
+ *      (30 days unless the operator changes the default -- 14 when this pass
+ *      first shipped; see M27) and no owner-facing
  *      page ever says a trial is open-ended, or talks about "what this costs".
  *   2. When the trial ends the workspace and its history stay, and the one
  *      thing offered is to continue — which captures a name, an email and a
@@ -88,7 +89,7 @@ async function makeOwner(email = 'owner@corner.test'): Promise<string> {
 // ---------------------------------------------------------------------------
 
 describe('a trial has an end date, always', () => {
-  it('starts every self-serve business on a 14-day trial with an explicit end', async () => {
+  it('starts every self-serve business on a trial of the default length, with an explicit end', async () => {
     const userId = await makeOwner();
     const result = await completeOnboarding(
       db,
@@ -108,7 +109,7 @@ describe('a trial has an end date, always', () => {
     expect(client.trialEndsAt?.toISOString()).toBe(
       new Date(NOW.getTime() + DEFAULT_TRIAL_DAYS * DAY).toISOString(),
     );
-    expect(DEFAULT_TRIAL_DAYS).toBe(14);
+    expect(DEFAULT_TRIAL_DAYS).toBe(30);
   });
 
   it("starts a business added from the operator's list on the same trial", async () => {
@@ -129,14 +130,14 @@ describe('a trial has an end date, always', () => {
   });
 
   it('lets the operator change the default without a schema change, and validates it', async () => {
-    expect(await getTrialDefaultDays(db)).toBe(14);
-
-    const saved = await saveTrialDefaultDays(db, '30');
-    expect(saved.ok).toBe(true);
     expect(await getTrialDefaultDays(db)).toBe(30);
+
+    const saved = await saveTrialDefaultDays(db, '21');
+    expect(saved.ok).toBe(true);
+    expect(await getTrialDefaultDays(db)).toBe(21);
     expect(
       (await db.appSetting.findUnique({ where: { key: TRIAL_DEFAULT_DAYS_SETTING } }))?.value,
-    ).toBe('30');
+    ).toBe('21');
 
     // The new default reaches a new business.
     const userId = await makeOwner();
@@ -152,12 +153,12 @@ describe('a trial has an end date, always', () => {
       where: { id: result.data.clientId },
       select: { trialEndsAt: true },
     });
-    expect(client.trialEndsAt?.toISOString()).toBe(new Date(NOW.getTime() + 30 * DAY).toISOString());
+    expect(client.trialEndsAt?.toISOString()).toBe(new Date(NOW.getTime() + 21 * DAY).toISOString());
 
     // And "Start a trial" with no length uses it too.
     const id = await makeClient();
     const started = await startTrial(db, id, undefined, { now: NOW });
-    expect(started.ok && started.data.days).toBe(30);
+    expect(started.ok && started.data.days).toBe(21);
 
     for (const bad of ['0', '-3', '400', '14.5', 'two weeks', '']) {
       expect((await saveTrialDefaultDays(db, bad)).ok, bad).toBe(false);

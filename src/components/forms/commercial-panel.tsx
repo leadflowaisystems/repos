@@ -36,6 +36,12 @@ export type CommercialPanelProps = {
   trialDaysLeft: number | null;
   /** How long a fresh trial runs unless the operator types otherwise (Settings). */
   defaultTrialDays: number;
+  /**
+   * What the extend box offers. Deliberately its own number, not the Settings
+   * one: Settings is a default for NEW trials, and this button adds to a
+   * business that already has dates. See EXTEND_TRIAL_DAYS.
+   */
+  extendTrialDays: number;
   /** The owner's request to continue, and where it stands in the operator's own records. */
   continuation: {
     requestedOn: string | null;
@@ -176,7 +182,7 @@ export function CommercialPanel(props: CommercialPanelProps) {
           clientId={clientId}
           label="Extend the trial"
           pendingLabel="Extending…"
-          days={props.defaultTrialDays}
+          days={props.extendTrialDays}
         />
         <ActionButton
           action={convertToActiveAction}

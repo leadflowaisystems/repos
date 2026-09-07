@@ -29,6 +29,14 @@ import { isMissingDbFunction, withRlsContext } from '@/lib/db';
  * without a schema change through one AppSetting row), and a pause and a
  * resume are stamped when they happen, so "paused since" and "resumed" are
  * records rather than guesses.
+ *
+ * M27 moved that default to thirty days and left every existing business alone,
+ * which is a property of the design rather than a precaution taken afterwards.
+ * The configured length is read at exactly one moment — when a trial starts —
+ * and what is written is a date. Nothing downstream recomputes it: the Account
+ * page, the days remaining and every operator screen read `trialEndsAt` off the
+ * row. So the operator can change the number as often as they like and the only
+ * businesses affected are the ones that do not exist yet.
  */
 
 export type ServiceOk<T> = { ok: true; data: T };
@@ -67,10 +75,34 @@ const DAY = 86_400_000;
 /**
  * The product default, and the only place the number lives in TypeScript. The
  * database function `app.trial_default_days()` carries the same default for the
- * path that creates a business under the real policies.
+ * path that creates a business under the real policies. The two must agree, so
+ * they change together — see `prisma/m27/migration.sql`.
+ *
+ * Thirty days since M27. It is a default for trials started from now on, and
+ * nothing else: no business already on a trial moves, because a trial's end is
+ * a stored date on that business and not a sum computed from this number.
  */
-export const DEFAULT_TRIAL_DAYS = 14;
+export const DEFAULT_TRIAL_DAYS = 30;
 export const MAX_TRIAL_DAYS = 365;
+
+/**
+ * What the "Extend the trial" box offers, which is NOT the same number.
+ *
+ * The two buttons on a client page look alike and mean opposite things. "Start
+ * a trial" begins a new one, so it should follow Settings. "Extend the trial"
+ * adds to a business that already has stored dates, and Settings is explicitly
+ * a default for new trials rather than a value applied to existing clients —
+ * so wiring the same number into both would let a change on Settings reach a
+ * business that is already running, through one default-accepting click.
+ *
+ * It happened: until M27 both boxes read `DEFAULT_TRIAL_DAYS`, so moving that
+ * from 14 to 30 would silently have doubled what the extend button does, with
+ * no mention of it anywhere and no clean way back — there is no "shorten the
+ * trial", and restarting one rewrites `trialStartsAt`, the column this pass
+ * exists to protect. Fourteen is what that button has always offered, and it
+ * stays fourteen no matter what Settings says.
+ */
+export const EXTEND_TRIAL_DAYS = 14;
 /** One AppSetting row. The operator changes it from Settings; nothing else reads it. */
 export const TRIAL_DEFAULT_DAYS_SETTING = 'trial.default_days';
 
@@ -87,8 +119,13 @@ export function normaliseTrialDays(raw: unknown): number | null {
  * The configured default, or the product default when none is set.
  *
  * AppSetting is admin-only under RLS, so a business owner's connection reads
- * nothing here and gets 14 — which is fine, because nothing on the owner's
- * side ever starts a trial. The operator's connection reads the real value.
+ * nothing here and gets the product default — which is fine, because nothing
+ * on the owner's side ever starts a trial. The operator's connection reads the
+ * real value.
+ *
+ * Read only when a trial is being STARTED. Nothing that describes, warns about
+ * or locks an existing account calls this: those read the client's own stored
+ * `trialEndsAt`, which is why changing the number here cannot move anybody.
  */
 export async function getTrialDefaultDays(db: PrismaClient): Promise<number> {
   try {
@@ -362,7 +399,12 @@ export async function setSubscription(
 
 /**
  * Starts or restarts a trial from now. `days` defaults to the configured
- * default, which defaults to fourteen.
+ * default, which defaults to `DEFAULT_TRIAL_DAYS`.
+ *
+ * The configured length is read HERE, at the moment the trial starts, and the
+ * resulting end date is stored on the client. That is the whole of how the
+ * setting applies to new trials only: it is consulted once, and afterwards the
+ * business carries its own dates.
  */
 export async function startTrial(
   db: PrismaClient,

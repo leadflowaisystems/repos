@@ -713,7 +713,14 @@ REVOKE ALL ON FUNCTION app.provision_user(text, text, text, text) FROM PUBLIC;
 -- AppSetting, key `trial.default_days`, read here and nowhere else. AppSetting
 -- is admin-only under RLS, so this is SECURITY DEFINER for the one row it needs.
 -- Anything that is not a whole number of days between 1 and 365 -- a missing
--- row, an old typo -- falls back to 14, which is the product's default.
+-- row, an old typo -- falls back to the product's default.
+--
+-- M27 moved that default from 14 to 30. It must stay equal to
+-- DEFAULT_TRIAL_DAYS in src/lib/commercial/service.ts: the two exist because a
+-- trial can be started from either side, and they would be a bug if they
+-- disagreed. Changing it affects only trials started afterwards -- this
+-- function is called when a business is CREATED, and what it produces is a
+-- stored date that nothing recalculates.
 CREATE OR REPLACE FUNCTION app.trial_default_days()
   RETURNS integer
   LANGUAGE plpgsql
@@ -727,11 +734,11 @@ DECLARE
 BEGIN
   SELECT s.value INTO v_raw FROM public."AppSetting" s WHERE s.key = 'trial.default_days';
   IF v_raw IS NULL OR btrim(v_raw) !~ '^[0-9]{1,3}$' THEN
-    RETURN 14;
+    RETURN 30;
   END IF;
   v_days := btrim(v_raw)::integer;
   IF v_days < 1 OR v_days > 365 THEN
-    RETURN 14;
+    RETURN 30;
   END IF;
   RETURN v_days;
 END $fn$;
@@ -771,10 +778,12 @@ REVOKE ALL ON FUNCTION app.trial_default_days() FROM PUBLIC;
 -- decision and moves only through `app.set_subscription`.
 --
 -- M23: the trial it starts on has an end date from the first second. The
--- length is `app.trial_default_days()` -- 14 unless the operator has set
--- otherwise -- and the operator can extend, restart or convert it afterwards
--- through `app.set_subscription`. A trial with no end date was a real state
--- before this and it read to an owner as "open-ended"; it no longer exists.
+-- length is `app.trial_default_days()` -- 30 since M27, unless the operator has
+-- set otherwise -- and the operator can extend, restart or convert it
+-- afterwards through `app.set_subscription`. A trial with no end date was a
+-- real state before this and it read to an owner as "open-ended"; it no longer
+-- exists. The length is read once, here, and stored as `trialEndsAt`; changing
+-- the default later moves nobody who is already on a trial.
 CREATE OR REPLACE FUNCTION app.create_client(
   p_business_name text,
   p_vertical      text,

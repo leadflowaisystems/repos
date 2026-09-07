@@ -153,8 +153,9 @@ explanation, "State", the trial start/end rows, "What paused means".
 
 * **Every trial has an end date.** `app.create_client` now opens the window
   when it creates the business (`trialStartsAt = now`, `trialEndsAt = now +
-  default`). The default is 14 days; the operator changes it on Settings ("New
-  trials") and it is stored as one `AppSetting` row, read by
+  default`). The default was 14 days when this pass shipped and is **30 since
+  M27** (`docs/TRIAL_LENGTH_PASS_2026-09.md`); the operator changes it on
+  Settings ("New trials") and it is stored as one `AppSetting` row, read by
   `app.trial_default_days()`, so no schema change is needed to change it.
   "Start a trial" on the operator's client page defaults to the same number.
 * **Existing trials** (all six production businesses had no end date) get one
@@ -219,8 +220,8 @@ alone (arrows and dots are `aria-hidden` beside words), disclosures are native
   `repos_app` with RLS enforced). New: `tests/m23.portal-pass.test.ts` (21)
   and `tests/m23.trial-rls.test.ts` (7): no "What this costs" / "no end date"
   anywhere owner-facing; a trial's end date is explicit; new businesses get
-  14 days by default and honour the operator's setting (through the real
-  `app.create_client`); the ended trial offers the continuation; the
+  the product default by default -- 14 when this pass shipped, 30 since M27 --
+  and honour the operator's setting (through the real `app.create_client`); the ended trial offers the continuation; the
   continuation captures name/email/mobile, creates no amount, and reaches the
   operator's board as the top action; an owner's connection cannot read the
   amount or the note; pause and resume are stamped and cannot be written by an

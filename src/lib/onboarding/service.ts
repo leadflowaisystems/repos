@@ -189,7 +189,7 @@ async function createOwnedClientDirect(
   now: Date,
 ): Promise<string> {
   // The same window `app.create_client` opens: every business starts on a
-  // trial with an end date, the configured default long (14 unless changed).
+  // trial with an end date, the configured default long (30 unless changed).
   const trial = trialWindowFrom(now, await getTrialDefaultDays(db));
   return withRlsContext(db, async (tx) => {
     const client = await tx.client.create({

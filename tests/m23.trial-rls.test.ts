@@ -11,9 +11,10 @@ import { resetDb } from './helpers/test-db';
  * role production connects as:
  *
  *   1. A business created through `app.create_client` starts on a trial with
- *      an end date, fourteen days long unless the operator has set a different
- *      default in AppSetting — which the function reads for itself, because a
- *      signing-up owner's connection cannot read that table.
+ *      an end date, the product default long — thirty days since M27 —
+ *      unless the operator has set a different default in AppSetting, which the
+ *      function reads for itself, because a signing-up owner's connection
+ *      cannot read that table.
  *   2. `app.set_subscription` stamps the pause and the resume, and a business
  *      owner holds no privilege on either stamp.
  *   3. Nothing the pass added lets an owner read the negotiated amount.
@@ -99,7 +100,7 @@ beforeEach(async () => {
 // ---------------------------------------------------------------------------
 
 describe('a new business starts on a trial with an end date', () => {
-  it('is fourteen days from the moment of creation, through app.create_client', async () => {
+  it('is the product default from the moment of creation, through app.create_client', async () => {
     session = { id: AUTH.newcomer };
     const result = await onboarding.completeOnboarding(
       app,
@@ -113,11 +114,14 @@ describe('a new business starts on a trial with an end date', () => {
     const client = await owner.client.findUniqueOrThrow({ where: { id: result.data.clientId } });
     expect(client.subscriptionStatus).toBe('TRIAL');
     expect(client.trialStartsAt?.toISOString()).toBe(NOW.toISOString());
-    expect(client.trialEndsAt?.toISOString()).toBe(new Date(NOW.getTime() + 14 * DAY).toISOString());
+    expect(commercial.DEFAULT_TRIAL_DAYS).toBe(30);
+    expect(client.trialEndsAt?.toISOString()).toBe(
+      new Date(NOW.getTime() + commercial.DEFAULT_TRIAL_DAYS * DAY).toISOString(),
+    );
   });
 
   it("honours the operator's default from AppSetting, which the signing-up owner cannot read", async () => {
-    await owner.appSetting.create({ data: { key: commercial.TRIAL_DEFAULT_DAYS_SETTING, value: '30' } });
+    await owner.appSetting.create({ data: { key: commercial.TRIAL_DEFAULT_DAYS_SETTING, value: '45' } });
 
     // The function reads it as its definer; the owner's connection sees no row.
     session = { id: AUTH.newcomer };
@@ -125,7 +129,7 @@ describe('a new business starts on a trial with an end date', () => {
     const viaFunction = await owner.$queryRawUnsafe<{ days: number }[]>(
       `SELECT app.trial_default_days() AS days`,
     );
-    expect(viaFunction[0]?.days).toBe(30);
+    expect(viaFunction[0]?.days).toBe(45);
 
     const result = await onboarding.completeOnboarding(
       app,
@@ -136,10 +140,10 @@ describe('a new business starts on a trial with an end date', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const client = await owner.client.findUniqueOrThrow({ where: { id: result.data.clientId } });
-    expect(client.trialEndsAt?.toISOString()).toBe(new Date(NOW.getTime() + 30 * DAY).toISOString());
+    expect(client.trialEndsAt?.toISOString()).toBe(new Date(NOW.getTime() + 45 * DAY).toISOString());
   });
 
-  it('falls back to fourteen for a malformed or out-of-range setting', async () => {
+  it('falls back to the product default for a malformed or out-of-range setting', async () => {
     for (const bad of ['0', '400', 'fortnight', ' ']) {
       await owner.appSetting.upsert({
         where: { key: commercial.TRIAL_DEFAULT_DAYS_SETTING },
@@ -147,7 +151,7 @@ describe('a new business starts on a trial with an end date', () => {
         update: { value: bad },
       });
       const rows = await owner.$queryRawUnsafe<{ days: number }[]>(`SELECT app.trial_default_days() AS days`);
-      expect(rows[0]?.days, bad).toBe(14);
+      expect(rows[0]?.days, bad).toBe(commercial.DEFAULT_TRIAL_DAYS);
     }
   });
 
