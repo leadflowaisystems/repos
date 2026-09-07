@@ -6,6 +6,7 @@ import { createClient } from '@/lib/clients/service';
 import {
   _resetGatewayThrottles,
   ensureGateway,
+  publicTokenExists,
   resolvePublicGateway,
   submitCustomerFeedback,
 } from '@/lib/gateway/service';
@@ -55,11 +56,15 @@ async function installBoundary(): Promise<void> {
     'utf8',
   );
 
-  const gateway = file.indexOf('CREATE OR REPLACE FUNCTION app.public_gateway');
+  // M28: both public functions now call app.service_qr_live, so the predicate
+  // has to be installed with them or neither will resolve a token.
+  const live = file.indexOf('CREATE OR REPLACE FUNCTION app.service_qr_live');
+  const gateway = file.indexOf('CREATE OR REPLACE FUNCTION app.public_gateway(');
   const drop = file.indexOf('DROP FUNCTION IF EXISTS app.public_submit');
-  const submit = file.indexOf('CREATE OR REPLACE FUNCTION app.public_submit');
+  const submit = file.indexOf('CREATE OR REPLACE FUNCTION app.public_submit(');
+  const exists = file.indexOf('CREATE OR REPLACE FUNCTION app.public_gateway_exists(');
   expect(
-    Math.min(gateway, drop, submit),
+    Math.min(live, gateway, drop, submit, exists),
     'public-gateway.sql no longer contains the expected statements',
   ).toBeGreaterThan(0);
 
@@ -72,6 +77,8 @@ async function installBoundary(): Promise<void> {
   };
 
   const statements = [
+    cut(live, 'END $fn$;'),
+    cut(exists, '$$;'),
     cut(gateway, '$$;'),
     cut(drop, ');'),
     cut(submit, 'END $$;'),
@@ -325,12 +332,125 @@ describe('the shape of the boundary itself', () => {
         WHERE n.nspname = 'app' AND p.proname LIKE 'public\\_%'`,
     );
 
-    expect(rows).toHaveLength(2);
+    // Three since M28 added app.public_gateway_exists.
+    expect(rows).toHaveLength(3);
     for (const row of rows) {
       expect(
         row.proconfig?.some((c) => c.startsWith('search_path=')),
         `${row.proname} must pin its search_path`,
       ).toBe(true);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The QR grace (M28)
+// ---------------------------------------------------------------------------
+
+describe('the three days after a trial ends', () => {
+  const DAY = 86_400_000;
+
+  /** Moves the business's stored trial end, without touching anything else. */
+  async function endTrial(clientId: string, daysAgo: number) {
+    await db.client.update({
+      where: { id: clientId },
+      data: {
+        subscriptionStatus: 'TRIAL',
+        trialStartsAt: new Date(Date.now() - (daysAgo + 30) * DAY),
+        trialEndsAt: new Date(Date.now() - daysAgo * DAY),
+      },
+    });
+  }
+
+  it('keeps the QR live on the day the trial ends and the two days after', async () => {
+    const { clientId, token } = await makeGateway('Grace Cafe');
+    for (const daysAgo of [0, 1, 2]) {
+      await endTrial(clientId, daysAgo);
+      expect(await resolvePublicGateway(publicDb, token), `${daysAgo} days ago`).not.toBeNull();
+    }
+  });
+
+  it('switches the QR off once the third day is past', async () => {
+    const { clientId, token } = await makeGateway('Dark Cafe');
+    await endTrial(clientId, 4);
+    expect(await resolvePublicGateway(publicDb, token)).toBeNull();
+    // And the two paths still agree, which is the whole point of the pair.
+    expect(await resolvePublicGateway(db, token)).toBeNull();
+  });
+
+  it('refuses a submission once the QR is dark, and writes nothing', async () => {
+    const { clientId, token } = await makeGateway('Shut Cafe');
+    await endTrial(clientId, 0);
+    const during = await submitCustomerFeedback(publicDb, token, {
+      text: 'Lovely, thank you',
+      stars: 5,
+      nonce: '',
+    });
+    expect(during.ok).toBe(true);
+    const afterGrace = await db.reviewItem.count({ where: { clientId } });
+    expect(afterGrace).toBe(1);
+
+    await endTrial(clientId, 4);
+    const blocked = await submitCustomerFeedback(publicDb, token, {
+      text: 'Another one, later',
+      stars: 4,
+      nonce: '',
+    });
+    expect(blocked.ok).toBe(false);
+    // Nothing new was written, and what was already collected is untouched.
+    expect(await db.reviewItem.count({ where: { clientId } })).toBe(1);
+  });
+
+  it('brings the SAME token back when the service is restored', async () => {
+    const { clientId, token } = await makeGateway('Returning Cafe');
+    await endTrial(clientId, 5);
+    expect(await resolvePublicGateway(publicDb, token)).toBeNull();
+
+    // Restored by moving the stored end date forward, which is what the
+    // operator's "extend the trial" does. No new token is minted.
+    await db.client.update({
+      where: { id: clientId },
+      data: { trialEndsAt: new Date(Date.now() + 30 * DAY) },
+    });
+    const back = await resolvePublicGateway(publicDb, token);
+    expect(back).not.toBeNull();
+    expect(back?.token).toBe(token);
+    const row = await db.feedbackGateway.findFirstOrThrow({ where: { clientId } });
+    expect(row.publicToken).toBe(token);
+  });
+
+  it('never darkens a paying business, or one with no end date', async () => {
+    const { clientId, token } = await makeGateway('Paying Cafe');
+    await endTrial(clientId, 10);
+    expect(await resolvePublicGateway(publicDb, token)).toBeNull();
+
+    await db.client.update({ where: { id: clientId }, data: { subscriptionStatus: 'ACTIVE' } });
+    expect(await resolvePublicGateway(publicDb, token)).not.toBeNull();
+
+    await db.client.update({
+      where: { id: clientId },
+      data: { subscriptionStatus: 'TRIAL', trialEndsAt: null },
+    });
+    expect(await resolvePublicGateway(publicDb, token)).not.toBeNull();
+  });
+
+  it('never darkens the demonstration business', async () => {
+    const { clientId, token } = await makeGateway('Demo Cafe');
+    await endTrial(clientId, 30);
+    expect(await resolvePublicGateway(publicDb, token)).toBeNull();
+    await db.client.update({ where: { id: clientId }, data: { serviceExemption: 'DEMO' } });
+    expect(await resolvePublicGateway(publicDb, token)).not.toBeNull();
+  });
+
+  it('tells a real card apart from a wrong address, without saying why', async () => {
+    const { clientId, token } = await makeGateway('Known Cafe');
+    await endTrial(clientId, 9);
+    // The token is real and the gateway switched on, so the page can say
+    // "temporarily unavailable" instead of "this page isn't here".
+    expect(await publicTokenExists(publicDb, token)).toBe(true);
+    // An invented one is still simply unknown.
+    expect(await publicTokenExists(publicDb, 'nosuchtoken0000000000')).toBe(false);
+    // And neither answer resolves a gateway.
+    expect(await resolvePublicGateway(publicDb, token)).toBeNull();
   });
 });

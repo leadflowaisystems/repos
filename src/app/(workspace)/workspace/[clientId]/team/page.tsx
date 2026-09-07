@@ -1,14 +1,12 @@
+import { prisma } from '@/lib/db';
 import type { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
 import {
   InviteForm,
   MembershipControls,
   RevokeInviteButton,
 } from '@/components/forms/team-forms';
 import { PageIntro, Section } from '@/components/portal/portal-ui';
-import { currentActor } from '@/lib/auth/authorize';
-import { tenantGateFor } from '@/lib/auth/guard';
-import { prisma } from '@/lib/db';
+import { requireOpenWorkspace } from '@/lib/lifecycle/access';
 import { getTeam } from '@/lib/team/service';
 import { ROLE_OWNER } from '@/lib/tenancy/service';
 
@@ -39,11 +37,7 @@ export default async function TeamPage({
   params: Promise<{ clientId: string }>;
 }) {
   const { clientId } = await params;
-  const gate = await tenantGateFor(clientId, 'OWNER');
-  if (!gate.ok) {
-    if (!(await currentActor(prisma))) redirect('/login');
-    notFound();
-  }
+  await requireOpenWorkspace(clientId, 'OWNER');
 
   const team = await getTeam(prisma, clientId);
   const active = team.members.filter((m) => m.status === 'ACTIVE').length;

@@ -1,8 +1,7 @@
-import type { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
-import { currentActor } from '@/lib/auth/authorize';
-import { tenantGateFor } from '@/lib/auth/guard';
 import { prisma } from '@/lib/db';
+import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
+import { requireOpenWorkspace } from '@/lib/lifecycle/access';
 import { requestOrigin } from '@/lib/gateway/origin';
 import { getKitView } from '@/lib/kit/service';
 import { PageIntro, Quiet, Section, StatusStrip } from '@/components/portal/portal-ui';
@@ -39,11 +38,7 @@ export default async function WorkspaceKitPage({
   params: Promise<{ clientId: string }>;
 }) {
   const { clientId } = await params;
-  const gate = await tenantGateFor(clientId, 'MEMBER');
-  if (!gate.ok) {
-    if (!(await currentActor(prisma))) redirect('/login');
-    notFound();
-  }
+  await requireOpenWorkspace(clientId);
 
   const [view, through] = await Promise.all([
     getKitView(prisma, clientId, { requestOrigin: await requestOrigin() }),

@@ -13,9 +13,11 @@ import {
   RestoreClientButton,
 } from '@/components/client-lifecycle';
 import { prisma } from '@/lib/db';
-import { countClients, listClients } from '@/lib/clients/service';
+import { countClients, listClients, type ClientListRow } from '@/lib/clients/service';
 import { verticalLabel } from '@/lib/packs';
 import { formatDate, formatNumber, titleCase } from '@/lib/format';
+import { describeLifecycle, operatorLabel, type Lifecycle } from '@/lib/lifecycle/service';
+import { listContinuationRequests } from '@/lib/continuation/service';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,11 +29,62 @@ const STATUS_TONE: Record<string, 'good' | 'brand' | 'warn' | 'neutral' | 'bad'>
   CHURNED: 'bad',
 };
 
+/**
+ * M28 - the service filters.
+ *
+ * Six views over the same list rather than six queries: the lifecycle is a pure
+ * function of columns already fetched, so filtering happens here and the
+ * operator's list cannot disagree with the owner's workspace about who has
+ * lapsed.
+ */
+const SERVICE_FILTERS = {
+  all: { label: 'All', match: () => true },
+  active: {
+    label: 'Active',
+    match: (l: Lifecycle) => l.state === 'ACTIVE_SERVICE' || l.state === 'ACTIVE_TRIAL',
+  },
+  ending: {
+    label: 'Trial ending soon',
+    match: (l: Lifecycle) => l.state === 'ACTIVE_TRIAL' && l.warning !== null,
+  },
+  expired: { label: 'Expired', match: (l: Lifecycle) => l.state === 'TRIAL_EXPIRED' },
+  locked: { label: 'Manually locked', match: (l: Lifecycle) => l.state === 'MANUALLY_LOCKED' },
+} as const;
+
+type ServiceFilter = keyof typeof SERVICE_FILTERS;
+
+const SERVICE_TONE: Record<string, 'good' | 'brand' | 'warn' | 'neutral' | 'bad'> = {
+  ACTIVE_TRIAL: 'brand',
+  ACTIVE_SERVICE: 'good',
+  TRIAL_EXPIRED: 'bad',
+  MANUALLY_LOCKED: 'bad',
+  ADMIN_OVERRIDE: 'warn',
+  FOUNDER_EXEMPT: 'neutral',
+  DEMO_EXEMPT: 'neutral',
+};
+
+function lifecycleOf(client: ClientListRow, now: Date): Lifecycle {
+  return describeLifecycle({
+    subscriptionStatus: client.subscriptionStatus,
+    trialStartsAt: client.trialStartsAt,
+    trialEndsAt: client.trialEndsAt,
+    serviceLockedAt: client.serviceLockedAt,
+    accessOverrideAt: client.accessOverrideAt,
+    serviceExemption: client.serviceExemption,
+    // The operator is looking at somebody else's business. The founder
+    // exemption is about a workspace they can always open, not about how this
+    // list should describe the business to them.
+    viewerIsPlatformAdmin: false,
+    now,
+  });
+}
+
 export default async function ClientsPage({
   searchParams,
 }: {
   searchParams: Promise<{
     view?: string;
+    service?: string;
     deleted?: string;
     archived?: string;
     restored?: string;
@@ -41,12 +94,40 @@ export default async function ClientsPage({
   const params = await searchParams;
   const archivedView = params.view === 'archived';
 
-  const [clients, counts] = await Promise.all([
+  const [allClients, counts, requests] = await Promise.all([
     listClients(prisma, { onlyArchived: archivedView }),
     countClients(prisma),
+    listContinuationRequests(prisma),
   ]);
 
   const hasAnyClient = counts.active + counts.archived > 0;
+
+  // One instant for the whole render, so two rows cannot be judged against two
+  // different clocks.
+  const now = new Date();
+  const asked = new Map(requests.map((r) => [r.clientId, r]));
+  const withLifecycle = allClients.map((client) => ({
+    client,
+    lifecycle: lifecycleOf(client, now),
+    request: asked.get(client.id) ?? null,
+  }));
+
+  const filterKey: ServiceFilter | 'requested' =
+    params.service === 'requested'
+      ? 'requested'
+      : params.service && params.service in SERVICE_FILTERS
+        ? (params.service as ServiceFilter)
+        : 'all';
+
+  const clients =
+    filterKey === 'requested'
+      ? withLifecycle.filter((row) => row.request !== null)
+      : withLifecycle.filter((row) => SERVICE_FILTERS[filterKey].match(row.lifecycle));
+
+  const countFor = (key: ServiceFilter | 'requested') =>
+    key === 'requested'
+      ? withLifecycle.filter((row) => row.request !== null).length
+      : withLifecycle.filter((row) => SERVICE_FILTERS[key].match(row.lifecycle)).length;
 
   return (
     <>
@@ -94,6 +175,23 @@ export default async function ClientsPage({
         </ViewTab>
       </div>
 
+      {!archivedView ? (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          {(Object.keys(SERVICE_FILTERS) as ServiceFilter[]).map((key) => (
+            <ViewTab
+              key={key}
+              href={key === 'all' ? '/clients' : `/clients?service=${key}`}
+              active={filterKey === key}
+            >
+              {SERVICE_FILTERS[key].label} ({countFor(key)})
+            </ViewTab>
+          ))}
+          <ViewTab href="/clients?service=requested" active={filterKey === 'requested'}>
+            Continuation requested ({countFor('requested')})
+          </ViewTab>
+        </div>
+      ) : null}
+
       <Card>
         {clients.length === 0 ? (
           archivedView ? (
@@ -118,12 +216,13 @@ export default async function ClientsPage({
           )
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left text-[13px]">
+            <table className="w-full min-w-[980px] text-left text-[13px]">
               <thead className="border-b border-ink-200 text-[12px] text-ink-500">
                 <tr>
                   <th className="px-5 py-3 font-medium">Business</th>
                   <th className="px-5 py-3 font-medium">Vertical</th>
                   <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">Service</th>
                   <th className="px-5 py-3 text-right font-medium">Baseline</th>
                   <th className="px-5 py-3 text-right font-medium">Snapshots</th>
                   <th className="px-5 py-3 font-medium">Last snapshot</th>
@@ -133,7 +232,7 @@ export default async function ClientsPage({
                 </tr>
               </thead>
               <tbody>
-                {clients.map((client) => (
+                {clients.map(({ client, lifecycle, request }) => (
                   <tr
                     key={client.id}
                     className="border-b border-ink-100 last:border-0 hover:bg-ink-50"
@@ -170,6 +269,26 @@ export default async function ClientsPage({
                           {titleCase(client.status)}
                         </Badge>
                       )}
+                    </td>
+                    <td className="px-5 py-3">
+                      <Badge tone={SERVICE_TONE[lifecycle.state] ?? 'neutral'}>
+                        {operatorLabel(lifecycle)}
+                      </Badge>
+                      <span className="mt-0.5 block text-[12px] text-ink-500">
+                        {lifecycle.trialEndsAt
+                          ? `${lifecycle.expired ? 'Ended' : 'Ends'} ${formatDate(lifecycle.trialEndsAt)}${
+                              lifecycle.expired || lifecycle.daysRemaining === null
+                                ? ''
+                                : ` · ${lifecycle.daysRemaining} day${lifecycle.daysRemaining === 1 ? '' : 's'} left`
+                            }`
+                          : 'No end date'}
+                      </span>
+                      {request ? (
+                        <span className="mt-0.5 block text-[12px] text-brand-700">
+                          Asked to continue · {request.phone}
+                          {request.email ? ` · ${request.email}` : ''}
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-5 py-3 text-right tabular-nums text-ink-600">
                       {client.baselineRating === null

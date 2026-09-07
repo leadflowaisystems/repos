@@ -134,6 +134,7 @@ export async function resetDb(db: PrismaClient): Promise<void> {
   await db.membership.deleteMany();
   await db.improvementAction.deleteMany();
   await db.commercial.deleteMany();
+  await db.serviceContinuationRequest.deleteMany();
   await db.client.deleteMany();
   await db.user.deleteMany();
   await db.appSetting.deleteMany();

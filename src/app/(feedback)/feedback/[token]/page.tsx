@@ -5,7 +5,11 @@ import { CustomerFeedbackForm } from '@/components/feedback-gateway/customer-for
 // privilege-less public role rather than the RLS-bound application one. That
 // connection can call two token-scoped functions and read no table at all.
 import { publicDb } from '@/lib/db-public';
-import { resolvePublicGateway } from '@/lib/gateway/service';
+import {
+  QR_UNAVAILABLE_MESSAGE,
+  publicTokenExists,
+  resolvePublicGateway,
+} from '@/lib/gateway/service';
 import { newFormNonce } from '@/lib/gateway/throttle';
 import { HeadwayMark } from '@/components/brand';
 
@@ -56,8 +60,29 @@ export default async function CustomerFeedbackPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const gateway = await resolvePublicGateway(publicDb(), token);
-  if (!gateway) notFound();
+  const db = publicDb();
+  const gateway = await resolvePublicGateway(db, token);
+
+  if (!gateway) {
+    // A REAL card whose business has lapsed is not a wrong address, and telling
+    // its customer "this page isn't here" makes the BUSINESS look broken to the
+    // person standing in front of it. An unknown token still 404s, so nothing
+    // here can be used to find out which businesses exist.
+    if (await publicTokenExists(db, token)) {
+      return (
+        <main>
+          <h1 className="mt-3 text-[28px] leading-[1.15] font-semibold tracking-tight text-ink-900">
+            {QR_UNAVAILABLE_MESSAGE}
+          </h1>
+          <p className="mt-2 text-[15px] leading-relaxed text-ink-600">
+            Please try again later, or tell the team here.
+          </p>
+          <PoweredByHeadway />
+        </main>
+      );
+    }
+    notFound();
+  }
 
   const { copy } = gateway;
 

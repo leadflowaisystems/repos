@@ -171,14 +171,19 @@ describe('the role the application actually connects as', () => {
               count(*) AS total
          FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relkind = 'r'`,
     );
-    expect(Number(rls[0]?.total)).toBe(17);
-    expect(Number(rls[0]?.enabled)).toBe(17);
-    expect(Number(rls[0]?.forced)).toBe(17);
+    // 18 since M28 added ServiceContinuationRequest. Every one of them still
+    // has RLS enabled AND forced — the count is here so a new table cannot be
+    // added without somebody deciding what its policy is.
+    expect(Number(rls[0]?.total)).toBe(18);
+    expect(Number(rls[0]?.enabled)).toBe(18);
+    expect(Number(rls[0]?.forced)).toBe(18);
 
     const policies = await owner.$queryRawUnsafe<{ n: bigint }[]>(
       `SELECT count(*) AS n FROM pg_policies WHERE schemaname = 'public'`,
     );
-    expect(Number(policies[0]?.n)).toBe(20);
+    // 21 since M28: ServiceContinuationRequest carries the same
+    // tenant_isolation policy every other per-business table has.
+    expect(Number(policies[0]?.n)).toBe(21);
   });
 
   it('ships the scope the pipeline runs under', async () => {

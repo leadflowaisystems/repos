@@ -11,6 +11,7 @@ import {
   saveCommercialAction,
   startTrialAction,
 } from '@/lib/actions/commercial';
+import { setServiceAccessAction } from '@/lib/actions/continuation';
 import { IDLE, type ActionState } from '@/lib/actions/shared';
 
 /**
@@ -42,6 +43,22 @@ export type CommercialPanelProps = {
    * business that already has dates. See EXTEND_TRIAL_DAYS.
    */
   extendTrialDays: number;
+  /** M28 - where this business stands, and what staff may do about it. */
+  service: {
+    label: string;
+    locked: boolean;
+    overridden: boolean;
+    demoExempt: boolean;
+    trialStarted: string | null;
+    trialEnds: string | null;
+    daysRemaining: number | null;
+    expired: boolean;
+    qrActive: boolean;
+    inQrGrace: boolean;
+    qrGraceEnds: string | null;
+  };
+  /** The open continuation request, if the owner has asked. */
+  continuationRequest: { phone: string; email: string | null; askedOn: string } | null;
   /** The owner's request to continue, and where it stands in the operator's own records. */
   continuation: {
     requestedOn: string | null;
@@ -90,6 +107,39 @@ const STATE_WORD = {
 } as const;
 
 /** One button, one action, its own result line. */
+/**
+ * M28 - the four service-access decisions. Same shape as ActionButton, plus the
+ * action name, because they all go through one server action rather than four.
+ *
+ * NONE of them writes a trial date. The labels say so where it matters, because
+ * "lock" is exactly the word an operator would expect to shorten a trial.
+ */
+function AccessButton({
+  clientId,
+  action,
+  label,
+  pendingLabel,
+  variant = 'secondary',
+}: {
+  clientId: string;
+  action: 'LOCK' | 'UNLOCK' | 'OVERRIDE' | 'CLEAR_OVERRIDE' | 'EXEMPT_DEMO' | 'CLEAR_EXEMPTION';
+  label: string;
+  pendingLabel: string;
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+}) {
+  const [state, submit, pending] = useActionState(setServiceAccessAction, IDLE);
+  return (
+    <form action={submit} className="min-w-0">
+      <input type="hidden" name="clientId" value={clientId} />
+      <input type="hidden" name="action" value={action} />
+      <Button type="submit" variant={variant} disabled={pending} aria-busy={pending}>
+        {pending ? pendingLabel : label}
+      </Button>
+      <Notice state={state} />
+    </form>
+  );
+}
+
 function ActionButton({
   action,
   clientId,
@@ -166,6 +216,114 @@ export function CommercialPanel(props: CommercialPanelProps) {
             this business until it is resumed, and then it reads the backlog.
           </p>
         ) : null}
+      </div>
+
+      {/* --- where the service stands, and staff's hand on the door -------- */}
+      <div className="border-t border-ink-200 pt-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <p className="text-[12px] font-semibold tracking-wide text-ink-500 uppercase">
+            Service access
+          </p>
+          <Badge tone={props.service.locked ? 'bad' : props.service.overridden ? 'warn' : 'neutral'}>
+            {props.service.label}
+          </Badge>
+        </div>
+
+        <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 text-[13px] sm:grid-cols-2">
+          <div className="flex justify-between gap-4 border-b border-ink-100 py-1.5">
+            <dt className="text-ink-500">Trial start</dt>
+            <dd className="tabular-nums text-ink-900">{props.service.trialStarted ?? '—'}</dd>
+          </div>
+          <div className="flex justify-between gap-4 border-b border-ink-100 py-1.5">
+            <dt className="text-ink-500">Trial end</dt>
+            <dd className="tabular-nums text-ink-900">{props.service.trialEnds ?? '—'}</dd>
+          </div>
+          <div className="flex justify-between gap-4 border-b border-ink-100 py-1.5">
+            <dt className="text-ink-500">{props.service.expired ? 'Expired' : 'Days remaining'}</dt>
+            <dd className="tabular-nums text-ink-900">
+              {props.service.expired
+                ? 'Yes'
+                : props.service.daysRemaining === null
+                  ? '—'
+                  : `${props.service.daysRemaining}`}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-4 border-b border-ink-100 py-1.5">
+            <dt className="text-ink-500">Feedback QR</dt>
+            <dd className="text-ink-900">
+              {props.service.qrActive
+                ? props.service.inQrGrace
+                  ? `In grace until ${props.service.qrGraceEnds ?? '—'}`
+                  : 'Active'
+                : 'Inactive'}
+            </dd>
+          </div>
+        </dl>
+
+        {props.continuationRequest ? (
+          <p className="mt-3 rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-[13px] leading-relaxed text-ink-800">
+            <span className="font-semibold">Asked to continue</span> on{' '}
+            {props.continuationRequest.askedOn} · {props.continuationRequest.phone}
+            {props.continuationRequest.email ? ` · ${props.continuationRequest.email}` : ''}
+          </p>
+        ) : null}
+
+        <p className="mt-3 text-[12px] leading-relaxed text-ink-500">
+          None of these changes the trial dates. A lock closes the workspace whatever they say;
+          an override opens it whatever they say.
+        </p>
+
+        <div className="mt-3 flex flex-wrap items-start gap-x-6 gap-y-3">
+          {props.service.locked ? (
+            <AccessButton
+              clientId={clientId}
+              action="UNLOCK"
+              label="Unlock workspace"
+              pendingLabel="Unlocking…"
+              variant="primary"
+            />
+          ) : (
+            <AccessButton
+              clientId={clientId}
+              action="LOCK"
+              label="Lock workspace"
+              pendingLabel="Locking…"
+              variant="danger"
+            />
+          )}
+          {props.service.overridden ? (
+            <AccessButton
+              clientId={clientId}
+              action="CLEAR_OVERRIDE"
+              label="Remove access override"
+              pendingLabel="Removing…"
+            />
+          ) : (
+            <AccessButton
+              clientId={clientId}
+              action="OVERRIDE"
+              label="Grant access override"
+              pendingLabel="Granting…"
+            />
+          )}
+          {props.service.demoExempt ? (
+            <AccessButton
+              clientId={clientId}
+              action="CLEAR_EXEMPTION"
+              label="Remove demo exemption"
+              pendingLabel="Removing…"
+              variant="ghost"
+            />
+          ) : (
+            <AccessButton
+              clientId={clientId}
+              action="EXEMPT_DEMO"
+              label="Mark as demo"
+              pendingLabel="Marking…"
+              variant="ghost"
+            />
+          )}
+        </div>
       </div>
 
       {/* --- moving it ---------------------------------------------------- */}

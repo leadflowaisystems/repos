@@ -1,5 +1,4 @@
-import { notFound, redirect } from 'next/navigation';
-import { tenantGateFor } from '@/lib/auth/guard';
+import { requireOpenWorkspace } from '@/lib/lifecycle/access';
 import { PortalReviews } from '@/components/workspace/reviews';
 
 export const dynamic = 'force-dynamic';
@@ -19,14 +18,7 @@ export default async function WorkspacePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { clientId } = await params;
-  const gate = await tenantGateFor(clientId, 'MEMBER');
-  if (!gate.ok) {
-    // Nobody signed in at all goes to sign in; anyone else gets a 404.
-    const { currentActor } = await import('@/lib/auth/authorize');
-    const { prisma } = await import('@/lib/db');
-    if (!(await currentActor(prisma))) redirect('/login');
-    notFound();
-  }
+  await requireOpenWorkspace(clientId);
 
   return (
     <PortalReviews

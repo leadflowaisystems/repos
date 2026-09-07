@@ -610,7 +610,10 @@ describe('the print kit is a section of the owner’s workspace, not an operator
   });
 
   it('is gated like every other per-client surface', () => {
-    expect(page).toContain("await tenantGateFor(clientId, 'MEMBER')");
+    // The page moved onto the locking gate in M28: same membership decision,
+    // plus "and the workspace is open". The route keeps the plain gate because
+    // it is an operator print surface, not a page in the owner's workspace.
+    expect(page).toContain('await requireOpenWorkspace(clientId)');
     expect(route).toContain("await tenantGateFor(clientId, 'MEMBER')");
   });
 });

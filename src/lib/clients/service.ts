@@ -317,6 +317,19 @@ export type ClientListRow = {
   archivedAt: Date | null;
   snapshotCount: number;
   lastSnapshotAt: Date | null;
+  /**
+   * M28 - the raw facts the lifecycle needs. Carried rather than interpreted,
+   * so the list and the workspace reach the same verdict through the same pure
+   * function instead of two lists of rules that drift.
+   */
+  subscriptionStatus: string;
+  trialStartsAt: Date | null;
+  trialEndsAt: Date | null;
+  serviceLockedAt: Date | null;
+  accessOverrideAt: Date | null;
+  serviceExemption: string | null;
+  /** When the owner last asked to carry on, if they have. */
+  paymentRequestedAt: Date | null;
 };
 
 /**
@@ -346,6 +359,13 @@ export async function listClients(
       baselineRating: true,
       kitInstalledDate: true,
       archivedAt: true,
+      subscriptionStatus: true,
+      trialStartsAt: true,
+      trialEndsAt: true,
+      serviceLockedAt: true,
+      accessOverrideAt: true,
+      serviceExemption: true,
+      paymentRequestedAt: true,
       _count: { select: { snapshots: true } },
       snapshots: {
         orderBy: { capturedAt: 'desc' },
@@ -367,6 +387,13 @@ export async function listClients(
     archivedAt: row.archivedAt,
     snapshotCount: row._count.snapshots,
     lastSnapshotAt: row.snapshots[0]?.capturedAt ?? null,
+    subscriptionStatus: row.subscriptionStatus,
+    trialStartsAt: row.trialStartsAt,
+    trialEndsAt: row.trialEndsAt,
+    serviceLockedAt: row.serviceLockedAt,
+    accessOverrideAt: row.accessOverrideAt,
+    serviceExemption: row.serviceExemption,
+    paymentRequestedAt: row.paymentRequestedAt,
   }));
 }
 

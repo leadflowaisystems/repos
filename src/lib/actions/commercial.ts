@@ -49,7 +49,8 @@ export async function continueWithHeadwayAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const gate = await tenantGate(form, 'OWNER');
+  // allowLocked: an owner whose trial has ended must still be able to ask.
+  const gate = await tenantGate(form, 'OWNER', 'clientId', { allowLocked: true });
   if (!gate.ok) return gate.state;
   const { clientId } = gate;
 
@@ -70,7 +71,8 @@ export async function updateOwnerContactAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const gate = await tenantGate(form, 'OWNER');
+  // allowLocked: the number Headway will ring must stay correctable.
+  const gate = await tenantGate(form, 'OWNER', 'clientId', { allowLocked: true });
   if (!gate.ok) return gate.state;
   const { clientId } = gate;
 

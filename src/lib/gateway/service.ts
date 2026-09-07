@@ -4,7 +4,7 @@ import { checkReviewUrl } from '@/lib/kit/content';
 import { ingestFeedback, prepareIngest } from '@/lib/feedback/ingest';
 import { isPublicClient } from '@/lib/db-public';
 import { encodeDimensions, encodeSignals } from '@/lib/feedback/structured';
-import { readGateway, writeSubmissionAsPublic } from './store';
+import { gatewayTokenExists, readGateway, writeSubmissionAsPublic } from './store';
 import { parseStructured, ratedCount } from '@/lib/feedback/structured';
 import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
 import { buildGatewayCopy, publicReviewLabel, type GatewayCopy } from './copy';
@@ -334,6 +334,12 @@ export type PublicGateway = {
  * archived client — and the same nothing in every case, so a caller cannot
  * tell which it was.
  */
+/** Whether a token is real and switched on, whatever its service state. */
+export async function publicTokenExists(db: PrismaClient, token: unknown): Promise<boolean> {
+  if (!isPublicToken(token)) return false;
+  return gatewayTokenExists(db, token);
+}
+
 export async function resolvePublicGateway(
   db: PrismaClient,
   token: unknown,
@@ -370,6 +376,15 @@ export const TEXT_DUPLICATE_WINDOW_MS = 10 * 60_000;
 export const RATING_DUPLICATE_WINDOW_MS = 30_000;
 
 export const NOT_ACTIVE_MESSAGE = 'This feedback link is not active right now.';
+/**
+ * What a customer sees on a real card whose business has lapsed (M28).
+ *
+ * Deliberately says nothing about why. A customer standing at a table is not
+ * party to a billing conversation, and "temporarily unavailable" is both true
+ * and the whole of what they need — it covers a lapsed trial, a paused account
+ * and a switched-off page without distinguishing them.
+ */
+export const QR_UNAVAILABLE_MESSAGE = 'Feedback is temporarily unavailable.';
 export const NOTHING_MESSAGE = 'Add a rating or a few words first.';
 export const TOO_LONG_MESSAGE = `Please keep it under ${MAX_CUSTOMER_TEXT} characters.`;
 export const TOO_MANY_MESSAGE =

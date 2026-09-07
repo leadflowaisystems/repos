@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
+import { describeLifecycle } from '@/lib/lifecycle/service';
 import { isPublicClient } from '@/lib/db-public';
 
 /**
@@ -30,6 +31,34 @@ export type GatewayRow = {
   publicReviewUrl: string;
 };
 
+/**
+ * Whether this token belongs to a real, switched-on feedback page — regardless
+ * of whether its service is currently live.
+ *
+ * Used for ONE thing: choosing between "feedback is temporarily unavailable"
+ * and a 404. A customer holding a printed card whose business has lapsed should
+ * not be told the page does not exist, because that reads as the BUSINESS being
+ * broken. It returns a boolean and never a status, so nothing about the
+ * commercial relationship reaches the page.
+ */
+export async function gatewayTokenExists(db: PrismaClient, token: string): Promise<boolean> {
+  if (isPublicClient(db)) {
+    try {
+      const rows = await db.$queryRaw<{ exists: boolean }[]>`
+        SELECT app.public_gateway_exists(${token}::text) AS exists`;
+      return rows[0]?.exists === true;
+    } catch {
+      // An installation without the M28 function answers the old way: unknown.
+      return false;
+    }
+  }
+  const gateway = await db.feedbackGateway.findUnique({
+    where: { publicToken: token },
+    select: { enabled: true, client: { select: { archivedAt: true } } },
+  });
+  return Boolean(gateway?.enabled && gateway.client.archivedAt === null);
+}
+
 /** One gateway, by its public token, or nothing. */
 export async function readGateway(db: PrismaClient, token: string): Promise<GatewayRow | null> {
   if (isPublicClient(db)) {
@@ -52,12 +81,29 @@ export async function readGateway(db: PrismaClient, token: string): Promise<Gate
     select: {
       enabled: true,
       publicReviewUrl: true,
-      client: { select: { id: true, businessName: true, vertical: true, archivedAt: true } },
+      client: {
+        select: {
+          id: true,
+          businessName: true,
+          vertical: true,
+          archivedAt: true,
+          subscriptionStatus: true,
+          trialStartsAt: true,
+          trialEndsAt: true,
+          serviceLockedAt: true,
+          accessOverrideAt: true,
+          serviceExemption: true,
+        },
+      },
     },
   });
-  // The same three conditions the SQL function applies, so both paths answer
-  // identically for a paused gateway and for an archived business.
+  // The same conditions the SQL function applies, so both paths answer
+  // identically for a paused gateway, an archived business, and — since M28 —
+  // one whose trial ran out more than three calendar days ago. The grace itself
+  // is computed by the one shared function both sides mirror.
   if (!gateway || !gateway.enabled || gateway.client.archivedAt !== null) return null;
+  const { client } = gateway;
+  if (!describeLifecycle({ ...client, now: new Date() }).qrActive) return null;
   return {
     clientId: gateway.client.id,
     businessName: gateway.client.businessName,

@@ -111,6 +111,27 @@ model Client {
   servicePausedAt  DateTime?
   serviceResumedAt DateTime?
 
+  /// M28 - the three things that beat the trial dates, in either direction.
+  ///
+  /// `serviceLockedAt` closes the workspace by hand whatever the dates say;
+  /// `accessOverrideAt` opens it by hand whatever they say. They are mutually
+  /// exclusive by construction — app.set_service_access sets one and clears the
+  /// other — so there is no precedence question to get wrong later.
+  ///
+  /// `serviceExemption` marks a business that never runs out: 'DEMO' for the
+  /// demonstration workspace. It is a column rather than a name match because a
+  /// business owner can rename their own business, and an exemption anybody can
+  /// award themselves by typing "Corner Cafe" is not an exemption.
+  ///
+  /// None of the three is writable by `repos_app`. Like the trial window they
+  /// are the platform's decision and move only through a definer function, so a
+  /// business cannot unlock itself and staff cannot do it by accident.
+  /// Crucially, none of them ever rewrites trialStartsAt or trialEndsAt: a lock
+  /// is not a shortened trial, and an override is not an extended one.
+  serviceLockedAt  DateTime?
+  accessOverrideAt DateTime?
+  serviceExemption String?
+
   voiceProfile VoiceProfile?
   policy       BusinessPolicy?
   kitConfig    KitConfig?
@@ -125,10 +146,52 @@ model Client {
   memberships  Membership[]
   invitations  Invitation[]
   commercial   Commercial?
+  continuationRequests ServiceContinuationRequest[]
 
   @@index([status])
   @@index([vertical])
   @@index([subscriptionStatus])
+}
+
+/// M28 - a business asking to carry on, and nothing more than that.
+///
+/// The owner presses "Extend access", gives a number to be reached on, and this
+/// row appears. It is a MESSAGE, not a transaction: it does not extend the
+/// trial, does not move `trialEndsAt`, does not open the workspace and does not
+/// take a payment. Headway reads it, phones the business, and arranges
+/// continuation by hand — which is the same way every other commercial
+/// conversation in RepOS works.
+///
+/// It is deliberately not a CRM. Six columns, one of them optional, and no
+/// pipeline, no assignment, no history, no notes. The operator's own record of
+/// what was agreed already exists in `Commercial`.
+///
+/// PHONE IS REQUIRED AND EMAIL IS NOT, because a phone number is how a small
+/// business in India actually gets reached, and an address the owner does not
+/// check is worse than no address at all.
+///
+/// `name` is filled from the business the request belongs to. The customer is
+/// signed in and Headway already knows who they are, so asking them to type it
+/// again would be asking for something already on the screen.
+model ServiceContinuationRequest {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// Carried from the business, never typed by the customer.
+  name  String
+  phone String
+  /// Optional, and null rather than empty when it was not given.
+  email String?
+
+  /// NEW → CONTACTED → RESOLVED. Only the operator moves it.
+  status String @default("NEW")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, createdAt])
+  @@index([status])
 }
 
 // ---------------------------------------------------------------------------

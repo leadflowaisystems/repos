@@ -50,6 +50,7 @@ export function WorkspaceHeader({
   businessName,
   verticalLabel,
   showExtras = false,
+  locked = false,
   signOut,
 }: {
   /** Where this door lives, so links stay inside it. */
@@ -58,6 +59,12 @@ export function WorkspaceHeader({
   verticalLabel: string;
   /** True in the authenticated workspace, false on the shared link. */
   showExtras?: boolean;
+  /**
+   * The trial has ended (M28). Every other door redirects to Account anyway,
+   * so showing seven tabs that all lead to the same place would be a menu of
+   * disappointments. One door, and it is the one that can help.
+   */
+  locked?: boolean;
   /**
    * The sign-out control, passed in rather than imported.
    *
@@ -98,7 +105,7 @@ export function WorkspaceHeader({
         className="-mx-4 mt-4 border-b border-ink-200 bg-ink-50/95 px-4 backdrop-blur sm:sticky sm:top-0 sm:z-30 sm:mx-0 sm:px-0"
       >
         <ul className="flex flex-wrap gap-x-1">
-          {SECTIONS.filter((s) => showExtras || !s.extra).map((s) => {
+          {SECTIONS.filter((s) => (locked ? s.slug === 'account' : showExtras || !s.extra)).map((s) => {
             const active =
               s.slug === 'checkin' ? CHECKIN_FAMILY.has(currentSlug) : currentSlug === s.slug;
             return (

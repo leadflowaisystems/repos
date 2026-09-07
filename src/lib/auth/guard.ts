@@ -9,6 +9,7 @@ import {
   type Role,
 } from '@/lib/tenancy/service';
 import { failure, type ActionState } from '@/lib/actions/shared';
+import { describeLifecycle } from '@/lib/lifecycle/service';
 
 /**
  * THE GATES (M16's operator guard, rebuilt on Supabase Auth in M20).
@@ -79,6 +80,39 @@ export type TenantGate =
   | { ok: false; state: ActionState };
 
 /**
+ * M28 - what a business whose trial has ended is refused.
+ *
+ * Server Actions are POSTs addressed by an internal action id, not by page
+ * path, so locking the PAGES would leave every action reachable by anyone who
+ * kept a tab open or replayed a request. The lock therefore lives here, in the
+ * same function that already decides whether the client id is theirs, and it is
+ * ON BY DEFAULT: an action that says nothing gets the lock, and only the two
+ * that must keep working while shut opt out by name.
+ *
+ * The message is the owner's, not an error: they have not done anything wrong.
+ */
+const LOCKED_MESSAGE =
+  'Your Headway trial has ended. Continue your service from the Account page to carry on.';
+
+async function isLockedOut(clientId: string, actor: Actor): Promise<boolean> {
+  // Platform staff are never locked out of anything they can already reach.
+  if (actor.isPlatformAdmin) return false;
+  const client = await prisma.client.findFirst({
+    where: { id: clientId },
+    select: {
+      subscriptionStatus: true,
+      trialStartsAt: true,
+      trialEndsAt: true,
+      serviceLockedAt: true,
+      accessOverrideAt: true,
+      serviceExemption: true,
+    },
+  });
+  if (!client) return false;
+  return describeLifecycle({ ...client, now: new Date() }).workspaceLocked;
+}
+
+/**
  * Reads the client id off the form and then refuses to believe it.
  *
  * One refusal for every failure — not signed in, not yours, not real, not your
@@ -90,6 +124,12 @@ export async function tenantGate(
   level: TenantLevel,
   /** The field carrying the id. One older form calls it `id`. */
   field = 'clientId',
+  /**
+   * `allowLocked` is for the handful of actions a business must still be able
+   * to use once its workspace is shut — asking to carry on, and keeping the
+   * number Headway will ring it on correct. Everything else is refused.
+   */
+  options: { allowLocked?: boolean } = {},
 ): Promise<TenantGate> {
   const raw = form.get(field);
   const clientId = typeof raw === 'string' ? raw.trim() : '';
@@ -100,6 +140,13 @@ export async function tenantGate(
 
   const allowed = level === 'OWNER' ? canManage(actor, clientId) : canRead(actor, clientId);
   if (!allowed) return { ok: false, state: failure(DENIED_MESSAGE) };
+
+  // Membership first, entitlement second. A stranger is refused identically
+  // whether the business has lapsed or not, so the difference between the two
+  // refusals cannot be used to ask which businesses are still paying.
+  if (!options.allowLocked && (await isLockedOut(clientId, actor))) {
+    return { ok: false, state: failure(LOCKED_MESSAGE) };
+  }
 
   return { ok: true, actor, clientId, role: roleFor(actor, clientId) };
 }

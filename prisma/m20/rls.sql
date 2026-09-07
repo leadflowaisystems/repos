@@ -133,7 +133,8 @@ DECLARE
   tenant_tables text[] := ARRAY[
     'BusinessContext','BusinessPolicy','Competitor','FeedbackGateway',
     'ImprovementAction','Invitation','KitConfig','Membership','Minute',
-    'ReviewItem','Snapshot','TimeEntry','VoiceProfile'
+    'ReviewItem','ServiceContinuationRequest','Snapshot','TimeEntry',
+    'VoiceProfile'
   ];
 BEGIN
   FOREACH t IN ARRAY tenant_tables LOOP
@@ -856,6 +857,90 @@ BEGIN
 END $fn$;
 
 REVOKE ALL ON FUNCTION app.create_client(text, text, boolean, text, text, text) FROM PUBLIC;
+
+-- ---------------------------------------------------------------------------
+-- The platform's hand on the door
+-- ---------------------------------------------------------------------------
+--
+-- Locking, unlocking, overriding and marking a demonstration business, in one
+-- place that asks the database whether the caller is platform staff. A business
+-- owner's connection holds no UPDATE privilege on any of these columns, so this
+-- function is the only way through and a bug in a server action cannot become a
+-- business unlocking itself.
+--
+-- IT NEVER WRITES trialStartsAt OR trialEndsAt. A lock is not a shortened trial
+-- and an override is not an extended one: the stored dates are what the owner
+-- was told and what every other screen reads, and they survive all four actions
+-- untouched. That is the whole reason these are separate columns rather than a
+-- date the admin nudges.
+--
+-- LOCK AND OVERRIDE ARE MUTUALLY EXCLUSIVE by construction — setting either
+-- clears the other — so no later reader has to decide which of two conflicting
+-- flags wins.
+--
+--   p_action = 'LOCK'            close it by hand
+--              'UNLOCK'          reopen it: clears the lock, leaves dates alone
+--              'OVERRIDE'        open it by hand despite the dates
+--              'CLEAR_OVERRIDE'  remove that
+--              'EXEMPT_DEMO'     mark the demonstration business
+--              'CLEAR_EXEMPTION' unmark it
+
+CREATE OR REPLACE FUNCTION app.set_service_access(
+  p_client_id text,
+  p_action    text,
+  p_now       text
+)
+  RETURNS boolean
+  LANGUAGE plpgsql
+  VOLATILE
+  SECURITY DEFINER
+  SET search_path = pg_catalog, public
+AS $fn$
+DECLARE
+  v_now timestamp := p_now::timestamp;
+BEGIN
+  IF NOT app.is_platform_admin() THEN
+    RAISE EXCEPTION 'not authorised';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM public."Client" WHERE id = p_client_id) THEN
+    RETURN false;
+  END IF;
+
+  IF p_action = 'LOCK' THEN
+    UPDATE public."Client"
+       SET "serviceLockedAt" = v_now, "accessOverrideAt" = NULL, "updatedAt" = v_now
+     WHERE id = p_client_id;
+  ELSIF p_action = 'UNLOCK' THEN
+    UPDATE public."Client"
+       SET "serviceLockedAt" = NULL, "updatedAt" = v_now
+     WHERE id = p_client_id;
+  ELSIF p_action = 'OVERRIDE' THEN
+    UPDATE public."Client"
+       SET "accessOverrideAt" = v_now, "serviceLockedAt" = NULL, "updatedAt" = v_now
+     WHERE id = p_client_id;
+  ELSIF p_action = 'CLEAR_OVERRIDE' THEN
+    UPDATE public."Client"
+       SET "accessOverrideAt" = NULL, "updatedAt" = v_now
+     WHERE id = p_client_id;
+  ELSIF p_action = 'EXEMPT_DEMO' THEN
+    UPDATE public."Client"
+       SET "serviceExemption" = 'DEMO', "updatedAt" = v_now
+     WHERE id = p_client_id;
+  ELSIF p_action = 'CLEAR_EXEMPTION' THEN
+    UPDATE public."Client"
+       SET "serviceExemption" = NULL, "updatedAt" = v_now
+     WHERE id = p_client_id;
+  ELSE
+    RAISE EXCEPTION 'unknown action';
+  END IF;
+
+  RETURN true;
+END $fn$;
+
+REVOKE ALL     ON FUNCTION app.set_service_access(text, text, text) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION app.set_service_access(text, text, text) TO repos_app;
+
 
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA app TO repos_app;
 GRANT EXECUTE ON FUNCTION app.user_id_for_auth(text) TO repos_app;

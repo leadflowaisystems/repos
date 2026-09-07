@@ -31,6 +31,9 @@ import {
   getCommercial,
   getTrialDefaultDays,
 } from "@/lib/commercial/service";
+import { getLifecycle } from "@/lib/lifecycle/access";
+import { operatorLabel } from "@/lib/lifecycle/service";
+import { pendingRequestFor } from "@/lib/continuation/service";
 import { prisma } from "@/lib/db";
 import { getPackOrFallback } from "@/lib/packs";
 import {
@@ -66,10 +69,14 @@ export default async function ClientOverviewPage({
   // The commercial side. `getCommercial` returns the empty record for anybody
   // whose connection the Commercial policy refuses, so this page is safe to
   // render even if it ever escaped the operator console it lives in.
-  const [account, commercial, defaultTrialDays] = await Promise.all([
+  const [account, commercial, defaultTrialDays, lifecycle, continuation] = await Promise.all([
     getAccountState(prisma, id),
     getCommercial(prisma, id),
     getTrialDefaultDays(prisma),
+    // Judged as the business stands, not as staff would experience it: the
+    // operator is looking at somebody else's account.
+    getLifecycle(prisma, id, { viewerIsPlatformAdmin: false }),
+    pendingRequestFor(prisma, id),
   ]);
 
   // The action panel renders strings, not Dates: every figure and date is
@@ -252,6 +259,28 @@ export default async function ClientOverviewPage({
               trialDaysLeft={account.trialDaysLeft}
               defaultTrialDays={defaultTrialDays}
               extendTrialDays={EXTEND_TRIAL_DAYS}
+              service={{
+                label: lifecycle ? operatorLabel(lifecycle) : "Unknown",
+                locked: lifecycle?.state === "MANUALLY_LOCKED",
+                overridden: lifecycle?.state === "ADMIN_OVERRIDE",
+                demoExempt: lifecycle?.state === "DEMO_EXEMPT",
+                trialStarted: lifecycle?.trialStartsAt ? formatDate(lifecycle.trialStartsAt) : null,
+                trialEnds: lifecycle?.trialEndsAt ? formatDate(lifecycle.trialEndsAt) : null,
+                daysRemaining: lifecycle?.daysRemaining ?? null,
+                expired: lifecycle?.expired ?? false,
+                qrActive: lifecycle?.qrActive ?? true,
+                inQrGrace: lifecycle?.inQrGrace ?? false,
+                qrGraceEnds: lifecycle?.qrGraceEndsAt ? formatDate(lifecycle.qrGraceEndsAt) : null,
+              }}
+              continuationRequest={
+                continuation
+                  ? {
+                      phone: continuation.phone,
+                      email: continuation.email,
+                      askedOn: formatDate(continuation.createdAt),
+                    }
+                  : null
+              }
               continuation={{
                 requestedOn: account.continuationRequestedAt
                   ? formatDate(account.continuationRequestedAt)

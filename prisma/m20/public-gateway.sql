@@ -62,13 +62,83 @@ GRANT USAGE ON SCHEMA app TO repos_public;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM repos_public;
 
 -- ---------------------------------------------------------------------------
+-- 0. Is this business's QR still live? (M28)
+-- ---------------------------------------------------------------------------
+--
+-- Defined HERE, before the two functions that call it, so a database built
+-- from scratch by the runbook has it. `prisma/m28/migration.sql` carries the
+-- identical definition for a database that already exists, and a test asserts
+-- the two texts match -- production receives the migration copy, and nothing
+-- else in the suite ever reads that file.
+
+CREATE OR REPLACE FUNCTION app.service_qr_live(p_client_id text)
+  RETURNS boolean
+  LANGUAGE plpgsql
+  STABLE
+  SECURITY DEFINER
+  SET search_path = pg_catalog, public
+AS $fn$
+DECLARE
+  c        public."Client"%ROWTYPE;
+  v_now    timestamp := (now() AT TIME ZONE 'UTC');
+  v_grace  timestamp;
+BEGIN
+  SELECT * INTO c FROM public."Client" WHERE id = p_client_id;
+  IF NOT FOUND THEN
+    RETURN false;
+  END IF;
+
+  -- The demonstration business never runs out.
+  IF c."serviceExemption" = 'DEMO' THEN
+    RETURN true;
+  END IF;
+
+  -- Not on a trial clock at all: paying, paused or closed. A paused account
+  -- keeps collecting on purpose — the customer at the table is not party to a
+  -- billing conversation — and that rule is older than this file.
+  IF coalesce(c."subscriptionStatus", 'TRIAL') <> 'TRIAL' THEN
+    RETURN true;
+  END IF;
+
+  -- A trial with no agreed end cannot run out.
+  IF c."trialEndsAt" IS NULL THEN
+    RETURN true;
+  END IF;
+
+  -- Still inside the trial.
+  IF v_now < c."trialEndsAt" THEN
+    RETURN true;
+  END IF;
+
+  -- Expired: live until IST midnight starting the third day after the day of
+  -- expiry. An admin override reopens the workspace but does not extend this;
+  -- restoring service is what puts the QR back, and it does so on the same
+  -- token because nothing here touches "publicToken".
+  IF c."accessOverrideAt" IS NOT NULL THEN
+    RETURN true;
+  END IF;
+
+  v_grace := date_trunc('day', c."trialEndsAt" + interval '5 hours 30 minutes')
+             + interval '3 days'
+             - interval '5 hours 30 minutes';
+  RETURN v_now < v_grace;
+END $fn$;
+
+REVOKE ALL     ON FUNCTION app.service_qr_live(text) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION app.service_qr_live(text) TO repos_app;
+GRANT  EXECUTE ON FUNCTION app.service_qr_live(text) TO repos_public;
+
+
+-- ---------------------------------------------------------------------------
 -- 1. Resolve one gateway from its public token.
 --
--- Returns at most one row, and only for a gateway that is switched on and
--- whose business is not archived — the same three conditions the application
--- has applied since M14. A token that matches nothing returns no rows, which
--- is indistinguishable from a token belonging to a paused or archived
--- business: a customer cannot probe for which.
+-- Returns at most one row, and only for a gateway that is switched on, whose
+-- business is not archived, and whose service has not run past its grace — the
+-- three conditions the application has applied since M14 plus the one M28
+-- added. A token that matches nothing returns no rows, which is
+-- indistinguishable from a token belonging to a paused, archived or expired
+-- business: a customer cannot probe for which, and nothing about the
+-- commercial relationship reaches their browser.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION app.public_gateway(p_token text)
   RETURNS TABLE (
@@ -88,6 +158,7 @@ AS $$
   WHERE g."publicToken" = p_token
     AND g.enabled
     AND c."archivedAt" IS NULL
+    AND app.service_qr_live(c.id)
 $$;
 
 -- ---------------------------------------------------------------------------
@@ -146,10 +217,11 @@ BEGIN
   JOIN public."Client" c ON c.id = g."clientId"
   WHERE g."publicToken" = p_token
     AND g.enabled
-    AND c."archivedAt" IS NULL;
+    AND c."archivedAt" IS NULL
+    AND app.service_qr_live(c.id);
 
   IF v_client_id IS NULL THEN
-    RETURN; -- unknown, paused or archived: no rows, no row written
+    RETURN; -- unknown, paused, archived or past its grace: no rows, none written
   END IF;
 
   IF p_fingerprint <> '' THEN
@@ -196,6 +268,42 @@ BEGIN
 
   RETURN QUERY SELECT v_id, false;
 END $$;
+
+-- ---------------------------------------------------------------------------
+-- Does this token belong to a real, switched-on feedback page?
+-- ---------------------------------------------------------------------------
+--
+-- A BOOLEAN, and deliberately nothing else. It exists so a customer holding a
+-- real printed card whose business has lapsed is told "feedback is temporarily
+-- unavailable" rather than "this page isn't here" — a 404 makes the BUSINESS
+-- look broken to its own customer, which is the one impression Headway must
+-- never create on a table tent.
+--
+-- It reports only that the token is real and the gateway switched on. It says
+-- nothing about the trial, the subscription, the dates or the grace, and it
+-- cannot be used to enumerate anything: an unknown token answers false, exactly
+-- as a dark one that never existed would.
+CREATE OR REPLACE FUNCTION app.public_gateway_exists(p_token text)
+  RETURNS boolean
+  LANGUAGE sql
+  STABLE
+  SECURITY DEFINER
+  SET search_path = pg_catalog, public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public."FeedbackGateway" g
+    JOIN public."Client" c ON c.id = g."clientId"
+    WHERE g."publicToken" = p_token
+      AND g.enabled
+      AND c."archivedAt" IS NULL
+  )
+$$;
+
+REVOKE ALL     ON FUNCTION app.public_gateway_exists(text) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION app.public_gateway_exists(text) TO repos_public;
+GRANT  EXECUTE ON FUNCTION app.public_gateway_exists(text) TO repos_app;
+
 
 -- Only the anonymous gateway role may call these, and it may do nothing else.
 REVOKE ALL ON FUNCTION app.public_gateway(text) FROM PUBLIC;

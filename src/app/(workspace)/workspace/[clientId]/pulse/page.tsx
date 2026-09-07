@@ -1,9 +1,8 @@
-import type { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
-import { PeriodReportView } from '@/components/workspace/period-report';
-import { currentActor } from '@/lib/auth/authorize';
-import { tenantGateFor } from '@/lib/auth/guard';
 import { prisma } from '@/lib/db';
+import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
+import { PeriodReportView } from '@/components/workspace/period-report';
+import { requireOpenWorkspace } from '@/lib/lifecycle/access';
 import { getWeeklyPulse } from '@/lib/reporting/service';
 
 export const dynamic = 'force-dynamic';
@@ -23,11 +22,7 @@ export default async function WEEKPage({
   params: Promise<{ clientId: string }>;
 }) {
   const { clientId } = await params;
-  const gate = await tenantGateFor(clientId, 'MEMBER');
-  if (!gate.ok) {
-    if (!(await currentActor(prisma))) redirect('/login');
-    notFound();
-  }
+  await requireOpenWorkspace(clientId);
 
   const report = await getWeeklyPulse(prisma, clientId);
   if (!report) notFound();

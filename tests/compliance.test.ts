@@ -1224,6 +1224,13 @@ describe('V1 hard rules — nothing acts without an operator behind it (M16)', (
     resumeServiceAction: 'ADMIN',
     saveCommercialAction: 'ADMIN',
     saveTrialDefaultDaysAction: 'ADMIN',
+    // M28 - the service lifecycle. Asking to carry on is the owner's, because
+    // it is their request and it writes their own phone number; locking,
+    // overriding and exempting are the platform's, because they decide who has
+    // access. None of the four touches a trial date.
+    requestContinuationAction: 'OWNER',
+    setServiceAccessAction: 'ADMIN',
+    setContinuationStatusAction: 'ADMIN',
   };
 
   it('gates every action at the level the matrix says, as its first statement', () => {

@@ -456,33 +456,41 @@ describe('the words an owner reads', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('offers the continuation on the Account page, with the three details and the confirmation', () => {
+  it('offers the continuation on the Account page, and still names no price', () => {
+    // M28 replaced the three-field "Continue with Headway" form on this page
+    // with "Extend access": phone required, email optional, and no name field,
+    // because the person is signed in and the business is already known. What
+    // has NOT changed is the thing this test was written for — there is no
+    // amount, no price and no plan anywhere an owner can see.
     const page = stripComments(
       read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'account', 'page.tsx'),
     );
-    expect(page).toContain('ContinueWithHeadwayForm');
-    expect(page).toContain("mode=\"continue\"");
-    expect(page).toContain('Your Headway workspace and history are still here.'.slice(0, 0) + 'account.headline');
-    expect(page).toContain('Ready to keep going?');
-    expect(page).toContain("We&rsquo;ll send the");
-    expect(page).toContain('payment information and QR');
+    expect(page).toContain('ExtendAccessForm');
+    expect(page).toContain('account.headline');
+    expect(page).toContain('Want to continue with Headway?');
+    expect(page).toContain('nothing is charged automatically');
     // Nothing on the page knows the amount.
     expect(page).not.toContain('getCommercial');
     expect(page).not.toContain('amountInr');
-    expect(page).not.toMatch(/paymentInstructions|\bnote\b\s*[:=]/);
+    expect(page).not.toMatch(/paymentInstructions|note\s*[:=]/);
 
-    const form = stripComments(read('src', 'components', 'forms', 'continue-form.tsx'));
-    expect(form).toContain('Continue with Headway');
-    expect(form).toContain('name="ownerName"');
-    expect(form).toContain('name="ownerEmail"');
-    expect(form).toContain('name="ownerPhone"');
+    const form = stripComments(read('src', 'components', 'forms', 'extend-access-form.tsx'));
+    expect(form).toContain('Extend access');
+    expect(form).toContain('name="phone"');
+    expect(form).toContain('name="email"');
     expect(form).toContain('type="tel"');
-    expect(form).not.toMatch(/amount|₹|price|plan\b/i);
+    // Required phone, optional email, and no name asked for.
+    expect(form).toContain('(required)');
+    expect(form).toContain('(optional)');
+    expect(form).not.toContain('name="ownerName"');
+    expect(form).not.toMatch(/amount|₹|price|plan/i);
 
-    const action = stripComments(read('src', 'lib', 'actions', 'commercial.ts'));
+    const action = stripComments(read('src', 'lib', 'actions', 'continuation.ts'));
     expect(action).toContain(
-      "Thanks. We've got your details. We'll send the payment information and QR directly to you.",
+      "Request received. Thank you. We'll contact you to arrange continued access.",
     );
+    // The request is a message, not a transaction.
+    expect(action).not.toMatch(/trialEndsAt|trialStartsAt/);
   });
 
   it('says paused and resumed in the words the owner is promised', () => {
