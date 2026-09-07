@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import clsx from 'clsx';
-import type { PortalTally } from '@/lib/portal/tallies';
 import type {
   PortalAction,
   PortalAdvice,
@@ -101,74 +100,6 @@ export function Section({
  * actually compared two check-ins — no arrow is invented to make the row look
  * busy.
  */
-
-const TALLY_ICON: Record<PortalTally['tone'], string> = {
-  neutral: 'text-ink-400',
-  good: 'text-good-600',
-  bad: 'text-bad-600',
-};
-
-function TallyBody({ tally }: { tally: PortalTally }) {
-  return (
-    <>
-      <div className="flex items-baseline gap-2">
-        <span
-          aria-hidden
-          className={clsx('text-[13px] leading-none', TALLY_ICON[tally.tone])}
-        >
-          {tally.tone === 'good' ? '●' : tally.tone === 'bad' ? '▲' : '○'}
-        </span>
-        <span className="text-[15px] font-semibold tracking-tight text-ink-900">
-          {tally.value}
-        </span>
-      </div>
-      <p className="mt-1 text-[13px] leading-snug text-ink-600">{tally.label}</p>
-      <p className="mt-0.5 flex items-center gap-1 text-[12px] text-ink-500">
-        {tally.movement ? (
-          <span
-            className={clsx(
-              'font-medium',
-              tally.movement === 'up'
-                ? tally.tone === 'bad'
-                  ? 'text-bad-600'
-                  : 'text-good-600'
-                : tally.tone === 'bad'
-                  ? 'text-good-600'
-                  : 'text-bad-600',
-            )}
-          >
-            <span aria-hidden>{tally.movement === 'up' ? '↑' : '↓'}</span>
-            <span className="sr-only">{tally.movement === 'up' ? 'up,' : 'down,'}</span>
-          </span>
-        ) : null}
-        {tally.note}
-      </p>
-    </>
-  );
-}
-
-export function Tallies({ tallies }: { tallies: PortalTally[] }) {
-  if (tallies.length === 0) return null;
-  return (
-    <section className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {tallies.map((t) =>
-        t.href ? (
-          <Link
-            key={t.key}
-            href={t.href}
-            className="min-h-11 rounded-xl border border-ink-200 bg-white p-4 transition-colors hover:border-ink-300 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none"
-          >
-            <TallyBody tally={t} />
-          </Link>
-        ) : (
-          <div key={t.key} className="rounded-xl border border-ink-200 bg-white p-4">
-            <TallyBody tally={t} />
-          </div>
-        ),
-      )}
-    </section>
-  );
-}
 
 export function Quiet({ children }: { children: React.ReactNode }) {
   return <p className="text-[14px] leading-relaxed text-ink-500">{children}</p>;

@@ -7,7 +7,7 @@ import { Chevron, Quotes, Row } from '@/components/portal/disclose';
 import { ShareBar } from '@/components/portal/portal-ui';
 
 /**
- * THE SIGNAL BOARD (M24).
+ * THE SIGNAL BOARD (M24, completed in the final experience pass).
  *
  * Customers used to read as a written analysis: every theme told in four
  * labelled layers, one under the other, strengths then issues then movement
@@ -15,7 +15,8 @@ import { ShareBar } from '@/components/portal/portal-ui';
  * themes by importance instead — NEEDS YOU, WATCHING, PROTECT, NOT YET CLEAR —
  * as cards an owner scans in a few seconds, and each card opens in place into
  * exactly the reading the old page laid out: what customers are saying (in
- * their words), what Headway sees, what to do, why, and where the number came
+ * their words), what they tapped on the feedback page, what Headway sees,
+ * what to do, why, what Headway will check next, and where the number came
  * from. Nobody has to leave the page to understand one signal.
  */
 
@@ -83,6 +84,43 @@ function outcomeWord(signal: PortalSignal): { text: string; tone: string } | nul
   if (r === 'WORSENED') return { text: 'more often after your change', tone: 'text-bad-700' };
   if (r === 'NO_CLEAR_CHANGE') return { text: 'no clear change after your change', tone: 'text-ink-600' };
   return { text: 'too early to compare your change', tone: 'text-ink-600' };
+}
+
+/**
+ * What customers tapped on the feedback page, added up. The ratings are the
+ * majority of what the card collects and, until now, the only place they
+ * appeared was one row at a time on Reviews.
+ */
+function Tapped({ tapped }: { tapped: NonNullable<PortalSignal['tapped']> }) {
+  return (
+    <div>
+      <p className="tabular-nums">
+        {tapped.rated === 1 ? 'One customer' : `${tapped.rated} customers`} rated{' '}
+        <span className="font-medium text-ink-900">{tapped.label.toLowerCase()}</span> on your feedback
+        page:{' '}
+        {tapped.rated === 1
+          ? `${Math.round(tapped.average)} out of 5.`
+          : `${tapped.average.toFixed(1)} out of 5 on average, ${
+              tapped.low === 0 ? 'none' : tapped.low === tapped.rated ? 'all of them' : `${tapped.low} of them`
+            } at 3 or below.`}
+      </p>
+      {tapped.specifics.length > 0 ? (
+        <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="What they tapped">
+          {tapped.specifics.map((s) => (
+            <li
+              key={s.label}
+              className="inline-flex min-h-7 items-center gap-1.5 rounded-full border border-ink-300 bg-white px-2.5 text-[12px] text-ink-800"
+            >
+              {s.label}
+              <span className="rounded-full bg-ink-100 px-1.5 text-[11px] font-medium text-ink-700 tabular-nums">
+                {s.count}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
 }
 
 export function SignalCard({
@@ -154,6 +192,11 @@ export function SignalCard({
             }
           />
         </Row>
+        {s.tapped ? (
+          <Row label="What customers tapped">
+            <Tapped tapped={s.tapped} />
+          </Row>
+        ) : null}
         <Row label="What Headway sees" strong>
           {s.meaning}
         </Row>
@@ -185,6 +228,7 @@ export function SignalCard({
           ) : null}
         </Row>
         <Row label="Why">{why}</Row>
+        <Row label="Headway will check next">{s.watchLine}</Row>
         <Row label="Source">
           <span className="tabular-nums">
             {s.evidenceCount} of the {pieces(s.evidenceTotal)} Headway has read

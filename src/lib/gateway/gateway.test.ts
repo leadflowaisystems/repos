@@ -174,6 +174,13 @@ describe('customer wording', () => {
         copy.printLine,
         copy.thanksHeadline,
         copy.thanksLine,
+        copy.thanksNote,
+        copy.askKeep,
+        copy.askBetter,
+        copy.askMixed,
+        copy.shareQuestion,
+        copy.shareNote,
+        copy.shareDecline,
       ].join(' ');
       expect(shown, pack.id).not.toMatch(BANNED_ON_THE_PAGE);
     }
@@ -185,13 +192,17 @@ describe('customer wording', () => {
     expect(copy.headline).toBe('How was your experience?');
     expect(copy.privacyLine).toContain('Bare Clinic');
     expect(copy.thanksLine.length).toBeGreaterThan(0);
+    expect(copy.thanksNote).toBe('Honest feedback helps us know what to keep and what to improve.');
+    expect(copy.askMixed).toBe('What worked, and what would have made it better?');
   });
 
   it('differs between verticals only where the pack says so', () => {
     const cafe = buildGatewayCopy(getPackOrFallback('restaurant'), 'Corner Cafe');
     const clinic = buildGatewayCopy(getPackOrFallback('clinic'), 'Sunrise Clinic');
     expect(cafe.placeholder).not.toBe(clinic.placeholder);
-    expect(cafe.thanksLine).not.toBe(clinic.thanksLine);
+    expect(cafe.thanksNote).not.toBe(clinic.thanksNote);
+    expect(cafe.thanksLine).toBe(clinic.thanksLine);
+    expect(cafe.headline).not.toBe(clinic.headline);
     expect(cafe.ratingLabel).toBe(clinic.ratingLabel);
     expect(cafe.submitLabel).toBe(clinic.submitLabel);
   });

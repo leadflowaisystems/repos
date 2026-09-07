@@ -198,8 +198,7 @@ describe('home, as a command centre', () => {
       'eyebrow="Headway is watching"', // what is being carried
       'eyebrow="Going well"', // what to protect
       '<SinceVisit since={since}', // what changed while away
-      "eyebrow=\"What's next\"", // what Headway checks next
-      '<Tallies tallies={tallies} />', // the supporting figures
+      'eyebrow="Your next check-in"', // when the next check-in is worth opening
       '<Limits limits={r.limitations} collapsed />', // what we cannot tell you, one tap away
     ];
     const at = order.map((token) => {
@@ -209,7 +208,7 @@ describe('home, as a command centre', () => {
     });
     expect(at).toEqual([...at].sort((a, b) => a - b));
     expect(focus).toContain('Right now');
-    expect(focus).toContain('Your next step');
+    expect(focus).toContain('What to do');
   });
 
   it('keeps what is going well apart from what is being watched', () => {
@@ -227,15 +226,12 @@ describe('home, as a command centre', () => {
     expect(home.indexOf('<FocusBlock')).toBeLessThan(home.indexOf('<aside'));
   });
 
-  it('puts the figures below the answer, never above it', () => {
-    // An earlier version opened with arithmetic. The owner met a row of
-    // numbers before meeting the sentence they were meant to support.
-    expect(home.indexOf('<FocusBlock')).toBeLessThan(home.indexOf('<Tallies tallies={tallies} />'));
-  });
-
-  it('builds its figures from a module that can be tested without React', () => {
-    expect(home).toContain("import { talliesFor } from '@/lib/portal/tallies'");
-    expect(home).toContain('const tallies = talliesFor(view, basePath);');
+  it('opens with the answer, never with arithmetic', () => {
+    // An earlier version opened with a row of numbers, and a later one closed
+    // with a grid that repeated the answer as figures. Neither survives: the
+    // block is first, and no figure on the page is stated twice.
+    expect(home.indexOf('<FocusBlock')).toBeLessThan(home.indexOf('<Section'));
+    expect(home).not.toContain('<Tallies');
     expect(home).not.toMatch(/\+\d+%/);
   });
 
@@ -251,8 +247,8 @@ describe('home, as a command centre', () => {
   it('says what is watched, why, and when it will be flagged', () => {
     const row = between(responsibility, 'function WatchingRow(', 'function StrengthRow(');
     expect(row).toContain('{item.whyItMatters}');
-    expect(row).toContain('{item.watching}');
-    expect(row).toContain('flag it');
+    // The condition that brings it back is in the open, not behind the tap.
+    expect(row.indexOf('{item.watching}')).toBeLessThan(row.indexOf('</summary>'));
     expect(row).toContain('<dt');
     // One line to scan; the reasons open on request.
     expect(row).toContain('<details');
@@ -266,8 +262,10 @@ describe('home, as a command centre', () => {
     expect(row).not.toMatch(/badge|streak|confetti|points|\bxp\b/i);
   });
 
-  it('calls the check-in thread progress', () => {
-    expect(home).toContain('note="Your progress"');
+  it('says when the next check-in is worth opening, as a condition', () => {
+    expect(home).toContain('eyebrow="Your next check-in"');
+    expect(home).toContain('{r.nextUsefulCheck}');
+    expect(home).not.toMatch(/countdown|days left|streak/i);
   });
 });
 

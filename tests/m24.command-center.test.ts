@@ -57,26 +57,25 @@ describe('home is a command centre, not a briefing', () => {
 
   it('answers the seven questions in the order an owner asks them', () => {
     ordered(home, [
-      '<FocusBlock focus={focus} direction={direction} />', // what is happening, do I need to act, what exactly
+      '<FocusBlock focus={focus} direction={direction} />', // what is happening, why, do I need to act, what exactly
       'eyebrow="Headway is watching"', // what is Headway watching
       'eyebrow="Going well"', // what is going well
       '{since ? <SinceVisit since={since} basePath={basePath} /> : null}', // what changed since I looked
-      'eyebrow="What\'s next"', // what Headway checks next
-      '<Tallies tallies={tallies} />', // the supporting figures, last
+      'eyebrow="Your next check-in"', // when the next check-in is worth opening
       '<Limits limits={r.limitations} collapsed />',
     ]);
   });
 
-  it('makes one block dominant: the headline, three proofs, one gold button, the reading, the next step', () => {
+  it('reads as a decision: conclusion, why, evidence, what to do, what Headway checks next', () => {
     ordered(focus, [
       'Right now',
       '{focus.headline}',
+      '<p className={EYEBROW}>Why</p>',
       '<ProofChips proofs={focus.proofs} />',
+      'What to do',
       'bg-brand-700',
-      'What Headway wants you to know',
-      'Show me the evidence',
-      'Your next step',
-      'Why, and what Headway checks next',
+      'Why this step',
+      'Headway will check next',
     ]);
     // The largest type on the page is the headline, and nothing else competes with it.
     expect(focus).toMatch(/text-\[26px\][^"]*sm:text-\[34px\]/);
@@ -93,8 +92,26 @@ describe('home is a command centre, not a briefing', () => {
 
   it('keeps what Headway knows and what it cannot say behind a tap', () => {
     expect(home).toContain('What Headway knows about your business');
-    expect(home.indexOf('<Reveal')).toBeGreaterThan(home.indexOf('<Tallies tallies={tallies} />'));
+    expect(home.indexOf('<Reveal')).toBeGreaterThan(home.indexOf('<aside'));
     expect(home).toContain('<Limits limits={r.limitations} collapsed />');
+  });
+
+  it('states no figure twice: the tallies are gone, and the public rating is said once', () => {
+    // The count read is the block's basis line; the leading complaint is the
+    // headline; the strength is under Going well. A grid repeating all three
+    // was the one part of Home that said things a second time.
+    expect(home).not.toContain('<Tallies');
+    expect(home).not.toContain('talliesFor');
+    expect(home.split("f.label === 'Public rating'").length - 1).toBe(1);
+    // And the block itself no longer repeats the share chip's quotes under the reading.
+    expect(focus).not.toContain('Show me the evidence');
+    expect(focus).not.toContain('<Quotes');
+  });
+
+  it('shows, on every watched thing, the condition that brings it back', () => {
+    const responsibility = code(read('src', 'components', 'portal', 'responsibility.tsx'));
+    const row = responsibility.slice(responsibility.indexOf('function WatchingRow('), responsibility.indexOf('function StrengthRow('));
+    expect(row.indexOf('{item.watching}')).toBeLessThan(row.indexOf('</summary>'));
   });
 
   it('computes the block from a module that can be tested without React', () => {
@@ -169,11 +186,16 @@ describe('customers is a signal board', () => {
   it('opens each signal into the whole reading without leaving the page', () => {
     ordered(board, [
       'What customers are saying',
+      'What customers tapped',
       'What Headway sees',
       "issue ? 'What to do' : 'What to protect'",
       '<Row label="Why">',
+      '<Row label="Headway will check next">',
       '<Row label="Source">',
     ]);
+    // The taps are counted by the view, never by the component.
+    expect(board).toContain('{s.tapped ? (');
+    expect(board).not.toMatch(/reduce\(|summarise/);
     expect(board).toContain('id={`signal-${s.themeKey}`}');
     expect(page).toContain('open={open}');
   });
@@ -201,8 +223,19 @@ describe('reviews reads as evidence, not an inbox', () => {
 
   it('lets the owner see only the evidence behind one signal', () => {
     expect(page).toContain('function SignalChips(');
+    expect(page).toContain('What Headway based this on');
     expect(page).toContain('Evidence for {activeSignal.label.toLowerCase()}');
     expect(page).toContain('this is what Headway based it on');
+  });
+
+  it('leads with representative comments and keeps the whole pile one tap away', () => {
+    // The same three quotes every figure on the workspace opens into, chosen
+    // by the same rule, then "Show all N". Any other narrowing shows the list.
+    expect(page).toContain("import { quotesFor } from '@/lib/portal/evidence'");
+    expect(page).toContain('const REPRESENTATIVE = 3;');
+    expect(page).toContain("activeSignal !== null && !searching && filters.stars === null && page === 1 && !all");
+    expect(page).toContain('Show all {view.matching}');
+    expect(page).toContain('&all=1');
   });
 
   it('keeps the raw list, the search and the charts, under the intelligence', () => {
@@ -243,6 +276,8 @@ describe('the check-in is a pulse', () => {
       '<PeriodSwitch basePath={basePath} current="checkin" />',
       '{pulse.sentence}',
       '<Blocks blocks={pulse.blocks}',
+      'Headway will check next',
+      '{r.nextUsefulCheck}',
       'summary="Show what changed"',
       'What Headway did',
     ]);

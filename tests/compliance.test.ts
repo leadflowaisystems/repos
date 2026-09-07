@@ -1488,6 +1488,25 @@ describe('V1 hard rules — the printed card asks everyone, every time (M17)', (
     expect(offenders).toEqual([]);
   });
 
+  it('never conditions the message to send on a good outcome, nor sells the private page as a public review', () => {
+    // The copyable WhatsApp/SMS lines on the print kit page slipped past the
+    // earlier guards: "if today's visit was helpful, would you share…" and
+    // "an honest review helps other people decide" — a gate and a public-
+    // review pitch, for a link that opens the business's own private page.
+    const offenders: string[] = [];
+    for (const pack of PACKS) {
+      for (const [field, value] of Object.entries({
+        askMessage: pack.kit?.askMessage ?? '',
+        askMessageHinglish: pack.kit?.askMessageHinglish ?? '',
+        askMessageMarathi: pack.kit?.askMessageMarathi ?? '',
+      })) {
+        if (CONDITIONAL.test(value) || PUBLIC_ASK.test(value)) offenders.push(`${pack.id}.${field}: ${value}`);
+        if (/\bagar\b|\bif\b/i.test(value)) offenders.push(`${pack.id}.${field} (conditional): ${value}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it('says out loud, in every pack, that the QR goes to everyone', () => {
     for (const pack of PACKS) {
       const rules = pack.staffAskScript.doNot.join(' ').toLowerCase();

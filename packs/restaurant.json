@@ -594,20 +594,20 @@
     "assetLabel": "table card",
     "placement": "On each table, and one at the billing counter.",
     "moment": "When clearing the table, for every guest — whatever kind of meal they had.",
-    "headline": "How was the food today?",
-    "subhead": "Scan and tell us honestly — good or bad.",
-    "qrCaption": "Scan to tell us how it was",
-    "askMessage": "Thanks for eating at {{businessName}}. If you have a minute, tell us honestly how it was — it genuinely helps the kitchen: {{feedbackUrl}}",
-    "askMessageHinglish": "{{businessName}} me khaane ke liye shukriya. Ek minute ho toh honest feedback de dijiye — kitchen ko bahut help karta hai: {{feedbackUrl}}",
-    "askMessageMarathi": "{{businessName}} मध्ये जेवल्याबद्दल धन्यवाद. एक मिनिट असेल तर प्रामाणिक अभिप्राय द्या — स्वयंपाकघराला खूप मदत होते: {{feedbackUrl}}",
+    "headline": "How was your meal today?",
+    "subhead": "Tell us honestly — good, bad or somewhere between.",
+    "qrCaption": "Scan — it takes about a minute",
+    "askMessage": "Thanks for eating at {{businessName}}. However today was, we would like to know — it takes about a minute and only we see it: {{feedbackUrl}}",
+    "askMessageHinglish": "{{businessName}} me khaane ke liye shukriya. Aaj jaisa bhi laga — accha ya bura — humein batayein. Ek minute lagta hai aur sirf hum dekhte hain: {{feedbackUrl}}",
+    "askMessageMarathi": "{{businessName}} मध्ये जेवल्याबद्दल धन्यवाद. आज जसं वाटलं तसं आम्हाला कळवा — चांगलं असो वा वाईट. एक मिनिट लागतो आणि ते फक्त आम्हीच पाहतो: {{feedbackUrl}}",
     "thankYou": "Thank you — this goes straight to the kitchen team."
   },
   "gateway": {
-    "headline": "How was your experience?",
-    "prompt": "Tell us what went well, or what we could do better.",
+    "headline": "How was your meal today?",
     "placeholder": "The food, the service, the wait — anything at all.",
-    "thankYou": "Thank you. This goes straight to the kitchen and the floor team.",
+    "thankYou": "Honest feedback helps the kitchen and the floor team know what to keep and what to improve.",
     "printLine": "Tell us honestly — good or bad. A few taps is enough.",
+    "mixedPrompt": "What would have made today better?",
     "dimensions": [
       {
         "key": "food",
@@ -659,7 +659,7 @@
           },
           {
             "key": "manner",
-            "label": "Manner of the staff"
+            "label": "Rude or dismissive"
           }
         ]
       },

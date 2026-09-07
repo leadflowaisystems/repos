@@ -458,19 +458,18 @@
     "assetLabel": "delivery card",
     "placement": "Included with the final delivery — album box, USB pouch or handover folder.",
     "moment": "At final delivery, for every client — including anyone who raised something along the way.",
-    "headline": "Did we do right by you?",
-    "subhead": "Scan and share your honest experience. One minute.",
-    "qrCaption": "Scan to share your honest experience",
-    "askMessage": "Thank you for trusting {{businessName}} with your day. If we did right by you, an honest review helps the next couple choose with confidence: {{feedbackUrl}}",
-    "askMessageHinglish": "{{businessName}} par bharosa karne ke liye dhanyawaad. Agar humne aapke liye theek kaam kiya ho, toh ek honest review agle couple ko confidence deta hai: {{feedbackUrl}}",
-    "askMessageMarathi": "{{businessName}} वर विश्वास ठेवल्याबद्दल धन्यवाद. आमचं काम आवडलं असेल, तर प्रामाणिक अभिप्राय पुढच्या जोडप्याला मदत करतो: {{feedbackUrl}}",
+    "headline": "How did we do on the day?",
+    "subhead": "Tell us honestly — good, bad or somewhere between.",
+    "qrCaption": "Scan — it takes about a minute",
+    "askMessage": "Thank you for trusting {{businessName}} with your day. However we did, we would like to know — it takes about a minute and only we see it: {{feedbackUrl}}",
+    "askMessageHinglish": "{{businessName}} par bharosa karne ke liye dhanyawaad. Humne jaisa bhi kaam kiya ho, humein batayein — ek minute lagta hai aur sirf hum dekhte hain: {{feedbackUrl}}",
+    "askMessageMarathi": "{{businessName}} वर विश्वास ठेवल्याबद्दल धन्यवाद. आम्ही कसं काम केलं ते आम्हाला कळवा — एक मिनिट लागतो आणि ते फक्त आम्हीच पाहतो: {{feedbackUrl}}",
     "thankYou": "Thank you — it was a privilege to be part of your day."
   },
   "gateway": {
     "headline": "How did we do on the day?",
-    "prompt": "Tell us what went well, or what we could have done better.",
     "placeholder": "The planning, the day itself, the delivery — anything at all.",
-    "thankYou": "Thank you. It was a privilege to be part of your day.",
+    "thankYou": "It was a privilege to be part of your day. Honest feedback helps us know what to keep and what to improve.",
     "printLine": "Honest feedback helps us do right by the next couple.",
     "dimensions": [
       {
@@ -565,7 +564,7 @@
           },
           {
             "key": "conduct",
-            "label": "How the team behaved"
+            "label": "Unprofessional behaviour"
           },
           {
             "key": "no_lead",

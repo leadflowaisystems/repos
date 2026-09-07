@@ -1,8 +1,6 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { extname, join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { talliesFor } from '@/lib/portal/tallies';
-import type { PortalSignal, PortalView } from '@/lib/portal/view';
 
 /**
  * HEADWAY — the identity, as rules rather than as intentions.
@@ -318,145 +316,18 @@ describe('colour carries meaning, and only its own meaning', () => {
   });
 
   it('never leaves colour as the only carrier of meaning', () => {
-    // Every arrow and dot in the tallies is aria-hidden and sits beside a word;
-    // the direction is also announced for a reader who cannot see the glyph.
-    const ui = read('src', 'components', 'portal', 'portal-ui.tsx');
-    expect(ui).toContain('<span className="sr-only">');
-    expect(ui).toMatch(/sr-only">\{tally\.movement === 'up' \? 'up,' : 'down,'\}/);
+    // Every arrow on a signal card is aria-hidden and sits beside a word; the
+    // direction is also announced for a reader who cannot see the glyph.
+    const board = read('src', 'components', 'workspace', 'signal-board.tsx');
+    expect(board).toContain('<span className="sr-only">');
+    expect(board).toMatch(/sr-only">\{rose \? 'up,' : 'down,'\}/);
   });
 });
 
 describe('nothing on the page claims more than the engine knows', () => {
-  // Behavioural, not a grep. Every rule below was broken at some point in this
-  // pass, and each break was invisible in the rendered page: a fading strength
-  // drew a rising arrow, and a first week named a leading theme the rest of the
-  // page refused to name.
-  const signal = (over: Partial<PortalSignal>): PortalSignal =>
-    ({
-      themeKey: 'slow_service',
-      themeLabel: 'Slow service',
-      kind: 'ISSUE',
-      fact: '',
-      evidenceCount: 34,
-      evidenceTotal: 87,
-      share: '39%',
-      movementDirection: null,
-      movementCounts: null,
-      movementLine: null,
-      recurrence: null,
-      isRecurring: false,
-      isNew: false,
-      counterpart: null,
-      brief: '',
-      movementBrief: '',
-      meaning: '',
-      why: [],
-      bucket: 'FIRST',
-      bucketLabel: '',
-      advice: 'ACT',
-      adviceLabel: '',
-      featuredBecause: null,
-      returning: false,
-      ...over,
-    }) as unknown as PortalSignal;
-
-  const view = (over: Partial<PortalView>): PortalView =>
-    ({
-      basedOn: 87,
-      soFar: { waiting: 0 },
-      facts: [],
-      first: null,
-      keep: null,
-      unhappy: [],
-      loved: [],
-      ...over,
-    }) as unknown as PortalView;
-
-  const at = (tallies: ReturnType<typeof talliesFor>, key: string) =>
-    tallies.find((t) => t.key === key);
-
-  it('draws no arrow where two check-ins were never compared', () => {
-    const t = talliesFor(view({ first: signal({}) }), '/w');
-    expect(at(t, 'issue')?.movement).toBeNull();
-  });
-
-  it('points a rising complaint up, and a falling one down', () => {
-    const rising = talliesFor(
-      view({ first: signal({ kind: 'ISSUE', movementDirection: 'WORSENING' }) }),
-      '/w',
-    );
-    expect(at(rising, 'issue')?.movement).toBe('up');
-    expect(at(rising, 'issue')?.tone).toBe('bad');
-
-    const falling = talliesFor(
-      view({ first: signal({ kind: 'ISSUE', movementDirection: 'IMPROVING' }) }),
-      '/w',
-    );
-    expect(at(falling, 'issue')?.movement).toBe('down');
-  });
-
-  it('points a fading strength DOWN, which it did not for one afternoon', () => {
-    // For a praise theme, WORSENING means customers mentioned it LESS. Falling
-    // through to the complaint-shaped helper made 'down' unreachable, so a
-    // strength that was disappearing drew the same rising arrow as one that
-    // was growing.
-    const fading = talliesFor(
-      view({ keep: signal({ kind: 'PRAISE', movementDirection: 'WORSENING' }) }),
-      '/w',
-    );
-    expect(at(fading, 'praise')?.movement).toBe('down');
-    expect(at(fading, 'praise')?.tone).toBe('good');
-
-    const growing = talliesFor(
-      view({ keep: signal({ kind: 'PRAISE', movementDirection: 'IMPROVING' }) }),
-      '/w',
-    );
-    expect(at(growing, 'praise')?.movement).toBe('up');
-  });
-
-  it('treats a movement the engine called steady as no movement at all', () => {
-    const steady = talliesFor(
-      view({ first: signal({ movementDirection: 'STABLE', movementCounts: '3 → 2 mentions' }) }),
-      '/w',
-    );
-    expect(at(steady, 'issue')?.movement).toBeNull();
-    // The counts still show; only the direction is withheld.
-    expect(at(steady, 'issue')?.note).toContain('3 → 2 mentions');
-  });
-
-  it('omits the tile rather than naming a leader the engine would not name', () => {
-    // `first` and `keep` are empty exactly when the leading theme is still
-    // EARLY — fewer than ten pieces read. There is no fallback to the top of
-    // the raw list.
-    const early = talliesFor(
-      view({ first: null, keep: null, unhappy: [signal({})], loved: [signal({ kind: 'PRAISE' })] }),
-      '/w',
-    );
-    expect(at(early, 'issue')).toBeUndefined();
-    expect(at(early, 'praise')).toBeUndefined();
-    expect(early.map((t) => t.key)).toEqual(['read']);
-  });
-
-  it('says which pile every count came from', () => {
-    const compared = talliesFor(
-      view({ first: signal({ movementCounts: '4 → 8 mentions' }) }),
-      '/w',
-    );
-    expect(at(compared, 'issue')?.note).toBe('4 → 8 mentions at your last two check-ins');
-
-    const uncompared = talliesFor(view({ first: signal({}) }), '/w');
-    expect(at(uncompared, 'issue')?.note).toBe('34 of 87 mention it');
-  });
-
-  it('omits the public rating when the listing was never observed', () => {
-    expect(at(talliesFor(view({}), '/w'), 'rating')).toBeUndefined();
-    const observed = talliesFor(
-      view({ facts: [{ label: 'Public rating', value: '3.6', scope: 'All 244 public reviews' }] }),
-      '/w',
-    );
-    expect(at(observed, 'rating')?.value).toBe('3.6');
-  });
-
+  // The four tallies at the foot of Home are gone (final experience pass):
+  // every figure they carried is already stated once higher up. The two rules
+  // that outlive them are about the page itself.
   it('invents no percentage anywhere on the page', () => {
     const home = stripComments(read('src', 'components', 'workspace', 'home.tsx'));
     expect(home).not.toMatch(/\+\d+%/);

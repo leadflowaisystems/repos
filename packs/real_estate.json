@@ -442,18 +442,17 @@
     "placement": "Handed over with the agreement folder or at key handover.",
     "moment": "At handover or agreement signing, for every client — however the process turned out.",
     "headline": "How did the process go?",
-    "subhead": "Scan and share your honest experience. One minute.",
-    "qrCaption": "Scan to share your honest experience",
-    "askMessage": "Thank you for working with {{businessName}}. If the process worked for you, an honest review helps the next family decide who to trust: {{feedbackUrl}}",
-    "askMessageHinglish": "{{businessName}} ke saath kaam karne ke liye dhanyawaad. Agar process theek raha ho, toh ek honest review agle family ko trust decide karne me help karta hai: {{feedbackUrl}}",
-    "askMessageMarathi": "{{businessName}} सोबत काम केल्याबद्दल धन्यवाद. प्रक्रिया सुरळीत झाली असेल, तर प्रामाणिक अभिप्राय पुढच्या कुटुंबाला मदत करतो: {{feedbackUrl}}",
-    "thankYou": "Thank you — do reach out if anything comes up later."
+    "subhead": "Tell us honestly — good, bad or somewhere between.",
+    "qrCaption": "Scan — it takes about a minute",
+    "askMessage": "Thank you for working with {{businessName}}. However the process went for you, we would like to know — it takes about a minute and only we see it: {{feedbackUrl}}",
+    "askMessageHinglish": "{{businessName}} ke saath kaam karne ke liye dhanyawaad. Process jaisa bhi raha, humein batayein — ek minute lagta hai aur sirf hum dekhte hain: {{feedbackUrl}}",
+    "askMessageMarathi": "{{businessName}} सोबत काम केल्याबद्दल धन्यवाद. प्रक्रिया कशी झाली ते आम्हाला कळवा — एक मिनिट लागतो आणि ते फक्त आम्हीच पाहतो: {{feedbackUrl}}",
+    "thankYou": "Thank you — this goes straight to our team."
   },
   "gateway": {
     "headline": "How did the process go?",
-    "prompt": "Tell us what went well, or what we could have done better.",
     "placeholder": "The visits, the paperwork, the communication — anything at all.",
-    "thankYou": "Thank you. We read every one of these.",
+    "thankYou": "Honest feedback helps us know what to keep and what to improve for the next family.",
     "printLine": "Honest feedback helps us do right by the next family.",
     "dimensions": [
       {

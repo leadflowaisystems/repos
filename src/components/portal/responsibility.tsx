@@ -190,17 +190,15 @@ function WatchingRow({ item, basePath }: { item: ResponsibilityItem; basePath: s
           <p className="text-[15px] leading-snug font-semibold text-ink-900">
             {item.headline} <Chevron />
           </p>
+          {/* The condition that brings it back, in the open: "I don't have to
+              remember this" is only true when the owner can see what Headway
+              is waiting for. */}
+          <p className="text-[13px] leading-relaxed text-ink-500">{item.watching}</p>
         </summary>
         <dl className="hw-reveal mt-2 space-y-1.5 border-l-2 border-ink-200 pl-3">
           <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-[5.5rem_1fr]">
             <dt className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">Why</dt>
             <dd className="text-[13px] leading-relaxed text-ink-700">{item.whyItMatters}</dd>
-          </div>
-          <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-[5.5rem_1fr]">
-            <dt className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
-              We&rsquo;ll flag it
-            </dt>
-            <dd className="text-[13px] leading-relaxed text-ink-700">{item.watching}</dd>
           </div>
           {item.contextUsed.length > 0 ? (
             <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-[5.5rem_1fr]">

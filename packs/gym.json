@@ -514,20 +514,20 @@
     "assetLabel": "front-desk card",
     "placement": "At the front desk, beside the sign-in register.",
     "moment": "At the front desk, for every member you speak to — not only after a good session.",
-    "headline": "Is the gym working for you?",
-    "subhead": "Scan and tell us honestly — it takes a minute.",
-    "qrCaption": "Scan to share your honest review",
-    "askMessage": "Thanks for training with {{businessName}}. If the gym has been working for you, an honest review really helps other people decide: {{feedbackUrl}}",
-    "askMessageHinglish": "{{businessName}} me train karne ke liye shukriya. Agar gym aapke liye theek chal raha hai, toh ek honest review dusron ko decide karne me help karta hai: {{feedbackUrl}}",
-    "askMessageMarathi": "{{businessName}} मध्ये सराव केल्याबद्दल धन्यवाद. जिम तुमच्यासाठी उपयुक्त ठरत असेल, तर प्रामाणिक अभिप्राय इतरांना मदत करतो: {{feedbackUrl}}",
-    "thankYou": "Thank you — the floor team will be glad to read this."
+    "headline": "How is the gym working for you?",
+    "subhead": "Tell us honestly — good, bad or somewhere between.",
+    "qrCaption": "Scan — it takes about a minute",
+    "askMessage": "Thanks for training with {{businessName}}. However the gym is working for you, we would like to know — it takes about a minute and only we see it: {{feedbackUrl}}",
+    "askMessageHinglish": "{{businessName}} me train karne ke liye shukriya. Gym jaisa bhi chal raha hai, humein batayein — ek minute lagta hai aur sirf hum dekhte hain: {{feedbackUrl}}",
+    "askMessageMarathi": "{{businessName}} मध्ये सराव केल्याबद्दल धन्यवाद. जिम कसं चाललंय ते आम्हाला कळवा — एक मिनिट लागतो आणि ते फक्त आम्हीच पाहतो: {{feedbackUrl}}",
+    "thankYou": "Thank you — this goes straight to the floor team."
   },
   "gateway": {
     "headline": "How is the gym working for you?",
-    "prompt": "Tell us what is working, or what we could do better.",
     "placeholder": "Trainers, equipment, the floor, timings — anything at all.",
-    "thankYou": "Thank you. The floor team reads all of this.",
+    "thankYou": "Honest feedback helps the floor team know what to keep and what to improve.",
     "printLine": "Honest feedback keeps the floor running well for everyone.",
+    "mixedPrompt": "What is working, and what would make it better?",
     "dimensions": [
       {
         "key": "equipment",
@@ -596,7 +596,7 @@
           },
           {
             "key": "manner",
-            "label": "Manner of the staff"
+            "label": "Rude or dismissive"
           },
           {
             "key": "sales_pressure",

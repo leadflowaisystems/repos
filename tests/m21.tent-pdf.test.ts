@@ -26,9 +26,9 @@ import { PT_PER_MM, textWidthMm } from '@/lib/kit/pdf';
 
 const RESTAURANT: TentInput = {
   businessName: 'Corner Cafe',
-  headline: 'How was the food today?',
-  subhead: 'Scan and tell us honestly — good or bad.',
-  qrCaption: 'Scan to tell us how it was',
+  headline: 'How was your meal today?',
+  subhead: 'Tell us honestly — good, bad or somewhere between.',
+  qrCaption: 'Scan — it takes about a minute',
   thankYou: 'Thank you — this goes straight to the kitchen team.',
   placement: 'On each table, and one at the billing counter.',
   feedbackUrl: 'https://repos.example.com/feedback/Ab3xY9zQmN2pLr7TvW1kJd',
@@ -39,8 +39,8 @@ const RESTAURANT: TentInput = {
 const GYM: TentInput = {
   ...RESTAURANT,
   businessName: 'Gold Gym',
-  headline: 'Is the gym working for you?',
-  subhead: 'Scan and tell us honestly — it takes a minute.',
+  headline: 'How is the gym working for you?',
+  subhead: 'Tell us honestly — good, bad or somewhere between.',
   thankYou: 'Thank you — the floor team will be glad to read this.',
   placement: 'At the front desk, beside the sign-in register.',
 };
@@ -480,8 +480,8 @@ describe('the QR', () => {
 describe('the wording stays the vertical’s own', () => {
   it('prints the restaurant question, not a generic one', () => {
     const body = composeTentSheet(RESTAURANT).content();
-    expect(body).toContain('(How was the food today?) Tj');
-    expect(body).toContain('good or bad');
+    expect(body).toContain('(How was your meal today?) Tj');
+    expect(body).toContain('somewhere between');
     expect(body).toContain('kitchen team');
     expect(body).toContain('On each table, and one at the billing counter.');
     expect(body).not.toContain('How was your experience?');
@@ -489,16 +489,66 @@ describe('the wording stays the vertical’s own', () => {
 
   it('prints the gym question and the gym’s own placement', () => {
     const body = composeTentSheet(GYM).content();
-    expect(body).toContain('(Is the gym working for you?) Tj');
-    expect(body).toContain('it takes a minute');
+    expect(body).toContain('(How is the gym working for you?) Tj');
+    expect(body).toContain('about a minute');
     expect(body).toContain('At the front desk, beside the sign-in register.');
-    expect(body).not.toContain('food');
+    expect(body).not.toContain('meal');
   });
 
   it('sets an em dash as an em dash, not as a question mark', () => {
     // WinAnsi 0x97. The approved scan line contains one, and a card that read
-    // "honestly ? good or bad" would be a visible defect on every table.
-    expect(composeTentSheet(RESTAURANT).content()).toContain('honestly \\227 good or bad');
+    // "honestly ? good, bad or somewhere between" would be a visible defect on
+    // every table.
+    // The scan line breaks at its own dash, so the dash closes the first line.
+    const body = composeTentSheet(RESTAURANT).content();
+    expect(body).toContain('(Tell us honestly \\227) Tj');
+    expect(body).toContain('(good, bad or somewhere between.) Tj');
+    expect(body).not.toContain('honestly ?');
+  });
+
+  it('prints every pack’s own card with the question above the code and the scan line clear of it', async () => {
+    // The subhead grew a clause in the final experience pass. Two lines of
+    // it under a two-line question must still end above the QR panel, on
+    // every vertical, or a card would print with type running into the code.
+    const { listPacks } = await import('@/lib/packs');
+    const { buildKitContent } = await import('@/lib/kit/content');
+    for (const pack of listPacks()) {
+      const content = buildKitContent({ pack, businessName: 'Corner Cafe', feedbackUrl: RESTAURANT.feedbackUrl });
+      const input: TentInput = {
+        ...RESTAURANT,
+        headline: content.headline,
+        subhead: content.subhead,
+        qrCaption: content.qrCaption,
+        thankYou: content.footerNote,
+        placement: content.placement,
+      };
+      const ops = composeTentSheet(input).content().split('\n');
+      // Text is set as "x y Td" then "(…) Tj" in a BT/ET block; the QR panel is
+      // the first white 40 mm square. Compare on the un-rotated lower face.
+      const texts: Array<{ y: number; text: string }> = [];
+      let lastTd: number[] = [];
+      for (const op of ops) {
+        if (op.endsWith(' Td')) lastTd = op.split(' ').slice(0, 2).map(Number);
+        if (op.endsWith(' Tj')) texts.push({ y: lastTd[1] ?? 0, text: op.slice(1, op.indexOf(') Tj')) });
+      }
+      const panels = ops
+        .map((line, i) => ({ line, prev: ops[i - 1] }))
+        .filter((x) => x.line.endsWith(' re f') && x.prev === '1 1 1 rg')
+        .map((x) => x.line.split(' ').slice(0, 4).map(Number))
+        .filter((r) => Math.abs(r[2]! - (40 * 72) / 25.4) < 0.5);
+      expect(panels.length, pack.id).toBeGreaterThan(0);
+      const panelTop = Math.max(...panels.map((r) => r[1]! + r[3]!)); // PDF y grows upward
+      const question = texts.filter((t) => content.headline.startsWith(t.text.split(' ')[0] ?? ''));
+      expect(question.length, pack.id).toBeGreaterThan(0);
+      // Every line of the sub-line that sits on the lower face is above the panel.
+      const lower = texts.filter((t) => t.y > panelTop && t.y < panelTop + (60 * 72) / 25.4);
+      const scan = lower.filter((t) => content.subhead.includes(t.text.replace(/\\227/g, '—').replace(/\\(.)/g, '$1')));
+      expect(scan.length, `${pack.id}: ${content.subhead}`).toBeGreaterThan(0);
+      for (const line of scan) {
+        // 2 pt of descender clearance above the panel's top edge.
+        expect(line.y - panelTop, `${pack.id}: "${line.text}"`).toBeGreaterThan(2);
+      }
+    }
   });
 
   it('measures type with the real font metrics, so centred lines are centred', () => {

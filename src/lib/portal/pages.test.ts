@@ -33,8 +33,7 @@ describe('customers — why Headway is saying this', () => {
     const v = buildAnalysisView(input());
     expect(v.telling).toEqual([
       "Customers praise your doctor's care and explanation most.",
-      'Long waiting time is where the experience falls short most often — 9 of the 50 pieces of feedback we have read.',
-      '1 other complaint is worth watching; Headway is not asking you to act on it yet.',
+      'Long waiting time is where the experience falls short most often.',
     ]);
   });
 

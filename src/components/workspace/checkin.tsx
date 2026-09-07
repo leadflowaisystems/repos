@@ -28,10 +28,11 @@ export const metadata = { title: 'Check-in' };
  *
  * A ritual, not a report. The whole check-in fits above the fold: the month,
  * one sentence with three counts in it, and three blocks — DO, PROTECT,
- * WATCH — each opening into its own evidence. The movement between the two
- * check-ins and everything Headway did in between sit behind two reveals for
- * anyone who wants the detail. Home already gives the picture; this page
- * gives the delta, and it gives it first.
+ * WATCH — each opening into its own evidence, then the one condition Headway
+ * is waiting for before the next check-in is worth opening. The movement
+ * between the two check-ins and everything Headway did in between sit behind
+ * two reveals for anyone who wants the detail. Home already gives the
+ * picture; this page gives the delta, and it gives it first.
  */
 
 const BLOCK_GROUP: Record<CheckinBlock['kind'], SignalGroupKey> = {
@@ -144,6 +145,13 @@ export async function PortalCheckin({
       )}
 
       <Blocks blocks={pulse.blocks} evidence={evidence} basePath={basePath} />
+
+      {r.basedOn > 0 ? (
+        <section aria-label="Headway will check next" className="mt-8 max-w-3xl border-l-2 border-ink-300 pl-4">
+          <p className="text-[11px] font-medium tracking-widest text-ink-500 uppercase">Headway will check next</p>
+          <p className="mt-1.5 text-[14px] leading-relaxed text-ink-800">{r.nextUsefulCheck}</p>
+        </section>
+      ) : null}
 
       <div className="mt-10 max-w-3xl space-y-6">
         <Reveal summary="Show what changed" tone="strong">

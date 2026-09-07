@@ -423,8 +423,17 @@ function fitTracked(
  * even the smallest will not fit on one.
  *
  * A question is the loudest thing on the card and should stay one line where it
- * can — "How was the food today?" reads as a question at a glance and as a
+ * can — "How was your meal today?" reads as a question at a glance and as a
  * paragraph when it is broken in the wrong place.
+ *
+ * When it must break, it breaks at the sentence's own pause where there is
+ * one — a dash or a colon — and otherwise where the two lines come out most
+ * even. A greedy break fills the first line and leaves whatever is left —
+ * "… good, bad or somewhere" over "between." — which on a printed card reads
+ * as a mistake; the most even break can land mid-list ("… good," over "bad or
+ * …"). Breaking at the pause reads as a couplet: "Tell us honestly —" over
+ * "good, bad or somewhere between." Sizes and positions are untouched; only
+ * the break point moves.
  */
 function fit(
   text: string,
@@ -437,6 +446,22 @@ function fit(
   }
   const size = sizes[sizes.length - 1] ?? 11;
   const words = text.split(/\s+/).filter(Boolean);
+  let best: { lines: string[]; spread: number; pause: boolean } | null = null;
+  for (let i = 1; i < words.length; i += 1) {
+    const head = words.slice(0, i).join(' ');
+    const tail = words.slice(i).join(' ');
+    const headW = textWidthMm(head, font, size);
+    const tailW = textWidthMm(tail, font, size);
+    if (headW > maxWidthMm || tailW > maxWidthMm) continue;
+    const spread = Math.abs(headW - tailW);
+    const pause = /[—–:]$/.test(head);
+    const better =
+      !best || (pause && !best.pause) || (pause === best.pause && spread < best.spread);
+    if (better) best = { lines: [head, tail], spread, pause };
+  }
+  if (best) return { size, lines: best.lines };
+  // Too long even for two full lines: fill the first and carry the rest, so
+  // nothing is ever dropped.
   let first = '';
   for (const word of words) {
     const next = first ? `${first} ${word}` : word;

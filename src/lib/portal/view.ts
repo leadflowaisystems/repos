@@ -7,7 +7,7 @@ import {
   type TrendState,
 } from '@/lib/intelligence/engine';
 import type { HealthCard, StoredSnapshot } from '@/lib/health/health';
-import type { ThemeSummary } from '@/lib/feedback/analysis';
+import type { DimensionSummaryRow, ThemeSummary } from '@/lib/feedback/analysis';
 import type { Pack, TaxonomyEntry } from '@/lib/packs';
 import {
   RESULT_LABELS,
@@ -195,6 +195,27 @@ export type PortalQuestion = {
   why: string;
 };
 
+/**
+ * What customers tapped on the feedback page about this theme (final
+ * experience pass). The form asks a rating for each part of the visit and
+ * offers specifics after a low one; the pack maps each question to the issue
+ * it is evidence for. Until now the taps were shown one row at a time on
+ * Reviews and never added up for the owner. Counts only — the engine already
+ * decided whether they matter.
+ */
+export type PortalTapped = {
+  /** The question as the pack words it: "Waiting". */
+  label: string;
+  /** How many customers rated it at all. */
+  rated: number;
+  /** How many of those put it at 3 or below. */
+  low: number;
+  /** Mean of the ratings given, to one decimal. */
+  average: number;
+  /** The specifics they picked, most-picked first, as the pack words them today. */
+  specifics: Array<{ label: string; count: number }>;
+};
+
 /** One thing customers are saying, fully explained. */
 export type PortalSignal = {
   themeKey: string;
@@ -254,6 +275,8 @@ export type PortalSignal = {
   actionLine: string | null;
   outcome: PortalOutcome | null;
   question: PortalQuestion | null;
+  /** The ratings and specifics tapped on the feedback page about this theme. Issues only. */
+  tapped: PortalTapped | null;
   /** "You told us what matters most right now: …" when the owner said so about this theme. */
   ownerPriority: string | null;
   /** What the owner told RepOS about this theme, each line attributed to them. */
@@ -601,11 +624,27 @@ type ThemeContext = {
   presence: PresenceMap;
   loops: Map<string, ActionProgress>;
   context: ContextSet;
+  /** The feedback page's own questions, counted, in pack order. */
+  dimensions: DimensionSummaryRow[];
   isAttention: boolean;
   /** Position among strengths by count: 0 and 1 are "praised most". */
   strengthRank: number;
   featuredBecause?: string | null;
 };
+
+/** The feedback-page question that is evidence for this issue, once anyone has answered it. */
+function tappedFor(insight: Insight, ctx: ThemeContext): PortalTapped | null {
+  if (insight.sentiment !== 'ISSUE') return null;
+  const row = ctx.dimensions.find((d) => d.themeKey === insight.themeKey && d.rated > 0 && d.average !== null);
+  if (!row) return null;
+  return {
+    label: row.label,
+    rated: row.rated,
+    low: row.low,
+    average: row.average as number,
+    specifics: row.signals.map((s) => ({ label: s.label, count: s.count })),
+  };
+}
 
 function entryFor(pack: Pack, kind: 'PRAISE' | 'ISSUE', key: string): TaxonomyEntry | undefined {
   return (kind === 'ISSUE' ? pack.issueTaxonomy : pack.praiseTaxonomy).find((t) => t.key === key);
@@ -930,6 +969,7 @@ export function toSignal(insight: Insight, ctx: ThemeContext): PortalSignal {
     actionState: state,
     actionLine,
     outcome,
+    tapped: tappedFor(insight, ctx),
     ownerPriority: priorityItem ? youToldUs(priorityItem) : null,
     ownerContext,
     // Asked once. Once the owner has answered, the answer is shown instead.
@@ -1067,7 +1107,7 @@ export function buildPortalView(input: PortalInput): PortalView {
     const at = byCount.indexOf(i.themeKey);
     return at === -1 ? 99 : at;
   };
-  const base = { intel, pack: input.pack, presence, loops, context };
+  const base = { intel, pack: input.pack, presence, loops, context, dimensions: input.themes.dimensions };
 
   const loved = rankedPraise.map((i) =>
     toSignal(i, {

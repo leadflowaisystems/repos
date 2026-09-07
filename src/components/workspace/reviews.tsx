@@ -2,7 +2,8 @@ import Link from 'next/link';
 import clsx from 'clsx';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
-import { getReviewsView } from '@/lib/portal/service';
+import { getEvidenceIndex, getReviewsView } from '@/lib/portal/service';
+import { quotesFor } from '@/lib/portal/evidence';
 import type { ReviewFilters, ReviewsView } from '@/lib/portal/pages';
 import {
   PageIntro,
@@ -19,16 +20,18 @@ export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Reviews' };
 
 /**
- * REVIEWS — the evidence (M24).
+ * REVIEWS — the evidence cabinet (M24, completed in the final experience pass).
  *
  * The raw material, made to feel like what it is: the thing every conclusion
  * rests on. The page opens with the transformation Headway made of the pile —
  * everything read, the signals that recur, the mentions that stand alone, the
  * one that needs attention — each step a count of the same rows and a tap to
  * the rows behind it. Then the signals as one-tap filters, so an owner can
- * ask "what did Headway actually base this on?" and see only those comments.
- * The full inbox, the ratings, the tones and the search are all still here,
- * under the intelligence rather than above it.
+ * ask "what did Headway actually base this on?" and see only those comments:
+ * three representative ones first, chosen the way every quote on the
+ * workspace is chosen, and the whole list one tap further. The full inbox,
+ * the ratings, the tones and the search are all still here, under the
+ * intelligence rather than above it.
  */
 
 type Search = Record<string, string | string[] | undefined>;
@@ -40,6 +43,9 @@ const SENTIMENT_LABEL: Record<(typeof SENTIMENTS)[number], string> = {
   NEUTRAL: 'Neutral',
   NEGATIVE: 'Negative',
 };
+
+/** How many comments stand for a signal before the owner asks for all of them. */
+const REPRESENTATIVE = 3;
 
 function one(v: string | string[] | undefined): string {
   return (Array.isArray(v) ? v[0] : v) ?? '';
@@ -61,6 +67,7 @@ function parseFilters(search: Search): ReviewFilters {
 const control =
   'h-11 w-full rounded-md border border-ink-300 bg-white px-2.5 text-[14px] text-ink-900 focus-visible:border-ink-500 focus-visible:ring-2 focus-visible:ring-ink-300 focus-visible:outline-none';
 const label = 'flex flex-col gap-1 text-[11px] tracking-wide text-ink-500 uppercase';
+const EYEBROW = 'text-[11px] font-medium tracking-widest text-ink-500 uppercase';
 
 /**
  * 87 pieces read → 7 recurring signals → 6 isolated mentions → 1 needs attention.
@@ -175,7 +182,11 @@ export async function PortalReviews({
 
   const filters = parseFilters(search);
   const page = Math.max(Number.parseInt(one(search.page), 10) || 1, 1);
-  const view = await getReviewsView(prisma, client.id, filters, { page });
+  const all = one(search.all) === '1';
+  const [view, evidence] = await Promise.all([
+    getReviewsView(prisma, client.id, filters, { page }),
+    getEvidenceIndex(prisma, client.id),
+  ]);
   if (!view) notFound();
 
   const base = `${basePath}/reviews`;
@@ -185,6 +196,25 @@ export async function PortalReviews({
   const inHand = view.waiting + view.processing;
   const activeSignal = view.signals.find((s) => s.active) ?? null;
   const searching = filters.q.trim().length > 0 || filters.sentiment !== null || filters.source !== null || filters.needs !== null;
+
+  // One signal, nothing else narrowed, first page: the representative comments
+  // lead — the same three the workspace quotes under the figure — and the
+  // whole pile is one tap away. Any other narrowing shows the plain list.
+  const representative =
+    activeSignal !== null && !searching && filters.stars === null && page === 1 && !all;
+  let items = view.items;
+  if (representative && activeSignal) {
+    const chosen = quotesFor(evidence, activeSignal.key, { limit: REPRESENTATIVE }).map((q) => q.id);
+    const lead = chosen
+      .map((id) => view.items.find((item) => item.id === id))
+      .filter((item): item is ReviewsView['items'][number] => item !== undefined);
+    for (const item of view.items) {
+      if (lead.length >= REPRESENTATIVE) break;
+      if (!lead.some((l) => l.id === item.id)) lead.push(item);
+    }
+    items = lead;
+  }
+  const showAllHref = activeSignal ? `${base}?theme=${encodeURIComponent(activeSignal.key)}&all=1` : base;
 
   return (
     <>
@@ -365,13 +395,17 @@ export async function PortalReviews({
         <>
           {activeSignal ? (
             <div className="mb-1 border-l-2 border-ink-900 pl-4">
-              <p className="text-[17px] leading-snug font-semibold tracking-tight text-ink-900">
+              <p className={EYEBROW}>What Headway based this on</p>
+              <p className="mt-1 text-[17px] leading-snug font-semibold tracking-tight text-ink-900">
                 Evidence for {activeSignal.label.toLowerCase()}
               </p>
               <p className="mt-0.5 text-[13px] text-ink-600">
-                {view.matching} {view.matching === 1 ? 'comment' : 'comments'} — this is what Headway based it on.{' '}
+                {view.matching} {view.matching === 1 ? 'comment' : 'comments'} — this is what Headway based it on.
+                {representative && view.matching > items.length
+                  ? ` ${items.length === 1 ? 'The one that says it most plainly' : `${items.length} that say it most plainly`} first.`
+                  : ''}{' '}
                 <Link href={base} className="inline-flex min-h-11 items-center font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900">
-                  Show everything
+                  Clear filter
                 </Link>
               </p>
             </div>
@@ -381,9 +415,9 @@ export async function PortalReviews({
               {filtered ? <span className="font-normal text-ink-600"> {view.filterSummary}</span> : null}
             </p>
           )}
-          {view.items.length > 0 ? (
+          {items.length > 0 ? (
             <ul className="mt-2 divide-y divide-ink-200 border-t border-ink-200">
-              {view.items.map((item) => (
+              {items.map((item) => (
                 <ReviewRow key={item.id} item={item} />
               ))}
             </ul>
@@ -396,7 +430,19 @@ export async function PortalReviews({
               </Quiet>
             </div>
           )}
-          {view.hasMore ? (
+          {representative && view.matching > items.length ? (
+            <div className="mt-6 border-t border-ink-200 pt-5">
+              <p className="text-[13px] text-ink-600">
+                Showing {items.length} of {view.matching} comments about this.
+              </p>
+              <Link
+                href={showAllHref}
+                className="mt-2 inline-flex min-h-11 items-center gap-1 rounded-lg border border-ink-300 px-4 text-[13px] font-medium text-ink-900 hover:border-ink-900"
+              >
+                Show all {view.matching} <span aria-hidden>→</span>
+              </Link>
+            </div>
+          ) : view.hasMore ? (
             <div className="mt-6 border-t border-ink-200 pt-5">
               <p className="text-[13px] text-ink-600">
                 Showing {view.shown} of {view.matching} comments.

@@ -101,18 +101,12 @@ export function buildAnalysisView(input: PortalInput): AnalysisView {
       `${joinNames(v.loved.map((s) => s.themeLabel))} ${v.loved.length === 1 ? 'is' : 'are'} praised, but not yet often enough to call a strength.`,
     );
   }
+  // The count and the other complaints live on the cards directly beneath;
+  // saying them here as well made the page open by repeating itself.
   if (v.first) {
-    telling.push(
-      `${v.first.themeLabel} is where the experience falls short most often — ${v.first.evidenceCount} of the ${pieces(v.first.evidenceTotal)} we have read.`,
-    );
+    telling.push(`${v.first.themeLabel} is where the experience falls short most often.`);
   } else if (intel.evidence.analysed > 0) {
     telling.push('No complaint has come up often enough to call a weakness.');
-  }
-  const otherIssues = v.unhappy.filter((s) => s.bucket === 'WATCH').length;
-  if (otherIssues > 0) {
-    telling.push(
-      `${otherIssues} other ${otherIssues === 1 ? 'complaint is' : 'complaints are'} worth watching; Headway is not asking you to act on ${otherIssues === 1 ? 'it' : 'them'} yet.`,
-    );
   }
 
   const readable = input.snapshots.length;

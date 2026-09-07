@@ -197,15 +197,20 @@ describe('what Headway wants you to know, and the next step', () => {
     expect(focus.synthesis).toBe(
       "Customers are not unhappy about your doctor's care and explanation — 12 praised it. What they raise most is long waiting time.",
     );
-    expect(focus.evidence?.count).toBe(9);
-    expect(focus.evidence?.href).toBe(`${BASE}/reviews?theme=wait_time`);
+    // The quotes live on the share chip and nowhere else in the block.
+    expect('evidence' in focus).toBe(false);
+    const share = focus.proofs.find((p) => p.key === 'share');
+    expect(share?.seeAll).toEqual({ label: 'See all 9', href: `${BASE}/reviews?theme=wait_time` });
   });
 
   it("recommends the pack's own advice when nothing has been tried", () => {
     const { focus } = build();
     expect(focus.next?.headline).toBe(clinic.issueTaxonomy.find((t) => t.key === 'wait_time')?.action);
     expect(focus.next?.watching).toMatch(/^Headway is checking whether long waiting time/);
-    expect(focus.cta).toEqual({ label: 'Look at this first', href: `${BASE}/analysis?open=wait_time#signal-wait_time` });
+    expect(focus.cta).toEqual({
+      label: 'See everything on long waiting time',
+      href: `${BASE}/analysis?open=wait_time#signal-wait_time`,
+    });
   });
 
   it('asks the owner to look again, not to undo, when a change read worse', () => {

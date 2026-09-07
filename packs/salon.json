@@ -553,20 +553,20 @@
     "assetLabel": "counter card",
     "placement": "At the billing counter, where clients can see it while paying.",
     "moment": "At the billing counter, for every client — including anyone who seemed less than delighted.",
-    "headline": "Happy with how it turned out?",
-    "subhead": "Scan and tell us honestly. One minute.",
-    "qrCaption": "Scan to share your honest review",
-    "askMessage": "Thank you for visiting {{businessName}}. If you are happy with how it turned out, would you share an honest review? It takes a minute: {{feedbackUrl}}",
-    "askMessageHinglish": "{{businessName}} aane ke liye dhanyawaad. Agar aapko result pasand aaya ho, toh ek honest review share kar dijiye — ek minute lagega: {{feedbackUrl}}",
-    "askMessageMarathi": "{{businessName}} ला भेट दिल्याबद्दल धन्यवाद. निकाल आवडला असेल तर तुमचा प्रामाणिक अभिप्राय द्याल का? एक मिनिट लागेल: {{feedbackUrl}}",
-    "thankYou": "Thank you — the team will be glad to read this."
+    "headline": "How was your appointment?",
+    "subhead": "Tell us honestly — good, bad or somewhere between.",
+    "qrCaption": "Scan — it takes about a minute",
+    "askMessage": "Thank you for visiting {{businessName}}. However it turned out, we would like to know — it takes about a minute and only we see it: {{feedbackUrl}}",
+    "askMessageHinglish": "{{businessName}} aane ke liye dhanyawaad. Result jaisa bhi raha, humein batayein — ek minute lagta hai aur sirf hum dekhte hain: {{feedbackUrl}}",
+    "askMessageMarathi": "{{businessName}} ला भेट दिल्याबद्दल धन्यवाद. निकाल जसा झाला तसा आम्हाला कळवा — एक मिनिट लागतो आणि ते फक्त आम्हीच पाहतो: {{feedbackUrl}}",
+    "thankYou": "Thank you — this goes straight to the salon team."
   },
   "gateway": {
-    "headline": "How was your visit?",
-    "prompt": "Tell us what you loved, or what we could do better.",
+    "headline": "How was your appointment?",
     "placeholder": "Your stylist, the service, the booking — anything at all.",
-    "thankYou": "Thank you. The salon team will read this.",
+    "thankYou": "Honest feedback helps the salon team know what to keep and what to improve.",
     "printLine": "Tell us honestly — it helps us get it right next time.",
+    "mixedPrompt": "What would have made today better?",
     "dimensions": [
       {
         "key": "result",
@@ -589,7 +589,7 @@
           },
           {
             "key": "products",
-            "label": "Products used"
+            "label": "Products did not suit me"
           }
         ]
       },
@@ -610,7 +610,7 @@
           },
           {
             "key": "manner",
-            "label": "Manner of the staff"
+            "label": "Rude or dismissive"
           },
           {
             "key": "pushed_extras",

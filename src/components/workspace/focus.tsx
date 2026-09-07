@@ -2,20 +2,28 @@ import Link from 'next/link';
 import clsx from 'clsx';
 import type { Focus } from '@/lib/portal/focus';
 import type { PortalFact, PortalMood } from '@/lib/portal/view';
-import { ProofChips, Quotes, Reveal } from '@/components/portal/disclose';
+import { ProofChips, Reveal } from '@/components/portal/disclose';
 
 /**
- * RIGHT NOW — the one block an owner can stop after (M24).
+ * RIGHT NOW — the one block an owner can stop after (M24, reordered in the
+ * final experience pass).
  *
- * The largest text on Home is a sentence naming the one thing worth their
- * attention. Under it, three figures that open into the evidence behind
- * them; then one gold button; then what Headway makes of it, in a sentence;
- * then the evidence itself, on request; then the one next step.
+ * A decision, read top to bottom in the order a person checks one:
+ *
+ *   RIGHT NOW               the conclusion, the largest text on the page
+ *   WHY                     one or two sentences
+ *   EVIDENCE                three figures that open into what they count
+ *   WHAT TO DO              one line, the detail under it, one gold button
+ *   HEADWAY WILL CHECK NEXT the open loop, in the open
+ *
+ * Every fact appears once. The share chip carries the customers' own words,
+ * so nothing repeats them lower down; the direction pill is the only place
+ * the overall direction is stated on Home.
  *
  * Nothing in this block is a reading of its own. `buildFocus` chose every
  * sentence from judgements the engines had already made, and the block adds
  * only order and size. The dot carries the mood; the sentence carries the
- * meaning; the button carries the way out.
+ * meaning; the button carries the way to the whole reading.
  */
 
 const MOOD_DOT: Record<PortalMood, string> = {
@@ -66,10 +74,19 @@ export function FocusBlock({ focus, direction }: { focus: Focus; direction: Port
         {direction ? <Direction fact={direction} /> : null}
       </div>
 
-      <p className="mt-3 max-w-3xl text-[26px] leading-[1.12] font-semibold tracking-[-0.02em] text-balance text-ink-900 sm:text-[34px] lg:text-[38px]">
+      <h1 className="mt-3 max-w-3xl text-[26px] leading-[1.12] font-semibold tracking-[-0.02em] text-balance text-ink-900 sm:text-[34px] lg:text-[38px]">
         {focus.headline}
-      </p>
+      </h1>
       <p className="mt-2 text-[13px] text-ink-500">{focus.basis}</p>
+
+      {focus.synthesis ? (
+        <div className="mt-6">
+          <p className={EYEBROW}>Why</p>
+          <p className="mt-1.5 max-w-2xl text-[17px] leading-snug font-medium text-ink-900 sm:text-[19px]">
+            {focus.synthesis}
+          </p>
+        </div>
+      ) : null}
 
       {focus.proofs.length > 0 ? (
         <div className="mt-5">
@@ -77,58 +94,43 @@ export function FocusBlock({ focus, direction }: { focus: Focus; direction: Port
         </div>
       ) : null}
 
-      {focus.cta ? (
-        <Link
-          href={focus.cta.href}
-          className="mt-6 inline-flex min-h-12 items-center gap-2 rounded-lg bg-brand-700 px-5 text-[15px] font-semibold text-white transition-colors hover:bg-brand-900 focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:outline-none"
-        >
-          {focus.cta.label} <span aria-hidden>&rarr;</span>
-        </Link>
-      ) : null}
-
-      {focus.synthesis ? (
+      {focus.next || focus.cta ? (
         <div className="mt-7 border-t border-ink-200 pt-5">
-          <p className={EYEBROW}>What Headway wants you to know</p>
-          <p className="mt-2 max-w-2xl text-[17px] leading-snug font-medium text-ink-900 sm:text-[19px]">
-            {focus.synthesis}
-          </p>
-          {focus.evidence ? (
-            <Reveal summary="Show me the evidence" className="mt-2">
-              <Quotes
-                quotes={focus.evidence.quotes}
-                seeAll={{
-                  label: `See all ${focus.evidence.count} comments`,
-                  href: focus.evidence.href,
-                }}
-              />
+          {focus.next ? (
+            <>
+              <p className={EYEBROW}>What to do</p>
+              <p className="mt-1.5 max-w-2xl text-[17px] leading-snug font-semibold text-ink-900 sm:text-[19px]">
+                {focus.next.headline}
+              </p>
+              {focus.next.detail ? (
+                <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-ink-600">{focus.next.detail}</p>
+              ) : null}
+            </>
+          ) : null}
+          {focus.cta ? (
+            <Link
+              href={focus.cta.href}
+              className="mt-4 inline-flex min-h-12 items-center gap-2 rounded-lg bg-brand-700 px-5 text-[15px] font-semibold text-white transition-colors hover:bg-brand-900 focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:outline-none"
+            >
+              {focus.cta.label} <span aria-hidden>&rarr;</span>
+            </Link>
+          ) : null}
+          {focus.next && focus.next.why.length > 0 ? (
+            <Reveal summary="Why this step" className="mt-2">
+              <ul className="space-y-1 border-l-2 border-ink-200 pl-3 text-[13px] leading-relaxed text-ink-600">
+                {focus.next.why.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
             </Reveal>
           ) : null}
         </div>
       ) : null}
 
-      {focus.next ? (
+      {focus.next?.watching ? (
         <div className="mt-6 border-t border-ink-200 pt-5">
-          <p className={EYEBROW}>Your next step</p>
-          <p className="mt-2 max-w-2xl text-[16px] leading-relaxed font-medium text-ink-900">
-            {focus.next.headline}
-          </p>
-          {focus.next.detail ? (
-            <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-ink-600">{focus.next.detail}</p>
-          ) : null}
-          {focus.next.why.length > 0 || focus.next.watching ? (
-            <Reveal summary="Why, and what Headway checks next" className="mt-1">
-              <ul className="space-y-1 border-l-2 border-ink-200 pl-3 text-[13px] leading-relaxed text-ink-600">
-                {focus.next.why.map((w) => (
-                  <li key={w}>{w}</li>
-                ))}
-                {focus.next.watching ? (
-                  <li>
-                    <span className="font-medium text-ink-800">Watching.</span> {focus.next.watching}
-                  </li>
-                ) : null}
-              </ul>
-            </Reveal>
-          ) : null}
+          <p className={EYEBROW}>Headway will check next</p>
+          <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-ink-700">{focus.next.watching}</p>
         </div>
       ) : null}
     </section>

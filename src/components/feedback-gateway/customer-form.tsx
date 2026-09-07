@@ -9,21 +9,28 @@ import { DIMENSION_FIELD_PREFIX, SIGNAL_FIELD } from '@/lib/gateway/fields';
 import type { PackDimension } from '@/lib/packs';
 
 /**
- * The form a customer fills in (M14, restructured M19).
+ * The form a customer fills in (M14, restructured M19, tuned in the final
+ * experience pass).
  *
  * Built on one belief: almost nobody writes, and the ones who do are not a
  * representative sample. So the fastest path through this form asks for taps
  * and never for words — an overall rating, a rating for each part of the
  * business the vertical cares about, and a specific or two if something was
- * off. Thirty seconds, no keyboard, and the business still learns which part
+ * off. About a minute, no keyboard, and the business still learns which part
  * of the visit was the problem.
  *
+ * Three screens, counted so the customer can see the end from the start:
+ * tap, tap, tell us. The open box on the last screen asks a question shaped
+ * by what was tapped — what to keep after a good visit, what would have
+ * helped after a poor one, both after a mixed one — because "anything else?"
+ * is the question nobody answers. That is the only thing the ratings change.
+ *
  * Two things this form deliberately does not do. It does not treat a low
- * rating differently from a high one: the same follow-up, the same open box
- * and the same public-review option reach everyone, because a form that
- * quietly routes unhappy people somewhere quieter is not measuring anything.
- * And it does not celebrate — no confetti, no badges, no exclamation marks.
- * Somebody who just had a bad haircut is filling this in.
+ * rating differently from a high one on the way out: the same thank-you and
+ * the same public-review option reach everyone, because a form that quietly
+ * routes unhappy people somewhere quieter is not measuring anything. And it
+ * does not celebrate — no confetti, no badges, no exclamation marks. Somebody
+ * who just had a bad haircut is filling this in.
  *
  * Without JavaScript every section is visible at once and the single button
  * at the bottom posts all of it. The steps below are an enhancement on top of
@@ -43,6 +50,16 @@ const MAX_TEXT = 1500;
 const NEEDS_DETAIL_AT = 3;
 
 type Step = 'overall' | 'parts' | 'words';
+
+/** How the visit was rated so far, from every star the customer has tapped. */
+function moodOf(stars: number | null, ratings: Record<string, number>): 'none' | 'good' | 'low' | 'mixed' {
+  const given = [stars, ...Object.values(ratings)].filter((v): v is number => v !== null);
+  if (given.length === 0) return 'none';
+  const low = given.filter((v) => v <= NEEDS_DETAIL_AT).length;
+  if (low === 0) return 'good';
+  if (low === given.length) return 'low';
+  return 'mixed';
+}
 
 export function CustomerFeedbackForm({
   token,
@@ -72,6 +89,18 @@ export function CustomerFeedbackForm({
 
   const shows = (which: Step) => !stepped || step === which;
   const last: Step = 'words';
+  const total = dimensions.length > 0 ? 3 : 2;
+  const mood = moodOf(stars, ratings);
+  const wordsHeadline =
+    !stepped
+      ? copy.textLabel
+      : mood === 'good'
+        ? copy.askKeep
+        : mood === 'low'
+          ? copy.askBetter
+          : mood === 'mixed'
+            ? copy.askMixed
+            : copy.textHeadline;
 
   return (
     <form action={formAction} className="mt-8">
@@ -87,6 +116,7 @@ export function CustomerFeedbackForm({
 
       {/* --- Overall ------------------------------------------------------ */}
       <section className={clsx(shows('overall') ? 'block' : 'hidden')}>
+        {stepped ? <StepCount step={1} total={total} /> : null}
         <fieldset>
           <legend className="text-[14px] font-medium text-ink-800">
             {copy.ratingLabel}{' '}
@@ -98,7 +128,7 @@ export function CustomerFeedbackForm({
             value={stars}
             onChange={(value) => {
               setStars(value);
-              if (stepped) setStep('parts');
+              if (stepped) setStep(dimensions.length > 0 ? 'parts' : 'words');
             }}
             size="large"
           />
@@ -107,14 +137,14 @@ export function CustomerFeedbackForm({
           <div className="mt-8 flex items-center justify-between">
             <button
               type="button"
-              onClick={() => setStep('parts')}
+              onClick={() => setStep(dimensions.length > 0 ? 'parts' : 'words')}
               className="min-h-11 text-[15px] font-medium text-ink-500 underline underline-offset-4 hover:text-ink-700"
             >
               {copy.skipLabel}
             </button>
             <button
               type="button"
-              onClick={() => setStep('parts')}
+              onClick={() => setStep(dimensions.length > 0 ? 'parts' : 'words')}
               className="inline-flex min-h-12 items-center justify-center rounded-xl bg-ink-900 px-6 text-[16px] font-semibold text-white transition-colors hover:bg-ink-800"
             >
               {copy.continueLabel}
@@ -126,6 +156,7 @@ export function CustomerFeedbackForm({
       {/* --- The vertical's own questions --------------------------------- */}
       {dimensions.length > 0 ? (
         <section className={clsx(shows('parts') ? 'block' : 'hidden', !stepped && 'mt-10')}>
+          {stepped ? <StepCount step={2} total={total} /> : null}
           <h2 className="text-[17px] leading-snug font-semibold tracking-tight text-ink-900">
             {copy.dimensionsHeadline}
           </h2>
@@ -171,8 +202,9 @@ export function CustomerFeedbackForm({
 
       {/* --- Words, last and optional ------------------------------------- */}
       <section className={clsx(shows(last) ? 'block' : 'hidden', !stepped && 'mt-10')}>
+        {stepped ? <StepCount step={total} total={total} /> : null}
         <h2 className="text-[17px] leading-snug font-semibold tracking-tight text-ink-900">
-          {stepped ? copy.textHeadline : copy.textLabel}
+          {wordsHeadline}
         </h2>
         <p className="mt-1 text-[13px] text-ink-500">{copy.textNote}</p>
         <label htmlFor="feedback-text" className="sr-only">
@@ -226,6 +258,18 @@ export function CustomerFeedbackForm({
         {copy.privacyLine}
       </p>
     </form>
+  );
+}
+
+/**
+ * Where the customer is, in the plainest form there is. Not a bar, not a
+ * percentage: a count that says the end is two taps away.
+ */
+function StepCount({ step, total }: { step: number; total: number }) {
+  return (
+    <p className="mb-3 text-[12px] font-medium tracking-wide text-ink-500 tabular-nums">
+      {step} of {total}
+    </p>
   );
 }
 
@@ -334,7 +378,7 @@ function StarRow({
             key={star}
             className={clsx(
               'grid cursor-pointer place-items-center rounded-xl leading-none transition-colors select-none',
-              large ? 'h-11 w-11 text-[30px]' : 'h-11 w-10 text-[24px]',
+              large ? 'h-11 w-11 text-[30px]' : 'h-11 w-11 text-[24px]',
               filled ? 'text-warn-600' : 'text-ink-300 hover:text-ink-400',
             )}
           >

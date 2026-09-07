@@ -5,42 +5,36 @@ import { getResponsibility } from '@/lib/responsibility/service';
 import { getEvidenceIndex } from '@/lib/portal/service';
 import type { Responsibility } from '@/lib/responsibility/engine';
 import { buildFocus } from '@/lib/portal/focus';
-import {
-  Knows,
-  Limits,
-  Question,
-  Quiet,
-  Section,
-  SoFar,
-  Tallies,
-} from '@/components/portal/portal-ui';
+import { Knows, Limits, Question, Quiet, Section, SoFar } from '@/components/portal/portal-ui';
 import { NeedsYouItem, StrengthsList, WatchingList } from '@/components/portal/responsibility';
 import { Reveal } from '@/components/portal/disclose';
 import { FocusBlock } from '@/components/workspace/focus';
 import { SinceVisit } from '@/components/workspace/since-visit';
 import type { SinceLastVisit } from '@/lib/retention/service';
-import { talliesFor } from '@/lib/portal/tallies';
 
 /**
- * HOME — the command centre (M24).
+ * HOME — the command centre (M24, tightened in the final experience pass).
  *
  * An owner gives this page ten seconds standing behind a counter. In that
  * time it answers, in this order and no other:
  *
- *   RIGHT NOW                 what is the one thing that matters?
- *   DO I NEED TO ACT?         the same block: a decision, or an honest no
- *   WHAT EXACTLY?             your next step, one line
- *   HEADWAY IS WATCHING       what is being carried, so the no is believable
+ *   RIGHT NOW                 what is the one thing that matters, and why
+ *   EVIDENCE                  three figures that open into what they count
+ *   WHAT TO DO                one line, and the way to the whole reading
+ *   HEADWAY WILL CHECK NEXT   the open loop on the decision
+ *   HEADWAY IS WATCHING       what is being carried, with the condition that
+ *                             brings each thing back
  *   GOING WELL                what to protect
  *   SINCE YOU WERE LAST HERE  only when something happened
- *   WHAT'S NEXT               what Headway will check, and when
+ *   YOUR NEXT CHECK-IN        when it is worth opening, as a condition
  *
  * ONE BLOCK IS DOMINANT. The first block is the largest thing on the page
- * and the owner can stop after it: the headline, three figures that open
- * into their evidence, one gold button, the reading, the next step.
- * Everything below is smaller, and everything that explains method sits
- * behind a tap. No figure is stated twice: the public rating lives in the
- * tiles and nowhere else.
+ * and the owner can stop after it. Everything below is smaller, and
+ * everything that explains method sits behind a tap. No figure is stated
+ * twice: the count read is in the block's basis line, the leading complaint
+ * and strength are the block and the lists, and the public rating — the one
+ * number from outside the feedback — is stated once, quietly, where the next
+ * check is.
  */
 
 /**
@@ -48,7 +42,16 @@ import { talliesFor } from '@/lib/portal/tallies';
  * Headway did since the last check-in, and what would make the next one worth
  * opening. The full list of work lives on Check-in.
  */
-function WhatsNext({ r, basePath }: { r: Responsibility; basePath: string }) {
+function NextCheck({
+  r,
+  basePath,
+  rating,
+}: {
+  r: Responsibility;
+  basePath: string;
+  /** The public listing's rating, when it has been observed. Stated here and nowhere else. */
+  rating: { value: string; scope: string } | null;
+}) {
   const since = r.did[0] ?? null;
   return (
     <div>
@@ -62,6 +65,12 @@ function WhatsNext({ r, basePath }: { r: Responsibility; basePath: string }) {
       >
         Open your check-in <span aria-hidden>→</span>
       </Link>
+      {rating ? (
+        <p className="mt-4 border-t border-ink-200 pt-3 text-[13px] leading-relaxed text-ink-600">
+          <span className="font-medium text-ink-900 tabular-nums">Public rating {rating.value}.</span>{' '}
+          {rating.scope}.
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -110,7 +119,7 @@ export async function PortalHome({
   const showSoFar = !named && (view.basedOn > 0 || reading);
 
   const direction = view.facts.find((f) => f.label === 'Overall direction') ?? null;
-  const tallies = talliesFor(view, basePath);
+  const rating = view.facts.find((f) => f.label === 'Public rating') ?? null;
 
   return (
     <>
@@ -176,14 +185,12 @@ export async function PortalHome({
           {since ? <SinceVisit since={since} basePath={basePath} /> : null}
 
           {r.did.length > 0 || view.basedOn > 0 ? (
-            <Section eyebrow="What's next" note="Your progress">
-              <WhatsNext r={r} basePath={basePath} />
+            <Section eyebrow="Your next check-in">
+              <NextCheck r={r} basePath={basePath} rating={rating} />
             </Section>
           ) : null}
         </aside>
       </div>
-
-      <Tallies tallies={tallies} />
 
       {view.knows.length > 0 ? (
         <Reveal

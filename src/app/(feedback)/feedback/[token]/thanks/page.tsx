@@ -24,8 +24,9 @@ export async function generateMetadata({
  *
  * This page is reached by token alone. It has no way of knowing what was
  * just written or how it was rated, so it shows every customer the same
- * thing: thanks, and — only when the operator added one — the same public
- * review link, offered the same way to everyone.
+ * thing: thanks, where the words went, why it was worth doing — and, only
+ * when the operator added one, the same public review link, offered the same
+ * way to everyone, with a plain way to decline.
  */
 /**
  * The one mark on a customer's screen.
@@ -69,10 +70,11 @@ export default async function ThanksPage({
           ✓
         </span>
         <div>
-          <h1 className="text-[24px] leading-[1.2] font-semibold tracking-tight text-ink-900">
+          <h1 className="text-[26px] leading-[1.2] font-semibold tracking-tight text-ink-900">
             {copy.thanksHeadline}
           </h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-ink-600">{copy.thanksLine}</p>
+          <p className="mt-2 text-[16px] leading-relaxed font-medium text-ink-900">{copy.thanksLine}</p>
+          <p className="mt-1.5 text-[14px] leading-relaxed text-ink-600">{copy.thanksNote}</p>
         </div>
       </div>
 
@@ -84,14 +86,15 @@ export default async function ThanksPage({
             href={gateway.publicReviewUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-ink-300 bg-white px-4 text-[15px] font-medium text-ink-900 hover:bg-ink-100"
+            className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-1.5 rounded-xl border border-ink-300 bg-white px-4 text-[15px] font-medium text-ink-900 hover:bg-ink-100"
           >
-            {gateway.publicReviewLabel}
+            {gateway.publicReviewLabel} <span aria-hidden>→</span>
           </a>
+          <p className="mt-3 text-[13px] text-ink-500">{copy.shareDecline}</p>
         </section>
-      ) : null}
-
-      <p className="mt-10 text-[13px] text-ink-500">You can close this page now.</p>
+      ) : (
+        <p className="mt-10 text-[13px] text-ink-500">{copy.closeLine}</p>
+      )}
       <PoweredByHeadway />
     </main>
   );

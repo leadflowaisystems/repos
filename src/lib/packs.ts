@@ -171,6 +171,18 @@ const packSchema = z.object({
       thankYou: z.string().default(''),
       printLine: z.string().default(''),
       /**
+       * The open box's question, chosen by how the visit was rated (final
+       * experience pass). A customer who rated everything well is asked what
+       * to keep; one who rated something low is asked what would have made it
+       * better; a mixed visit is asked both. Optional: the universal wording
+       * in `src/lib/gateway/copy.ts` applies where a pack says nothing, and
+       * only `mixedPrompt` usually needs a vertical's own words ("today" is
+       * right for a meal and wrong for a property deal).
+       */
+      keepPrompt: z.string().default(''),
+      betterPrompt: z.string().default(''),
+      mixedPrompt: z.string().default(''),
+      /**
        * What this vertical asks a customer to rate, in the order asked (M19).
        *
        * Writing is the slowest thing a customer can be asked for, and most

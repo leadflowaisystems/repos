@@ -478,19 +478,19 @@
     "placement": "At the front desk and in the parent waiting area.",
     "moment": "At the front desk or a parent meeting, for every parent — not only after good results.",
     "headline": "How are the classes going?",
-    "subhead": "Scan and share your honest feedback. One minute.",
-    "qrCaption": "Scan to share your honest feedback",
-    "askMessage": "Thank you for choosing {{businessName}}. If the classes have been useful, an honest review from a parent helps other families decide: {{feedbackUrl}}",
-    "askMessageHinglish": "{{businessName}} chunne ke liye dhanyawaad. Agar classes useful rahi hain, toh ek honest parent review dusre families ko decide karne me help karta hai: {{feedbackUrl}}",
-    "askMessageMarathi": "{{businessName}} निवडल्याबद्दल धन्यवाद. वर्ग उपयुक्त ठरले असतील, तर पालकांचा प्रामाणिक अभिप्राय इतर कुटुंबांना मदत करतो: {{feedbackUrl}}",
-    "thankYou": "Thank you — we will share this with the faculty team."
+    "subhead": "Tell us honestly — good, bad or somewhere between.",
+    "qrCaption": "Scan — it takes about a minute",
+    "askMessage": "Thank you for choosing {{businessName}}. However the classes are going for your child, we would like to know — it takes about a minute and only we see it: {{feedbackUrl}}",
+    "askMessageHinglish": "{{businessName}} chunne ke liye dhanyawaad. Classes aapke bacche ke liye jaisi bhi chal rahi hain, humein batayein — ek minute lagta hai aur sirf hum dekhte hain: {{feedbackUrl}}",
+    "askMessageMarathi": "{{businessName}} निवडल्याबद्दल धन्यवाद. तुमच्या मुलासाठी वर्ग कसे चालले आहेत ते आम्हाला कळवा — एक मिनिट लागतो आणि ते फक्त आम्हीच पाहतो: {{feedbackUrl}}",
+    "thankYou": "Thank you — this goes straight to the faculty."
   },
   "gateway": {
     "headline": "How are the classes going?",
-    "prompt": "Tell us what is working, or what we could do better.",
     "placeholder": "The teaching, the pace, the batch timings — anything at all.",
-    "thankYou": "Thank you. This goes to the faculty team.",
+    "thankYou": "Honest feedback helps the faculty know what to keep and what to improve.",
     "printLine": "Honest feedback helps us teach better.",
+    "mixedPrompt": "What is working, and what would make it better?",
     "dimensions": [
       {
         "key": "teaching",
@@ -513,7 +513,7 @@
           },
           {
             "key": "material",
-            "label": "Study material"
+            "label": "Study material not useful"
           }
         ]
       },
@@ -534,7 +534,7 @@
           },
           {
             "key": "manner",
-            "label": "Manner with students"
+            "label": "Harsh or dismissive with students"
           },
           {
             "key": "substitute",
@@ -584,7 +584,7 @@
           },
           {
             "key": "seating",
-            "label": "Seating"
+            "label": "Uncomfortable seating"
           },
           {
             "key": "washroom",

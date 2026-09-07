@@ -257,12 +257,15 @@ describe('one workflow, every vertical', () => {
     expect(clinic.assetLabel).toBe('counter card');
     expect(restaurant.assetLabel).toBe('table card');
 
-    // Restaurant copy must not read like healthcare copy, and vice versa.
-    expect(restaurant.headline.toLowerCase()).toContain('food');
+    // Restaurant copy must not read like healthcare copy, and vice versa —
+    // and none of the three may lead the witness: an open "how was…", never
+    // "was it helpful?" or "happy with it?".
+    expect(restaurant.headline.toLowerCase()).toContain('meal');
     expect(clinic.headline.toLowerCase()).toContain('visit');
-    expect(salon.headline.toLowerCase()).toContain('turned out');
-    expect(clinic.headline.toLowerCase()).not.toContain('food');
+    expect(salon.headline.toLowerCase()).toContain('appointment');
+    expect(clinic.headline.toLowerCase()).not.toContain('meal');
     expect(restaurant.headline.toLowerCase()).not.toContain('visit');
+    for (const h of headlines) expect(h.toLowerCase().startsWith('how ')).toBe(true);
   });
 
   it('adapts placement and moment per vertical', () => {

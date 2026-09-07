@@ -18,13 +18,18 @@ import { formatDate } from '@/lib/format';
  * that mattered. This module decides that one thing, and the three proofs
  * that let the owner check it without leaving the page:
  *
- *   SEE          "Slow service is the one thing worth your attention."
- *   UNDERSTAND   "Customers are not unhappy about the food. What they keep
+ *   RIGHT NOW    "Slow service is the one thing worth your attention."
+ *   WHY          "Customers are not unhappy about the food. What they keep
  *                 raising is slow service."
  *   EVIDENCE     39% of feedback → 34 of 87, three customers in their words
  *                Worse after your change → 32% before, 47% after
  *                At both recent check-ins → raised at 2 of your last 2
- *   ACTION       "Check what else changed before undoing anything."
+ *   WHAT TO DO   "Check what else changed before undoing anything."
+ *   CHECK NEXT   "Headway is checking whether slow service comes up more or
+ *                 less at your next check-in …"
+ *
+ * Each fact appears once. The share chip carries the three quotes, so the
+ * block no longer repeats them under the reading (final experience pass).
  *
  * It computes nothing new. The responsibility layer already decided what
  * needs the owner; the view already read every theme; the measurement engine
@@ -86,11 +91,9 @@ export type Focus = {
   proofs: FocusProof[];
   /** The one gold button. */
   cta: { label: string; href: string } | null;
-  /** WHAT HEADWAY WANTS YOU TO KNOW: one or two sentences, never a paragraph. */
+  /** WHY: one or two sentences, never a paragraph. */
   synthesis: string | null;
-  /** SHOW ME THE EVIDENCE: the quotes behind the headline. */
-  evidence: { quotes: Quote[]; count: number; total: number; href: string } | null;
-  /** YOUR NEXT STEP. */
+  /** WHAT TO DO, and what Headway will check next. */
   next: FocusNext | null;
 };
 
@@ -462,24 +465,18 @@ export function buildFocus(input: FocusInput): Focus {
 
   const proofs = signal ? proofsFor(signal, view, evidence, basePath) : [];
 
+  // The button is the way to the whole reading of the theme on Customers, and
+  // it says so: the instruction itself is the next step, two lines up.
   const cta = signal
-    ? { label: top ? 'Look at this first' : 'See what changed', href: signalHref(basePath, signal.themeKey) }
+    ? {
+        label: top ? `See everything on ${spoken(signal.themeLabel)}` : 'See what changed',
+        href: signalHref(basePath, signal.themeKey),
+      }
     : top
       ? { label: 'Read the comments that need you', href: `${basePath}/reviews?needs=reply` }
       : view.keep
         ? { label: 'See what is going well', href: signalHref(basePath, view.keep.themeKey) }
         : null;
-
-  const share = proofs.find((p) => p.key === 'share');
-  const evidenceBlock =
-    signal && share
-      ? {
-          quotes: share.quotes,
-          count: signal.evidenceCount,
-          total: signal.evidenceTotal,
-          href: reviewsHref(basePath, signal.themeKey),
-        }
-      : null;
 
   return {
     mood: view.mood,
@@ -490,7 +487,6 @@ export function buildFocus(input: FocusInput): Focus {
     proofs,
     cta,
     synthesis: synthesisFor(top, view),
-    evidence: evidenceBlock,
     next: nextFor(top, view),
   };
 }

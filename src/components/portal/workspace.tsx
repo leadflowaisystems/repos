@@ -83,9 +83,9 @@ export function WorkspaceHeader({
         {signOut}
       </div>
       <div className="mt-3 min-w-0">
-        <h1 className="truncate text-[20px] leading-tight font-semibold tracking-tight text-ink-900 sm:text-[22px]">
+        <p className="truncate text-[20px] leading-tight font-semibold tracking-tight text-ink-900 sm:text-[22px]">
           {businessName}
-        </h1>
+        </p>
         <p className="mt-0.5 text-[13px] text-ink-500">{verticalLabel}</p>
       </div>
 

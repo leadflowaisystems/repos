@@ -135,7 +135,7 @@ describe('the card carries the feedback page, and only that', () => {
     const id = await makeClient('restaurant', 'Corner Cafe');
     const view = await getKitView(db, id);
 
-    expect(view?.content.headline).toBe('How was the food today?');
+    expect(view?.content.headline).toBe('How was your meal today?');
     expect(view?.content.assetLabel).toBe('table card');
     expect(view?.content.messages.length).toBeGreaterThan(0);
   });

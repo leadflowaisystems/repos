@@ -587,20 +587,20 @@
     "assetLabel": "counter card",
     "placement": "At the billing counter, facing patients as they settle up.",
     "moment": "At the billing counter, for every patient leaving — not only the ones who seemed pleased.",
-    "headline": "Was today’s visit helpful?",
-    "subhead": "Scan and tell us honestly. It takes a minute.",
-    "qrCaption": "Scan to share your experience",
-    "askMessage": "Thank you for visiting {{businessName}}. If today’s visit was helpful, would you share your honest experience? It takes about a minute: {{feedbackUrl}}",
-    "askMessageHinglish": "Aapka {{businessName}} aane ke liye dhanyawaad. Agar aaj ka visit theek raha ho, toh apna honest feedback share kar dijiye — ek minute lagega: {{feedbackUrl}}",
-    "askMessageMarathi": "{{businessName}} ला भेट दिल्याबद्दल धन्यवाद. आजची भेट उपयुक्त वाटली असेल, तर तुमचा प्रामाणिक अनुभव नोंदवाल का? एक मिनिट लागेल: {{feedbackUrl}}",
-    "thankYou": "Thank you — we read every one of these."
+    "headline": "How was your visit today?",
+    "subhead": "Tell us honestly — good, bad or somewhere between.",
+    "qrCaption": "Scan — it takes about a minute",
+    "askMessage": "Thank you for visiting {{businessName}}. However today’s visit went, we would like to know — it takes about a minute and only we see it: {{feedbackUrl}}",
+    "askMessageHinglish": "Aapka {{businessName}} aane ke liye dhanyawaad. Aaj ka visit jaisa bhi raha, humein batayein — ek minute lagta hai aur sirf hum dekhte hain: {{feedbackUrl}}",
+    "askMessageMarathi": "{{businessName}} ला भेट दिल्याबद्दल धन्यवाद. आजची भेट जशी झाली तशी आम्हाला कळवा — एक मिनिट लागतो आणि ते फक्त आम्हीच पाहतो: {{feedbackUrl}}",
+    "thankYou": "Thank you — this goes straight to the clinic team."
   },
   "gateway": {
-    "headline": "How was your visit?",
-    "prompt": "Tell us what went well, or what we could do better.",
+    "headline": "How was your visit today?",
     "placeholder": "The waiting, the doctor, the front desk — anything you noticed.",
-    "thankYou": "Thank you. The clinic team reads every one of these.",
+    "thankYou": "Honest feedback helps the clinic know what to keep and what to improve.",
     "printLine": "Honest feedback helps us look after you better.",
+    "mixedPrompt": "What would have made today better?",
     "dimensions": [
       {
         "key": "waiting",
@@ -636,7 +636,7 @@
         "signals": [
           {
             "key": "manner",
-            "label": "Manner of the staff"
+            "label": "Rude or dismissive"
           },
           {
             "key": "unclear_answers",
