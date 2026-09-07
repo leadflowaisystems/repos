@@ -191,7 +191,64 @@ printed QR token are never touched by the rebuild.
 * Cold `next build` in an isolated copy: success, 42 routes, first-load JS
   103–131 kB, no new dependency. Schema unchanged; no migration.
 
-## 8. Production — the demo rebuild is handed over, as M23's SQL was
+## 8. Production — released 2026-09-07
+
+Both steps are **applied and verified**. What follows is the record, including
+the one thing the dry run found that was not expected.
+
+**The dry run found 88 rows, not 87.** A live submission had come through the
+Corner Cafe QR at 08:51:58 UTC, four minutes after the backup the release was
+going to be run against — a table-card record with 1 star overall, food 1,
+service 3, waiting 5, cleanliness 2, value 1, the specifics `not_fresh`,
+`hard_to_find`, `washroom` and `bill_surprise`, and no words. It existed in no
+backup, so the rebuild would have destroyed it. The release therefore stopped,
+took a second backup (`backups/prod-2026-09-07-143759`, verified: every table
+digest equal, all 88 Corner Cafe rows captured including that one), and only
+then rebuilt. That row is recoverable from that folder; nothing else in the
+database differed from the earlier backup.
+
+The rebuild ran against the second backup and printed what the rehearsal had:
+
+```
+· feedback REP_OS_QR 22, PUBLIC_REVIEW 65 (0 unread), check-ins 2, minutes 4, context 4
+· action Slow service: MEASURED → WORSENED (baseline 14 of 44; 14 of 44 reviews (32%) → 20 of 43 reviews (47%))
+```
+
+Verified afterwards against production, read-only, in one pass: exactly 87
+records (65 public reviews, 22 table-card), no other source, every row read;
+every dimension key one the pack asks and rated 1–5; every tapped specific
+belonging to a question rated 3 or below; no structured answers on a public
+review; every public review carrying words; slow service 34, food taste 32,
+wrong or missing items 12; the frozen baseline still 14 of 44 and the reading
+still 20 of 43; no date invalid or in the future (28 May – 6 Sep 2026);
+check-ins 27 Jun then 28 Aug; no email, phone or long number in any text and
+nothing redacted on ingest; no stale internal product name in any stored demo
+text; the printed QR token `dhkqubf0mbd7fu9tvd3bt2` unchanged and the feedback
+page still enabled; memberships and the trial window untouched; 335 rows
+across all clients, so no other business was touched.
+
+**The code** was merged `--ff-only` (`main` = `c281c8b`, linear history kept,
+0 merge commits) and pushed; the push produced production deployment
+`dpl_CTAZpT1forDS91JE7LiE56nJK7on`, READY, region bom1, aliased to
+`repos-fawn-sigma.vercel.app`.
+
+**Smoke test.** All eight workspace routes — Home, Customers, Reviews,
+Improvements, Check-in, Account, Team, Print kit — return 307 to `/login` with
+the correct `next`; `/login`, `/signup`, `/icon.svg` and the customer feedback
+page all return 200, and the Corner Cafe QR still resolves to a page carrying
+the business name and the pack's own questions. Authenticated content cannot
+be fetched from outside (Supabase Auth, no stored password, and creating a
+production account is off limits), so the six pages were rendered at the
+deployed commit against the post-rebuild data: each has one `<main>`, no error
+state, and leads with what it should — "Slow service is the one thing worth
+your attention", "What your customers are telling you", "87 pieces read → 7
+recurring signals", "More often after the change", "One thing needs you.", and
+"Your Headway trial".
+
+A post-release backup, `backups/prod-2026-09-07-144407`, was taken and
+verified (`pass: true`, git HEAD `c281c8b`, Corner Cafe 65 + 22).
+
+### The original hand-over instructions
 
 The schema is unchanged and no migration is needed. Two things reach
 production from this pass, and both are the owner's to run:
