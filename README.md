@@ -254,6 +254,40 @@ customer submitting feedback. The last is authorized by the gateway token in the
 URL, is rate-limited, and can only ever write against the client that token
 resolves to.
 
+## The public website
+
+`/` is two things. To a signed-in operator it is the command centre, as it always
+was. To everyone else it is the front door: a public page that says what Headway
+is, shows the Corner Cafe demo as the product renders it, and offers two ways
+in — **Get started** (self-service signup at `/signup`) and **Talk to us**.
+
+The page is built at an internal path (`/welcome`) and never linked to by it. The
+middleware rewrites a signed-out request for `/` to that path, so the address bar
+still says `/`, and sends a request that names the path directly back to `/`. No
+product route moved, and every protected path still bounces to sign-in;
+`tests/m26.marketing-site.test.ts` runs the middleware to prove both.
+
+It is static, reads no database and holds no session. Every figure on it is the
+demo dataset's (`scripts/demo/corner-cafe.ts`), quoted verbatim and labelled as a
+demonstration; the verticals section is read from `/packs`; the feedback
+experience is drawn from the same copy module the real customer page uses.
+
+The contact details (email, phone, WhatsApp number) are written into
+`src/lib/marketing/site.ts` and shown as plain text with a copy button — never a
+`mailto:`, `tel:` or `wa.me` link, which the compliance suite forbids. Two optional
+variables override them for a deployment that needs different ones:
+
+| Variable | What it is |
+| --- | --- |
+| `REPOS_CONTACT_EMAIL` | Overrides the address a visitor writes to. |
+| `REPOS_CONTACT_PHONE` | Overrides the phone / WhatsApp number. |
+
+Both are read when the page is built, so changing them means a redeploy. The
+canonical address, the social preview (`public/og.png`) and the QR on the example
+card all come from `REPOS_PUBLIC_BASE_URL` — the same setting the printed cards
+use. `robots.txt` allows the front door and disallows every private surface;
+`sitemap.xml` lists the front door alone.
+
 ## What M16 deliberately does not do
 
 - **No Google, no WhatsApp, no email.** No OAuth of any kind, no review fetching,

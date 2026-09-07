@@ -30,6 +30,23 @@ const PUBLIC_PREFIXES = [
   '/invite',
 ];
 
+/**
+ * THE PUBLIC WEBSITE (M26).
+ *
+ * `/` is two things. To a signed-in operator it is the command centre, as it
+ * always was. To everyone else it is now the front door: the page that says
+ * what Headway is and offers a way in. The marketing page is built at this
+ * internal path and never linked to by it; a signed-out request for `/` is
+ * rewritten here — the address bar still says `/` — and a request that names
+ * this path directly is sent back to `/`, so the site has exactly one home.
+ *
+ * Nothing else changed. A signed-in owner opening `/` still reaches the
+ * operator layout, which still sends them on to their workspace, and every
+ * protected path still bounces to the sign-in page.
+ */
+const MARKETING_PATH = '/welcome';
+
+/** Static files a signed-out visitor must be able to load. See `config` below. */
 function isPublic(pathname: string): boolean {
   return PUBLIC_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
@@ -38,6 +55,12 @@ function isPublic(pathname: string): boolean {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // The marketing page's own path is not an address anybody should hold.
+  if (pathname === MARKETING_PATH || pathname.startsWith(`${MARKETING_PATH}/`)) {
+    return NextResponse.redirect(new URL('/', request.nextUrl), 308);
+  }
+
   if (isPublic(pathname)) return NextResponse.next();
 
   // The owner's token portal is authorized by the secret in its URL, not by a
@@ -49,7 +72,7 @@ export async function middleware(request: NextRequest) {
   const anonKey = (process.env[SUPABASE_ANON_KEY_VAR] ?? '').trim();
   // Nothing is configured yet: send people to sign in rather than letting them
   // through on the grounds that the check could not run.
-  if (!url || !anonKey) return toLogin(request);
+  if (!url || !anonKey) return signedOut(request);
 
   let response = NextResponse.next({ request });
 
@@ -90,15 +113,33 @@ export async function middleware(request: NextRequest) {
   // getUser, not getSession: the cookie is re-verified with the auth server
   // rather than believed as it stands.
   const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) return toLogin(request, rotated);
+  if (error || !data.user) return signedOut(request, rotated);
 
   return response;
 }
 
-function toLogin(
-  request: NextRequest,
-  rotated: Array<{ name: string; value: string; options?: Partial<ResponseCookie> }> = [],
-) {
+type Rotated = Array<{ name: string; value: string; options?: Partial<ResponseCookie> }>;
+
+/**
+ * Where a request with no usable session goes: the front door for `/`, the
+ * sign-in page for anything else.
+ */
+function signedOut(request: NextRequest, rotated: Rotated = []) {
+  if (request.nextUrl.pathname === '/') return toFrontDoor(request, rotated);
+  return toLogin(request, rotated);
+}
+
+function toFrontDoor(request: NextRequest, rotated: Rotated) {
+  // A rewrite, not a redirect: the visitor's address stays `/`, and whatever
+  // query they arrived with travels with them.
+  const target = request.nextUrl.clone();
+  target.pathname = MARKETING_PATH;
+  const rewritten = NextResponse.rewrite(target);
+  for (const cookie of rotated) rewritten.cookies.set(cookie.name, cookie.value, cookie.options);
+  return rewritten;
+}
+
+function toLogin(request: NextRequest, rotated: Rotated = []) {
   const login = new URL('/login', request.nextUrl);
   // Only same-site paths are ever echoed back, so this cannot become an open
   // redirect: the value is used as a path, and the login page re-checks it.
@@ -120,8 +161,10 @@ export const config = {
   // customer standing at a table with a QR code, got a blank tab.
   //
   // Safe to exempt for the same reason favicon.ico always was: they are static
-  // files that carry no data about anybody.
+  // files that carry no data about anybody. `og.png` joined them with the
+  // public website: it is the picture a link to the front door unfurls into,
+  // fetched by whichever service is drawing the preview, with no session.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.svg|sitemap.xml|robots.txt).*)',
+    '/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.svg|og.png|sitemap.xml|robots.txt).*)',
   ],
 };
