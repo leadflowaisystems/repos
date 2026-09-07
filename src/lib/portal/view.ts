@@ -139,7 +139,7 @@ export type PortalSoFar = {
     pattern: boolean;
   }>;
   /** The parts of the visit customers rated on the feedback page, with the average. */
-  rated: Array<{ label: string; average: number; rated: number; low: number }>;
+  rated: Array<{ themeKey: string; label: string; average: number; rated: number; low: number }>;
   /** What the numbers can and cannot mean, in one line. */
   note: string;
 };
@@ -1126,7 +1126,7 @@ export function buildPortalView(input: PortalInput): PortalView {
     }));
   const rated = input.themes.dimensions
     .filter((d) => d.rated > 0 && d.average !== null)
-    .map((d) => ({ label: d.label, average: d.average as number, rated: d.rated, low: d.low }));
+    .map((d) => ({ themeKey: d.themeKey, label: d.label, average: d.average as number, rated: d.rated, low: d.low }));
   const soFar: PortalSoFar = {
     read: intel.evidence.analysed,
     waiting: intel.evidence.unread,

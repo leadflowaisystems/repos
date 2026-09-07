@@ -353,7 +353,7 @@ const MAR = formatDate(new Date(2026, 2, 1));
 describe('check-in — what changed', () => {
   it('is named after the latest check-in and says what it compares', () => {
     const v = buildCheckinView({ ...input(), checkins: TWO });
-    expect(v.title).toBe('Your May check-in');
+    expect(v.title).toBe('May check-in');
     expect(v.periodNote).toMatch(/^Compares your check-in on .* with the one on /);
     expect(v.periodNote).not.toContain('check-in of');
   });

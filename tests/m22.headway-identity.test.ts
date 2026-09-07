@@ -298,6 +298,7 @@ describe('colour carries meaning, and only its own meaning', () => {
     // Gold stops being premium the moment there are two of it on a screen.
     const home = [
       read('src', 'components', 'workspace', 'home.tsx'),
+      read('src', 'components', 'workspace', 'focus.tsx'),
       read('src', 'components', 'portal', 'responsibility.tsx'),
     ].join('\n');
     const fills = [...stripComments(home).matchAll(/bg-brand-(?:500|600|700|900)\b/g)];
@@ -475,7 +476,9 @@ describe('nothing on the page claims more than the engine knows', () => {
   it('counts correctly however many things are being watched', () => {
     const ui = stripComments(read('src', 'components', 'portal', 'responsibility.tsx'));
     expect(ui).not.toContain('Neither needs');
-    expect(ui).toContain("rest === 1 ? 'It does not need' : 'None of them need'");
+    // The check-in sentence pluralises from the count, never from a guess.
+    const focus = stripComments(read('src', 'lib', 'portal', 'focus.ts'));
+    expect(focus).toContain("n === 1 ? singular : plural");
   });
 });
 

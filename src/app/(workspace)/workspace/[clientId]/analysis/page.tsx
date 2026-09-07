@@ -13,8 +13,10 @@ export const dynamic = 'force-dynamic';
  */
 export default async function WorkspacePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ clientId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { clientId } = await params;
   const gate = await tenantGateFor(clientId, 'MEMBER');
@@ -30,6 +32,7 @@ export default async function WorkspacePage({
     <PortalAnalysis
       clientId={clientId}
       basePath={`/workspace/${clientId}`}
+      searchParams={searchParams}
     />
   );
 }

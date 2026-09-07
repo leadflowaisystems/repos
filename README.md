@@ -121,6 +121,7 @@ see COMPLIANCE.md for why there is no Google-operated fallback.
 | `npm run db:studio` | Browse the local database |
 | `npm run db:reset` | Wipe and recreate the database |
 | `npm run db:seed` | Load the demo dataset (`npm run db:seed:clear` removes it) |
+| `npx tsx scripts/demo-seed.ts --client "Corner Cafe" --replace --yes` | Rebuild the demo restaurant's story from `scripts/demo/corner-cafe.ts` (dry run without `--yes`) |
 | `node scripts/bootstrap-admin.mjs` | Promote the first RepOS operator (needs `REPOS_BOOTSTRAP_SECRET`) |
 
 ### Running the tests

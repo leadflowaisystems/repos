@@ -107,6 +107,71 @@ body {
   outline-color: var(--color-brand-400);
 }
 
+/* ---------------------------------------------------------------------------
+   Progressive disclosure (M24).
+
+   Everything an owner opens is a native <details>. What opens fades in over a
+   fifth of a second; the dots of a before/after population appear one piece
+   of feedback at a time. Brief, once, on request — and off entirely for
+   anyone who has asked their system for less motion.
+--------------------------------------------------------------------------- */
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+details > .hw-reveal {
+  animation: hw-reveal 220ms ease-out both;
+}
+
+.hw-dot {
+  animation: hw-pop 260ms ease-out both;
+}
+
+.hw-grow {
+  transform-origin: left;
+  animation: hw-grow 420ms ease-out both;
+}
+
+@keyframes hw-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hw-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hw-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  details > .hw-reveal,
+  .hw-dot,
+  .hw-grow {
+    animation: none;
+  }
+}
+
 /* Native inputs should not zoom the page on iOS. */
 input,
 select,

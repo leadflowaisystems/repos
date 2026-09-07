@@ -1,29 +1,34 @@
 import Link from 'next/link';
+import clsx from 'clsx';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { getReviewsView } from '@/lib/portal/service';
-import type { ReviewFilters } from '@/lib/portal/pages';
+import type { ReviewFilters, ReviewsView } from '@/lib/portal/pages';
 import {
   PageIntro,
   Quiet,
   RatingBars,
   RatingStrip,
   ReviewRow,
-  Section,
   SentimentBar,
   StatusStrip,
 } from '@/components/portal/portal-ui';
+import { Reveal } from '@/components/portal/disclose';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Reviews' };
 
 /**
- * REVIEWS — what is the evidence? (M12)
+ * REVIEWS — the evidence (M24).
  *
- * The customer words behind every conclusion, with the reading attached to
- * each one. What RepOS found sits above the list, so reading it is optional;
- * the filters are plain links and a plain form, so a conclusion anywhere in
- * the workspace is one tap from the comments it came from.
+ * The raw material, made to feel like what it is: the thing every conclusion
+ * rests on. The page opens with the transformation Headway made of the pile —
+ * everything read, the signals that recur, the mentions that stand alone, the
+ * one that needs attention — each step a count of the same rows and a tap to
+ * the rows behind it. Then the signals as one-tap filters, so an owner can
+ * ask "what did Headway actually base this on?" and see only those comments.
+ * The full inbox, the ratings, the tones and the search are all still here,
+ * under the intelligence rather than above it.
  */
 
 type Search = Record<string, string | string[] | undefined>;
@@ -58,13 +63,103 @@ const control =
 const label = 'flex flex-col gap-1 text-[11px] tracking-wide text-ink-500 uppercase';
 
 /**
- * The reviews page, as one implementation behind two doors (M20).
+ * 87 pieces read → 7 recurring signals → 6 isolated mentions → 1 needs attention.
  *
- * Reached either through the owner's secret link (/portal/[token]) or through
- * an authenticated workspace (/workspace/[clientId]). Both resolve to a client
- * id first and neither is trusted here: whoever renders this has already
- * decided the caller may see this business.
+ * Four figures and three arrows, each a count of the same rows. The last
+ * step names the theme, because "1" is not a finding and "slow service" is.
  */
+function Funnel({ funnel, base }: { funnel: ReviewsView['funnel']; base: string }) {
+  const steps: Array<{ value: string; label: string; href: string | null; tone: string }> = [
+    { value: String(funnel.read), label: funnel.read === 1 ? 'piece read' : 'pieces read', href: base, tone: 'text-ink-900' },
+    {
+      value: String(funnel.signals),
+      label: funnel.signals === 1 ? 'recurring signal' : 'recurring signals',
+      href: `${base}#signals`,
+      tone: 'text-ink-900',
+    },
+    {
+      value: String(funnel.isolated),
+      label: funnel.isolated === 1 ? 'isolated mention' : 'isolated mentions',
+      href: null,
+      tone: 'text-ink-500',
+    },
+    funnel.attention
+      ? {
+          value: '1',
+          label: `needs attention · ${funnel.attention.label.toLowerCase()}`,
+          href: `${base}?theme=${encodeURIComponent(funnel.attention.key)}`,
+          tone: 'text-bad-700',
+        }
+      : { value: '0', label: 'need attention', href: null, tone: 'text-good-700' },
+  ];
+  return (
+    <ol className="mb-8 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-0" aria-label="How Headway read this feedback">
+      {steps.map((step, index) => {
+        const body = (
+          <>
+            <span className={clsx('font-mono text-[26px] leading-none font-semibold tabular-nums sm:text-[34px]', step.tone)}>
+              {step.value}
+            </span>
+            <span className="mt-1 block text-[13px] leading-snug text-ink-600">{step.label}</span>
+          </>
+        );
+        return (
+          <li key={step.label} className="flex items-stretch gap-2 sm:gap-0">
+            {index > 0 ? (
+              <span aria-hidden className="grid w-5 place-items-center text-[18px] text-ink-300 sm:w-10 sm:text-[22px]">
+                <span className="sm:hidden">↓</span>
+                <span className="hidden sm:inline">→</span>
+              </span>
+            ) : null}
+            {step.href ? (
+              <Link
+                href={step.href}
+                className="block min-h-11 flex-1 rounded-xl border border-ink-200 bg-white px-4 py-2.5 transition-colors hover:border-ink-400 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none sm:min-w-[9.5rem] sm:py-3"
+              >
+                {body}
+              </Link>
+            ) : (
+              <span className="block flex-1 rounded-xl border border-ink-200 bg-white px-4 py-2.5 sm:min-w-[9.5rem] sm:py-3">
+                {body}
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** Every recurring signal, as a one-tap filter, biggest first. */
+function SignalChips({ signals, base }: { signals: ReviewsView['signals']; base: string }) {
+  if (signals.length === 0) return null;
+  return (
+    <ul id="signals" className="flex scroll-mt-24 flex-wrap gap-2">
+      {signals.map((s) => (
+        <li key={s.key}>
+          <Link
+            href={s.active ? base : `${base}?theme=${encodeURIComponent(s.key)}`}
+            aria-current={s.active ? 'page' : undefined}
+            className={clsx(
+              'inline-flex min-h-11 items-center gap-2 rounded-full border px-3.5 text-[13px] font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
+              s.active
+                ? 'border-ink-900 bg-ink-900 text-white'
+                : s.kind === 'ISSUE'
+                  ? 'border-bad-200 bg-bad-50 text-bad-700 hover:border-bad-600'
+                  : 'border-good-200 bg-good-50 text-good-700 hover:border-good-600',
+            )}
+          >
+            {s.label}
+            <span className={clsx('rounded-full px-1.5 text-[12px] tabular-nums', s.active ? 'bg-white/20' : 'bg-white/80')}>
+              {s.count}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export async function PortalReviews({
   clientId,
   basePath,
@@ -88,6 +183,8 @@ export async function PortalReviews({
   const issues = view.themeOptions.filter((t) => t.kind === 'ISSUE');
   const praise = view.themeOptions.filter((t) => t.kind === 'PRAISE');
   const inHand = view.waiting + view.processing;
+  const activeSignal = view.signals.find((s) => s.active) ?? null;
+  const searching = filters.q.trim().length > 0 || filters.sentiment !== null || filters.source !== null || filters.needs !== null;
 
   return (
     <>
@@ -99,9 +196,11 @@ export async function PortalReviews({
             ? 'Your first customer signals will appear here. Headway is ready.'
             : view.analysed === 0 && inHand > 0
               ? 'Feedback has arrived and Headway is reading it now — usually done within a minute. Reload to see what it found.'
-              : null
+              : 'Every piece, as the customer gave it, and what Headway based its reading on.'
         }
       />
+
+      {view.analysed > 0 ? <Funnel funnel={view.funnel} base={base} /> : null}
 
       {view.total > 0 ? (
         <StatusStrip
@@ -119,126 +218,142 @@ export async function PortalReviews({
         />
       ) : null}
 
+      {view.signals.length > 0 ? (
+        <section className="mb-6">
+          <h2 className="mb-2 text-[11px] font-medium tracking-widest text-ink-500 uppercase">
+            The signals · tap one to see only its evidence
+          </h2>
+          <SignalChips signals={view.signals} base={base} />
+        </section>
+      ) : null}
+
       {view.total > 0 ? (
         <RatingStrip base={base} ratings={view.ratings} active={view.filters.stars} />
       ) : null}
 
       {view.found.length > 0 ? (
-        <Section eyebrow="What Headway found in them">
-          <ul className="space-y-1.5">
-            {view.found.map((f) => (
-              <li key={f} className="text-[15px] leading-relaxed text-ink-900">
-                {f}
-              </li>
-            ))}
-          </ul>
-          {view.quick.length > 0 ? (
-            <ul className="mt-3 flex flex-wrap gap-2">
-              {view.quick.map((q) => (
-                <li key={q.query}>
-                  <Link
-                    href={`${base}?${q.query}`}
-                    className="inline-flex min-h-11 items-center rounded-full border border-ink-300 px-3 text-[13px] text-ink-800 hover:border-ink-900 hover:text-ink-900"
-                  >
-                    {q.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </Section>
-      ) : null}
-
-      {view.analysed > 0 ? (
-        <section className="mb-8 grid grid-cols-1 gap-x-10 gap-y-6 sm:grid-cols-2">
-          <div>
-            <h2 className="mb-3 text-[11px] font-medium tracking-widest text-ink-500 uppercase">
-              By rating · {view.withRating} with a star rating
-            </h2>
-            <RatingBars ratings={view.ratings} />
-          </div>
-          <div>
-            <h2 className="mb-3 text-[11px] font-medium tracking-widest text-ink-500 uppercase">
-              By tone · all {view.analysed} read
-            </h2>
-            <SentimentBar sentiments={view.sentiments} />
-          </div>
-        </section>
+        <div className="mb-6">
+          <Reveal summary="What Headway found in them">
+            <div className="rounded-xl border border-ink-200 bg-white p-4 sm:p-5">
+              <ul className="space-y-1.5">
+                {view.found.map((f) => (
+                  <li key={f} className="text-[14px] leading-relaxed text-ink-900">
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              {view.quick.length > 0 ? (
+                <ul className="mt-3 flex flex-wrap gap-2">
+                  {view.quick.map((q) => (
+                    <li key={q.query}>
+                      <Link
+                        href={`${base}?${q.query}`}
+                        className="inline-flex min-h-11 items-center rounded-full border border-ink-300 px-3 text-[13px] text-ink-800 hover:border-ink-900 hover:text-ink-900"
+                      >
+                        {q.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {view.analysed > 0 ? (
+                <section className="mt-5 grid grid-cols-1 gap-x-10 gap-y-6 border-t border-ink-200 pt-5 sm:grid-cols-2">
+                  <div>
+                    <h3 className="mb-3 text-[11px] font-medium tracking-widest text-ink-500 uppercase">
+                      By rating · {view.withRating} with a star rating
+                    </h3>
+                    <RatingBars ratings={view.ratings} />
+                  </div>
+                  <div>
+                    <h3 className="mb-3 text-[11px] font-medium tracking-widest text-ink-500 uppercase">
+                      By tone · all {view.analysed} read
+                    </h3>
+                    <SentimentBar sentiments={view.sentiments} />
+                  </div>
+                </section>
+              ) : null}
+            </div>
+          </Reveal>
+        </div>
       ) : null}
 
       {view.total > 0 ? (
-        <form method="get" action={base} className="mb-6 border-y border-ink-200 py-4">
-          {/* One grid that reads the same on every width: search full width,
-              then the pickers two to a row on a phone and in one row from
-              tablet up. Nothing here scrolls sideways. */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr]">
-            <label className={`${label} col-span-2 sm:col-span-4 lg:col-span-1`}>
-              Search
-              <input type="search" name="q" defaultValue={view.filters.q} placeholder="A word customers used" className={control} />
-            </label>
-            <label className={label}>
-              About
-              <select name="theme" defaultValue={view.filters.theme ?? ''} className={control}>
-                <option value="">Anything</option>
-                {issues.length > 0 ? (
-                  <optgroup label="Complaints">
-                    {issues.map((t) => (
-                      <option key={t.key} value={t.key}>{t.label}</option>
+        <div className="mb-6">
+          <Reveal summary="Search and filter" open={searching}>
+            <form method="get" action={base} className="border-y border-ink-200 py-4">
+              {/* One grid that reads the same on every width: search full width,
+                  then the pickers two to a row on a phone and in one row from
+                  tablet up. Nothing here scrolls sideways. */}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr]">
+                <label className={`${label} col-span-2 sm:col-span-4 lg:col-span-1`}>
+                  Search
+                  <input type="search" name="q" defaultValue={view.filters.q} placeholder="A word customers used" className={control} />
+                </label>
+                <label className={label}>
+                  About
+                  <select name="theme" defaultValue={view.filters.theme ?? ''} className={control}>
+                    <option value="">Anything</option>
+                    {issues.length > 0 ? (
+                      <optgroup label="Complaints">
+                        {issues.map((t) => (
+                          <option key={t.key} value={t.key}>{t.label}</option>
+                        ))}
+                      </optgroup>
+                    ) : null}
+                    {praise.length > 0 ? (
+                      <optgroup label="Praise">
+                        {praise.map((t) => (
+                          <option key={t.key} value={t.key}>{t.label}</option>
+                        ))}
+                      </optgroup>
+                    ) : null}
+                  </select>
+                </label>
+                <label className={label}>
+                  Rating
+                  <select name="stars" defaultValue={view.filters.stars ? String(view.filters.stars) : ''} className={control}>
+                    <option value="">Any</option>
+                    {[5, 4, 3, 2, 1].map((s) => (
+                      <option key={s} value={s}>{s} star{s === 1 ? '' : 's'}</option>
                     ))}
-                  </optgroup>
-                ) : null}
-                {praise.length > 0 ? (
-                  <optgroup label="Praise">
-                    {praise.map((t) => (
-                      <option key={t.key} value={t.key}>{t.label}</option>
+                  </select>
+                </label>
+                <label className={label}>
+                  Tone
+                  <select name="sentiment" defaultValue={view.filters.sentiment ?? ''} className={control}>
+                    <option value="">Any</option>
+                    {SENTIMENTS.map((s) => (
+                      <option key={s} value={s}>{SENTIMENT_LABEL[s]}</option>
                     ))}
-                  </optgroup>
+                  </select>
+                </label>
+                {view.sourceOptions.length > 1 ? (
+                  <label className={label}>
+                    From
+                    <select name="source" defaultValue={view.filters.source ?? ''} className={control}>
+                      <option value="">Anywhere</option>
+                      {view.sourceOptions.map((s) => (
+                        <option key={s.key} value={s.key}>{s.label}</option>
+                      ))}
+                    </select>
+                  </label>
                 ) : null}
-              </select>
-            </label>
-            <label className={label}>
-              Rating
-              <select name="stars" defaultValue={view.filters.stars ? String(view.filters.stars) : ''} className={control}>
-                <option value="">Any</option>
-                {[5, 4, 3, 2, 1].map((s) => (
-                  <option key={s} value={s}>{s} star{s === 1 ? '' : 's'}</option>
-                ))}
-              </select>
-            </label>
-            <label className={label}>
-              Tone
-              <select name="sentiment" defaultValue={view.filters.sentiment ?? ''} className={control}>
-                <option value="">Any</option>
-                {SENTIMENTS.map((s) => (
-                  <option key={s} value={s}>{SENTIMENT_LABEL[s]}</option>
-                ))}
-              </select>
-            </label>
-            {view.sourceOptions.length > 1 ? (
-              <label className={label}>
-                From
-                <select name="source" defaultValue={view.filters.source ?? ''} className={control}>
-                  <option value="">Anywhere</option>
-                  {view.sourceOptions.map((s) => (
-                    <option key={s.key} value={s.key}>{s.label}</option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
-            <label className="flex min-h-11 items-center gap-2 text-[13px] text-ink-700">
-              <input type="checkbox" name="needs" value="reply" defaultChecked={view.filters.needs === 'reply'} className="h-4 w-4 rounded border-ink-300 accent-ink-900" />
-              Only ones that need your answer
-            </label>
-            <button type="submit" className="inline-flex min-h-11 items-center rounded-md bg-ink-900 px-3.5 text-[13px] font-medium text-white hover:bg-ink-800 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:ring-offset-2 focus-visible:outline-none">
-              Show
-            </button>
-            {filtered ? (
-              <Link href={base} className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[13px] text-ink-500 hover:text-ink-900">Clear</Link>
-            ) : null}
-          </div>
-        </form>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+                <label className="flex min-h-11 items-center gap-2 text-[13px] text-ink-700">
+                  <input type="checkbox" name="needs" value="reply" defaultChecked={view.filters.needs === 'reply'} className="h-4 w-4 rounded border-ink-300 accent-ink-900" />
+                  Only ones that need your answer
+                </label>
+                <button type="submit" className="inline-flex min-h-11 items-center rounded-md bg-ink-900 px-3.5 text-[13px] font-medium text-white hover:bg-ink-800 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:ring-offset-2 focus-visible:outline-none">
+                  Show
+                </button>
+                {filtered ? (
+                  <Link href={base} className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[13px] text-ink-500 hover:text-ink-900">Clear</Link>
+                ) : null}
+              </div>
+            </form>
+          </Reveal>
+        </div>
       ) : null}
 
       {view.total === 0 ? (
@@ -248,10 +363,24 @@ export async function PortalReviews({
         </Quiet>
       ) : (
         <>
-          <p className="text-[14px] font-medium text-ink-900">
-            {view.shown} {view.shown === 1 ? 'comment' : 'comments'}
-            {filtered ? <span className="font-normal text-ink-600"> {view.filterSummary}</span> : null}
-          </p>
+          {activeSignal ? (
+            <div className="mb-1 border-l-2 border-ink-900 pl-4">
+              <p className="text-[17px] leading-snug font-semibold tracking-tight text-ink-900">
+                Evidence for {activeSignal.label.toLowerCase()}
+              </p>
+              <p className="mt-0.5 text-[13px] text-ink-600">
+                {view.matching} {view.matching === 1 ? 'comment' : 'comments'} — this is what Headway based it on.{' '}
+                <Link href={base} className="inline-flex min-h-11 items-center font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900">
+                  Show everything
+                </Link>
+              </p>
+            </div>
+          ) : (
+            <p className="text-[14px] font-medium text-ink-900">
+              {view.shown} {view.shown === 1 ? 'comment' : 'comments'}
+              {filtered ? <span className="font-normal text-ink-600"> {view.filterSummary}</span> : null}
+            </p>
+          )}
           {view.items.length > 0 ? (
             <ul className="mt-2 divide-y divide-ink-200 border-t border-ink-200">
               {view.items.map((item) => (

@@ -5,7 +5,7 @@ import { tenantGateFor } from '@/lib/auth/guard';
 import { prisma } from '@/lib/db';
 import { requestOrigin } from '@/lib/gateway/origin';
 import { getKitView } from '@/lib/kit/service';
-import { PageIntro, Quiet, Section } from '@/components/portal/portal-ui';
+import { PageIntro, Quiet, Section, StatusStrip } from '@/components/portal/portal-ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,7 +45,12 @@ export default async function WorkspaceKitPage({
     notFound();
   }
 
-  const view = await getKitView(prisma, clientId, { requestOrigin: await requestOrigin() });
+  const [view, through] = await Promise.all([
+    getKitView(prisma, clientId, { requestOrigin: await requestOrigin() }),
+    // How much has actually come through the card: the one figure that says
+    // whether the system is working, and the reason to print another.
+    prisma.reviewItem.count({ where: { clientId, source: 'REP_OS_QR' } }),
+  ]);
   if (!view) notFound();
 
   const href = `/print/tent/${clientId}`;
@@ -62,6 +67,21 @@ export default async function WorkspaceKitPage({
 
       {ready ? (
         <>
+          <StatusStrip
+            items={[
+              {
+                label: view.gatewayPaused ? 'feedback page, paused' : 'feedback page, live',
+                value: view.gatewayPaused ? 'Paused' : 'Live',
+                tone: view.gatewayPaused ? 'warn' : 'good',
+              },
+              { label: 'card, ready to print', value: 'Ready' },
+              {
+                label: through === 1 ? 'piece of feedback through the card' : 'pieces of feedback through the card',
+                value: through,
+                tone: through > 0 ? 'good' : 'neutral',
+              },
+            ]}
+          />
           <Section eyebrow="Your sheet" note="A4 · two standing cards">
             <div className="flex flex-wrap gap-3">
               <a

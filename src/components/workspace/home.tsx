@@ -2,53 +2,45 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { getResponsibility } from '@/lib/responsibility/service';
+import { getEvidenceIndex } from '@/lib/portal/service';
 import type { Responsibility } from '@/lib/responsibility/engine';
+import { buildFocus } from '@/lib/portal/focus';
 import {
-  FactsLine,
   Knows,
   Limits,
-  Picture,
   Question,
   Quiet,
   Section,
   SoFar,
   Tallies,
 } from '@/components/portal/portal-ui';
-import {
-  Answer,
-  NeedsYouItem,
-  StrengthsList,
-  WatchingList,
-  WatchingPanel,
-} from '@/components/portal/responsibility';
+import { NeedsYouItem, StrengthsList, WatchingList } from '@/components/portal/responsibility';
+import { Reveal } from '@/components/portal/disclose';
+import { FocusBlock } from '@/components/workspace/focus';
 import { SinceVisit } from '@/components/workspace/since-visit';
 import type { SinceLastVisit } from '@/lib/retention/service';
 import { talliesFor } from '@/lib/portal/tallies';
 
 /**
- * HOME — the briefing.
+ * HOME — the command centre (M24).
  *
- * An owner gives this page five seconds standing behind a counter. In that time
- * it has to answer, in this order and no other:
+ * An owner gives this page ten seconds standing behind a counter. In that
+ * time it answers, in this order and no other:
  *
- *   RIGHT NOW                    what are my customers saying?
- *   DO I NEED TO DO ANYTHING?    one decision, or an honest no
- *   HEADWAY IS WATCHING          what is being carried, so the no is believable
- *   NEEDS YOU                    the thing itself, if there is one
- *   GOING WELL                   what to protect
- *   SINCE YOU WERE LAST HERE     only when something happened
- *   WHAT'S NEXT                  the reason to come back
+ *   RIGHT NOW                 what is the one thing that matters?
+ *   DO I NEED TO ACT?         the same block: a decision, or an honest no
+ *   WHAT EXACTLY?             your next step, one line
+ *   HEADWAY IS WATCHING       what is being carried, so the no is believable
+ *   GOING WELL                what to protect
+ *   SINCE YOU WERE LAST HERE  only when something happened
+ *   WHAT'S NEXT               what Headway will check, and when
  *
- * IT IS A BRIEFING, NOT AN ARTICLE. Every block is scannable: an eyebrow, a
- * conclusion, and at most two supporting lines. The long reading lives on
- * Customers, the words on Reviews, the loop on Improvements, the movement on
- * Check-in. Home summarises and points. Anything that explains how Headway
- * works is said once, on the page whose job it is, and not here — and no
- * figure is stated twice on this page: the public rating lives in the tiles.
- *
- * Laid out once and adapted: on a phone the decision comes first and what
- * Headway is carrying follows it; on a laptop they sit side by side, which is
- * the pairing that makes "no, nothing today" trustworthy rather than thin.
+ * ONE BLOCK IS DOMINANT. The first block is the largest thing on the page
+ * and the owner can stop after it: the headline, three figures that open
+ * into their evidence, one gold button, the reading, the next step.
+ * Everything below is smaller, and everything that explains method sits
+ * behind a tap. No figure is stated twice: the public rating lives in the
+ * tiles and nowhere else.
  */
 
 /**
@@ -90,11 +82,14 @@ export async function PortalHome({
   since?: SinceLastVisit | null;
 }) {
   const client = { id: clientId };
-  const bundle = await getResponsibility(prisma, client.id);
+  const [bundle, evidence] = await Promise.all([
+    getResponsibility(prisma, client.id),
+    getEvidenceIndex(prisma, client.id),
+  ]);
   if (!bundle) notFound();
   const { view, responsibility: r } = bundle;
 
-  const signalByTheme = new Map([...view.loved, ...view.unhappy].map((s) => [s.themeKey, s]));
+  const focus = buildFocus({ responsibility: r, view, evidence, basePath });
 
   // The engine files a strength under "watching" — it is carrying it. On the
   // page, a thing going well and a thing being watched for trouble are not
@@ -102,6 +97,10 @@ export async function PortalHome({
   // apart. Same items, same order; only the heading differs.
   const strengths = r.watching.filter((i) => i.state === 'KEEP_DOING');
   const watching = r.watching.filter((i) => i.state !== 'KEEP_DOING');
+  // The first thing that needs the owner is the focus block. Anything else
+  // that needs them — rare — follows as a compact item.
+  const alsoNeedsYou = r.needsYou.slice(1);
+  const signalByTheme = new Map([...view.loved, ...view.unhappy].map((s) => [s.themeKey, s]));
 
   // Before anything is a pattern, the current signals ARE the news: what the
   // first customers said, counted, and marked as not-yet-a-pattern. Once
@@ -110,59 +109,43 @@ export async function PortalHome({
   const reading = view.basedOn === 0 && view.soFar.waiting > 0;
   const showSoFar = !named && (view.basedOn > 0 || reading);
 
-  // The direction, on one rule under the picture. The public rating is one of
-  // the tiles further down and is not said twice.
-  const direction = view.facts.filter((f) => f.label === 'Overall direction');
+  const direction = view.facts.find((f) => f.label === 'Overall direction') ?? null;
   const tallies = talliesFor(view, basePath);
 
   return (
     <>
-      <Picture mood={view.mood} summary={view.summary} basis={view.basis} />
-      <FactsLine facts={direction} />
+      <FocusBlock focus={focus} direction={direction} />
 
-      {/* The pairing. One decision, and the reason to trust it. */}
-      {/* items-start, so each card is as tall as what it holds. Stretched to
-          match, the shorter one ends in a panel of empty white that reads as a
-          missing paragraph. */}
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-5">
-        <Answer r={r} basePath={basePath} />
-        {watching.length > 0 ? <WatchingPanel items={watching} basePath={basePath} /> : null}
-      </div>
-
-      {r.needsYou.length > 0 ? (
-        <Section eyebrow="Needs you">
-          {/* A measure, not the container width. At 1366 the container is a
-              thousand pixels across and a sentence set to it runs past a
-              hundred and twenty characters, which is a paragraph nobody
-              finishes. The empty space to the right is the point. */}
+      {alsoNeedsYou.length > 0 ? (
+        <Section eyebrow="Also needs you">
           <div className="max-w-3xl">
-            {r.needsYou.map((item, index) => (
+            {alsoNeedsYou.map((item) => (
               <NeedsYouItem
                 key={item.id}
                 item={item}
                 signal={item.themeKey ? (signalByTheme.get(item.themeKey) ?? null) : null}
                 basePath={basePath}
-                lead={index === 0}
+                lead={false}
               />
             ))}
           </div>
         </Section>
       ) : null}
 
-      {strengths.length > 0 ? (
-        <Section eyebrow="Going well" note="Worth protecting">
-          <div className="max-w-3xl">
-            <StrengthsList items={strengths} basePath={basePath} />
-          </div>
-        </Section>
-      ) : null}
-
-      {since ? <SinceVisit since={since} basePath={basePath} /> : null}
-
-      <Tallies tallies={tallies} />
-
-      <div className="mt-10 grid grid-cols-1 items-start gap-x-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div className="mt-8 grid grid-cols-1 items-start gap-x-10 gap-y-2 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="min-w-0">
+          {watching.length > 0 ? (
+            <Section eyebrow="Headway is watching" note="Nothing here needs you today">
+              <WatchingList items={watching} basePath={basePath} />
+            </Section>
+          ) : null}
+
+          {strengths.length > 0 ? (
+            <Section eyebrow="Going well" note="Worth protecting">
+              <StrengthsList items={strengths} basePath={basePath} />
+            </Section>
+          ) : null}
+
           {showSoFar ? (
             <Section
               eyebrow="What customers are mentioning so far"
@@ -187,30 +170,31 @@ export async function PortalHome({
               </Quiet>
             </Section>
           ) : null}
-
-          {view.knows.length > 0 ? (
-            <Section eyebrow="What Headway knows about your business" note="In your words">
-              <Knows items={view.knows} basePath={basePath} />
-            </Section>
-          ) : null}
         </div>
 
         <aside className="min-w-0 lg:border-l lg:border-ink-200 lg:pl-8">
-          {watching.length > 1 ? (
-            <Section eyebrow="Also being watched">
-              <WatchingList items={watching.slice(1)} basePath={basePath} />
-            </Section>
-          ) : null}
+          {since ? <SinceVisit since={since} basePath={basePath} /> : null}
 
           {r.did.length > 0 || view.basedOn > 0 ? (
             <Section eyebrow="What's next" note="Your progress">
               <WhatsNext r={r} basePath={basePath} />
             </Section>
           ) : null}
-
-          <Limits limits={r.limitations} collapsed />
         </aside>
       </div>
+
+      <Tallies tallies={tallies} />
+
+      {view.knows.length > 0 ? (
+        <Reveal
+          summary={<span className="tracking-widest uppercase">What Headway knows about your business</span>}
+          className="mt-10 border-t border-ink-200 pt-4"
+        >
+          <Knows items={view.knows} basePath={basePath} />
+        </Reveal>
+      ) : null}
+
+      <Limits limits={r.limitations} collapsed />
     </>
   );
 }

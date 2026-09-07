@@ -1,6 +1,7 @@
 import type { ClientIntelligence } from '@/lib/intelligence/engine';
 import type { FeedbackRow, FeedbackStats } from '@/lib/feedback/service';
-import type { AnalysisCoverage } from '@/lib/feedback/analysis';
+import { MIN_MENTIONS_TO_NAME } from '@/lib/intelligence/engine';
+import type { AnalysisCoverage, ThemeSummary } from '@/lib/feedback/analysis';
 import type { AnalysisState } from '@/lib/feedback/state';
 import type { SnapshotListRow } from '@/lib/snapshots/service';
 import { SENTIMENT_LABELS } from '@/lib/analysis/normalize';
@@ -270,6 +271,21 @@ export type ReviewsView = {
   found: string[];
   /** The conclusions, as filters: one tap to the words behind each. */
   quick: Array<{ label: string; query: string }>;
+  /**
+   * The pile, as the transformation Headway made of it (M24): everything
+   * read, the signals that recur, the mentions that stand alone, and the one
+   * that needs attention. Each step is a count of the same rows.
+   */
+  funnel: {
+    read: number;
+    /** Themes raised by enough customers to be a pattern. */
+    signals: number;
+    /** Themes mentioned once or twice. */
+    isolated: number;
+    attention: { key: string; label: string; count: number } | null;
+  };
+  /** Every recurring signal as a one-tap filter, biggest first. */
+  signals: Array<{ key: string; label: string; kind: 'PRAISE' | 'ISSUE'; count: number; active: boolean }>;
   replyWorth: number;
   themeOptions: Array<{ key: string; label: string; kind: 'PRAISE' | 'ISSUE' }>;
   sourceOptions: Array<{ key: string; label: string }>;
@@ -325,6 +341,8 @@ export function buildReviewsView(input: {
   nextPage: number;
   filters: ReviewFilters;
   intelligence: ClientIntelligence | null;
+  /** The theme counts behind the intelligence, for the funnel. Optional for older callers. */
+  themes?: ThemeSummary | null;
   replyWorth: number;
 }): ReviewsView {
   const rows = input.rows;
@@ -399,6 +417,29 @@ export function buildReviewsView(input: {
       );
     }
   }
+  // ---- The funnel and the signals ----------------------------------------
+  const allThemes = [...(input.themes?.issues ?? []), ...(input.themes?.praises ?? [])];
+  const patterns = allThemes.filter((t) => t.count >= MIN_MENTIONS_TO_NAME);
+  const isolated = allThemes.filter((t) => t.count > 0 && t.count < MIN_MENTIONS_TO_NAME);
+  const funnel: ReviewsView['funnel'] = {
+    read: analysed,
+    signals: input.themes ? patterns.length : intel ? intel.loved.length + intel.unhappy.length : 0,
+    isolated: isolated.length,
+    attention: intel?.attention
+      ? { key: intel.attention.themeKey, label: intel.attention.themeLabel, count: intel.attention.evidence.count }
+      : null,
+  };
+  const signals: ReviewsView['signals'] = [...patterns]
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+    .slice(0, 8)
+    .map((t) => ({
+      key: t.key,
+      label: t.label,
+      kind: t.kind,
+      count: t.count,
+      active: input.filters.theme === t.key,
+    }));
+
   if (positive > 0) quick.push({ label: `All positive (${positive})`, query: 'sentiment=POSITIVE' });
   if (negative > 0) quick.push({ label: `All negative (${negative})`, query: 'sentiment=NEGATIVE' });
   if (input.replyWorth > 0) {
@@ -418,6 +459,8 @@ export function buildReviewsView(input: {
     sentiments,
     found,
     quick,
+    funnel,
+    signals,
     replyWorth: input.replyWorth,
     themeOptions: [
       ...input.pack.issueTaxonomy.map((t) => ({ key: t.key, label: t.label, kind: 'ISSUE' as const })),
@@ -542,7 +585,7 @@ export function buildCheckinView(
 
   return {
     businessName: v.businessName,
-    title: month ? `Your ${month} check-in` : 'Your customer check-in',
+    title: month ? `${month} check-in` : 'Your customer check-in',
     periodNote: latest
       ? previous
         ? `Compares your check-in on ${on(latest)} with the one on ${on(previous)}.`

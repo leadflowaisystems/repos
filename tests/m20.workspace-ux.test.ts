@@ -185,39 +185,22 @@ describe('the workspace navigation', () => {
   });
 });
 
-describe('home, as an owner briefing', () => {
+describe('home, as a command centre', () => {
   const home = code(read('components', 'workspace', 'home.tsx'));
+  const focus = code(read('components', 'workspace', 'focus.tsx'));
   const responsibility = code(read('components', 'portal', 'responsibility.tsx'));
 
-  it('asks the one question first', () => {
-    expect(responsibility).toContain('Do I need to do anything?');
-    expect(home.indexOf('<Answer r={r} basePath={basePath} />')).toBeLessThan(home.indexOf('eyebrow="Needs you"'));
-  });
-
-  it('keeps what is going well apart from what is being watched', () => {
-    expect(home).toContain("r.watching.filter((i) => i.state === 'KEEP_DOING')");
-    expect(home).toContain("r.watching.filter((i) => i.state !== 'KEEP_DOING')");
-    expect(home).toContain('eyebrow="Going well"');
-    // What Headway is carrying is no longer a list in the margin: it is the
-    // panel beside the decision, so "no, nothing today" arrives with the
-    // reason to believe it. The overflow, if there is any, keeps the margin.
-    expect(home).toContain('<WatchingPanel items={watching} basePath={basePath} />');
-    expect(home).toContain('eyebrow="Also being watched"');
-  });
-
-  it('answers the four questions in the order an owner asks them', () => {
-    // The hierarchy IS the design. Anything that reorders these blocks is
-    // changing what an owner reads first, which is not a styling decision.
+  it('leads with one dominant block the owner can stop after', () => {
+    // The hierarchy IS the design (M24). Anything that reorders these blocks
+    // is changing what an owner reads first, which is not a styling decision.
     const order = [
-      '<Picture mood={view.mood}',                       // right now
-      '<FactsLine facts={direction} />',                 // the direction, once; the rating is a tile
-      '<Answer r={r} basePath={basePath} />',            // do I need to do anything
-      '<WatchingPanel items={watching}',                 // what is being carried
-      'eyebrow="Needs you"',                             // the thing itself
-      'eyebrow="Going well"',                            // what to protect
-      '<SinceVisit since={since}',                       // what changed while away
-      '<Tallies tallies={tallies} />',                   // the supporting figures
-      '<Limits limits={r.limitations} collapsed />',     // what we cannot tell you, one tap away
+      '<FocusBlock focus={focus} direction={direction} />', // right now, do I need to act, next step
+      'eyebrow="Headway is watching"', // what is being carried
+      'eyebrow="Going well"', // what to protect
+      '<SinceVisit since={since}', // what changed while away
+      "eyebrow=\"What's next\"", // what Headway checks next
+      '<Tallies tallies={tallies} />', // the supporting figures
+      '<Limits limits={r.limitations} collapsed />', // what we cannot tell you, one tap away
     ];
     const at = order.map((token) => {
       const i = home.indexOf(token);
@@ -225,46 +208,44 @@ describe('home, as an owner briefing', () => {
       return i;
     });
     expect(at).toEqual([...at].sort((a, b) => a - b));
+    expect(focus).toContain('Right now');
+    expect(focus).toContain('Your next step');
   });
 
-  it('pairs the decision with what is being carried, and stacks them on a phone', () => {
+  it('keeps what is going well apart from what is being watched', () => {
+    expect(home).toContain("r.watching.filter((i) => i.state === 'KEEP_DOING')");
+    expect(home).toContain("r.watching.filter((i) => i.state !== 'KEEP_DOING')");
+    expect(home).toContain('eyebrow="Going well"');
+    expect(home).toContain('<WatchingList items={watching} basePath={basePath} />');
+  });
+
+  it('pairs the carried things with what is next, and stacks them on a phone', () => {
     expect(home).toContain(
-      'grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-5',
+      'grid grid-cols-1 items-start gap-x-10 gap-y-2 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]',
     );
     expect(home).toContain('<aside');
-    expect(home.indexOf('<Answer r={r} basePath={basePath} />')).toBeLessThan(
-      home.indexOf('<aside'),
-    );
+    expect(home.indexOf('<FocusBlock')).toBeLessThan(home.indexOf('<aside'));
   });
 
   it('puts the figures below the answer, never above it', () => {
     // An earlier version opened with arithmetic. The owner met a row of
     // numbers before meeting the sentence they were meant to support.
-    expect(home.indexOf('<Picture mood={view.mood}')).toBeLessThan(
-      home.indexOf('<Tallies tallies={tallies} />'),
-    );
-    expect(home.indexOf('<Answer r={r} basePath={basePath} />')).toBeLessThan(
-      home.indexOf('<Tallies tallies={tallies} />'),
-    );
+    expect(home.indexOf('<FocusBlock')).toBeLessThan(home.indexOf('<Tallies tallies={tallies} />'));
   });
 
   it('builds its figures from a module that can be tested without React', () => {
-    // The rules about what may honestly be shown live in
-    // src/lib/portal/tallies.ts, asserted behaviourally in
-    // tests/m22.headway-identity.test.ts. Inline in this page they could only
-    // ever be grepped for, and two of them were wrong.
     expect(home).toContain("import { talliesFor } from '@/lib/portal/tallies'");
     expect(home).toContain('const tallies = talliesFor(view, basePath);');
     expect(home).not.toMatch(/\+\d+%/);
   });
 
-  it('shows the first customers\' signals before anything is a pattern, and never a blank', () => {
+  it("shows the first customers' signals before anything is a pattern, and never a blank", () => {
     expect(home).toContain('<SoFar soFar={view.soFar} basePath={basePath} />');
     expect(home).toContain('eyebrow="What customers are mentioning so far"');
     expect(home).toContain('note="Current signals, not conclusions"');
-    const responsibilityUi = code(read('components', 'portal', 'responsibility.tsx'));
-    expect(responsibilityUi).toContain('Read what customers said about');
-    expect(responsibilityUi).toContain("`${basePath}/reviews?theme=${encodeURIComponent(top.themeKey)}`");
+    expect(focus).toContain('{focus.cta.label}');
+    expect(home).toContain('Your first customer signals will appear here. Headway is ready');
+    expect(home).not.toMatch(/No data/i);
   });
 
   it('says what is watched, why, and when it will be flagged', () => {
@@ -273,6 +254,8 @@ describe('home, as an owner briefing', () => {
     expect(row).toContain('{item.watching}');
     expect(row).toContain('flag it');
     expect(row).toContain('<dt');
+    // One line to scan; the reasons open on request.
+    expect(row).toContain('<details');
   });
 
   it('proves a strength with a count rather than a badge', () => {
@@ -283,15 +266,15 @@ describe('home, as an owner briefing', () => {
     expect(row).not.toMatch(/badge|streak|confetti|points|\bxp\b/i);
   });
 
-  it('calls the check-in thread progress, and stays hopeful before the first customer', () => {
+  it('calls the check-in thread progress', () => {
     expect(home).toContain('note="Your progress"');
-    expect(home).toContain('Your first customer signals will appear here. Headway is ready');
-    expect(home).not.toMatch(/No data/i);
   });
 });
 
 describe('one word for one idea', () => {
   const ui = code(read('components', 'portal', 'portal-ui.tsx'));
+  const story = code(read('components', 'workspace', 'improvement-story.tsx'));
+  const disclose = code(read('components', 'portal', 'disclose.tsx'));
 
   it('says Watching wherever a theme is being watched', () => {
     expect(ui).toContain("watch: 'Watching',");
@@ -299,26 +282,23 @@ describe('one word for one idea', () => {
     expect(ui).not.toContain("'Watch this'");
   });
 
-  it('labels what we know, what we cannot tell you, and what we recommend', () => {
-    const ba = between(ui, 'export function BeforeAfter(', 'function Step(');
-    expect(ba).toContain('What we know');
-    expect(ba).toContain('What we cannot tell you');
+  it('labels what happened, what it means and what to do now, with the limit beside the finding', () => {
+    expect(story).toContain('What happened');
+    expect(story).toContain('What this means');
+    expect(story).toContain('What to do now');
     // The engine's full sentence where it has one, its short one otherwise —
     // never both, which used to say the same thing twice in two lengths.
-    expect(ba).toContain('outcome.caveat ? outcome.caveat : outcome.note');
-    // The limit is a labelled statement beside the finding, not a collapsed note.
-    expect(ba.indexOf('What we cannot tell you')).toBeLessThan(ba.indexOf('<details'));
-
-    const story = between(ui, 'export function ActionStory(', 'export function OutcomeRow(');
-    expect(story).toContain('What we recommend');
+    expect(story).toContain('{outcome.caveat || outcome.note}');
+    expect(disclose).toContain('{p.caveat}');
+    expect(disclose.indexOf('{p.caveat}')).toBeLessThan(disclose.indexOf('Why Headway says this'));
   });
 
-  it('reads the improvement loop as Before · You changed · After · Reading', () => {
-    const strip = between(ui, 'export function MemoryStrip(', 'export function BeforeAfter(');
-    expect(strip).toContain("['Before', memory.then]");
-    expect(strip).toContain("['You changed', memory.change]");
-    expect(strip).toContain("['After', memory.now]");
-    expect(strip).toContain("['Reading', memory.result]");
+  it('reads the improvement loop as The problem · You changed · Headway checked again', () => {
+    expect(story).toContain('label="The problem"');
+    expect(story).toContain("declined ? 'Not pursued' : 'You changed'");
+    expect(story).toContain('label="Headway checked again"');
+    expect(disclose).toContain("label: 'Before'");
+    expect(disclose).toContain("label: 'After'");
   });
 });
 
@@ -375,6 +355,11 @@ describe('the pipeline is wired to the product', () => {
       ['components', 'portal', 'responsibility.tsx'],
       ['components', 'portal', 'workspace.tsx'],
       ['components', 'workspace', 'reviews.tsx'],
+      ['components', 'portal', 'disclose.tsx'],
+      ['components', 'workspace', 'focus.tsx'],
+      ['components', 'workspace', 'signal-board.tsx'],
+      ['components', 'workspace', 'improvement-story.tsx'],
+      ['components', 'workspace', 'checkin.tsx'],
       ['components', 'sign-out.tsx'],
       ['app', '(workspace)', 'workspace', '[clientId]', 'error.tsx'],
     ] as const) {

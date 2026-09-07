@@ -1,44 +1,60 @@
 /**
- * DEMO DATA SEEDER — LOCAL PRODUCT EVALUATION ONLY.
+ * DEMO DATA SEEDER — SYNTHETIC DATA FOR PRODUCT EVALUATION.
  *
- *   These records are synthetic demo data for local product evaluation.
+ *   These records are synthetic demo data for product evaluation.
  *
- * Populates the clients that already exist in the local SQLite database with
- * enough synthetic evidence to exercise M1-M11 in the UI: snapshots, feedback,
- * themes, trends, owner communication, improvement actions and minutes.
+ * Populates clients that already exist in the database with enough synthetic
+ * evidence to exercise the product end to end: feedback from both doors, two
+ * check-ins, what the owner told Headway, an improvement that was suggested,
+ * agreed, made and compared, and the operator's own record of it.
  *
- * TWO RULES THIS SCRIPT KEEPS:
+ * THREE RULES THIS SCRIPT KEEPS:
  *
  *  1. It writes NOTHING directly that a service owns. Every row goes through
- *     the real M5 import, M6 analysis, M7 triage/draft, M2 snapshot, M4 minute
- *     and M11 action services, so all existing validation, safety gates and
- *     state-machine rules apply exactly as they do for an operator. No
- *     malformed record can be introduced this way.
+ *     the real intake, snapshot, analysis, triage, context and improvement
+ *     services, so every validation, safety gate and state-machine rule
+ *     applies exactly as it does for an operator or a customer. A record that
+ *     the product would refuse cannot be introduced this way.
  *
- *  2. Everything it creates is recorded in a manifest so `--clear` removes
- *     precisely what was added and nothing else. Data that existed before the
- *     first seed is never touched.
+ *  2. The demo restaurant — Corner Cafe — is a STORY, not a template. It lives
+ *     in `scripts/demo/corner-cafe.ts` as data, shaped exactly the way the
+ *     current feedback form and the operator's paste box store things:
+ *     public reviews carry a rating, a date and words; table-card feedback
+ *     carries the pack's own questions, the specifics a customer tapped, and
+ *     — sometimes — nothing written at all. The other verticals keep a
+ *     simpler, templated set for local evaluation only.
  *
- * Contains no real names, phone numbers, emails or addresses. Review text is
- * generic customer wording chosen to match each vertical pack's own taxonomy
- * hints — no theme is invented, and nothing is fetched from anywhere.
+ *  3. Two modes, and each one says what it touched.
  *
- * Usage:
- *   npx tsx scripts/demo-seed.ts            seed the existing clients
- *   npx tsx scripts/demo-seed.ts --clear    remove everything it created
+ *       npx tsx scripts/demo-seed.ts
+ *         Seeds every client in the database and records everything it
+ *         created in a manifest, so `--clear` removes precisely that and
+ *         nothing else. Data that existed before is never touched.
+ *
+ *       npx tsx scripts/demo-seed.ts --client "Corner Cafe" --replace [--yes]
+ *         Rebuilds ONE client's story from scratch: removes that client's
+ *         feedback, check-ins, improvements, minutes and owner context, then
+ *         seeds the story. For a wholly synthetic demo client only. Without
+ *         --yes it prints what it would remove and stops. The client row, its
+ *         feedback page and its printed QR token are never touched.
+ *
+ * Contains no real names, phone numbers, emails or addresses. Nothing is
+ * fetched from anywhere.
  */
 
 import { existsSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { PrismaClient } from '@prisma/client';
-import { importFeedbackBatch } from '@/lib/feedback/service';
+import { createFeedbackItem, importFeedbackBatch } from '@/lib/feedback/service';
 import { ingestFeedback } from '@/lib/feedback/ingest';
+import { parseStructured } from '@/lib/feedback/structured';
 import { ensureGateway } from '@/lib/gateway/service';
-import { analyseClientFeedback } from '@/lib/feedback/analysis';
+import { analyseClientFeedback, getThemeSummary } from '@/lib/feedback/analysis';
 import { draftClientReplies, triageClientFeedback } from '@/lib/feedback/replies';
 import { createSnapshot } from '@/lib/snapshots/service';
 import { createMinute } from '@/lib/minutes/service';
 import { getClientIntelligence } from '@/lib/intelligence/service';
+import { getPackOrFallback } from '@/lib/packs';
 import {
   createActionFromInsight,
   decideAction,
@@ -47,6 +63,7 @@ import {
   recordLearning,
 } from '@/lib/improve/service';
 import { answerQuestion, createContext } from '@/lib/context/service';
+import { CORNER_CAFE, storyFeedbackCount, type CornerCafeStory } from './demo/corner-cafe';
 
 const MANIFEST = resolve(join(__dirname, '..', 'data', '.demo-manifest.json'));
 
@@ -74,10 +91,22 @@ const manifest: Manifest = {
   contextIds: [],
 };
 
+/**
+ * Offline on purpose. The demo has to read the same way every time it is
+ * seeded, on every machine, so the deterministic reader does the reading and
+ * no provider is contacted. Every number on every page then rests on rules
+ * anybody can re-run.
+ */
 const OFFLINE = { useAi: false as const };
 
 function daysAgo(n: number): Date {
   return new Date(Date.now() - n * 86_400_000);
+}
+
+function at(iso: string): Date {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) throw new Error(`demo seed: bad date ${iso}`);
+  return d;
 }
 
 /**
@@ -174,6 +203,28 @@ async function addFeedback(
   return fresh.length;
 }
 
+/**
+ * One public review, as the operator adds one by hand: the words, the rating
+ * the listing showed (or none), and the date the customer left it. The same
+ * redaction, the same duplicate rule, the same row.
+ */
+async function addPublicReview(
+  clientId: string,
+  review: { at: string; stars: number | null; text: string },
+): Promise<void> {
+  const result = await createFeedbackItem(db, clientId, {
+    text: review.text,
+    stars: review.stars,
+    reviewDate: at(review.at),
+    source: 'PUBLIC_REVIEW',
+  });
+  if (!result.ok) throw new Error(`public review failed: ${result.message} — ${review.text}`);
+  manifest.feedbackIds.push(result.data.id);
+  // Arrival is the customer's own date too, so the row never looks like it
+  // arrived on the day the demo was seeded.
+  await db.reviewItem.update({ where: { id: result.data.id }, data: { createdAt: at(review.at) } });
+}
+
 async function addSnapshot(
   clientId: string,
   input: {
@@ -216,10 +267,20 @@ async function addSnapshot(
     where: { snapshotId: result.data.id, reviewDate: null },
     data: { reviewDate: input.capturedAt },
   });
+  await db.reviewItem.updateMany({
+    where: { snapshotId: result.data.id },
+    data: { createdAt: input.capturedAt },
+  });
+  await db.snapshot.update({ where: { id: result.data.id }, data: { createdAt: input.capturedAt } });
+}
+
+/** "★★★★ Loved it" — the form the operator pastes a listing's reviews in. */
+function starLine(stars: number | null, text: string): string {
+  return stars === null ? text : `${'★'.repeat(stars)} ${text}`;
 }
 
 /**
- * M13: one thing the owner told RepOS, through the real context service, so
+ * M13: one thing the owner told Headway, through the real context service, so
  * the same validation (no contact details, a theme this pack knows) applies.
  */
 async function addContext(
@@ -243,9 +304,9 @@ async function addContext(
   manifest.contextIds.push(result.data.id);
 }
 
-/** M13: the owner answered the question RepOS asks on their Home page. */
-async function addAnswer(clientId: string, themeKey: string, answer: string, at: Date): Promise<void> {
-  const result = await answerQuestion(db, clientId, { themeKey, answer }, { now: at });
+/** M13: the owner answered the question Headway asks on their Home page. */
+async function addAnswer(clientId: string, themeKey: string, answer: string, when: Date): Promise<void> {
+  const result = await answerQuestion(db, clientId, { themeKey, answer }, { now: when });
   if (!result.ok) throw new Error(`answer failed: ${result.message}`);
   manifest.contextIds.push(result.data.id);
 }
@@ -267,8 +328,55 @@ async function addMinute(
   manifest.minuteIds.push(result.data.id);
 }
 
+/** Read everything unread for a client, exactly as the pipeline would. */
+async function readAll(clientId: string): Promise<void> {
+  const read = await analyseClientFeedback(db, clientId, OFFLINE);
+  if (!read.ok) throw new Error(`analysis failed: ${read.message}`);
+}
+
+/**
+ * Feedback that came in through the client's own QR page, as customers send
+ * it: an overall rating, the pack's own questions, the specifics they tapped,
+ * and words or none. It takes the same road the public page takes — the
+ * shared intake, the pack's own key check, the page's own duplicate rule — so
+ * the demo holds nothing the real thing could not.
+ */
+async function addDirectFeedback(
+  clientId: string,
+  vertical: string,
+  items: Array<{
+    text: string;
+    stars: number | null;
+    at: Date;
+    dimensions?: Record<string, number>;
+    signals?: string[];
+  }>,
+): Promise<void> {
+  await ensureGateway(db, clientId);
+  const dimensions = getPackOrFallback(vertical).gateway?.dimensions ?? [];
+  for (const item of items) {
+    const structured = parseStructured(dimensions, {
+      dimensions: item.dimensions ?? {},
+      signals: item.signals ?? [],
+    });
+    const result = await ingestFeedback(
+      db,
+      clientId,
+      { text: item.text, stars: item.stars, occurredAt: item.at, source: 'REP_OS_QR', structured },
+      {
+        now: item.at,
+        allowEmptyText: true,
+        dedupe: { mode: 'WINDOW', textWindowMs: 10 * 60_000, ratingOnlyWindowMs: 30_000 },
+      },
+    );
+    if (!result.ok) throw new Error(`direct feedback failed: ${result.message}`);
+    if (result.data.duplicate) throw new Error(`direct feedback read as a duplicate: ${item.text}`);
+    manifest.feedbackIds.push(result.data.id);
+  }
+}
+
 // ---------------------------------------------------------------------------
-// Review text, keyed to each pack's own taxonomy hints
+// Review text for the templated verticals, keyed to each pack's taxonomy hints
 // ---------------------------------------------------------------------------
 
 const TEXT = {
@@ -288,23 +396,6 @@ const TEXT = {
     issueLight: [
       '3 stars Bit crowded around 7pm but manageable',
       '3 stars AC could be better in the free weights area',
-    ],
-  },
-  restaurant: {
-    praise: [
-      '5 stars Food was delicious and full of flavour',
-      '5 stars Warm and welcoming staff, very polite',
-      '4 stars Nice cosy ambience for an evening out',
-      '4 stars Good value for money for the portion size',
-    ],
-    issueHeavy: [
-      '1 star Service was very slow, we waited nearly an hour for mains',
-      '2 stars Slow service again, waited far too long to order',
-      '2 stars They brought the wrong order and forgot one dish entirely',
-    ],
-    issueLight: [
-      '3 stars Slightly slow at the start but the food made up for it',
-      '3 stars Wrong drink arrived, sorted quickly though',
     ],
   },
   salon: {
@@ -339,7 +430,7 @@ const TEXT = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// Per-client stories. Deliberately different, so M9 has something to rank.
+// Per-client stories. Deliberately different, so the console has something to rank.
 // ---------------------------------------------------------------------------
 
 async function seedGym(clientId: string) {
@@ -399,8 +490,8 @@ async function seedGym(clientId: string) {
     daysAgo(20),
   );
 
-  // What the owner told RepOS about the gym. The crowding question stays
-  // unanswered on purpose, so the demo shows RepOS asking.
+  // What the owner told Headway about the gym. The crowding question stays
+  // unanswered on purpose, so the demo shows Headway asking.
   await addContext(clientId, {
     kind: 'OPERATING',
     text: 'Weekday evenings after 6pm are our busiest time; mornings are quiet',
@@ -414,144 +505,119 @@ async function seedGym(clientId: string) {
   });
 }
 
-async function seedRestaurant(clientId: string) {
-  resetLines();
-  const t = TEXT.restaurant;
-  // The problem client: a dominant service-speed issue, a change that was
-  // tried, and feedback after it that reads worse. Seeded in the order it
-  // would have happened, so every date on the Improvements page is honest:
-  // check-in, suggestion, decision, change, feedback after it, comparison.
+/**
+ * THE DEMO RESTAURANT.
+ *
+ * Seeded in the order it happened, so every date on the Improvements page is
+ * honest: reviews, a check-in, more reviews, the conversation, the
+ * suggestion, the decision, the change, the feedback that came after it, the
+ * second check-in, the comparison. The intelligence at each step is computed
+ * from what had arrived by then, which is what freezes the right baseline.
+ */
+async function seedCornerCafe(clientId: string, story: CornerCafeStory = CORNER_CAFE) {
+  const vertical = story.vertical;
 
-  // Ten weeks ago: the first feedback, and the first check-in.
-  await addFeedback(
-    clientId,
-    [...lines([...t.praise], 8), ...lines([...t.issueHeavy], 5)],
-    daysAgo(75),
-    daysAgo(75),
-  );
-  await addSnapshot(clientId, {
-    label: 'Check-in — two months ago',
-    capturedAt: daysAgo(68),
-    rating: 4.0,
-    reviewCount: 210,
-    unansweredCount: 60,
-    reviewsPerWeek: 2.6,
-    daysSinceLastPost: 25,
-    photoRecencyDays: 50,
-    reviewsRaw: [...lines([...t.praise], 9), ...lines([...t.issueHeavy], 5)],
-  });
-  // The suggestion has to rest on the check-in's reviews, so read them now.
+  // May and June: the public listing, pasted in as the operator found it.
+  for (const review of story.earlyReviews) await addPublicReview(clientId, review);
   await readAll(clientId);
 
-  // Six weeks ago: RepOS raised slow service. The owner agreed two days
-  // later and had a second server in place a week after that.
+  // The first check-in, with the reviews observed that day.
+  const first = story.firstCheckin;
+  await addSnapshot(clientId, {
+    label: first.label,
+    capturedAt: at(first.capturedAt),
+    rating: first.rating,
+    reviewCount: first.reviewCount,
+    unansweredCount: first.unansweredCount,
+    reviewsPerWeek: first.reviewsPerWeek,
+    daysSinceLastPost: first.daysSinceLastPost,
+    photoRecencyDays: first.photoRecencyDays,
+    reviewsRaw: first.reviews.map((x) => starLine(x.stars, x.text)),
+  });
+  await readAll(clientId);
+
+  // Late June to late July.
+  for (const review of story.midReviews) await addPublicReview(clientId, review);
+  await readAll(clientId);
+
+  // The conversation, and what the owner told Headway in it.
+  const owner = story.owner;
   await addMinute(
     clientId,
     'OWNER_CONVERSATION',
-    'Owner raised weekend kitchen delays',
-    'Owner says the kitchen is short-staffed on Friday and Saturday evenings and is considering a second line cook.',
-    daysAgo(44),
+    owner.conversation.title,
+    owner.conversation.body,
+    at(owner.conversation.at),
   );
-  // What the owner told RepOS in that conversation, in their words.
-  await addContext(clientId, {
-    kind: 'OPERATING',
-    text: 'Friday and Saturday evenings are much busier than other days',
-    themeKey: 'service_speed',
-    recordedAt: daysAgo(44),
-  });
-  await addContext(clientId, {
-    kind: 'FOCUS',
-    text: 'Slow service is my biggest concern right now',
-    themeKey: 'service_speed',
-    recordedAt: daysAgo(44),
-  });
-  await addContext(clientId, {
-    kind: 'CONSTRAINT',
-    text: 'Do not recommend discounts or offers',
-    constraintKey: 'DISCOUNT',
-    recordedAt: daysAgo(44),
-  });
-  const actionId = await startWorseningAction(clientId, {
-    suggestedAt: daysAgo(42),
-    decidedAt: daysAgo(40),
-    doneAt: daysAgo(33),
-  });
-  await addMinute(
-    clientId,
-    'FOLLOW_UP',
-    'Check whether the second server was hired',
-    'Agreed to revisit staffing at the next monthly call.',
-    daysAgo(38),
-  );
-
-  // Three weeks ago: feedback that came in after the change, dated as it
-  // arrived. Heavier on service than before.
-  await addFeedback(
-    clientId,
-    [...lines([...t.issueHeavy], 14), ...lines([...t.praise], 8)],
-    daysAgo(20),
-    daysAgo(20),
-  );
-
-  // This month: the second check-in, then the comparison two days ago.
-  await addSnapshot(clientId, {
-    label: 'Check-in — this month',
-    capturedAt: daysAgo(6),
-    rating: 3.6,
-    reviewCount: 244,
-    unansweredCount: 88,
-    reviewsPerWeek: 3.1,
-    daysSinceLastPost: 30,
-    photoRecencyDays: 60,
-    reviewsRaw: [...lines([...t.praise], 5), ...lines([...t.issueHeavy], 11)],
-  });
-  await readAll(clientId);
-  if (actionId) await finishWorseningAction(clientId, actionId, daysAgo(2));
-
-  // This week: what customers sent straight from the table card's QR.
-  await addDirectFeedback(clientId, [
-    {
-      text: 'Waited nearly half an hour for two mains on Saturday night. Food was good when it came.',
-      stars: 3,
-      at: daysAgo(5),
-    },
-    { text: 'Biryani was excellent and the staff were very friendly.', stars: 5, at: daysAgo(4) },
-    { text: '', stars: 4, at: daysAgo(3) },
-    { text: 'Service bahut slow tha, order aane me kaafi der lagi.', stars: 2, at: daysAgo(2) },
-  ]);
-}
-
-/** Read everything unread for a client, exactly as the operator would. */
-async function readAll(clientId: string): Promise<void> {
-  const read = await analyseClientFeedback(db, clientId, OFFLINE);
-  if (!read.ok) throw new Error(`analysis failed: ${read.message}`);
-}
-
-/**
- * Feedback that came in through the client's own QR page (M14), as customers
- * send it: a rating, a few words, or both. It takes the same road the public
- * page takes — the shared intake, with the page's own duplicate rule — so the
- * demo holds nothing the real thing could not.
- */
-async function addDirectFeedback(
-  clientId: string,
-  items: Array<{ text: string; stars: number | null; at: Date }>,
-): Promise<void> {
-  await ensureGateway(db, clientId);
-  for (const item of items) {
-    const result = await ingestFeedback(
-      db,
-      clientId,
-      { text: item.text, stars: item.stars, occurredAt: item.at, source: 'REP_OS_QR' },
-      {
-        now: item.at,
-        allowEmptyText: true,
-        dedupe: { mode: 'WINDOW', textWindowMs: 10 * 60_000, ratingOnlyWindowMs: 30_000 },
-      },
-    );
-    if (!result.ok) throw new Error(`direct feedback failed: ${result.message}`);
-    if (!result.data.duplicate) manifest.feedbackIds.push(result.data.id);
+  for (const line of owner.context) {
+    await addContext(clientId, {
+      kind: line.kind,
+      text: line.text,
+      themeKey: line.themeKey,
+      constraintKey: line.constraintKey,
+      recordedAt: at(line.at),
+    });
   }
+
+  // Suggestion → decision → change, through the real state machine, with the
+  // baseline frozen on the feedback read by the day of the suggestion.
+  const actionId = await startAction(clientId, {
+    suggestedAt: at(story.action.suggestedAt),
+    decidedAt: at(story.action.decidedAt),
+    description: story.action.description,
+    doneAt: at(story.action.doneAt),
+  });
+  await addAnswer(clientId, owner.answer.themeKey, owner.answer.answer, at(owner.answer.at));
+  await addMinute(clientId, 'FOLLOW_UP', owner.followUp.title, owner.followUp.body, at(owner.followUp.at));
+
+  // After the change: the table card goes out, and the listing keeps filling.
+  // Everything lands in the order it arrived.
+  type Arrival =
+    | { kind: 'public'; at: string; review: (typeof story.lateReviews)[number] }
+    | { kind: 'qr'; at: string; item: (typeof story.qr)[number] }
+    | { kind: 'checkin'; at: string };
+  const arrivals: Arrival[] = [
+    ...story.lateReviews.map((review) => ({ kind: 'public' as const, at: review.at, review })),
+    ...story.qr.map((item) => ({ kind: 'qr' as const, at: item.at, item })),
+    { kind: 'checkin' as const, at: story.secondCheckin.capturedAt },
+  ].sort((a, b) => a.at.localeCompare(b.at));
+
+  for (const arrival of arrivals) {
+    if (arrival.kind === 'public') {
+      await addPublicReview(clientId, arrival.review);
+    } else if (arrival.kind === 'qr') {
+      await addDirectFeedback(clientId, vertical, [
+        {
+          text: arrival.item.text,
+          stars: arrival.item.stars,
+          at: at(arrival.item.at),
+          dimensions: arrival.item.dimensions,
+          signals: arrival.item.signals,
+        },
+      ]);
+    } else {
+      await readAll(clientId);
+      const second = story.secondCheckin;
+      await addSnapshot(clientId, {
+        label: second.label,
+        capturedAt: at(second.capturedAt),
+        rating: second.rating,
+        reviewCount: second.reviewCount,
+        unansweredCount: second.unansweredCount,
+        reviewsPerWeek: second.reviewsPerWeek,
+        daysSinceLastPost: second.daysSinceLastPost,
+        photoRecencyDays: second.photoRecencyDays,
+        reviewsRaw: second.reviews.map((x) => starLine(x.stars, x.text)),
+      });
+    }
+  }
+  await readAll(clientId);
+
+  // The comparison, and what the owner made of it.
+  if (actionId) {
+    await finishAction(clientId, actionId, at(story.action.measuredAt), story.action.learning);
+  }
+  await addMinute(clientId, 'ACTION', owner.afterNote.title, owner.afterNote.body, at(owner.afterNote.at));
 }
 
 async function seedSalon(clientId: string) {
@@ -611,8 +677,6 @@ async function seedSalon(clientId: string) {
     daysAgo(25),
   );
 
-  // What the owner told RepOS about the salon, including the answer to the
-  // question RepOS asked about appointment problems.
   await addContext(clientId, {
     kind: 'OPERATING',
     text: 'Most bookings come in by phone, and most of those in the evening',
@@ -627,8 +691,7 @@ async function seedSalon(clientId: string) {
   });
   await addAnswer(clientId, 'appointment_scheduling', 'Appointment cancelled or not confirmed', daysAgo(7));
 
-  // This week: sent from the reception card's QR.
-  await addDirectFeedback(clientId, [
+  await addDirectFeedback(clientId, 'salon', [
     { text: 'Loved the haircut. Booking by phone took three tries though.', stars: 4, at: daysAgo(4) },
     { text: '', stars: 5, at: daysAgo(2) },
   ]);
@@ -647,7 +710,6 @@ async function seedClinic(clientId: string) {
     daysAgo(15),
   );
 
-  // What the owner told RepOS about the clinic.
   await addContext(clientId, {
     kind: 'PRIORITY',
     text: 'Patient waiting time — nobody should wait more than 15 minutes past their slot',
@@ -663,17 +725,17 @@ async function seedClinic(clientId: string) {
 }
 
 // ---------------------------------------------------------------------------
-// M11: a completed improvement loop, driven through the real state machine
+// M11: an improvement loop, driven through the real state machine
 // ---------------------------------------------------------------------------
 
 /**
  * Suggestion → decision → change, each on its own date, through the real
- * M11 state machine. Returns the action id, or null when the feedback so far
- * gives RepOS nothing to suggest.
+ * state machine. Returns the action id, or null when the feedback so far
+ * gives Headway nothing to suggest.
  */
-async function startWorseningAction(
+async function startAction(
   clientId: string,
-  dates: { suggestedAt: Date; decidedAt: Date; doneAt: Date },
+  dates: { suggestedAt: Date; decidedAt: Date; description: string; doneAt: Date },
 ): Promise<string | null> {
   const intel = await getClientIntelligence(db, clientId, { now: dates.suggestedAt });
   const insightId = intel?.attention?.id;
@@ -703,7 +765,7 @@ async function startWorseningAction(
     created.data.id,
     {
       decision: 'ACCEPT',
-      description: 'Added a second server on Friday and Saturday evenings',
+      description: dates.description,
       statusNote: '',
       recordMinute: true,
     },
@@ -732,27 +794,105 @@ async function startWorseningAction(
 }
 
 /** The comparison, once enough feedback has arrived after the change. */
-async function finishWorseningAction(
+async function finishAction(
   clientId: string,
   actionId: string,
   measuredAt: Date,
+  learning: string,
 ): Promise<void> {
   const measured = await measureClientAction(db, clientId, actionId, { now: measuredAt });
   if (!measured.ok) throw new Error(`measure failed: ${measured.message}`);
   console.log(`  · action measured: ${measured.data.measurement.result}`);
 
-  await recordLearning(
-    db,
-    clientId,
-    actionId,
-    {
-      note: 'The extra server helped at the door but the delay is in the kitchen, not the floor. Needs a different fix.',
-    },
-    { now: measuredAt },
-  );
+  await recordLearning(db, clientId, actionId, { note: learning }, { now: measuredAt });
 }
 
 // ---------------------------------------------------------------------------
+// One client, end to end
+// ---------------------------------------------------------------------------
+
+async function seedClient(client: { id: string; businessName: string; vertical: string }) {
+  console.log(`${client.businessName} (${client.vertical})`);
+  if (client.vertical === 'gym') await seedGym(client.id);
+  else if (client.vertical === 'restaurant') await seedCornerCafe(client.id);
+  else if (client.vertical === 'salon') await seedSalon(client.id);
+  else if (client.vertical === 'clinic') await seedClinic(client.id);
+  else await seedGym(client.id);
+
+  // Every demo business has its feedback QR ready, even before anything
+  // has come in through it.
+  await ensureGateway(db, client.id);
+
+  // Snapshots capture their own reviews as feedback items, so a final read
+  // pass runs after them — otherwise the freshly captured ones would sit
+  // unread and every client would show a "still to read" backlog.
+  await readAll(client.id);
+
+  // M7: sort and draft, exactly as the operator would from the Feedback page.
+  await triageClientFeedback(db, client.id, {});
+  await draftClientReplies(db, client.id, { ...OFFLINE, limit: 60 });
+
+  await printSummary(client);
+}
+
+/**
+ * What the pages will say, straight from the stored rows — printed so a
+ * seeding can be checked against the story before anybody opens a browser.
+ */
+async function printSummary(client: { id: string; businessName: string; vertical: string }) {
+  const [bySource, snapshots, minutes, actions, contextRows, themes] = await Promise.all([
+    db.reviewItem.groupBy({ by: ['source'], where: { clientId: client.id }, _count: { _all: true } }),
+    db.snapshot.count({ where: { clientId: client.id } }),
+    db.minute.count({ where: { clientId: client.id } }),
+    db.improvementAction.findMany({
+      where: { clientId: client.id },
+      select: { themeLabel: true, status: true, result: true, baselineCount: true, baselineTotal: true, resultJson: true },
+    }),
+    db.businessContext.count({ where: { clientId: client.id } }),
+    getThemeSummary(db, client.id, client.vertical),
+  ]);
+  const unread = await db.reviewItem.count({
+    where: { clientId: client.id, NOT: { analysisStatus: 'ANALYSED' } },
+  });
+  console.log(
+    `  · feedback ${bySource.map((s) => `${s.source} ${s._count._all}`).join(', ')}` +
+      ` (${unread} unread), check-ins ${snapshots}, minutes ${minutes}, context ${contextRows}`,
+  );
+  console.log(
+    `  · read ${themes.analysedCount}; issues ${themes.issues.map((t) => `${t.key} ${t.count}`).join(', ')}`,
+  );
+  console.log(`  · praise ${themes.praises.map((t) => `${t.key} ${t.count}`).join(', ')}`);
+  for (const d of themes.dimensions) {
+    if (d.rated > 0) console.log(`  · rated ${d.key}: ${d.rated} answers, avg ${d.average}, ${d.low} at 3 or below`);
+  }
+  for (const a of actions) {
+    const m = a.resultJson ? (JSON.parse(a.resultJson) as { before?: { line?: string }; after?: { line?: string } }) : null;
+    console.log(
+      `  · action ${a.themeLabel}: ${a.status}${a.result ? ` → ${a.result}` : ''} (baseline ${a.baselineCount} of ${a.baselineTotal}${
+        m?.before?.line && m?.after?.line ? `; ${m.before.line} → ${m.after.line}` : ''
+      })`,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+
+type Options = { client: string | null; replace: boolean; yes: boolean; clear: boolean };
+
+function options(argv: string[]): Options {
+  const out: Options = { client: null, replace: false, yes: false, clear: false };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === '--clear') out.clear = true;
+    else if (arg === '--replace') out.replace = true;
+    else if (arg === '--yes') out.yes = true;
+    else if (arg === '--client') {
+      out.client = argv[i + 1] ?? null;
+      i += 1;
+    }
+  }
+  return out;
+}
 
 async function seed() {
   if (existsSync(MANIFEST)) {
@@ -773,36 +913,7 @@ async function seed() {
 
   console.log(`Populating ${clients.length} existing clients with demo data.\n`);
 
-  for (const client of clients) {
-    console.log(`${client.businessName} (${client.vertical})`);
-    if (client.vertical === 'gym') await seedGym(client.id);
-    else if (client.vertical === 'restaurant') await seedRestaurant(client.id);
-    else if (client.vertical === 'salon') await seedSalon(client.id);
-    else if (client.vertical === 'clinic') await seedClinic(client.id);
-    else await seedGym(client.id);
-
-    // Every demo business has its feedback QR ready, even before anything
-    // has come in through it.
-    await ensureGateway(db, client.id);
-
-    // Snapshots capture their own reviews as feedback items, so a final read
-    // pass runs after them — otherwise the freshly captured ones would sit
-    // unread and every client would show a "still to read" backlog.
-    const read = await analyseClientFeedback(db, client.id, OFFLINE);
-    if (!read.ok) throw new Error(`analysis failed: ${read.message}`);
-
-    // M7: sort and draft, exactly as the operator would from the Feedback page.
-    await triageClientFeedback(db, client.id, {});
-    await draftClientReplies(db, client.id, { ...OFFLINE, limit: 40 });
-
-    const counts = await db.client.findUnique({
-      where: { id: client.id },
-      select: { _count: { select: { feedback: true, snapshots: true, minutes: true } } },
-    });
-    console.log(
-      `  · feedback ${counts?._count.feedback}, snapshots ${counts?._count.snapshots}, minutes ${counts?._count.minutes}`,
-    );
-  }
+  for (const client of clients) await seedClient(client);
 
   writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2), 'utf8');
   console.log(
@@ -811,6 +922,69 @@ async function seed() {
       `${manifest.contextIds.length} context lines.`,
   );
   console.log(`Manifest: ${MANIFEST}`);
+  console.log(MARKER);
+}
+
+/**
+ * Rebuild one client's story from scratch.
+ *
+ * For a wholly synthetic demo client. Says what it would remove, and removes
+ * nothing without --yes. The client row, its memberships, its feedback page
+ * and its printed QR token are never touched: a card already on a table has
+ * to keep working.
+ */
+async function replaceClient(name: string, yes: boolean) {
+  const client = await db.client.findFirst({
+    where: { businessName: { equals: name, mode: 'insensitive' }, archivedAt: null },
+    select: { id: true, businessName: true, vertical: true },
+  });
+  if (!client) {
+    console.log(`No client named "${name}".`);
+    process.exitCode = 1;
+    return;
+  }
+  if (client.vertical !== 'restaurant') {
+    console.log(`"${client.businessName}" is a ${client.vertical}; only the restaurant story can be rebuilt this way.`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const where = { clientId: client.id };
+  const [feedback, snapshots, actions, minutes, context] = await Promise.all([
+    db.reviewItem.count({ where }),
+    db.snapshot.count({ where }),
+    db.improvementAction.count({ where }),
+    db.minute.count({ where }),
+    db.businessContext.count({ where }),
+  ]);
+  console.log(
+    `${client.businessName} (${client.id}) holds ${feedback} feedback, ${snapshots} check-ins, ` +
+      `${actions} improvements, ${minutes} minutes and ${context} context lines.`,
+  );
+  console.log(
+    `Rebuilding replaces all of that with the ${storyFeedbackCount()} pieces of the Corner Cafe story.`,
+  );
+  if (!yes) {
+    console.log('Dry run. Add --yes to do it.');
+    return;
+  }
+
+  // Order matters only for the reader: nothing here references anything else
+  // except improvements → minutes, which is a soft link.
+  const removed = {
+    actions: (await db.improvementAction.deleteMany({ where })).count,
+    minutes: (await db.minute.deleteMany({ where })).count,
+    context: (await db.businessContext.deleteMany({ where })).count,
+    snapshots: (await db.snapshot.deleteMany({ where })).count,
+    feedback: (await db.reviewItem.deleteMany({ where })).count,
+  };
+  console.log(
+    `Removed ${removed.feedback} feedback, ${removed.snapshots} check-ins, ${removed.actions} improvements, ` +
+      `${removed.minutes} minutes, ${removed.context} context lines.\n`,
+  );
+
+  await seedClient(client);
+  console.log(`\nDone. ${client.businessName} now carries the Corner Cafe story.`);
   console.log(MARKER);
 }
 
@@ -845,10 +1019,14 @@ async function clear() {
 }
 
 async function main() {
-  const mode = process.argv.includes('--clear') ? 'clear' : 'seed';
+  const opts = options(process.argv.slice(2));
   try {
-    if (mode === 'clear') await clear();
-    else await seed();
+    if (opts.clear) await clear();
+    else if (opts.client && opts.replace) await replaceClient(opts.client, opts.yes);
+    else if (opts.client) {
+      console.log('--client needs --replace: seeding a single client only works as a rebuild.');
+      process.exitCode = 1;
+    } else await seed();
   } finally {
     await db.$disconnect();
   }

@@ -1,26 +1,23 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
-import { getImprovementsView } from '@/lib/portal/service';
-import {
-  ActionStory,
-  PageIntro,
-  Quiet,
-  Section,
-  ThemeStory,
-} from '@/components/portal/portal-ui';
+import { getEvidenceIndex, getImprovementsView } from '@/lib/portal/service';
+import { PageIntro, Quiet, Section } from '@/components/portal/portal-ui';
+import { ImprovementStory } from '@/components/workspace/improvement-story';
+import { SignalCard } from '@/components/workspace/signal-board';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Improvements' };
 
 /**
- * IMPROVEMENTS — what did we actually do, and did it help? (M12)
+ * IMPROVEMENTS — what did we actually do, and did it help? (M24)
  *
- * The loop, end to end, for every change: problem → what Headway suggested →
- * what you decided → the change → before → after → reading → what we learned
- * → what next. Honest on purpose: feedback that got worse after a change says
- * so, and a change that helped and is slipping says that too. The page is
- * also where the next decision starts. Each reading carries its own limit
- * beside the finding, so the page does not repeat it at the bottom.
+ * The page that proves Headway remembers. Every change is told as three
+ * moments — the problem, what you changed, what Headway found when it
+ * checked again — with the before and after numbers as the largest things
+ * on the page, then what happened, what it means and what to do now in three
+ * labelled lines. Why, the evidence and the original suggestion open on
+ * request. Honest on purpose: feedback that got worse after a change says
+ * so, and a change that helped and is slipping says that too.
  *
  * Reached through an authenticated workspace. Whoever renders this has already
  * decided the caller may see this business.
@@ -34,19 +31,24 @@ export async function PortalImprovements({
   basePath: string;
 }) {
   const client = { id: clientId };
-  const view = await getImprovementsView(prisma, client.id);
+  const [view, evidence] = await Promise.all([
+    getImprovementsView(prisma, client.id),
+    getEvidenceIndex(prisma, client.id),
+  ]);
   if (!view) notFound();
 
   const empty =
     view.open.length + view.checked.length + view.notPursued.length === 0 && !view.suggested;
 
   return (
-    <div className="max-w-3xl">
-      <PageIntro
-        eyebrow="Improvements"
-        title="What you changed, and what happened next"
-        description={view.record}
-      />
+    <div>
+      <div className="max-w-3xl">
+        <PageIntro
+          eyebrow="Improvements"
+          title="What you changed, and what happened next"
+          description={view.record}
+        />
+      </div>
 
       {empty ? (
         <Quiet>
@@ -55,37 +57,39 @@ export async function PortalImprovements({
         </Quiet>
       ) : null}
 
-      {view.suggested ? (
-        <Section eyebrow="Waiting on your decision">
-          <ThemeStory signal={view.suggested} basePath={basePath} depth="brief" />
-        </Section>
-      ) : null}
-
-      {view.open.length > 0 ? (
-        <Section eyebrow="In progress">
-          <div>
-            {view.open.map((a) => (
-              <ActionStory key={a.id} action={a} basePath={basePath} />
+      {view.checked.length > 0 ? (
+        <Section eyebrow="Compared with feedback" note="Before and after, in customers' own words">
+          <div className="space-y-5">
+            {view.checked.map((a) => (
+              <ImprovementStory key={a.id} action={a} evidence={evidence} basePath={basePath} />
             ))}
           </div>
         </Section>
       ) : null}
 
-      {view.checked.length > 0 ? (
-        <Section eyebrow="Compared with feedback">
-          <div>
-            {view.checked.map((a) => (
-              <ActionStory key={a.id} action={a} basePath={basePath} />
+      {view.open.length > 0 ? (
+        <Section eyebrow="In progress">
+          <div className="space-y-5">
+            {view.open.map((a) => (
+              <ImprovementStory key={a.id} action={a} evidence={evidence} basePath={basePath} />
             ))}
+          </div>
+        </Section>
+      ) : null}
+
+      {view.suggested ? (
+        <Section eyebrow="Waiting on your decision" note="Headway has suggested a change">
+          <div className="max-w-3xl">
+            <SignalCard signal={view.suggested} group="NEEDS_YOU" evidence={evidence} basePath={basePath} />
           </div>
         </Section>
       ) : null}
 
       {view.notPursued.length > 0 ? (
         <Section eyebrow="Not pursued">
-          <div>
+          <div className="space-y-5">
             {view.notPursued.map((a) => (
-              <ActionStory key={a.id} action={a} basePath={basePath} />
+              <ImprovementStory key={a.id} action={a} evidence={evidence} basePath={basePath} />
             ))}
           </div>
         </Section>

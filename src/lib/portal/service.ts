@@ -8,6 +8,7 @@ import { getAnalysisCoverage } from '@/lib/feedback/analysis';
 import { listSnapshots, loadHealthSnapshots } from '@/lib/snapshots/service';
 import { getContextSet } from '@/lib/context/service';
 import { buildPortalView, type PortalInput, type PortalView } from './view';
+import { EMPTY_EVIDENCE, buildEvidenceIndex, type EvidenceIndex } from './evidence';
 import {
   buildAnalysisView,
   buildCheckinView,
@@ -184,8 +185,37 @@ export async function getReviewsView(
     nextPage: page + 1,
     filters: { ...filters, theme: themeKnown ? filters.theme : null },
     intelligence: context.intelligence,
+    themes: context.themes,
     replyWorth,
   });
+}
+
+/**
+ * The rows behind every count, indexed by theme (M24).
+ *
+ * One query, the owner-safe columns only — the redacted text, the rating,
+ * the date, the door it came through and the themes the analysis assigned.
+ * Pages use it to show three customers in their own words under a figure,
+ * with the full list still one tap away on Reviews. Empty for a client that
+ * does not exist, so a page never has to special-case it.
+ */
+export async function getEvidenceIndex(db: PrismaClient, clientId: string): Promise<EvidenceIndex> {
+  const client = await findClient(db, clientId);
+  if (!client) return EMPTY_EVIDENCE;
+  const rows = await db.reviewItem.findMany({
+    where: { clientId: client.id, analysisStatus: 'ANALYSED' },
+    select: {
+      id: true,
+      text: true,
+      stars: true,
+      reviewDate: true,
+      createdAt: true,
+      source: true,
+      themesJson: true,
+    },
+    orderBy: [{ reviewDate: 'desc' }, { createdAt: 'desc' }],
+  });
+  return buildEvidenceIndex(rows);
 }
 
 /** Just enough to render the masthead and navigation. */

@@ -4,8 +4,10 @@ import { notFound, redirect } from 'next/navigation';
 import { currentActor } from '@/lib/auth/authorize';
 import { tenantGateFor } from '@/lib/auth/guard';
 import { prisma } from '@/lib/db';
+import { formatDate } from '@/lib/format';
 import { formatLongDate, getAccountState, type AccountState } from '@/lib/commercial/service';
-import { getResponsibility, type ResponsibilityBundle } from '@/lib/responsibility/service';
+import { activityFacts } from '@/lib/portal/focus';
+import { getResponsibility } from '@/lib/responsibility/service';
 import { PageIntro, Quiet, Section } from '@/components/portal/portal-ui';
 import { ContinueWithHeadwayForm } from '@/components/forms/continue-form';
 
@@ -14,11 +16,13 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Account' };
 
 /**
- * THE OWNER'S ACCOUNT PAGE (M21, rebuilt in M23).
+ * THE OWNER'S ACCOUNT PAGE (M21, rebuilt in M23, sectioned in M24).
  *
- * Four things, in this order: where the account stands, in one headline and
- * one sentence; what Headway has done so far, as facts; how to carry on, when
- * that is the next step; and where Headway reaches the owner.
+ * Useful, and deliberately secondary. Three sections an owner can scan:
+ * where the service stands, what Headway has done with their feedback, and
+ * how to carry on — then, for an active account, where Headway reaches them.
+ * A page with few settings is not made to look empty: each section is a
+ * short list of facts the rest of the workspace already states.
  *
  * THERE IS NO PRICE ON THIS PAGE, and that is not an oversight. RepOS has no
  * price list, no tier and no published number: what a business pays is
@@ -37,48 +41,34 @@ export const metadata: Metadata = { title: 'Account' };
  * work in without being able to speak for it commercially.
  */
 
-type Fact = { label: string; value: string; href?: string };
+type Fact = { label: string; value: string; href?: string | null };
 
-/**
- * What the owner has to show for the trial so far. Every figure is one the
- * rest of the workspace already states; nothing is invented to fill a row.
- */
-function valueFacts(bundle: ResponsibilityBundle | null, basePath: string): Fact[] {
-  if (!bundle) return [];
-  const { view, responsibility: r } = bundle;
-  const collected = view.soFar.read + view.soFar.waiting;
-  if (collected === 0) return [];
+const DAY = 86_400_000;
 
-  const facts: Fact[] = [
-    { label: 'Feedback collected', value: String(collected), href: `${basePath}/reviews` },
-    { label: 'Read by Headway', value: String(view.basedOn) },
-  ];
-
-  const strongest = view.first ?? view.keep ?? null;
-  if (strongest) {
-    facts.push({
-      label: strongest.kind === 'ISSUE' ? 'Strongest signal right now' : 'Strongest signal right now',
-      value: `${strongest.themeLabel} · ${strongest.evidenceCount} of ${strongest.evidenceTotal}`,
-      href: `${basePath}/reviews?theme=${encodeURIComponent(strongest.themeKey)}`,
-    });
-  } else {
-    const top = view.soFar.mentions[0];
-    if (top) {
+/** Where the service stands, as facts: the kind of account, and the date that matters. */
+function serviceFacts(account: AccountState): Fact[] {
+  const facts: Fact[] = [];
+  const onTrial = account.phase === 'TRIAL' || account.phase === 'TRIAL_ENDED';
+  if (onTrial) {
+    const length =
+      account.trialStartsAt && account.trialEndsAt
+        ? Math.round((account.trialEndsAt.getTime() - account.trialStartsAt.getTime()) / DAY)
+        : null;
+    facts.push({ label: 'Service', value: length ? `${length}-day trial` : 'Trial' });
+    if (account.trialEndsAt) {
       facts.push({
-        label: 'Mentioned most so far',
-        value: `${top.label} · ${top.count} ${top.count === 1 ? 'customer' : 'customers'}`,
-        href: `${basePath}/reviews?theme=${encodeURIComponent(top.themeKey)}`,
+        label: account.phase === 'TRIAL_ENDED' ? 'Ended' : 'Ends',
+        value: formatDate(account.trialEndsAt),
       });
     }
-  }
-
-  const carried = r.needsYou[0] ?? r.watching.find((i) => i.state !== 'KEEP_DOING') ?? null;
-  if (carried) {
-    facts.push({
-      label: r.needsYou[0] ? 'Needs you' : 'Headway is watching',
-      value: carried.headline,
-      href: basePath,
-    });
+  } else if (account.phase === 'ACTIVE') {
+    facts.push({ label: 'Service', value: 'Headway, active' });
+    if (account.serviceResumedAt) facts.push({ label: 'Resumed', value: formatDate(account.serviceResumedAt) });
+  } else if (account.phase === 'PAUSED') {
+    facts.push({ label: 'Service', value: 'Paused' });
+    if (account.servicePausedAt) facts.push({ label: 'Paused since', value: formatDate(account.servicePausedAt) });
+  } else {
+    facts.push({ label: 'Service', value: 'Closed' });
   }
   return facts;
 }
@@ -89,7 +79,7 @@ function Facts({ facts }: { facts: Fact[] }) {
       {facts.map((f) => (
         <div key={f.label} className="grid grid-cols-1 gap-x-6 gap-y-0.5 py-2.5 sm:grid-cols-[12rem_1fr]">
           <dt className="text-ink-500">{f.label}</dt>
-          <dd className="font-medium text-ink-900">
+          <dd className="font-medium text-ink-900 tabular-nums">
             {f.href ? (
               <Link
                 href={f.href}
@@ -136,7 +126,7 @@ export default async function WorkspaceAccountPage({
   const stopped = account.phase === 'PAUSED' || account.phase === 'CLOSED';
   const onTrial = account.phase === 'TRIAL' || account.phase === 'TRIAL_ENDED';
   const asked = account.continuationRequestedAt;
-  const facts = valueFacts(bundle, basePath);
+  const activity = bundle ? activityFacts(bundle.view, bundle.responsibility, basePath) : [];
 
   return (
     <div className="max-w-3xl">
@@ -145,9 +135,13 @@ export default async function WorkspaceAccountPage({
         <p className="-mt-5 mb-8 text-[14px] leading-relaxed text-ink-600">{account.note}</p>
       ) : null}
 
-      <Section eyebrow="What Headway has done for you">
-        {facts.length > 0 ? (
-          <Facts facts={facts} />
+      <Section eyebrow="Your Headway service">
+        <Facts facts={serviceFacts(account)} />
+      </Section>
+
+      <Section eyebrow="Your Headway activity">
+        {activity.length > 0 ? (
+          <Facts facts={activity} />
         ) : (
           <Quiet>
             Nothing yet. Once customers start scanning your card, what Headway collects, reads
