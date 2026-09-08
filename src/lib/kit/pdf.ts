@@ -44,10 +44,26 @@ function n(value: number): string {
 // Fonts
 // ---------------------------------------------------------------------------
 
-export type PdfFont = 'regular' | 'bold';
+/**
+ * The three faces the printed card uses.
+ *
+ * `regular` and `bold` are Helvetica; `serifItalic` is Times-Italic. All three
+ * are base-14, so none of them is embedded and none of them needs a licence.
+ *
+ * WHY A SERIF AT ALL. The approved table tent sets its question and its
+ * thank-you in an italic serif (Cormorant Garamond Light Italic in the artwork
+ * the design was signed off from). That italic is most of what makes the card
+ * read as a considered object rather than a notice, so it is reproduced here
+ * with the nearest face every PDF reader already has. Embedding Cormorant
+ * would mean shipping and subsetting a TrueType file for one line of type on
+ * one card; Times-Italic carries the same idea at a fraction of the cost, and
+ * the sizes below are chosen so each line SETS THE SAME WIDTH as the approved
+ * artwork rather than the same nominal point size.
+ */
+export type PdfFont = 'regular' | 'bold' | 'serifItalic';
 
 /**
- * Adobe's own Helvetica widths, in 1/1000 em, for ASCII 32-126.
+ * Adobe's own widths, in 1/1000 em, for ASCII 32-126.
  *
  * Needed because centring text requires knowing how wide it is, and the base-14
  * fonts are not embedded — so there is no font file to measure. These are the
@@ -70,6 +86,15 @@ const ASCII_WIDTHS: Record<PdfFont, number[]> = {
     333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611,
     611, 611, 389, 556, 333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584,
   ],
+  // Times-Italic, from the same AFM set.
+  serifItalic: [
+    250, 333, 420, 500, 500, 833, 778, 214, 333, 333, 500, 675, 250, 333, 250, 278,
+    500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 333, 333, 675, 675, 675, 500,
+    920, 611, 611, 667, 722, 611, 611, 722, 722, 333, 444, 667, 556, 833, 667, 722,
+    611, 722, 611, 500, 556, 722, 611, 833, 611, 556, 556, 389, 278, 389, 422, 500,
+    333, 500, 500, 444, 500, 444, 278, 500, 500, 278, 278, 444, 278, 722, 500, 500,
+    500, 500, 389, 389, 278, 500, 444, 667, 444, 444, 389, 400, 275, 400, 541,
+  ],
 };
 
 /**
@@ -80,17 +105,17 @@ const ASCII_WIDTHS: Record<PdfFont, number[]> = {
  * approved wording for a restaurant, and rendering it as a question mark on a
  * card a customer reads would be a visible defect.
  */
-const WIN_ANSI: Record<string, { byte: number; regular: number; bold: number }> = {
-  '—': { byte: 0x97, regular: 1000, bold: 1000 }, // em dash
-  '–': { byte: 0x96, regular: 556, bold: 556 }, // en dash
-  '’': { byte: 0x92, regular: 222, bold: 278 }, // right single quote
-  '‘': { byte: 0x91, regular: 222, bold: 278 },
-  '“': { byte: 0x93, regular: 333, bold: 500 },
-  '”': { byte: 0x94, regular: 333, bold: 500 },
-  '…': { byte: 0x85, regular: 1000, bold: 1000 }, // ellipsis
-  '•': { byte: 0x95, regular: 350, bold: 350 }, // bullet
-  '·': { byte: 0xb7, regular: 278, bold: 278 }, // middle dot, the separator RepOS uses
-  '×': { byte: 0xd7, regular: 584, bold: 584 }, // multiplication sign, for dimensions
+const WIN_ANSI: Record<string, { byte: number } & Record<PdfFont, number>> = {
+  '—': { byte: 0x97, regular: 1000, bold: 1000, serifItalic: 889 }, // em dash
+  '–': { byte: 0x96, regular: 556, bold: 556, serifItalic: 500 }, // en dash
+  '’': { byte: 0x92, regular: 222, bold: 278, serifItalic: 333 }, // right single quote
+  '‘': { byte: 0x91, regular: 222, bold: 278, serifItalic: 333 },
+  '“': { byte: 0x93, regular: 333, bold: 500, serifItalic: 556 },
+  '”': { byte: 0x94, regular: 333, bold: 500, serifItalic: 556 },
+  '…': { byte: 0x85, regular: 1000, bold: 1000, serifItalic: 889 }, // ellipsis
+  '•': { byte: 0x95, regular: 350, bold: 350, serifItalic: 350 }, // bullet
+  '·': { byte: 0xb7, regular: 278, bold: 278, serifItalic: 250 }, // middle dot, the separator RepOS uses
+  '×': { byte: 0xd7, regular: 584, bold: 584, serifItalic: 675 }, // multiplication sign, for dimensions
 };
 
 /** Anything with no WinAnsi byte becomes something a reader can still set. */
@@ -109,7 +134,10 @@ function charWidth(char: string, font: PdfFont): number {
   if (extra) return extra[font];
   // Latin-1 accented letters pass through as themselves; 556 is the width of
   // most of them in both faces and the error is under a millimetre.
-  if (code >= 0xa1 && code <= 0xff) return font === 'bold' ? 611 : 556;
+  if (code >= 0xa1 && code <= 0xff) {
+    if (font === 'bold') return 611;
+    return font === 'serifItalic' ? 500 : 556;
+  }
   return 0;
 }
 
@@ -174,6 +202,20 @@ export function rgb(hex: string): [number, number, number] {
   if (!Number.isFinite(value) || full.length !== 6) return [0, 0, 0];
   return [((value >> 16) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255];
 }
+
+/** The resource name each face is registered under in every page. */
+const FONT_RESOURCE: Record<PdfFont, string> = {
+  regular: 'F1',
+  bold: 'F2',
+  serifItalic: 'F3',
+};
+
+/** Ascender and descender as a share of the em, for the ink-bounds check. */
+const FONT_EXTENT: Record<PdfFont, { ascent: number; descent: number }> = {
+  regular: { ascent: 0.718, descent: 0.207 },
+  bold: { ascent: 0.718, descent: 0.207 },
+  serifItalic: { ascent: 0.683, descent: 0.217 },
+};
 
 export type TextOptions = {
   font?: PdfFont;
@@ -326,6 +368,45 @@ export class PdfPage {
     return this;
   }
 
+  /**
+   * A filled rectangle with rounded corners — the cream panel the code sits in.
+   *
+   * Four straight sides and four quarter-circle corners, drawn with the usual
+   * cubic approximation (0.5523 of the radius as the control-point offset).
+   * A square panel would read as a screenshot pasted onto the card; the
+   * rounded one reads as a printed label, which is what the approved artwork
+   * draws and the one shape on the tent that is not a straight line.
+   */
+  roundedRect(
+    xMm: number,
+    yMm: number,
+    wMm: number,
+    hMm: number,
+    radiusMm: number,
+    colour: string,
+  ): this {
+    const r = Math.max(0, Math.min(radiusMm, wMm / 2, hMm / 2));
+    const k = r * 0.5523;
+    const x2 = xMm + wMm;
+    const y2 = yMm + hMm;
+    this.path(
+      [
+        moveTo(xMm + r, yMm),
+        lineTo(x2 - r, yMm),
+        curveTo(x2 - r + k, yMm, x2, yMm + r - k, x2, yMm + r),
+        lineTo(x2, y2 - r),
+        curveTo(x2, y2 - r + k, x2 - r + k, y2, x2 - r, y2),
+        lineTo(xMm + r, y2),
+        curveTo(xMm + r - k, y2, xMm, y2 - r + k, xMm, y2 - r),
+        lineTo(xMm, yMm + r),
+        curveTo(xMm, yMm + r - k, xMm + r - k, yMm, xMm + r, yMm),
+      ],
+      { fill: colour },
+    );
+    this.mark(xMm, yMm, x2, y2);
+    return this;
+  }
+
   /** An unfilled rectangle, for a cut border. */
   frame(
     xMm: number,
@@ -359,17 +440,18 @@ export class PdfPage {
     this.ops.push(
       'BT',
       `${n(r)} ${n(g)} ${n(b)} rg`,
-      `/${font === 'bold' ? 'F2' : 'F1'} ${n(size)} Tf`,
+      `/${FONT_RESOURCE[font]} ${n(size)} Tf`,
       `${n(tracking)} Tc`,
       `${n(mmToPt(x))} ${n(this.y(yMm))} Td`,
       `${pdfString(value)} Tj`,
       '0 Tc',
       'ET',
     );
-    // Helvetica's ascender and descender, as a share of the em. Enough to know
-    // whether a line of type has run off the paper.
-    const ascent = (size * 0.718) / PT_PER_MM;
-    const descent = (size * 0.207) / PT_PER_MM;
+    // The face's own ascender and descender, as a share of the em. Enough to
+    // know whether a line of type has run off the paper.
+    const metrics = FONT_EXTENT[font];
+    const ascent = (size * metrics.ascent) / PT_PER_MM;
+    const descent = (size * metrics.descent) / PT_PER_MM;
     this.mark(x, yMm - ascent, x + width, yMm + descent);
     return this;
   }
@@ -440,12 +522,13 @@ export function buildPdf(
   };
 
   // 1 catalog · 2 pages · 3 info · then a page and a content stream each · then
-  // the two fonts last, so their numbers are known before the pages reference
+  // the three fonts last, so their numbers are known before the pages reference
   // them.
   const first = 4;
   const fontRegular = first + pages.length * 2;
   const fontBold = fontRegular + 1;
-  const total = fontBold + 1;
+  const fontSerif = fontBold + 1;
+  const total = fontSerif + 1;
 
   push('%PDF-1.4\n');
   // A binary comment marks the file as binary for tools that sniff it.
@@ -467,7 +550,8 @@ export function buildPdf(
     object(
       pageIndex,
       `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${n(mmToPt(page.widthMm))} ${n(mmToPt(page.heightMm))}] ` +
-        `/Resources << /Font << /F1 ${fontRegular} 0 R /F2 ${fontBold} 0 R >> >> /Contents ${streamIndex} 0 R >>`,
+        `/Resources << /Font << /F1 ${fontRegular} 0 R /F2 ${fontBold} 0 R /F3 ${fontSerif} 0 R >> >> ` +
+        `/Contents ${streamIndex} 0 R >>`,
     );
     const stream = page.content();
     object(
@@ -483,6 +567,10 @@ export function buildPdf(
   object(
     fontBold,
     `<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>`,
+  );
+  object(
+    fontSerif,
+    `<< /Type /Font /Subtype /Type1 /BaseFont /Times-Italic /Encoding /WinAnsiEncoding >>`,
   );
 
   const xref = length;

@@ -50,16 +50,14 @@ export async function GET(
     );
   }
 
+  // ONE TEMPLATE, TWO FILLED-IN VALUES. The card is the approved Headway
+  // design for every business; the only things that come from this client are
+  // the name printed on it and the address its QR opens. Nothing else is
+  // passed in, so nothing else can vary — no per-vertical wording, no
+  // per-client colours, no second layout to keep in step.
   const pdf = renderTentSheet({
     businessName: view.content.displayName || view.businessName,
-    headline: view.content.headline,
-    subhead: view.content.subhead,
-    qrCaption: view.content.qrCaption,
-    thankYou: view.content.footerNote,
-    placement: view.content.placement,
     feedbackUrl: url,
-    brandPrimary: view.brandPrimary,
-    brandSecondary: view.brandSecondary,
   });
 
   // The same bytes either way. `inline` so the owner's Preview shows the sheet

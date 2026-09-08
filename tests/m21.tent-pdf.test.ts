@@ -3,6 +3,7 @@ import { join as joinPath, resolve as resolvePath } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   TENT,
+  TENT_COPY,
   composeTentSheet,
   qrMatrix,
   renderTentSheet,
@@ -12,43 +13,62 @@ import {
 import { PT_PER_MM, textWidthMm } from '@/lib/kit/pdf';
 
 /**
- * THE PRINTED TENT, CHECKED AS AN OBJECT (launch pass).
+ * THE HEADWAY TABLE TENT, CHECKED AS AN OBJECT.
  *
- * The kit is the only part of RepOS that leaves the screen, and a card is
+ * The kit is the only part of Headway that leaves the screen, and a card is
  * permanent once it is printed. A hundred cards with a clipped line or a QR
  * that will not scan is not a bug report, it is a hundred pieces of paper.
  *
- * So the geometry is asserted rather than previewed: A4 to the millimetre, a
- * visible face of exactly six inches by two, both faces the same object, one
- * fold at the exact centre of each card, and nothing — no rule, no rectangle,
- * no line of type — outside the paper.
+ * So the geometry is asserted rather than previewed, and so is the thing that
+ * matters most about this design: it is ONE template. Two clients produce the
+ * same sheet with two things swapped — the name and the code — and these tests
+ * prove that by rendering two of them and comparing every word.
  */
 
-const RESTAURANT: TentInput = {
+const CAFE: TentInput = {
   businessName: 'Corner Cafe',
-  headline: 'How was your meal today?',
-  subhead: 'Tell us honestly — good, bad or somewhere between.',
-  qrCaption: 'Scan — it takes about a minute',
-  thankYou: 'Thank you — this goes straight to the kitchen team.',
-  placement: 'On each table, and one at the billing counter.',
-  feedbackUrl: 'https://repos.example.com/feedback/Ab3xY9zQmN2pLr7TvW1kJd',
-  brandPrimary: '#1F3A5F',
-  brandSecondary: '#C9A227',
+  feedbackUrl: 'https://headway.example.com/feedback/Ab3xY9zQmN2pLr7TvW1kJd',
 };
 
-const GYM: TentInput = {
-  ...RESTAURANT,
-  businessName: 'Gold Gym',
-  headline: 'How is the gym working for you?',
-  subhead: 'Tell us honestly — good, bad or somewhere between.',
-  thankYou: 'Thank you — the floor team will be glad to read this.',
-  placement: 'At the front desk, beside the sign-in register.',
+const CLINIC: TentInput = {
+  businessName: "Dr. Mehta's Family Clinic & Diagnostics",
+  feedbackUrl: 'https://headway.example.com/feedback/Mn4bVcXzLkJhGfDsAqWeRt',
+};
+
+const LONG: TentInput = {
+  businessName: 'The Very Long Restaurant And Banqueting Company Limited',
+  feedbackUrl: 'https://headway.example.com/feedback/Zz9QwErTyUiOpAsDfGhJkL',
 };
 
 const text = (bytes: Uint8Array) => new TextDecoder('latin1').decode(bytes);
 
+/** The drawing operators, in order, as the page emitted them. */
+function ops(input: TentInput): string[] {
+  return composeTentSheet(input).content().split('\n');
+}
+
+/** Every string the sheet actually sets, in order. */
+function words(input: TentInput): string[] {
+  return ops(input)
+    .filter((l) => l.endsWith(' Tj'))
+    .map((l) => l.slice(1, l.lastIndexOf(') Tj')));
+}
+
+/** Every filled rectangle drawn immediately after this colour. */
+function rects(lines: string[], colour: string): number[][] {
+  return lines
+    .map((line, i) => ({ line, prev: lines[i - 1] }))
+    .filter((x) => x.line.endsWith(' re f') && x.prev === colour)
+    .map((x) => x.line.split(' ').slice(0, 4).map(Number));
+}
+
+const NAVY = '0.063 0.165 0.263 rg';
+const GOLD = '0.718 0.541 0.231 rg';
+const PANEL = '0.925 0.902 0.847 rg';
+const BLACK = '0 0 0 rg';
+
 // ---------------------------------------------------------------------------
-// Geometry
+// The physical object
 // ---------------------------------------------------------------------------
 
 describe('the physical card', () => {
@@ -59,62 +79,401 @@ describe('the physical card', () => {
     expect(g.pageHeightMm).toBe(297);
   });
 
-  it('shows a portrait face at 1 : 1.40', () => {
-    // The ratio is the design. The size is what falls out of A4 once two tents
-    // and a printable margin are subtracted, and it is checked below rather
-    // than asserted as a number somebody chose.
-    expect(g.faceHeightMm / g.faceWidthMm).toBeCloseTo(1.4, 6);
-    expect(g.faceRatio).toBeCloseTo(1.4, 6);
+  it('shows the approved face: 84 × 123 mm, portrait', () => {
+    expect(g.faceWidthMm).toBe(84);
+    expect(g.faceHeightMm).toBe(123);
     expect(g.faceHeightMm).toBeGreaterThan(g.faceWidthMm);
-    expect(g.faceWidthMm).toBeCloseTo(88, 6);
-    expect(g.faceHeightMm).toBeCloseTo(123.2, 6);
   });
 
-  it('is the largest face that fits, not an arbitrary one', () => {
-    // Width is the binding constraint: two faces and a gutter have to fit
-    // across 210 mm, and the leftover is the trim. Prove there is no room for
-    // a materially bigger card by showing the margins are already small.
-    const across = g.faceWidthMm * g.cardsPerSheet + TENT.gapMm;
-    expect(across).toBeLessThanOrEqual(g.pageWidthMm);
-    expect(g.pageWidthMm - across).toBeLessThan(30); // under 15 mm of trim a side
-    // And that it is genuinely bigger than the alternative arrangement: two
-    // tents stacked would be FOUR faces deep, which caps the face far lower.
-    const stackedMax = (g.pageHeightMm - 40) / 4 / 1.4;
-    expect(g.faceWidthMm).toBeGreaterThan(stackedMax * 1.8);
+  it('is four panels: two faces, a base and a tab', () => {
+    // The A-frame the approved artwork builds. Two faces lean apart from the
+    // ridge, the base folds under and lies on the table, and the tab closes
+    // the triangle inside the far face.
+    expect(g.cardHeightMm).toBeCloseTo(
+      g.faceHeightMm * 2 + TENT.baseMm + TENT.tabMm,
+      6,
+    );
+    expect(g.fold1Mm - g.cardTopMm).toBeCloseTo(g.faceHeightMm, 6);
+    expect(g.fold2Mm - g.fold1Mm).toBeCloseTo(g.faceHeightMm, 6);
+    expect(g.fold3Mm - g.fold2Mm).toBeCloseTo(TENT.baseMm, 6);
+    expect(g.cardBottomMm - g.fold3Mm).toBeCloseTo(TENT.tabMm, 6);
   });
 
-  it('folds exactly in the middle, so both faces are the same size', () => {
-    expect(g.cardHeightMm).toBeCloseTo(g.faceHeightMm * 2, 6);
-    const above = g.foldMm - g.cardTopMm;
-    const below = g.cardTopMm + g.cardHeightMm - g.foldMm;
-    // The two halves the fold makes are equal, which is what "both faces have
-    // identical physical dimensions" means in millimetres.
-    expect(above).toBeCloseTo(below, 6);
-    expect(above).toBeCloseTo(g.faceHeightMm, 6);
+  it('makes the two faces identical in size, so the tent reads the same from either side', () => {
+    expect(g.fold2Mm - g.fold1Mm).toBeCloseTo(g.fold1Mm - g.cardTopMm, 6);
   });
 
-  it('fits two whole tents on one sheet, side by side, with paper between them', () => {
+  it('fits two whole cards on one sheet, side by side, with paper between them', () => {
     expect(g.cardsPerSheet).toBe(2);
     expect(g.cardLeftsMm).toHaveLength(2);
-    const firstRight = g.cardLeftsMm[0]! + g.cardWidthMm;
-    expect(g.cardLeftsMm[1]! - firstRight).toBeCloseTo(TENT.gapMm, 6);
+    const firstRightBleed = g.cardLeftsMm[0]! + g.cardWidthMm + g.bleedMm;
+    expect(g.cardLeftsMm[1]! - g.bleedMm - firstRightBleed).toBeCloseTo(TENT.gapMm, 6);
     expect(g.cardLeftsMm[1]! + g.cardWidthMm).toBeLessThanOrEqual(g.pageWidthMm);
-    expect(g.cardTopMm + g.cardHeightMm).toBeLessThanOrEqual(g.pageHeightMm);
+    expect(g.cardBottomMm).toBeLessThanOrEqual(g.pageHeightMm);
   });
 
-  it('centres the pair, and leaves room to print above and below', () => {
-    const across = g.cardWidthMm * g.cardsPerSheet + TENT.gapMm;
-    expect(g.marginLeftMm).toBeCloseTo((g.pageWidthMm - across) / 2, 6);
-    expect(g.marginTopMm).toBeGreaterThanOrEqual(10);
-    expect(g.marginBottomMm).toBeGreaterThanOrEqual(10);
+  it('centres the pair', () => {
+    const leftGap = g.cardLeftsMm[0]! - g.bleedMm;
+    const rightGap = g.pageWidthMm - (g.cardLeftsMm[1]! + g.cardWidthMm + g.bleedMm);
+    expect(leftGap).toBeCloseTo(rightGap, 6);
   });
 
-  it('needs one fold per tent and no other construction', () => {
-    // A second fold, a tab or a slot would each show up as another line to
-    // follow. There is one, at the same height for both tents, and it is the
-    // centre line of each.
-    expect(typeof g.foldMm).toBe('number');
-    expect(g.foldMm).toBeCloseTo(g.cardTopMm + g.cardHeightMm / 2, 6);
+  it('carries a bleed, so a cut that wanders leaves no white edge', () => {
+    const lines = ops(CAFE);
+    const navy = rects(lines, NAVY);
+    // One navy ground per card, and it is the card PLUS a bleed on every side.
+    expect(navy).toHaveLength(2);
+    for (const [x, , w, h] of navy) {
+      expect(w! / PT_PER_MM).toBeCloseTo(g.cardWidthMm + g.bleedMm * 2, 3);
+      expect(h! / PT_PER_MM).toBeCloseTo(g.cardHeightMm + g.bleedMm * 2, 3);
+      const trimLeft = g.cardLeftsMm.find((l) => Math.abs(l - g.bleedMm - x! / PT_PER_MM) < 0.01);
+      expect(trimLeft, 'the navy sits exactly one bleed outside a trim edge').toBeDefined();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Nothing that matters is clipped
+// ---------------------------------------------------------------------------
+
+describe('what survives the cut', () => {
+  const g = tentGeometry();
+
+  it('keeps the whole finished card clear of the printer’s own border', () => {
+    // This is the invariant that matters. Consumer printers cannot reach the
+    // outermost few millimetres of the paper; everything INSIDE the trim is
+    // what the owner ends up holding, so it is the trim, not the ink, that has
+    // to be safely inboard. It is 6.5 mm from the top and the sides, and more
+    // than that from the foot.
+    const inset = Math.min(
+      g.cardLeftsMm[0]!,
+      g.cardTopMm,
+      g.pageWidthMm - (g.cardLeftsMm[1]! + g.cardWidthMm),
+      g.pageHeightMm - g.cardBottomMm,
+    );
+    expect(inset).toBeGreaterThanOrEqual(6.5);
+  });
+
+  it('keeps even the bleed and the build instructions on the paper, with room to spare', () => {
+    // Outside the trim there are only two things, and both are thrown away by
+    // the cut: the bleed, and the two lines at the foot that say how to build
+    // the tent. They still have to PRINT, or the person assembling it never
+    // reads them — 3 mm is inside the margin of every current A4 printer.
+    for (const input of [CAFE, CLINIC, LONG]) {
+      const page = composeTentSheet(input);
+      const ink = page.bounds()!;
+      const smallest = Math.min(
+        ink.leftMm,
+        ink.topMm,
+        page.widthMm - ink.rightMm,
+        page.heightMm - ink.bottomMm,
+      );
+      expect(smallest, input.businessName).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('never lets a long business name print past the edge of the card', () => {
+    // It did once. A 54-character name set in tracked capitals was measured
+    // WITHOUT the tracking, and 146 mm of type went onto an 84 mm card and off
+    // the sheet. Ink outside the page is the one fault a rendered preview
+    // cannot show you.
+    const page = composeTentSheet(LONG);
+    const ink = page.bounds()!;
+    expect(ink.leftMm).toBeGreaterThanOrEqual(0);
+    expect(ink.rightMm).toBeLessThanOrEqual(page.widthMm);
+    // And it stays inside its own card, not merely inside the page.
+    const name = words(LONG)[0]!;
+    expect(name).toBe(LONG.businessName.toUpperCase());
+    expect(name).not.toContain('…');
+  });
+
+  it('sets the name smaller rather than wrapping it or letting it run over', () => {
+    const sizeOfName = (input: TentInput) =>
+      Number(/\/F1 ([\d.]+) Tf\n[\d.]+ Tc\n[\d.]+ [\d.]+ Td\n\([A-Z]/.exec(
+        composeTentSheet(input).content(),
+      )?.[1] ?? 0);
+    expect(sizeOfName(CAFE)).toBeGreaterThan(sizeOfName(LONG));
+    expect(sizeOfName(LONG)).toBeGreaterThan(0);
+    // One line, whatever the name: four faces, four settings of it.
+    expect(words(LONG).filter((w) => w === LONG.businessName.toUpperCase())).toHaveLength(4);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ONE TEMPLATE
+// ---------------------------------------------------------------------------
+
+describe('one canonical template, personalised with two things', () => {
+  it('says the same words to every business', () => {
+    const cafe = words(CAFE);
+    const clinic = words(CLINIC);
+    expect(cafe).toHaveLength(clinic.length);
+
+    const cafeName = CAFE.businessName.toUpperCase();
+    const clinicName = CLINIC.businessName.toUpperCase();
+    cafe.forEach((word, i) => {
+      const other = clinic[i]!;
+      if (word === cafeName) {
+        expect(other, 'the only line that differs is the business name').toBe(clinicName);
+        return;
+      }
+      expect(other).toBe(word);
+    });
+  });
+
+  it('gives every business a different code', () => {
+    const grid = (input: TentInput) =>
+      rects(ops(input), BLACK)
+        .map((r) => r.join(','))
+        .join('|');
+    expect(grid(CAFE)).not.toBe(grid(CLINIC));
+  });
+
+  it('prints the approved wording, exactly', () => {
+    const said = words(CAFE);
+    for (const line of [
+      ...TENT_COPY.headline,
+      TENT_COPY.subhead,
+      TENT_COPY.scanLine,
+      TENT_COPY.privacyLine,
+      TENT_COPY.thankYou,
+      TENT_COPY.wordmark,
+      ...TENT_COPY.base,
+      TENT_COPY.tab,
+      ...TENT_COPY.sheet,
+      TENT_COPY.cut,
+      ...TENT_COPY.folds,
+    ]) {
+      // The PDF escapes its own delimiters and writes WinAnsi bytes in octal,
+      // so compare on the decoded side.
+      const encoded = line
+        .replace(/[\\()]/g, (c) => `\\${c}`)
+        .replace(/—/g, '\\227')
+        .replace(/·/g, '\\267');
+      expect(said, line).toContain(encoded);
+    }
+  });
+
+  it('takes no wording from the vertical packs', () => {
+    // Before this design the card asked a different question per vertical.
+    // One approved template means one question, and a clinic's card must not
+    // be able to say "meal" because a restaurant's does.
+    const body = composeTentSheet(CLINIC).content();
+    for (const stray of [
+      'How was your meal',
+      'How was your visit',
+      'How is the gym working',
+      'somewhere between',
+      'kitchen team',
+      'about a minute',
+      'billing counter',
+    ]) {
+      expect(body, stray).not.toContain(stray);
+    }
+  });
+
+  it('never mentions a public review site, a rating or a star', () => {
+    // The card asks for honest feedback and promises it is private. A line
+    // about Google, or a row of stars, would sort customers by mood before
+    // they answered, and everything Headway reads afterwards would be worth
+    // less for it.
+    const body = composeTentSheet(CAFE).content().toLowerCase();
+    for (const stray of ['google', 'star', 'rate us', 'review us', '5-star', 'if you enjoyed']) {
+      expect(body, stray).not.toContain(stray);
+    }
+    expect(TENT_COPY.privacyLine).toContain('never posted publicly');
+  });
+
+  it('takes only a name and an address, so nothing else can vary', () => {
+    const ROOT = resolvePath(__dirname, '..');
+    const route = readFileSync(
+      joinPath(ROOT, 'src', 'app', '(print)', 'print', 'tent', '[clientId]', 'route.ts'),
+      'utf8',
+    );
+    const call = /renderTentSheet\(\{([\s\S]*?)\}\);/.exec(route)?.[1] ?? '';
+    const fields = [...call.matchAll(/^\s*(\w+):/gm)].map((m) => m[1]);
+    expect(fields.sort()).toEqual(['businessName', 'feedbackUrl']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The look
+// ---------------------------------------------------------------------------
+
+describe('the approved look', () => {
+  const lines = ops(CAFE);
+
+  it('is navy, gold and cream — Headway’s colours, not the client’s', () => {
+    // The card is one approved object every client puts on a table. A business
+    // can set its own colours in Headway and they are used where they belong;
+    // this is not one of those places, and there is no input that could make
+    // it one.
+    const used = new Set(lines.filter((l) => l.endsWith(' rg') || l.endsWith(' RG')));
+    expect(used).toContain(NAVY);
+    expect(used).toContain(GOLD);
+    expect(used).toContain(PANEL);
+    expect(used).toContain('0.953 0.929 0.878 rg'); // the cream headline
+    expect(used).toContain('0.718 0.757 0.804 rg'); // the two supporting lines
+    // Nine, and no tenth: whatever the client, the palette is closed.
+    expect(used.size).toBe(9);
+    expect(new Set(ops(LONG).filter((l) => l.endsWith(' rg') || l.endsWith(' RG')))).toEqual(used);
+  });
+
+  it('rides a gold band on every fold', () => {
+    const gold = rects(lines, GOLD);
+    // Two per face, four faces: the shared bands at the ridge are drawn by
+    // both of the faces that meet there.
+    expect(gold).toHaveLength(8);
+    const heights = new Set(gold.map((r) => Math.round((r[3]! / PT_PER_MM) * 10) / 10));
+    expect(heights).toEqual(new Set([TENT.bandInsideMm + TENT.bandOutsideMm]));
+  });
+
+  it('sets the question in an italic serif, and only the question and the thanks', () => {
+    const serif = lines.filter((l) => l.startsWith('/F3 '));
+    // Two lines of headline plus the thank-you, on four faces.
+    expect(serif).toHaveLength(12);
+    expect(new Set(serif)).toEqual(new Set(['/F3 24 Tf', '/F3 9.5 Tf']));
+    const file = text(renderTentSheet(CAFE));
+    expect(file).toContain('/BaseFont /Times-Italic');
+    expect(file).toContain('/F3 ');
+  });
+
+  it('puts the code on a rounded cream panel, at a fixed height', () => {
+    // Fixed, not stacked under the text: no line of type can ever push the
+    // code down the card, because no line of type is measured against it.
+    const panels = lines.filter((l, i) => l === 'f' && lines.slice(0, i).lastIndexOf(PANEL) > -1);
+    expect(panels.length).toBeGreaterThanOrEqual(4);
+    const curves = lines.filter((l) => l.endsWith(' c'));
+    // Four rounded corners on four panels, plus the rising path of the mark on
+    // each of the four faces.
+    expect(curves).toHaveLength(4 * 4 + 4);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Both faces are the same object
+// ---------------------------------------------------------------------------
+
+describe('the tent is two identical faces joined at the ridge', () => {
+  it('rotates exactly one face per card, by exactly half a turn about its centre', () => {
+    const g = tentGeometry();
+    const lines = ops(CAFE);
+    const rotations = lines.filter((l) => l.endsWith(' cm'));
+    expect(rotations).toHaveLength(2);
+
+    rotations.forEach((op, index) => {
+      const [a, b, c, d, e, f] = op.replace(' cm', '').split(' ').map(Number);
+      // A point reflection: p -> 2·centre - p. That is a 180-degree turn and
+      // nothing else, so the face lands back in its own box the other way up.
+      expect([a, b, c, d]).toEqual([-1, 0, 0, -1]);
+      const centreXmm = g.cardLeftsMm[index]! + g.cardWidthMm / 2;
+      const centreYmm = g.cardTopMm + g.faceHeightMm / 2;
+      expect(e!).toBeCloseTo(2 * centreXmm * PT_PER_MM, 2);
+      expect(f!).toBeCloseTo(2 * (g.pageHeightMm - centreYmm) * PT_PER_MM, 2);
+    });
+  });
+
+  it('draws the same face on both sides of the ridge', () => {
+    const lines = ops(CAFE);
+    const start = lines.indexOf('q');
+    const end = lines.indexOf('Q');
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+
+    const rotated = lines.slice(start + 1, end).filter((l) => !l.endsWith(' cm'));
+    const upright = lines.slice(end + 1, end + 1 + rotated.length);
+
+    expect(upright).toHaveLength(rotated.length);
+    expect(upright.map(kind)).toEqual(rotated.map(kind));
+    // Same words, in the same order.
+    expect(upright.filter((l) => l.endsWith(' Tj'))).toEqual(
+      rotated.filter((l) => l.endsWith(' Tj')),
+    );
+    // Same horizontal geometry: x is untouched by the vertical offset.
+    expect(upright.filter((l) => l.endsWith(' re f')).map(firstNumber)).toEqual(
+      rotated.filter((l) => l.endsWith(' re f')).map(firstNumber),
+    );
+  });
+
+  it('carries Headway quietly, and the business loudly', () => {
+    const said = words(CAFE);
+    expect(said.filter((w) => w === 'Headway')).toHaveLength(4); // once per face
+    expect(said.filter((w) => w === 'CORNER CAFE')).toHaveLength(4);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The QR
+// ---------------------------------------------------------------------------
+
+describe('the QR', () => {
+  /** One face's worth of modules. The four faces sit far enough apart to split. */
+  function oneFace(input: TentInput): number[][] {
+    const all = rects(ops(input), BLACK);
+    const reach = 45 * PT_PER_MM;
+    const first = all[0]!;
+    return all.filter(
+      (r) => Math.abs(r[0]! - first[0]!) < reach && Math.abs(r[1]! - first[1]!) < reach,
+    );
+  }
+
+  it('is drawn as the exact module grid for this client’s own feedback page', () => {
+    const matrix = qrMatrix(CAFE.feedbackUrl);
+    const black = oneFace(CAFE);
+    expect(black.length).toBeGreaterThan(20);
+
+    const drawn = moduleGrid(black);
+
+    let dark = 0;
+    for (let y = 0; y < matrix.size; y += 1) {
+      for (let x = 0; x < matrix.size; x += 1) {
+        if (!matrix.dark(x, y)) continue;
+        dark += 1;
+        expect(drawn.has(`${x},${y}`), `module ${x},${y} is missing from the drawn QR`).toBe(true);
+      }
+    }
+    expect(drawn.size).toBe(dark);
+  });
+
+  it('is the same code on all four faces of the sheet', () => {
+    // One business, one gateway, one code. Two tents printed together are two
+    // copies of one address, not two addresses that happen to agree.
+    const all = rects(ops(CAFE), BLACK);
+    const reach = 45 * PT_PER_MM;
+    const faces: number[][][] = [];
+    for (const r of all) {
+      const near = faces.find(
+        (f) => Math.abs(f[0]![0]! - r[0]!) < reach && Math.abs(f[0]![1]! - r[1]!) < reach,
+      );
+      if (near) near.push(r);
+      else faces.push([r]);
+    }
+    expect(faces).toHaveLength(4);
+
+    // Every face resolves to the identical module grid. Compared as modules
+    // rather than as coordinates, because the four faces sit at four different
+    // offsets and the content stream rounds to a thousandth of a point.
+    const shape = (rs: number[][]) => [...moduleGrid(rs)].sort().join('|');
+    expect(new Set(faces.map(shape)).size).toBe(1);
+  });
+
+  it('is big enough to scan off a table, with a real quiet zone around it', () => {
+    for (const input of [CAFE, CLINIC, LONG]) {
+      const black = oneFace(input);
+      const unit = black[0]![3]! / PT_PER_MM;
+      const left = Math.min(...black.map((r) => r[0]!)) / PT_PER_MM;
+      const right = Math.max(...black.map((r) => r[0]! + r[2]!)) / PT_PER_MM;
+      // A module a phone camera can resolve on paper, and a code readable from
+      // across a table rather than from arm's length.
+      expect(unit, input.businessName).toBeGreaterThan(0.45);
+      expect(right - left, input.businessName).toBeGreaterThan(30);
+      expect(right - left, input.businessName).toBeLessThanOrEqual(TENT.qrModulesMm + 0.01);
+
+      // The quiet zone is the cream panel around it, and the specification
+      // asks for four modules of it on every side.
+      const panelEdge = (TENT.qrPanelMm - (right - left)) / 2;
+      expect(panelEdge, input.businessName).toBeGreaterThanOrEqual(4 * unit - 0.001);
+    }
   });
 });
 
@@ -123,7 +482,7 @@ describe('the physical card', () => {
 // ---------------------------------------------------------------------------
 
 describe('the PDF', () => {
-  const bytes = renderTentSheet(RESTAURANT);
+  const bytes = renderTentSheet(CAFE);
   const body = text(bytes);
 
   it('is a PDF that a reader will open', () => {
@@ -142,9 +501,17 @@ describe('the PDF', () => {
     expect(Number(media![2])).toBeCloseTo(297 * PT_PER_MM, 2); // 841.89
   });
 
+  it('embeds no fonts and needs none, so it opens the same everywhere', () => {
+    for (const face of ['/Helvetica', '/Helvetica-Bold', '/Times-Italic']) {
+      expect(body).toContain(`/BaseFont ${face}`);
+    }
+    expect(body).not.toContain('/FontFile');
+  });
+
   it('points every byte offset in its cross-reference table at a real object', () => {
-    // `startxref` contains the word too, so look for the table's own line.
-    const table = body.slice(body.lastIndexOf(String.fromCharCode(10) + 'xref' + String.fromCharCode(10)));
+    const table = body.slice(
+      body.lastIndexOf(String.fromCharCode(10) + 'xref' + String.fromCharCode(10)),
+    );
     const offsets = [...table.matchAll(/^(\d{10}) 00000 n $/gm)].map((m) => Number(m[1]));
     expect(offsets.length).toBeGreaterThan(4);
     for (const offset of offsets) {
@@ -155,179 +522,22 @@ describe('the PDF', () => {
   });
 
   it('is byte-for-byte reproducible, so the same card is the same file', () => {
-    expect(text(renderTentSheet(RESTAURANT))).toBe(body);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// What is drawn
-// ---------------------------------------------------------------------------
-
-/** The drawing operators, in order, as the page emitted them. */
-function ops(input: TentInput): string[] {
-  return composeTentSheet(input).content().split('\n');
-}
-
-describe('what is on the sheet', () => {
-  const lines = ops(RESTAURANT);
-  const g = tentGeometry();
-
-  it('gives the card a curved base rather than a straight band', () => {
-    // The shaped edge is the difference between a premium tabletop piece and a
-    // folded rectangle, so it is a property, not a flourish: a filled curve per
-    // face, and a gold curve stroked parallel above it.
-    const curves = lines.filter((l) => l.endsWith(' c'));
-    // Three per face across four faces: the filled base, the gold line stroked
-    // parallel above it, and the rising path of the Headway mark on the base.
-    expect(curves).toHaveLength(12);
-    // The base and its gold line are the same shape at different heights, so
-    // their control points differ only in y.
-    const xs = (op: string) => op.split(' ').filter((_, i) => i % 2 === 0);
-    expect(xs(curves[0]!)).toEqual(xs(curves[1]!));
-    expect(curves[0]).not.toBe(curves[1]);
+    expect(text(renderTentSheet(CAFE))).toBe(body);
   });
 
-  it('draws each tent once, cut border and fold line included', () => {
-    // Six stroked rectangles: the cut border round each of the two tents, and
-    // the gold frame round each of the four codes.
-    expect(lines.filter((l) => l.endsWith(' re S'))).toHaveLength(2 + 4);
-    // Per tent: one fold line and eight crop-mark strokes. Plus the three
-    // segments of the single dashed line down the gutter, which is the cut
-    // that separates the pair.
-    const strokes = lines.filter((l) => l.includes(' m ') && l.endsWith(' l S'));
-    expect(strokes).toHaveLength(2 * (1 + 8) + 3);
-  });
-
-  it('says where to cut and where to fold, in words', () => {
-    // Once each, in the gutter. The gutter IS the cut that separates the two
-    // tents and the fold is at the same height on both, so one of each says
-    // everything — and set in the outer margins the words put ink 4.2 mm from
-    // the edge of the paper, inside the unprintable border of most printers.
-    const body = lines.join('\n');
-    expect((body.match(/\(FOLD\) Tj/g) ?? []).length).toBe(1);
-    expect((body.match(/\(CUT\) Tj/g) ?? []).length).toBe(1);
-    expect(body).toContain('Cut out both cards along the dashed borders.');
-    expect(body).toContain('Fold each along the dotted line, printed side out.');
-  });
-
-  it('tells the printer not to scale it, which is the one way to get the size wrong', () => {
-    const body = lines.join('\n');
-    expect(body).toContain('Print on A4 at 100% \\(Actual size\\). Do not use "Fit to page".');
-  });
-
-  it('warns that one half is printed upside down, so it is not mistaken for a fault', () => {
-    expect(lines.join('\n')).toContain('prints upside down on purpose');
-  });
-
-  it('rotates exactly one half of each card, by exactly half a turn about its centre', () => {
-    const rotations = lines.filter((l) => l.endsWith(' cm'));
-    expect(rotations).toHaveLength(2);
-
-    rotations.forEach((op, index) => {
-      const [a, b, c, d, e, f] = op.replace(' cm', '').split(' ').map(Number);
-      // A point reflection: p -> 2·centre - p. That is a 180-degree turn, and
-      // nothing else, so the face lands back in its own box the other way up.
-      expect([a, b, c, d]).toEqual([-1, 0, 0, -1]);
-
-      const centreXmm = g.cardLeftsMm[index]! + g.cardWidthMm / 2;
-      const centreYmm = g.cardTopMm + g.faceHeightMm / 2;
-      expect(e!).toBeCloseTo(2 * centreXmm * PT_PER_MM, 2);
-      expect(f!).toBeCloseTo(2 * (g.pageHeightMm - centreYmm) * PT_PER_MM, 2);
-    });
-  });
-
-  it('draws the same face on both sides of the fold', () => {
-    // The rotated half is emitted inside q…Q; the upright half follows it. Same
-    // operators, same order, same horizontal positions — the only difference is
-    // how far down the page it sits, and the rotation applied to one of them.
-    const start = lines.indexOf('q');
-    const end = lines.indexOf('Q');
-    expect(start).toBeGreaterThan(-1);
-    expect(end).toBeGreaterThan(start);
-
-    const rotated = lines.slice(start + 1, end).filter((l) => !l.endsWith(' cm'));
-    const upright = lines.slice(end + 1, end + 1 + rotated.length);
-
-    expect(upright).toHaveLength(rotated.length);
-    // Same kind of operator, in the same order.
-    expect(upright.map(kind)).toEqual(rotated.map(kind));
-    // Same words.
-    expect(upright.filter((l) => l.endsWith(' Tj'))).toEqual(
-      rotated.filter((l) => l.endsWith(' Tj')),
+  it('measures type with the real font metrics, so centred lines are centred', () => {
+    // A sanity check on the width tables themselves: everything centred on the
+    // sheet depends on them, and there is no embedded font to fall back on.
+    const helvetica = 722 + 556 + 222 + 222 + 556; // H e l l o, from Adobe's AFM
+    expect(textWidthMm('Hello', 'regular', 10)).toBeCloseTo(
+      ((helvetica / 1000) * 10) / PT_PER_MM,
+      6,
     );
-    // Same horizontal geometry: x is untouched by the vertical offset.
-    expect(upright.filter((l) => l.endsWith(' re f')).map(firstNumber)).toEqual(
-      rotated.filter((l) => l.endsWith(' re f')).map(firstNumber),
+    const times = 722 + 444 + 278 + 278 + 500; // the same word, Times-Italic
+    expect(textWidthMm('Hello', 'serifItalic', 10)).toBeCloseTo(
+      ((times / 1000) * 10) / PT_PER_MM,
+      6,
     );
-  });
-});
-
-describe('the tent is two identical faces joined at the fold', () => {
-  const g = tentGeometry();
-
-  it('prints four faces: two per tent, two tents', () => {
-    const lines = ops(RESTAURANT);
-    // The cream ground of a face, at the face's exact size.
-    const cream = lines
-      .map((line, i) => ({ line, prev: lines[i - 1] }))
-      .filter((x) => x.line.endsWith(' re f') && x.prev === '0.98 0.969 0.937 rg')
-      .map((x) => x.line.split(' ').slice(0, 4).map(Number));
-    expect(cream).toHaveLength(4);
-    for (const [, , w, h] of cream) {
-      expect(w! / PT_PER_MM).toBeCloseTo(g.faceWidthMm, 3);
-      expect(h! / PT_PER_MM).toBeCloseTo(g.faceHeightMm, 3);
-    }
-    // Two distinct x positions and two distinct y positions: a 2 x 2 grid of
-    // faces, which is two tents side by side.
-    expect(new Set(cream.map((r) => Math.round(r[0]!))).size).toBe(2);
-    expect(new Set(cream.map((r) => Math.round(r[1]!))).size).toBe(2);
-  });
-
-  it('puts a code on both faces of both tents', () => {
-    const lines = ops(RESTAURANT);
-    const black = lines
-      .map((line, i) => ({ line, prev: lines[i - 1] }))
-      .filter((x) => x.line.endsWith(' re f') && x.prev === '0 0 0 rg')
-      .map((x) => x.line.split(' ').slice(0, 4).map(Number));
-    // Cluster by position: four codes, one per face.
-    const clusters: Array<{ x: number; y: number }> = [];
-    for (const [x, y] of black) {
-      const near = clusters.find(
-        (c) => Math.abs(c.x - x!) < 45 * PT_PER_MM && Math.abs(c.y - y!) < 45 * PT_PER_MM,
-      );
-      if (!near) clusters.push({ x: x!, y: y! });
-    }
-    expect(clusters).toHaveLength(4);
-  });
-
-  it('never lets a long business name print past the edge of the card', () => {
-    // It did. "The Very Long Restaurant And Banqueting Company" is set in
-    // tracked capitals, `fit` measured it without the tracking, and 116 mm of
-    // type went onto an 88 mm card and 2.2 mm off the sheet. Ink outside the
-    // page is the one fault a rendered preview cannot show you.
-    const page = composeTentSheet({
-      ...RESTAURANT,
-      businessName: 'The Very Long Restaurant And Banqueting Company Limited',
-    });
-    const ink = page.bounds()!;
-    expect(ink.leftMm).toBeGreaterThanOrEqual(0);
-    expect(ink.rightMm).toBeLessThanOrEqual(page.widthMm);
-    // And it stays inside the card, not merely inside the page.
-    expect(ink.leftMm).toBeGreaterThanOrEqual(g.cardLeftsMm[0]! - 6);
-  });
-
-  it('keeps every drop of ink clear of the printer’s own border', () => {
-    for (const input of [RESTAURANT, GYM]) {
-      const page = composeTentSheet(input);
-      const ink = page.bounds()!;
-      const smallest = Math.min(
-        ink.leftMm,
-        ink.topMm,
-        page.widthMm - ink.rightMm,
-        page.heightMm - ink.bottomMm,
-      );
-      expect(smallest).toBeGreaterThanOrEqual(5);
-    }
   });
 });
 
@@ -337,283 +547,62 @@ function kind(op: string): string {
 function firstNumber(op: string): number {
   return Number(op.split(' ')[0]);
 }
-
-// ---------------------------------------------------------------------------
-// Nothing runs off the paper
-// ---------------------------------------------------------------------------
-
-describe('nothing is clipped', () => {
-  const cases: Array<[string, TentInput]> = [
-    ['a restaurant', RESTAURANT],
-    ['a gym', GYM],
-    [
-      'a business with a long name and a long question',
-      {
-        ...RESTAURANT,
-        businessName: 'The Very Long Restaurant And Banqueting Company',
-        headline: 'How did the whole experience go for you today?',
-        subhead: 'Scan and tell us honestly — good or bad. It takes under a minute.',
-        thankYou: 'Thank you — this goes straight to the kitchen and the floor team.',
-      },
-    ],
-  ];
-
-  for (const [label, input] of cases) {
-    it(`keeps every mark on the page for ${label}`, () => {
-      const page = composeTentSheet(input);
-      const ink = page.bounds();
-      expect(ink).not.toBeNull();
-      expect(ink!.leftMm).toBeGreaterThanOrEqual(0);
-      expect(ink!.topMm).toBeGreaterThanOrEqual(0);
-      expect(ink!.rightMm).toBeLessThanOrEqual(page.widthMm);
-      expect(ink!.bottomMm).toBeLessThanOrEqual(page.heightMm);
-    });
-
-    it(`keeps the instructions clear of the printer's own margin for ${label}`, () => {
-      // Consumer printers cannot print the outermost few millimetres. The cards
-      // are nowhere near the edge; this checks the trim-margin text is not.
-      const ink = composeTentSheet(input).bounds()!;
-      expect(ink.topMm).toBeGreaterThanOrEqual(5);
-      expect(ink.bottomMm).toBeLessThanOrEqual(297 - 5);
-    });
+/**
+ * The drawn rectangles of one QR, back as the set of dark modules.
+ *
+ * The sheet draws each row as merged horizontal runs, so this reverses that:
+ * one module is the height of any run, and every run contributes its own width
+ * in modules. Comparing grids rather than coordinates is what lets four faces
+ * at four different offsets be checked against each other, and against what
+ * the encoder produced.
+ */
+function moduleGrid(black: number[][]): Set<string> {
+  const unit = black[0]![3]!;
+  const originX = Math.min(...black.map((r) => r[0]!));
+  const originY = Math.max(...black.map((r) => r[1]! + r[3]!));
+  const grid = new Set<string>();
+  for (const [x, y, w, h] of black) {
+    if (Math.abs(h! - unit) > 0.01) continue;
+    const row = Math.round((originY - (y! + h!)) / unit);
+    const from = Math.round((x! - originX) / unit);
+    for (let i = 0; i < Math.round(w! / unit); i += 1) grid.add(`${from + i},${row}`);
   }
-
-  it('shrinks a question that will not fit rather than letting it run over', () => {
-    const short = composeTentSheet(RESTAURANT).content();
-    const long = composeTentSheet({
-      ...RESTAURANT,
-      headline: 'How did absolutely everything go for you here today, honestly?',
-    }).content();
-    const sizeOf = (body: string) =>
-      Number(body.match(/\/F2 ([\d.]+) Tf\n0 Tc\n[\d.]+ [\d.]+ Td\n\(How/)?.[1] ?? 0);
-    expect(sizeOf(short)).toBeGreaterThan(0);
-    expect(sizeOf(long)).toBeLessThan(sizeOf(short));
-  });
-});
+  return grid;
+}
 
 // ---------------------------------------------------------------------------
-// The QR
+// THE OWNER'S DOOR ONTO IT
 // ---------------------------------------------------------------------------
 
-describe('the QR', () => {
-  it('is drawn as the exact module grid for this client’s own feedback page', () => {
-    const matrix = qrMatrix(RESTAURANT.feedbackUrl);
-    const lines = ops(RESTAURANT);
-
-    // Every black rectangle inside a card is a run of QR modules. Rebuild the
-    // grid from what was drawn and compare it with what the encoder produced:
-    // this is the difference between "a QR-shaped picture" and "this URL".
-    const all = lines
-      .map((line, i) => ({ line, prev: lines[i - 1] }))
-      .filter((x) => x.line.endsWith(' re f') && x.prev === '0 0 0 rg')
-      .map((x) => x.line.split(' ').slice(0, 4).map(Number) as [number, number, number, number]);
-
-    // One face's worth. The four faces draw the identical grid and sit at least
-    // 50mm apart, so everything within one QR's reach of the first module
-    // belongs to the first QR.
-    const reach = 40 * PT_PER_MM;
-    const first = all[0]!;
-    const black = all.filter(
-      (r) => Math.abs(r[0] - first[0]) < reach && Math.abs(r[1] - first[1]) < reach,
-    );
-    expect(black.length).toBeGreaterThan(20);
-
-    const unit = black[0]![3];
-    const originX = Math.min(...black.map((r) => r[0]));
-    const originY = Math.max(...black.map((r) => r[1] + r[3]));
-
-    const drawn = new Set<string>();
-    for (const [x, y, w, h] of black) {
-      if (Math.abs(h - unit) > 0.01) continue;
-      const row = Math.round((originY - (y + h)) / unit);
-      const from = Math.round((x - originX) / unit);
-      const count = Math.round(w / unit);
-      for (let i = 0; i < count; i += 1) drawn.add(`${from + i},${row}`);
-    }
-
-    // One QR per face, four faces — every face draws the identical grid, so
-    // the reconstructed set is that one grid.
-    let dark = 0;
-    for (let y = 0; y < matrix.size; y += 1) {
-      for (let x = 0; x < matrix.size; x += 1) {
-        if (!matrix.dark(x, y)) continue;
-        dark += 1;
-        expect(drawn.has(`${x},${y}`), `module ${x},${y} is missing from the drawn QR`).toBe(true);
-      }
-    }
-    expect(drawn.size).toBe(dark);
-  });
-
-  it('is big enough to scan off a table, with room around it', () => {
-    const lines = ops(RESTAURANT);
-    const all = lines
-      .map((line, i) => ({ line, prev: lines[i - 1] }))
-      .filter((x) => x.line.endsWith(' re f') && x.prev === '0 0 0 rg')
-      .map((x) => x.line.split(' ').slice(0, 4).map(Number));
-    const reach = 40 * PT_PER_MM;
-    const first = all[0]!;
-    const black = all.filter(
-      (r) => Math.abs(r[0]! - first[0]!) < reach && Math.abs(r[1]! - first[1]!) < reach,
-    );
-
-    const unit = black[0]![3]! / PT_PER_MM;
-    const left = Math.min(...black.map((r) => r[0]!)) / PT_PER_MM;
-    const right = Math.max(...black.map((r) => r[0]! + r[2]!)) / PT_PER_MM;
-    // A module a phone camera can resolve on paper, and a code big enough to
-    // read from across a table rather than from arm's length.
-    expect(unit).toBeGreaterThan(0.45);
-    expect(right - left).toBeGreaterThan(24);
-    // The quiet zone is the white panel around it: four modules of clear paper
-    // on the side nearest the edge of the card it sits on.
-    const g = tentGeometry();
-    const nearestCardLeft = g.cardLeftsMm.reduce((best, x) =>
-      Math.abs(left - x) < Math.abs(left - best) ? x : best,
-    );
-    expect(left - nearestCardLeft).toBeGreaterThan(4 * unit);
-  });
-});
-
 // ---------------------------------------------------------------------------
-// The words
+// WHERE THIS SHEET IS OFFERED
 // ---------------------------------------------------------------------------
 
-describe('the wording stays the vertical’s own', () => {
-  it('prints the restaurant question, not a generic one', () => {
-    const body = composeTentSheet(RESTAURANT).content();
-    expect(body).toContain('(How was your meal today?) Tj');
-    expect(body).toContain('somewhere between');
-    expect(body).toContain('kitchen team');
-    expect(body).toContain('On each table, and one at the billing counter.');
-    expect(body).not.toContain('How was your experience?');
-  });
-
-  it('prints the gym question and the gym’s own placement', () => {
-    const body = composeTentSheet(GYM).content();
-    expect(body).toContain('(How is the gym working for you?) Tj');
-    expect(body).toContain('about a minute');
-    expect(body).toContain('At the front desk, beside the sign-in register.');
-    expect(body).not.toContain('meal');
-  });
-
-  it('sets an em dash as an em dash, not as a question mark', () => {
-    // WinAnsi 0x97. The approved scan line contains one, and a card that read
-    // "honestly ? good, bad or somewhere between" would be a visible defect on
-    // every table.
-    // The scan line breaks at its own dash, so the dash closes the first line.
-    const body = composeTentSheet(RESTAURANT).content();
-    expect(body).toContain('(Tell us honestly \\227) Tj');
-    expect(body).toContain('(good, bad or somewhere between.) Tj');
-    expect(body).not.toContain('honestly ?');
-  });
-
-  it('prints every pack’s own card with the question above the code and the scan line clear of it', async () => {
-    // The subhead grew a clause in the final experience pass. Two lines of
-    // it under a two-line question must still end above the QR panel, on
-    // every vertical, or a card would print with type running into the code.
-    const { listPacks } = await import('@/lib/packs');
-    const { buildKitContent } = await import('@/lib/kit/content');
-    for (const pack of listPacks()) {
-      const content = buildKitContent({ pack, businessName: 'Corner Cafe', feedbackUrl: RESTAURANT.feedbackUrl });
-      const input: TentInput = {
-        ...RESTAURANT,
-        headline: content.headline,
-        subhead: content.subhead,
-        qrCaption: content.qrCaption,
-        thankYou: content.footerNote,
-        placement: content.placement,
-      };
-      const ops = composeTentSheet(input).content().split('\n');
-      // Text is set as "x y Td" then "(…) Tj" in a BT/ET block; the QR panel is
-      // the first white 40 mm square. Compare on the un-rotated lower face.
-      const texts: Array<{ y: number; text: string }> = [];
-      let lastTd: number[] = [];
-      for (const op of ops) {
-        if (op.endsWith(' Td')) lastTd = op.split(' ').slice(0, 2).map(Number);
-        if (op.endsWith(' Tj')) texts.push({ y: lastTd[1] ?? 0, text: op.slice(1, op.indexOf(') Tj')) });
-      }
-      const panels = ops
-        .map((line, i) => ({ line, prev: ops[i - 1] }))
-        .filter((x) => x.line.endsWith(' re f') && x.prev === '1 1 1 rg')
-        .map((x) => x.line.split(' ').slice(0, 4).map(Number))
-        .filter((r) => Math.abs(r[2]! - (40 * 72) / 25.4) < 0.5);
-      expect(panels.length, pack.id).toBeGreaterThan(0);
-      const panelTop = Math.max(...panels.map((r) => r[1]! + r[3]!)); // PDF y grows upward
-      const question = texts.filter((t) => content.headline.startsWith(t.text.split(' ')[0] ?? ''));
-      expect(question.length, pack.id).toBeGreaterThan(0);
-      // Every line of the sub-line that sits on the lower face is above the panel.
-      const lower = texts.filter((t) => t.y > panelTop && t.y < panelTop + (60 * 72) / 25.4);
-      const scan = lower.filter((t) => content.subhead.includes(t.text.replace(/\\227/g, '—').replace(/\\(.)/g, '$1')));
-      expect(scan.length, `${pack.id}: ${content.subhead}`).toBeGreaterThan(0);
-      for (const line of scan) {
-        // 2 pt of descender clearance above the panel's top edge.
-        expect(line.y - panelTop, `${pack.id}: "${line.text}"`).toBeGreaterThan(2);
-      }
-    }
-  });
-
-  it('measures type with the real font metrics, so centred lines are centred', () => {
-    // A sanity check on the width table itself: Helvetica's "Hello" is a known
-    // width in ems, and everything centred on the sheet depends on it.
-    const em = 722 + 556 + 222 + 222 + 556; // H e l l o, from Adobe's AFM
-    expect(textWidthMm('Hello', 'regular', 10)).toBeCloseTo((em / 1000) * 10 / PT_PER_MM, 6);
-  });
-
-  it('carries Headway quietly, and the business loudly', () => {
-    const body = composeTentSheet(RESTAURANT).content();
-    expect((body.match(/\(Headway\) Tj/g) ?? []).length).toBe(4); // once per face
-    expect((body.match(/\(CORNER CAFE\) Tj/g) ?? []).length).toBe(4);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// THE OWNER'S DOOR ONTO IT (M21)
-// ---------------------------------------------------------------------------
-
-describe('the print kit is a section of the owner’s workspace, not an operator URL', () => {
+describe('the generated tent is an operator print surface', () => {
   const ROOT = resolvePath(__dirname, '..');
   const read = (...parts: string[]) => readFileSync(joinPath(ROOT, ...parts), 'utf8');
-  const page = read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'kit', 'page.tsx');
-  const nav = read('src', 'components', 'portal', 'workspace.tsx');
   const route = read('src', 'app', '(print)', 'print', 'tent', '[clientId]', 'route.ts');
+  const operator = read('src', 'app', '(app)', 'clients', '[id]', 'qr', 'page.tsx');
+  const ownerKit = read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'kit', 'page.tsx');
 
-  it('has a door of its own in the workspace navigation', () => {
-    expect(nav).toContain("{ slug: 'kit', label: 'Print kit', extra: true }");
+  it('is reachable from the operator console', () => {
+    expect(operator).toContain('const tentHref = `/print/tent/${id}`');
   });
 
-  it('offers both a preview and a download, of the same bytes', () => {
-    expect(page).toContain('src={href}');
-    expect(page).toContain('href={`${href}?download=1`}');
-    expect(page).toContain('Download print kit');
-    expect(page).toContain('Preview');
+  it('serves the same bytes inline or as a download', () => {
     expect(route).toContain("searchParams.get('download') === '1'");
     expect(route).toContain("`${download ? 'attachment' : 'inline'}; filename=");
   });
 
-  it('shows the four steps, in order, in the owner’s own words', () => {
-    const words = [...page.matchAll(/word: '([^']+)'/g)].map((m) => m[1]);
-    expect(words).toEqual(['Print', 'Cut', 'Fold', 'Place']);
-    // Shorter since M23, but the two things that ruin a print are still said:
-    // scale, and that nothing else is needed to stand it up.
-    expect(page).toMatch(/not "fit to page"/i);
-    expect(page).toMatch(/no glue, no tape, no holder/i);
-  });
-
-  it('refuses to offer a card when there is no address for the QR to open', () => {
-    expect(page).toContain('const ready = Boolean(view.content.feedbackUrl)');
-    expect(page).toContain('view.addressError');
-  });
-
-  it('repeats the one rule about who is offered the card', () => {
-    // The QR is never a reward for a good visit. It is offered to everyone the
-    // same way, which is the only thing that makes the answers worth reading.
-    expect(page).toMatch(/Offer it to everyone, the same way/);
-  });
-
   it('is gated like every other per-client surface', () => {
-    // The page moved onto the locking gate in M28: same membership decision,
-    // plus "and the workspace is open". The route keeps the plain gate because
-    // it is an operator print surface, not a page in the owner's workspace.
-    expect(page).toContain('await requireOpenWorkspace(clientId)');
     expect(route).toContain("await tenantGateFor(clientId, 'MEMBER')");
+  });
+
+  it('is NOT what the owner’s print kit offers', () => {
+    // The owner's Print kit serves the two approved PDF masters, byte for byte.
+    // A generated third design on the same page would be a format nobody
+    // signed off — see tests/m29.print-kit-masters.test.ts.
+    expect(ownerKit).not.toContain('/print/tent/');
+    expect(ownerKit).not.toContain('renderTentSheet');
   });
 });

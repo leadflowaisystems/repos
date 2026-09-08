@@ -40,6 +40,18 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  /**
+   * The print masters travel with the function that fills them in.
+   *
+   * `/print/sheet/[clientId]/[sheet]` reads the approved PDF off disk and swaps
+   * two values into it. Files under `public/` are deployed as static assets,
+   * which is not the same as being on the filesystem the function can read, so
+   * the directory is named here explicitly. Without this the route works
+   * locally and 500s in production.
+   */
+  outputFileTracingIncludes: {
+    '/print/sheet/[clientId]/[sheet]': ['./public/print-kit/*.pdf'],
+  },
   // RepOS is local-first. No telemetry, no analytics, no external image loaders.
   images: { unoptimized: true },
   serverExternalPackages: ['@prisma/client'],

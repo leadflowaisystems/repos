@@ -1,51 +1,52 @@
 import QRCode from 'qrcode';
-import {
-  buildPdf,
-  curveTo,
-  lineTo,
-  moveTo,
-  PdfPage,
-  textWidthMm,
-  type PathSegment,
-  type PdfFont,
-} from './pdf';
+import { buildPdf, PdfPage, textWidthMm, type PdfFont } from './pdf';
 
 /**
- * THE TABLE TENT: one A4 sheet, two cards, one fold each.
+ * THE HEADWAY TABLE TENT — the one approved physical display, for every client.
  *
- * The physical experience this file exists to produce, in full:
+ * There is a single canonical design. Every business gets the same card with
+ * two things filled in:
  *
- *   print → cut out the two cards → fold each one down the middle → stand it up
+ *   1. its own business name
+ *   2. its own Headway QR
  *
- * That is the entire construction. No tabs, no slots, no reverse folds, no
- * glue, no acrylic holder, no separate stand. A business that owns a printer
- * and a pair of scissors owns the whole kit, which is the point: the previous
- * print kit produced a flat A5 panel that had nothing to stand it up with, so
- * in practice it was propped against a napkin holder or it lay on the table
- * face down.
+ * Nothing else varies. Not the wording, not the colours, not the sizes, not
+ * the construction. A restaurant, a clinic and a gym all put out the same
+ * object, which is the point: the card is Headway's, the name on it is theirs.
  *
- * WHY A SINGLE FOLD MAKES A STABLE OBJECT. Folded down the middle with the
- * printed side out, the crease becomes the ridge and the two halves lean apart
- * into a Λ. The base it stands on is as long as the card (152mm) and the thing
- * is only ~44mm tall, so it is far wider than it is high and does not topple.
- * Ordinary 80gsm paper is enough; anything heavier is sturdier still.
+ * ONE BUSINESS, ONE CODE. The QR is this client's existing feedback gateway —
+ * the same address the workspace shows, the same token, the same page. Both
+ * faces of a tent carry it, and every tent a business prints carries it. There
+ * is no per-table code, no per-sheet code and no second QR system; extra cards
+ * are extra copies of one address.
  *
- * WHY ONE HALF IS PRINTED UPSIDE DOWN. This is not a bug and it is the one
- * thing about the sheet that looks wrong before it is folded. The half above
- * the fold ends up hanging down the FAR side of the ridge, which inverts it.
- * Printing that half pre-rotated is what makes both faces read the right way
- * up on the finished tent — and it is why the sheet says so, in words, next to
- * the fold line.
+ * THE CONSTRUCTION, in the order the sheet says it:
  *
- * BOTH FACES ARE THE SAME OBJECT. Identical geometry and identical content, so
- * whichever way the tent is turned the customer sees the same card. The brief
- * allows complementary content; the same card is the better answer, because a
- * customer at a table does not know there is a second side and should not have
- * to.
+ *   print → cut on the dashed line → score the three fold lines → fold printed
+ *   side out → tape two coins inside the base → fold the base in → double-sided
+ *   tape on the tab, stick it inside the opposite face
+ *
+ * Flat, each card is four panels down the page:
+ *
+ *   FACE (upside down) | FOLD 1 | FACE | FOLD 2 | BASE | FOLD 3 | TAB
+ *
+ * Folded, the two faces lean apart into an A, the base folds under and sits on
+ * the table, and the tab closes the triangle inside the far face. The upper
+ * face is printed upside down because once folded it hangs down the far side
+ * of the ridge — that is the one thing about the flat sheet that looks like a
+ * mistake and is not, which is why the sheet says so in words.
+ *
+ * WHY THE CARD RUNS ALMOST THE FULL SHEET. It is 84 × 279 mm before folding
+ * and there is one per column, with 6.5 mm of paper above the trim and 3 mm of
+ * bleed outside it. That is a print-shop master — 300 gsm, cut on the line —
+ * and it is also safe on a home printer, because everything that survives the
+ * cut is at least 6.5 mm inside the paper. Only the bleed and the two lines of
+ * build instructions at the foot of the sheet sit closer than that, and both
+ * are thrown away by the cut.
  */
 
 // ---------------------------------------------------------------------------
-// Geometry — stated once, in millimetres, and asserted by the tests
+// Geometry — the approved artwork, in millimetres, asserted by the tests
 // ---------------------------------------------------------------------------
 
 export const TENT = {
@@ -53,46 +54,53 @@ export const TENT = {
   pageWidthMm: 210,
   pageHeightMm: 297,
 
+  /** The visible face of the finished tent. */
+  faceWidthMm: 84,
+  faceHeightMm: 123,
+
   /**
-   * The visible face of the finished tent: portrait, 1 : 1.40.
+   * The panel that lies on the table, weighted with two coins, and the flap
+   * that tapes inside the opposite face to close the triangle.
    *
-   * The ratio is the design; the size is arithmetic. Working from A4 inwards:
-   * two tents must fit, each tent is TWO faces tall because it folds in half,
-   * and the sheet needs a printable margin plus a line of instructions. That
-   * leaves two arrangements, and they are not close.
-   *
-   *   TWO TENTS STACKED, one above the other, is four faces deep. Four faces
-   *   plus margins on 297 mm caps the face at 43 × 60 mm — a place card.
-   *
-   *   TWO TENTS SIDE BY SIDE is two faces deep and two faces wide. 297 mm of
-   *   height is generous for two faces; 210 mm of width is the binding
-   *   constraint, and it allows 88 mm.
-   *
-   * Side by side wins by a factor of four in area, so that is the arrangement.
-   * The reference sheet settles it too: it asks for a folded card of about
-   * 70 × 98 mm, and two of those stacked need 392 mm of a 297 mm page. Stacked
-   * is not a smaller version of this design, it is a different one.
+   * THE ONE PLACE THIS SHEET DEPARTS FROM THE ARTWORK, and it is 3 mm of base
+   * and 2 mm of tab. The approved master runs the card to 284 mm, which leaves
+   * its two lines of build instructions 2 mm from the foot of the paper —
+   * correct for a press, which trims them off, and clipped by every home
+   * printer, which cannot reach the last few millimetres. The faces are the
+   * part anybody ever looks at and they are untouched at 84 × 123 mm; the base
+   * and the tab are structure, hidden inside the finished tent, and losing
+   * 5 mm of them buys the instructions a margin they survive.
    */
-  faceWidthMm: 88,
-  faceRatio: 1.4,
-  get faceHeightMm() {
-    return this.faceWidthMm * this.faceRatio; // 123.2
-  },
+  baseMm: 25,
+  tabMm: 8,
 
-  /** One tent, flat, before folding: the same face twice, joined at the fold. */
-  get cardWidthMm() {
-    return this.faceWidthMm;
-  },
-  get cardHeightMm() {
-    return this.faceHeightMm * 2; // 246.4
-  },
-
-  /** Blank paper between the two tents, so one cut cannot clip the other. */
-  gapMm: 10,
+  /** Ink carried past the trim, so a cut that wanders leaves no white edge. */
+  bleedMm: 3,
+  /**
+   * White paper between the two cards' bleed boxes.
+   *
+   * Wide enough to name the three creases in. The artwork puts each card's
+   * labels in the margin to its right, which on the right-hand card lands them
+   * 3 mm from the edge of the paper; both cards fold at the same heights, so
+   * one set of labels down the middle says everything and says it where it
+   * will actually print.
+   */
+  gapMm: 14,
   cardsPerSheet: 2,
 
-  /** The instruction strip above the tents, and the four steps below them. */
-  headerMm: 32.5,
+  /** Paper above the trim line. The same below, by symmetry. */
+  marginTopMm: 6.5,
+
+  /** The gold band that rides every fold: this far inside the panel… */
+  bandInsideMm: 3.5,
+  /** …and this far past its edge, which is exactly the bleed. */
+  bandOutsideMm: 3,
+
+  /** The cream panel the code sits on, and its corner radius. */
+  qrPanelMm: 43,
+  qrPanelRadiusMm: 3,
+  /** How much of that panel the code itself fills; the rest is quiet zone. */
+  qrModulesMm: 35,
 } as const;
 
 export type TentGeometry = {
@@ -102,15 +110,21 @@ export type TentGeometry = {
   faceHeightMm: number;
   /** height ÷ width of one visible face. */
   faceRatio: number;
+  /** The whole card, flat: two faces, the base and the tab. */
   cardWidthMm: number;
   cardHeightMm: number;
   cardsPerSheet: number;
-  /** Left edge of each tent, left to right across the sheet. */
+  /** Left edge of each card's TRIM, left to right across the sheet. */
   cardLeftsMm: number[];
-  /** Top edge of both tents. They sit on one line. */
+  /** Top edge of the trim. Both cards sit on one line. */
   cardTopMm: number;
-  /** Where each tent is folded — always its own horizontal centre. */
-  foldMm: number;
+  /** Bottom edge of the trim. */
+  cardBottomMm: number;
+  /** The three folds, top to bottom: the ridge, the base, the tab. */
+  fold1Mm: number;
+  fold2Mm: number;
+  fold3Mm: number;
+  bleedMm: number;
   marginLeftMm: number;
   marginTopMm: number;
   marginBottomMm: number;
@@ -126,29 +140,37 @@ export type TentGeometry = {
 export function tentGeometry(): TentGeometry {
   const faceWidth = TENT.faceWidthMm;
   const faceHeight = TENT.faceHeightMm;
-  const cardHeight = faceHeight * 2;
+  const cardHeight = faceHeight * 2 + TENT.baseMm + TENT.tabMm;
 
-  const blockWidth = faceWidth * TENT.cardsPerSheet + TENT.gapMm * (TENT.cardsPerSheet - 1);
-  const marginLeft = (TENT.pageWidthMm - blockWidth) / 2;
-  const top = TENT.headerMm;
+  // The cards are placed by their BLEED boxes, because that is the ink; the
+  // trim then sits one bleed inside each.
+  const bleedWidth = faceWidth + TENT.bleedMm * 2;
+  const across = bleedWidth * TENT.cardsPerSheet + TENT.gapMm * (TENT.cardsPerSheet - 1);
+  const marginLeft = (TENT.pageWidthMm - across) / 2 + TENT.bleedMm;
 
   const lefts: number[] = [];
   for (let i = 0; i < TENT.cardsPerSheet; i += 1) {
-    lefts.push(marginLeft + i * (faceWidth + TENT.gapMm));
+    lefts.push(marginLeft + i * (bleedWidth + TENT.gapMm));
   }
+
+  const top = TENT.marginTopMm;
 
   return {
     pageWidthMm: TENT.pageWidthMm,
     pageHeightMm: TENT.pageHeightMm,
     faceWidthMm: faceWidth,
     faceHeightMm: faceHeight,
-    faceRatio: TENT.faceRatio,
+    faceRatio: faceHeight / faceWidth,
     cardWidthMm: faceWidth,
     cardHeightMm: cardHeight,
     cardsPerSheet: TENT.cardsPerSheet,
     cardLeftsMm: lefts,
     cardTopMm: top,
-    foldMm: top + faceHeight,
+    cardBottomMm: top + cardHeight,
+    fold1Mm: top + faceHeight,
+    fold2Mm: top + faceHeight * 2,
+    fold3Mm: top + faceHeight * 2 + TENT.baseMm,
+    bleedMm: TENT.bleedMm,
     marginLeftMm: marginLeft,
     marginTopMm: top,
     marginBottomMm: TENT.pageHeightMm - (top + cardHeight),
@@ -156,62 +178,165 @@ export function tentGeometry(): TentGeometry {
 }
 
 // ---------------------------------------------------------------------------
-// Content
+// The words — fixed, because the template is fixed
 // ---------------------------------------------------------------------------
 
-export type TentInput = {
-  businessName: string;
-  /** The vertical's own question. From the pack, never invented here. */
-  headline: string;
-  /** The vertical's own scan line. */
-  subhead: string;
-  /** The short label under the QR, in the vertical's words. */
-  qrCaption: string;
-  /** The vertical's own thank-you, printed on the base band. */
-  thankYou: string;
-  /** Where the vertical says the card should sit. Printed in the trim margin. */
-  placement: string;
-  /** The address the QR encodes: this client's own feedback page. */
-  feedbackUrl: string;
-  brandPrimary: string;
-  brandSecondary: string;
-};
+/**
+ * THE APPROVED WORDING. Not per vertical, not per client, not editable.
+ *
+ * Every line on this card was signed off as customer-facing copy and each one
+ * is doing a job:
+ *
+ *   the question    — open, answerable by anyone, in no way a rating
+ *   the invitation  — says a bad answer is wanted, which is the whole product
+ *   the scan line   — removes the three reasons people do not scan
+ *   the promise     — who reads it, and that it is not published anywhere
+ *   the thanks      — the reason to bother
+ *
+ * There is no mention of Google, no stars, no "if you enjoyed your visit", and
+ * nothing that sorts customers by how happy they are before asking them. A
+ * card that gated feedback would make everything Headway reads afterwards
+ * worthless.
+ */
+export const TENT_COPY = {
+  /** Broken where the artwork breaks it, not wherever the measure runs out. */
+  headline: ['How did we', 'do today?'] as const,
+  subhead: 'Good, bad or in between — tell us honestly.',
+  scanLine: 'SCAN  ·  1 MINUTE  ·  NO APP NEEDED',
+  privacyLine: 'Read by the owner. Private — never posted publicly.',
+  thankYou: 'Thank you for helping us do better.',
+  wordmark: 'Headway',
+  base: [
+    'BASE — this side faces the table.',
+    'Tape two coins on the other side, then fold in.',
+  ] as const,
+  tab: 'DOUBLE-SIDED TAPE HERE  ·  sticks inside the opposite face',
+  sheet: [
+    "Headway table tent  ·  Print A4 at 100% (never 'fit to page')  ·  300 gsm matte-laminated card  ·  " +
+      'Cut on the dashed line  ·  Score all three fold lines with a ruler and a blunt edge',
+    'Fold printed side out  ·  Tape two coins inside the base  ·  Fold the base in  ·  ' +
+      'Double-sided tape on the tab, stick it inside the opposite face',
+  ] as const,
+  cut: 'CUT',
+  folds: ['FOLD 1', 'FOLD 2', 'FOLD 3'] as const,
+} as const;
 
-const CREAM = '#FAF7EF';
-const INK = '#1A1E29';
-const MUTED = '#545B6C';
-const FAINT = '#B6BDCB';
+// ---------------------------------------------------------------------------
+// The palette — Headway's, and only Headway's
+// ---------------------------------------------------------------------------
+
+/**
+ * The card does not take the client's brand colours, and that is deliberate.
+ *
+ * A business can set its own colours in Headway and they are used where they
+ * belong. This card is not one of those places: it is one approved object that
+ * every client puts on a table, and a hundred recoloured variants of it would
+ * be a hundred designs nobody approved. The business's name is what makes the
+ * card theirs.
+ */
+const NAVY = '#102A43';
+const GOLD = '#B78A3B';
+/** The headline and the thanks: warm, not white. */
+const CREAM = '#F3EDE0';
+/** The panel the code sits on — a shade deeper, so the code reads as inset. */
+const PANEL = '#ECE6D8';
+/** The two supporting lines. Quieter than the headline, still legible on navy. */
+const MUTED = '#B7C1CD';
+/** Cut marks, fold marks and the instructions that get trimmed away. */
+const MARKS = '#9AA6B4';
+
+// ---------------------------------------------------------------------------
+// Type — sized to SET THE SAME WIDTH as the approved artwork
+// ---------------------------------------------------------------------------
+
+/**
+ * The artwork was drawn in Jost, Cormorant Garamond Light Italic and Lato
+ * Bold. None of those is a base-14 face, and embedding three TrueType subsets
+ * to print one card would add font files, a subsetter and a licence question
+ * to a module whose whole point is that it has no dependencies.
+ *
+ * So each line is set in the nearest base-14 face at whatever size reproduces
+ * the MEASURED WIDTH of that line in the approved artwork. Matching the width
+ * rather than the nominal point size is what keeps the composition — the
+ * relative weight of the question against the invitation, the invitation
+ * against the promise — looking like the thing that was signed off, instead of
+ * looking like the same layout in a different font.
+ */
+const TYPE = {
+  /** Tracked capitals. Shrinks for a long name; see fitTracked. */
+  nameSizes: [10.3, 9.2, 8.2, 7.2, 6.4, 5.6],
+  nameTracking: 1.7,
+  headline: 24,
+  /** Baseline to baseline, in millimetres. */
+  headlineLeadingMm: 9.6,
+  subhead: 7.5,
+  scan: 6.3,
+  scanTracking: 0.9,
+  privacy: 7,
+  thankYou: 9.5,
+  wordmark: 9.2,
+  base: 5,
+  tab: 4.8,
+  sheet: 5.4,
+  label: 5.4,
+  labelTracking: 0.4,
+} as const;
+
+/**
+ * Baselines and edges within one face, measured down from the top of the face.
+ *
+ * Taken from the approved artwork, not invented: the QR panel is at a fixed
+ * height rather than stacked under the text, so no line of type can ever push
+ * the code down the card.
+ */
+const FACE = {
+  nameBaselineMm: 14.6,
+  headlineBaselineMm: 28.2,
+  subheadBaselineMm: 44.2,
+  panelTopMm: 48.6,
+  scanBaselineMm: 98.4,
+  privacyBaselineMm: 103.8,
+  thankYouBaselineMm: 109.4,
+  wordmarkBaselineMm: 116.15,
+  /** Widest a line of type may set. The name is the only line that can grow. */
+  measureMm: 74,
+} as const;
+
+// ---------------------------------------------------------------------------
+// The Headway mark
+// ---------------------------------------------------------------------------
 
 /**
  * THE HEADWAY MARK, AS VECTOR.
  *
  * The same two uprights and rising gold path the product draws on screen, in
- * PDF operators rather than SVG. It is on the card because a customer who scans
- * a Headway tent should land on a Headway page: the two are one object, and a
- * mark on only one of them makes them look like unrelated things.
+ * PDF operators rather than SVG. It is on the card because a customer who
+ * scans a Headway tent should land on a Headway page: the two are one object,
+ * and a mark on only one of them makes them look like unrelated things.
  *
- * Sized by height and drawn from the same 40-unit box as the component, so the
- * proportions cannot drift between the screen and the print.
+ * Sized to the cap height of the word beside it, and drawn from the same
+ * 40-unit box as the component, so the proportions cannot drift between the
+ * screen and the print.
  */
-function drawMark(page: PdfPage, xMm: number, yMm: number, heightMm: number, gold: string) {
+function drawMark(page: PdfPage, xMm: number, baselineMm: number, heightMm: number) {
   const u = heightMm / 28; // the letter occupies y 6..34 of the 40-unit box
-  const upright = (offset: number) =>
-    page.rect(xMm + offset * u, yMm, 5.2 * u, 28 * u, '#FFFFFF');
-  upright(0);
-  upright(25.8);
+  const top = baselineMm - heightMm;
+  page.rect(xMm, top, 5.2 * u, 28 * u, CREAM);
+  page.rect(xMm + 25.8 * u, top, 5.2 * u, 28 * u, CREAM);
   page.path(
     [
-      moveTo(xMm + 0 * u, yMm + 17 * u),
-      curveTo(
-        xMm + 10.5 * u,
-        yMm + 17 * u,
-        xMm + 20.5 * u,
-        yMm + 15.5 * u,
-        xMm + 31 * u,
-        yMm + 11 * u,
-      ),
+      { kind: 'move', x: xMm, y: top + 17 * u },
+      {
+        kind: 'curve',
+        c1x: xMm + 10.5 * u,
+        c1y: top + 17 * u,
+        c2x: xMm + 20.5 * u,
+        c2y: top + 15.5 * u,
+        x: xMm + 31 * u,
+        y: top + 11 * u,
+      },
     ],
-    { stroke: gold, widthPt: (5 * u * 72) / 25.4 },
+    { stroke: GOLD, widthPt: (5 * u * 72) / 25.4 },
   );
 }
 
@@ -220,256 +345,120 @@ function markWidth(heightMm: number): number {
   return (heightMm / 28) * 31;
 }
 
+// ---------------------------------------------------------------------------
+// One face
+// ---------------------------------------------------------------------------
+
 /**
- * The face, laid out once and drawn twice — the second time upside down.
+ * The face, laid out once and drawn four times — twice per tent, and once of
+ * each pair upside down.
  *
- * PORTRAIT, and that is the whole change. The old face was a 6 × 2 inch
- * landscape strip, which put the question beside the QR and read as a shelf
- * talker. Turned upright at 1 : 1.40 the composition becomes a column — name,
- * question, invitation, code, thanks — and each element gets the full width of
- * the card instead of half of it. It is the difference between a label and a
- * card somebody leaves on the table.
+ * It is a single centred column, top to bottom: whose business this is, the
+ * question, the invitation, the code, what happens to the answer, thanks, and
+ * the mark. Nothing sits beside anything else, because a card read from across
+ * a table is read in one pass down the middle.
  *
- * The base is a curve rather than a band. A folded rectangle with a straight
- * coloured strip along the bottom looks like a printout; the same card with a
- * curved base and a gold line riding above it reads as a made thing, and costs
- * exactly the same to print because it is vector, not an image.
- *
- * Everything is centred, because a centred column is what reads as considered
- * from across a table, and because the eye should land on the question rather
- * than track a ragged left edge.
+ * The navy ground is NOT drawn here. It is one rectangle per card, covering the
+ * bleed, so that the two faces emit identical operators and the sheet can be
+ * checked for "both sides are the same object" by comparing them.
  */
-function drawFace(page: PdfPage, x: number, y: number, input: TentInput, qr: QrMatrix) {
-  const w = TENT.faceWidthMm; // 88
-  const h = TENT.faceHeightMm; // 123.2
+function drawFace(page: PdfPage, x: number, y: number, businessName: string, qr: QrMatrix) {
+  const w = TENT.faceWidthMm;
+  const h = TENT.faceHeightMm;
   const cx = x + w / 2;
-  const column = w - 14; // the measure everything sets to
 
-  page.rect(x, y, w, h, CREAM);
+  // The gold band rides each fold: this face's own share at the top and at the
+  // bottom. Where two panels meet, their two shares make the one band the
+  // artwork shows; at the cut line the outer share falls in the bleed.
+  band(page, x, y);
+  band(page, x, y + h);
 
-  // ---- The base: a curve, not a band --------------------------------------
-  // One cubic sweep from the left edge to the right, rising as it goes. `lift`
-  // draws the same curve higher up, which is how the gold line stays exactly
-  // parallel to the navy edge instead of being a second guess at it. The
-  // control points matter: keeping the first close to the start in y and
-  // throwing the second high makes the line leave the left edge almost flat and
-  // swing up through the middle. Spread them evenly and it draws a straight
-  // diagonal, which reads as a printing mistake rather than a designed edge.
-  const BASE_LEFT = 22; // mm of navy at the left edge
-  const BASE_RIGHT = 27; // and at the right, so the edge rises
-  const wave = (lift: number): PathSegment[] => [
-    moveTo(x, y + h - BASE_LEFT - lift),
-    curveTo(
-      x + w * 0.34,
-      y + h - BASE_LEFT - 0.6 - lift,
-      x + w * 0.5,
-      y + h - BASE_RIGHT + 0.4 - lift,
-      x + w,
-      y + h - BASE_RIGHT - lift,
-    ),
-  ];
-  page.path([...wave(0), lineTo(x + w, y + h), lineTo(x, y + h)], {
-    fill: input.brandPrimary,
-  });
-  page.path(wave(1.7), { stroke: input.brandSecondary, widthPt: 2.4 });
-
-  // ---- The column ---------------------------------------------------------
-  // Tracked capitals, measured WITH the tracking. Measured without it, "The
-  // Very Long Restaurant And Banqueting Company" came out 116 mm wide on an
-  // 88 mm card and ran off the sheet — the one failure a rendered picture will
-  // not show you, because the ink is outside the page.
-  const name = fitTracked(input.businessName.toUpperCase(), 'bold', [8.5, 7.5, 6.5, 5.8], column, 1.6);
-  page.text(name.text, cx, y + 11.5, {
-    font: 'bold',
+  // Whose card this is. Tracked capitals, measured WITH the tracking — measured
+  // without it, "The Very Long Restaurant And Banqueting Company" set 146 mm
+  // wide on an 84 mm card and ran off the sheet, which is the one failure a
+  // rendered preview cannot show you, because the ink is outside the page.
+  const name = fitTracked(
+    businessName.toUpperCase(),
+    'regular',
+    TYPE.nameSizes,
+    FACE.measureMm,
+    TYPE.nameTracking,
+  );
+  page.text(name.text, cx, y + FACE.nameBaselineMm, {
     size: name.size,
-    colour: input.brandSecondary,
+    colour: GOLD,
     align: 'centre',
     tracking: name.tracking,
   });
 
-  const headline = fit(input.headline, 'bold', [19, 17.5, 16, 14.5, 13], column);
-  const headlineTop = headline.lines.length === 1 ? 24.5 : 22;
-  headline.lines.forEach((line, i) => {
-    page.text(line, cx, y + headlineTop + i * (headline.size * 0.46), {
-      font: 'bold',
-      size: headline.size,
-      colour: INK,
+  // The question, in the italic serif, broken where the artwork breaks it.
+  TENT_COPY.headline.forEach((line, i) => {
+    page.text(line, cx, y + FACE.headlineBaselineMm + i * TYPE.headlineLeadingMm, {
+      font: 'serifItalic',
+      size: TYPE.headline,
+      colour: CREAM,
       align: 'centre',
     });
   });
 
-  const subhead = fit(input.subhead, 'regular', [10, 9.5, 9], column);
-  const subheadTop = headline.lines.length === 1 ? 35 : 39.5;
-  subhead.lines.forEach((line, i) => {
-    page.text(line, cx, y + subheadTop + i * 4.8, {
-      size: subhead.size,
-      colour: MUTED,
-      align: 'centre',
-    });
-  });
-
-  // ---- The code, framed the way the reference frames it -------------------
-  // A white panel inside a gold rule. The panel is not decoration: a QR printed
-  // straight onto cream loses contrast on a cheap printer, and the quiet zone
-  // has to be paper-white for a phone to find the code at all.
-  const panel = 40;
-  const panelX = cx - panel / 2;
-  // Fixed, not stacked under the text: a question that wraps to two lines would
-  // otherwise push the code down onto the curve, which is where it went the
-  // first time this was rendered.
-  const panelY = y + 47;
-  page.rect(panelX, panelY, panel, panel, '#FFFFFF');
-  page.frame(panelX, panelY, panel, panel, {
-    colour: input.brandSecondary,
-    widthPt: 1.4,
-  });
-  drawQr(page, panelX, panelY, panel, qr);
-
-  // Labelled, the way the reference labels it. A bare QR on a table is a thing
-  // people photograph without knowing why; a line under it is the difference.
-  const caption = fitTracked(input.qrCaption, 'regular', [8, 7.5, 7, 6.5], column, 0);
-  page.text(caption.text, cx, panelY + panel + 5.5, {
-    size: caption.size,
+  page.text(TENT_COPY.subhead, cx, y + FACE.subheadBaselineMm, {
+    size: TYPE.subhead,
     colour: MUTED,
     align: 'centre',
   });
 
-  // ---- On the base ---------------------------------------------------------
-  gratitude(page, input.thankYou, cx, y + h);
+  // The code, on its own cream panel. The panel is not decoration: a QR printed
+  // straight onto navy has no contrast at all, and the quiet zone around it has
+  // to be light paper for a phone to find the code.
+  const panel = TENT.qrPanelMm;
+  const panelX = cx - panel / 2;
+  const panelY = y + FACE.panelTopMm;
+  page.roundedRect(panelX, panelY, panel, panel, TENT.qrPanelRadiusMm, PANEL);
+  drawQr(page, panelX, panelY, panel, qr);
 
-  // The lockup: mark and name together, centred, small. Gold on navy at this
-  // size is a signature rather than a logo placement.
-  const markH = 4.6;
-  const nameW = textWidthMm('Headway', 'bold', 8, 0.3);
-  const lockup = markWidth(markH) + 2.2 + nameW;
-  const lockupX = cx - lockup / 2;
-  drawMark(page, lockupX, y + h - 8.4, markH, input.brandSecondary);
-  page.text('Headway', lockupX + markWidth(markH) + 2.2, y + h - 4.6, {
-    font: 'bold',
-    size: 8,
-    colour: '#FFFFFF',
-    tracking: 0.3,
+  page.text(TENT_COPY.scanLine, cx, y + FACE.scanBaselineMm, {
+    size: TYPE.scan,
+    colour: GOLD,
+    align: 'centre',
+    tracking: TYPE.scanTracking,
   });
-}
-
-/**
- * The thanks, on the curve, in two lines.
- *
- * "Thank you — this goes straight to the kitchen team." is one sentence doing
- * two jobs: the thanks, and the promise about where the words go. Stacking them
- * gives the first the weight it deserves and turns the second into the
- * reassurance it actually is — and it is the promise, not the thanks, that
- * persuades somebody to type honestly.
- */
-function gratitude(page: PdfPage, text: string, cx: number, faceBottom: number) {
-  const trimmed = text.trim();
-  const match = /^(thank you|thanks)\s*[—–-]?\s*/i.exec(trimmed);
-  if (!match) {
-    page.text(trimmed, cx, faceBottom - 12.5, { size: 9, colour: '#FFFFFF', align: 'centre' });
-    return;
-  }
-  const head = trimmed.slice(0, match[1]!.length);
-  const rest = trimmed.slice(match[0].length);
-  const tail = rest.charAt(0).toUpperCase() + rest.slice(1);
-  page.text(head, cx, faceBottom - 16.5, {
-    font: 'bold',
-    size: 11,
-    colour: '#FFFFFF',
+  page.text(TENT_COPY.privacyLine, cx, y + FACE.privacyBaselineMm, {
+    size: TYPE.privacy,
+    colour: MUTED,
     align: 'centre',
   });
-  if (tail) {
-    const lines = fit(tail, 'regular', [8, 7.5, 7], TENT.faceWidthMm - 16);
-    lines.lines.forEach((line, i) => {
-      page.text(line, cx, faceBottom - 12 + i * 4, {
-        size: lines.size,
-        colour: '#DDE4EE',
-        align: 'centre',
-      });
-    });
-  }
+  page.text(TENT_COPY.thankYou, cx, y + FACE.thankYouBaselineMm, {
+    font: 'serifItalic',
+    size: TYPE.thankYou,
+    colour: CREAM,
+    align: 'centre',
+  });
+
+  // The lockup: mark and word together, centred, small. Gold and cream on navy
+  // at this size is a signature rather than a logo placement.
+  const markH = TYPE.wordmark * 0.718 * (25.4 / 72); // the cap height beside it
+  const nameW = textWidthMm(TENT_COPY.wordmark, 'bold', TYPE.wordmark);
+  const gap = 1.4;
+  const lockup = markWidth(markH) + gap + nameW;
+  const lockupX = cx - lockup / 2;
+  const baseline = y + FACE.wordmarkBaselineMm;
+  drawMark(page, lockupX, baseline, markH);
+  page.text(TENT_COPY.wordmark, lockupX + markWidth(markH) + gap, baseline, {
+    font: 'bold',
+    size: TYPE.wordmark,
+    colour: CREAM,
+  });
 }
 
-/**
- * The largest of the offered sizes that fits ON ONE LINE, tracking included.
- *
- * For the short tracked runs — the business name, the caption under the code —
- * where wrapping would look like a mistake and the honest answer is to set it
- * smaller. When even the smallest offered size will not fit, the tracking goes
- * first, because letter-spacing is the part of the treatment nobody misses.
- * Only if that still overflows is the text cut, with an ellipsis, so a card can
- * never print past the edge of the paper.
- */
-function fitTracked(
-  text: string,
-  font: PdfFont,
-  sizes: number[],
-  maxWidthMm: number,
-  tracking: number,
-): { text: string; size: number; tracking: number } {
-  for (const size of sizes) {
-    if (textWidthMm(text, font, size, tracking) <= maxWidthMm) return { text, size, tracking };
-  }
-  const size = sizes[sizes.length - 1] ?? 6;
-  if (textWidthMm(text, font, size, 0) <= maxWidthMm) return { text, size, tracking: 0 };
-  let cut = text;
-  while (cut.length > 1 && textWidthMm(`${cut}…`, font, size, 0) > maxWidthMm) {
-    cut = cut.slice(0, -1).trimEnd();
-  }
-  return { text: `${cut}…`, size, tracking: 0 };
-}
-
-/**
- * The largest of the offered sizes that fits, wrapping to two lines only if
- * even the smallest will not fit on one.
- *
- * A question is the loudest thing on the card and should stay one line where it
- * can — "How was your meal today?" reads as a question at a glance and as a
- * paragraph when it is broken in the wrong place.
- *
- * When it must break, it breaks at the sentence's own pause where there is
- * one — a dash or a colon — and otherwise where the two lines come out most
- * even. A greedy break fills the first line and leaves whatever is left —
- * "… good, bad or somewhere" over "between." — which on a printed card reads
- * as a mistake; the most even break can land mid-list ("… good," over "bad or
- * …"). Breaking at the pause reads as a couplet: "Tell us honestly —" over
- * "good, bad or somewhere between." Sizes and positions are untouched; only
- * the break point moves.
- */
-function fit(
-  text: string,
-  font: PdfFont,
-  sizes: number[],
-  maxWidthMm: number,
-): { size: number; lines: string[] } {
-  for (const size of sizes) {
-    if (textWidthMm(text, font, size) <= maxWidthMm) return { size, lines: [text] };
-  }
-  const size = sizes[sizes.length - 1] ?? 11;
-  const words = text.split(/\s+/).filter(Boolean);
-  let best: { lines: string[]; spread: number; pause: boolean } | null = null;
-  for (let i = 1; i < words.length; i += 1) {
-    const head = words.slice(0, i).join(' ');
-    const tail = words.slice(i).join(' ');
-    const headW = textWidthMm(head, font, size);
-    const tailW = textWidthMm(tail, font, size);
-    if (headW > maxWidthMm || tailW > maxWidthMm) continue;
-    const spread = Math.abs(headW - tailW);
-    const pause = /[—–:]$/.test(head);
-    const better =
-      !best || (pause && !best.pause) || (pause === best.pause && spread < best.spread);
-    if (better) best = { lines: [head, tail], spread, pause };
-  }
-  if (best) return { size, lines: best.lines };
-  // Too long even for two full lines: fill the first and carry the rest, so
-  // nothing is ever dropped.
-  let first = '';
-  for (const word of words) {
-    const next = first ? `${first} ${word}` : word;
-    if (textWidthMm(next, font, size) > maxWidthMm && first) break;
-    first = next;
-  }
-  const rest = text.slice(first.length).trim();
-  return { size, lines: rest ? [first, rest] : [first] };
+/** The gold band that rides one edge of a panel. */
+function band(page: PdfPage, x: number, edgeY: number) {
+  page.rect(
+    x,
+    edgeY - TENT.bandOutsideMm,
+    TENT.faceWidthMm,
+    TENT.bandOutsideMm + TENT.bandInsideMm,
+    GOLD,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -483,7 +472,7 @@ export type QrMatrix = { size: number; dark: (x: number, y: number) => boolean }
  *
  * Drawn as vector rectangles it cannot be resampled, softened or dithered by a
  * printer driver, which is the failure that makes a printed QR scan on one
- * machine and not another. Error correction H so a card that gets splashed on
+ * machine and not another. Error correction H, so a card that gets splashed on
  * a table still resolves.
  */
 export function qrMatrix(url: string): QrMatrix {
@@ -492,13 +481,22 @@ export function qrMatrix(url: string): QrMatrix {
   return { size, dark: (x, y) => data[y * size + x] === 1 };
 }
 
-/** Modules as merged horizontal runs, so the content stream stays small. */
-function drawQr(page: PdfPage, xMm: number, yMm: number, panelMm: number, qr: QrMatrix) {
-  // Four modules of quiet zone on every side, as the spec requires.
-  const quiet = 4;
-  const unit = panelMm / (qr.size + quiet * 2);
-  const originX = xMm + quiet * unit;
-  const originY = yMm + quiet * unit;
+/**
+ * Modules as merged horizontal runs, so the content stream stays small.
+ *
+ * The code fills 35 mm of the 43 mm panel, which leaves 4 mm of cream on every
+ * side. The QR specification asks for four modules of quiet zone; for any
+ * address Headway generates that is comfortably met, but a short URL encodes
+ * to a smaller grid with bigger modules, so the drawn size is reduced rather
+ * than the quiet zone — the rule is enforced here, not assumed.
+ */
+function drawQr(page: PdfPage, panelXMm: number, panelYMm: number, panelMm: number, qr: QrMatrix) {
+  const quietModules = 4;
+  const widest = (panelMm * qr.size) / (qr.size + quietModules * 2);
+  const grid = Math.min(TENT.qrModulesMm, widest);
+  const unit = grid / qr.size;
+  const originX = panelXMm + (panelMm - grid) / 2;
+  const originY = panelYMm + (panelMm - grid) / 2;
 
   for (let row = 0; row < qr.size; row += 1) {
     let runStart = -1;
@@ -520,158 +518,152 @@ function drawQr(page: PdfPage, xMm: number, yMm: number, panelMm: number, qr: Qr
 }
 
 // ---------------------------------------------------------------------------
+// Fitting
+// ---------------------------------------------------------------------------
+
+/**
+ * The largest of the offered sizes that fits ON ONE LINE, tracking included.
+ *
+ * The business name is the only line on the card whose length Headway does not
+ * control, and it has to stay one line: a name wrapped across two lines under
+ * a fixed layout reads as a mistake. So it is set smaller instead. When even
+ * the smallest offered size will not fit, the tracking goes first, because
+ * letter-spacing is the part of the treatment nobody misses. Only if that
+ * still overflows is the name cut, with an ellipsis, so a card can never print
+ * past the edge of the paper.
+ */
+function fitTracked(
+  text: string,
+  font: PdfFont,
+  sizes: readonly number[],
+  maxWidthMm: number,
+  tracking: number,
+): { text: string; size: number; tracking: number } {
+  for (const size of sizes) {
+    if (textWidthMm(text, font, size, tracking) <= maxWidthMm) return { text, size, tracking };
+  }
+  const size = sizes[sizes.length - 1] ?? 6;
+  if (textWidthMm(text, font, size, 0) <= maxWidthMm) return { text, size, tracking: 0 };
+  let cut = text;
+  while (cut.length > 1 && textWidthMm(`${cut}…`, font, size, 0) > maxWidthMm) {
+    cut = cut.slice(0, -1).trimEnd();
+  }
+  return { text: `${cut}…`, size, tracking: 0 };
+}
+
+// ---------------------------------------------------------------------------
 // The sheet
 // ---------------------------------------------------------------------------
+
+export type TentInput = {
+  /** The name printed at the top of both faces. */
+  businessName: string;
+  /** The address the QR encodes: this client's own Headway feedback page. */
+  feedbackUrl: string;
+};
 
 /**
  * The whole deliverable: one A4 page a print shop can work from unaided.
  *
- * TWO TENTS, SIDE BY SIDE. Each one is two identical faces joined at a
- * horizontal fold, the upper printed upside down so that folding brings it the
- * right way up on the far side. One vertical cut down the middle of the sheet
- * separates the pair; the dashed rectangle round each is the trim.
- *
- * The margins carry the instructions and are cut away, which is exactly why
- * they are the right place for "print at 100%" and "this half is upside down on
- * purpose". They are kept to a strip: the cards are the product, and a sheet
- * that spends half its area explaining itself has the proportions of a leaflet.
+ * Two cards side by side, each with its own trim rectangle, its own three fold
+ * lines and its own labels in the margin beside it. The two lines at the foot
+ * of the sheet are the build instructions; they sit outside every trim and are
+ * thrown away with the offcuts.
  */
 export function composeTentSheet(input: TentInput): PdfPage {
   const g = tentGeometry();
   const page = new PdfPage(g.pageWidthMm, g.pageHeightMm);
+
+  // ONE matrix, built once, drawn on all four faces. Not four encodings that
+  // happen to agree: one address, one code, and the tests can prove it by
+  // comparing the drawn grids.
   const qr = qrMatrix(input.feedbackUrl);
-  const centre = g.pageWidthMm / 2;
-
-  // ---- The strip above: what this is, and how to print it -----------------
-  page.text(`${input.businessName} — table tent`, centre, 13.5, {
-    font: 'bold',
-    size: 11,
-    colour: INK,
-    align: 'centre',
-  });
-  page.text('Print on A4 at 100% (Actual size). Do not use "Fit to page".', centre, 19.5, {
-    size: 8.5,
-    colour: MUTED,
-    align: 'centre',
-  });
-  page.text(
-    `${g.cardsPerSheet} tents per sheet · finished card ${round(g.faceWidthMm)} × ${round(g.faceHeightMm)} mm ` +
-      `(1 : ${g.faceRatio.toFixed(2)}) · the upper half of each prints upside down on purpose`,
-    centre,
-    24.3,
-    { size: 6.8, colour: FAINT, align: 'centre' },
-  );
-  page.text(`Where to put it: ${input.placement}`, centre, 29.2, {
-    size: 7,
-    colour: INK,
-    align: 'centre',
-  });
-
-  // ---- The two tents -------------------------------------------------------
-  const top = g.cardTopMm;
-  const fold = g.foldMm;
-  const bottom = top + g.cardHeightMm;
+  const bleed = g.bleedMm;
 
   g.cardLeftsMm.forEach((left) => {
-    // The upper half hangs down the far side once folded, so it is printed
+    // The navy, including the bleed, in one rectangle. Everything else is
+    // drawn on top of it.
+    page.rect(
+      left - bleed,
+      g.cardTopMm - bleed,
+      g.cardWidthMm + bleed * 2,
+      g.cardHeightMm + bleed * 2,
+      NAVY,
+    );
+
+    // The upper face hangs down the far side once folded, so it is printed
     // rotated. Laid out in ordinary coordinates and flipped in place.
-    page.rotatedHalfTurn(left, top, g.cardWidthMm, g.faceHeightMm, (p) => {
-      drawFace(p, left, top, input, qr);
+    page.rotatedHalfTurn(left, g.cardTopMm, g.cardWidthMm, g.faceHeightMm, (p) => {
+      drawFace(p, left, g.cardTopMm, input.businessName, qr);
     });
-    drawFace(page, left, fold, input, qr);
+    drawFace(page, left, g.fold1Mm, input.businessName, qr);
 
-    // Cut border. Dashed, on the line itself — it is the edge of the finished
-    // card, so it is trimmed away by the cut it describes.
-    page.frame(left, top, g.cardWidthMm, g.cardHeightMm, {
-      colour: '#8B94A8',
-      widthPt: 0.5,
-      dash: [2, 1.6],
+    // The base. Its gold edge is the lower share of the FOLD 2 band, already
+    // drawn by the face above it.
+    const baseCentre = left + g.cardWidthMm / 2;
+    TENT_COPY.base.forEach((line, i) => {
+      page.text(line, baseCentre, g.fold2Mm + 12.8 + i * 3.4, {
+        size: TYPE.base,
+        colour: MUTED,
+        align: 'centre',
+      });
     });
 
-    // Corner marks, in the white outside the card. The dashed border crosses
-    // the navy base twice, where a grey line is nearly invisible; these are
-    // always on white, which is why print shops use them.
-    for (const [mx, my] of [
-      [left, top],
-      [left + g.cardWidthMm, top],
-      [left, bottom],
-      [left + g.cardWidthMm, bottom],
-    ] as const) {
-      const outX = mx === left ? -1 : 1;
-      const outY = my === top ? -1 : 1;
-      page.line(mx + outX * 1.5, my, mx + outX * 4, my, { colour: '#545B6C', widthPt: 0.5 });
-      page.line(mx, my + outY * 1.5, mx, my + outY * 4, { colour: '#545B6C', widthPt: 0.5 });
-    }
+    // The tab, which nobody ever sees once the card is built.
+    page.text(TENT_COPY.tab, baseCentre, g.fold3Mm + 5.5, {
+      size: TYPE.tab,
+      colour: GOLD,
+      align: 'centre',
+    });
 
-    // Fold line. It lands exactly on the crease, so it disappears when folded.
-    page.line(left, fold, left + g.cardWidthMm, fold, {
-      colour: '#8B94A8',
+    // The trim. Dashed, on the line itself — it is the edge of the finished
+    // card, so it is cut away by the cut it describes.
+    page.frame(left, g.cardTopMm, g.cardWidthMm, g.cardHeightMm, {
+      colour: MARKS,
       widthPt: 0.4,
-      dash: [0.8, 1.2],
+      dash: [(2.4 * 25.4) / 72, (2 * 25.4) / 72],
     });
+
+    // The three creases, drawn a little past the ink at both ends so the score
+    // line is findable against the navy.
+    for (const fold of [g.fold1Mm, g.fold2Mm, g.fold3Mm]) {
+      page.line(left - bleed - 2, fold, left + g.cardWidthMm + bleed + 2, fold, {
+        colour: MARKS,
+        widthPt: 0.5,
+        dash: [(0.7 * 25.4) / 72, (1.9 * 25.4) / 72],
+      });
+    }
   });
 
-  // ---- The two labels, in the gutter ---------------------------------------
-  //
-  // Not in the outer margins, where they were. "FOLD" set beside the left-hand
-  // card put ink 4.2 mm from the edge of the paper, which is inside the
-  // unprintable border of most consumer printers — so on a real machine the
-  // word would have been clipped or would have pushed the whole sheet to
-  // scale. The gutter is 10 mm of white in the middle of the page and has no
-  // such problem.
-  //
-  // It is also the more truthful place for them. The vertical line down the
-  // gutter IS the cut that separates the two tents, and the fold is at the same
-  // height on both cards, so one label each says everything.
-  const gutterX = (g.cardLeftsMm[0]! + g.cardWidthMm + g.cardLeftsMm[1]!) / 2;
-
-  // Three segments, so the dashes never run through a word. The first break
-  // is well down the page: level with the header the gutter is still under the
-  // instruction lines, and "CUT" printed there landed on top of "Where to put
-  // it".
-  const cutLabelY = top + 30;
-  for (const [from, to] of [
-    [top - 4, cutLabelY - 4.5],
-    [cutLabelY + 2.2, fold - 4.5],
-    [fold + 2.2, bottom + 4],
-  ] as const) {
-    page.line(gutterX, from, gutterX, to, {
-      colour: '#B6BDCB',
-      widthPt: 0.4,
-      dash: [1.4, 1.4],
+  // The three creases and the cut, named once, down the middle of the sheet.
+  // Both cards fold at the same heights, so one label each is the whole story —
+  // and the gutter is the only strip of white on the page wide enough to set
+  // them in without pushing type into the printer's own border.
+  const gutter = g.pageWidthMm / 2;
+  const labels: Array<[string, number]> = [
+    [TENT_COPY.cut, g.cardTopMm + 1.8],
+    [TENT_COPY.folds[0], g.fold1Mm + 0.7],
+    [TENT_COPY.folds[1], g.fold2Mm + 0.7],
+    [TENT_COPY.folds[2], g.fold3Mm + 0.7],
+  ];
+  for (const [label, y] of labels) {
+    page.text(label, gutter, y, {
+      size: TYPE.label,
+      colour: MARKS,
+      align: 'centre',
+      tracking: TYPE.labelTracking,
     });
   }
 
-  page.text('CUT', gutterX, cutLabelY + 1, {
-    size: 5.5,
-    colour: FAINT,
-    align: 'centre',
-    tracking: 0.5,
+  // How to build it, at the foot of the sheet, below every trim and below the
+  // bleed — read while the sheet is flat, then cut off.
+  TENT_COPY.sheet.forEach((line, i) => {
+    page.text(line, gutter, g.pageHeightMm - 6.7 + i * 2.6, {
+      size: TYPE.sheet,
+      colour: MARKS,
+      align: 'centre',
+    });
   });
-  page.text('FOLD', gutterX, fold + 1, {
-    size: 5.5,
-    colour: FAINT,
-    align: 'centre',
-    tracking: 0.5,
-  });
-
-  // ---- The strip below: the four steps -------------------------------------
-  page.text('Print · Cut · Fold · Place', centre, bottom + 5.2, {
-    font: 'bold',
-    size: 8.5,
-    colour: INK,
-    align: 'centre',
-  });
-  // Four steps in two lines. Spread over four they ran off the bottom of the
-  // page, and the card already carries the mark twice, so the sheet does not
-  // need a third signature down here.
-  page.text(
-    '1.  Print on A4 at 100%.    2.  Cut out both cards along the dashed borders.    ' +
-      '3.  Fold each along the dotted line, printed side out.    4.  Stand it up.',
-    centre,
-    bottom + 10,
-    { size: 6.5, colour: MUTED, align: 'centre' },
-  );
 
   return page;
 }
@@ -679,10 +671,6 @@ export function composeTentSheet(input: TentInput): PdfPage {
 /** The same sheet, as the file an owner downloads. */
 export function renderTentSheet(input: TentInput): Uint8Array<ArrayBuffer> {
   return buildPdf([composeTentSheet(input)], {
-    title: `${input.businessName} — feedback tent`,
+    title: `${input.businessName} — Headway table tent`,
   });
-}
-
-function round(value: number): string {
-  return String(Math.round(value * 10) / 10);
 }

@@ -538,13 +538,17 @@ describe('the words an owner reads', () => {
     expect(improvements).not.toContain('It cannot show that the change caused the difference.');
   });
 
-  it('keeps the print kit to the card, four steps, placement, and staff guidance behind a click', () => {
+  it('keeps the print kit to the sheets, placement, and staff guidance behind a click', () => {
+    // The four assembly steps went with the generated tent: since M29 the kit
+    // serves the two approved PDF masters, and each one carries its own
+    // finishing line in the list. What the M23 trim decided is unchanged — the
+    // page is the card, where to put it, and everything the staff need behind
+    // one disclosure. See tests/m29.print-kit-masters.test.ts for the sheets.
     const kit = stripComments(read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'kit', 'page.tsx'));
     expect(kit).toContain('Your feedback card');
     expect(kit).toContain('Put it where customers naturally see it.');
-    expect(kit).toContain('Download print kit');
-    expect(kit).toContain('Preview');
-    for (const word of ['Print', 'Cut', 'Fold', 'Place']) expect(kit).toContain(`word: '${word}'`);
+    expect(kit).toContain('PRINT_SHEETS.map');
+    expect(kit).toContain('Open to print');
     expect(kit).toContain('Staff guidance');
     expect(kit.indexOf('<details')).toBeGreaterThan(0);
     expect(kit.indexOf('Staff guidance')).toBeGreaterThan(kit.indexOf('<details'));

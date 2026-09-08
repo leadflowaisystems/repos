@@ -1,36 +1,39 @@
+import Image from 'next/image';
 import { prisma } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { requireOpenWorkspace } from '@/lib/lifecycle/access';
 import { requestOrigin } from '@/lib/gateway/origin';
 import { getKitView } from '@/lib/kit/service';
+import { CopyButton } from '@/components/copy-button';
 import { PageIntro, Quiet, Section, StatusStrip } from '@/components/portal/portal-ui';
+import { PRINT_SHEETS } from '@/lib/kit/sheets';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = { title: 'Print kit' };
 
 /**
- * THE PRINT KIT, IN THE OWNER'S OWN WORKSPACE (M21, trimmed in M23).
+ * THE PRINT KIT, IN THE OWNER'S OWN WORKSPACE (M21, trimmed in M23, put onto
+ * the approved print masters in M29).
  *
- * The owner needs four things from this page: the card, a way to get it, the
- * four words that are the whole assembly, and where to put it. Everything the
- * staff need to know — when to mention it, what to say, what never to do —
- * sits behind one clearly labelled disclosure, because the owner opens this
- * page to print a card and their staff read it once.
+ * TWO SHEETS, AND ONLY TWO. Both are the signed-off Headway artwork:
  *
- * PREVIEW IS THE FILE, NOT A PICTURE OF IT. The frame points at the same route
- * the download does, so what an owner approves is what a print shop receives.
- * On a phone the frame is replaced by the Preview button: a PDF in an iframe on
- * a small screen shows one page badly or nothing at all.
+ *   1. 4 × 6 in insert card — A4, two cards, for an acrylic stand
+ *   2. Legal joined pair    — Legal, two pairs, folds to a tent or cuts to two
+ *
+ * Nothing on this page draws or re-renders them. The download route opens the
+ * approved PDF, swaps in this business's name and its own QR, and leaves every
+ * other byte of the file alone — so what a print shop receives is the artwork
+ * somebody said yes to, with the right business on it.
+ *
+ * WHY THE PREVIEW IS AN IMAGE. It used to be an iframe pointing at the PDF
+ * route, and that never rendered: `next.config.ts` sets
+ * `Content-Security-Policy: frame-ancestors 'none'` on every response, which
+ * blocks framing even from the same origin, so the owner saw an empty box. The
+ * previews here are stills of the two masters, so they show the layout rather
+ * than this business's own card — which is what the note under the list says.
  */
-
-const STEPS: Array<{ word: string; detail: string }> = [
-  { word: 'Print', detail: 'One A4 sheet at 100%, on the heaviest paper you have. Not "fit to page".' },
-  { word: 'Cut', detail: 'Cut out both cards along the dashed borders.' },
-  { word: 'Fold', detail: 'Fold each card once along its dotted line, printed sides out.' },
-  { word: 'Place', detail: 'Stand it up. No glue, no tape, no holder.' },
-];
 
 export default async function WorkspaceKitPage({
   params,
@@ -48,7 +51,6 @@ export default async function WorkspaceKitPage({
   ]);
   if (!view) notFound();
 
-  const href = `/print/tent/${clientId}`;
   const ready = Boolean(view.content.feedbackUrl);
   const script = view.content.staffScript;
 
@@ -77,49 +79,92 @@ export default async function WorkspaceKitPage({
               },
             ]}
           />
-          <Section eyebrow="Your sheet" note="A4 · two standing cards">
-            <div className="flex flex-wrap gap-3">
-              <a
-                href={`${href}?download=1`}
-                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-ink-900 px-5 text-[15px] font-semibold text-white hover:bg-ink-800 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none"
-              >
-                Download print kit
-              </a>
-              <a
-                href={href}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-ink-300 bg-white px-5 text-[15px] font-medium text-ink-900 hover:bg-ink-50 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none"
-              >
-                Preview
-              </a>
-            </div>
 
-            <div className="mt-5 hidden overflow-hidden rounded-xl border border-ink-200 bg-ink-50 sm:block">
-              <iframe src={href} title="Your feedback card, A4 sheet" className="block h-[640px] w-full" />
-            </div>
-            <p className="mt-2 text-[12px] text-ink-500">
-              The preview is the file itself. What you see is what the print shop gets.
+          <Section eyebrow="Your sheets" note="Two ways to stand it up">
+            <p className="mb-5 text-[14px] leading-relaxed text-ink-600">
+              Same card either way, with your business name and your own QR already on it.
+              Pick the one that suits where it is going, print it at 100%, and check the ruler
+              bar on the sheet measures 100 mm.
             </p>
-          </Section>
 
-          <Section eyebrow="Print · Cut · Fold · Place" note="About a minute">
-            <ol className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
-              {STEPS.map((step, index) => (
-                <li key={step.word} className="flex gap-3">
-                  <span
-                    aria-hidden
-                    className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-ink-900 text-[11px] font-semibold text-white"
-                  >
-                    {index + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[15px] font-semibold tracking-tight text-ink-900">{step.word}</p>
-                    <p className="mt-0.5 text-[13px] leading-relaxed text-ink-600">{step.detail}</p>
+            <ul className="space-y-5">
+              {PRINT_SHEETS.map((sheet) => (
+                <li
+                  key={sheet.key}
+                  className="overflow-hidden rounded-xl border border-ink-200 bg-white"
+                >
+                  <div className="flex flex-col gap-5 p-4 sm:flex-row sm:p-5">
+                    <a
+                      href={`/print/sheet/${clientId}/${sheet.key}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block shrink-0 self-start overflow-hidden rounded-lg border border-ink-200 bg-ink-50 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none sm:w-[176px]"
+                    >
+                      <Image
+                        src={sheet.preview}
+                        alt={`${sheet.label} — the printable sheet`}
+                        width={sheet.previewWidth}
+                        height={sheet.previewHeight}
+                        className="block h-auto w-full"
+                      />
+                    </a>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[16px] leading-snug font-semibold tracking-tight text-ink-900">
+                        {sheet.label}
+                      </p>
+                      <p className="mt-0.5 text-[12px] text-ink-500">{sheet.sheetNote}</p>
+                      <p className="mt-2 text-[14px] leading-relaxed text-ink-800">{sheet.what}</p>
+                      <p className="mt-2 text-[13px] leading-relaxed text-ink-600">{sheet.finish}</p>
+                      <p className="mt-2 text-[12px] leading-relaxed text-ink-500">{sheet.spec}</p>
+
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        <a
+                          href={`/print/sheet/${clientId}/${sheet.key}?download=1`}
+                          className="inline-flex min-h-12 items-center justify-center rounded-xl bg-ink-900 px-5 text-[15px] font-semibold text-white hover:bg-ink-800 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none"
+                        >
+                          Download
+                        </a>
+                        <a
+                          href={`/print/sheet/${clientId}/${sheet.key}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex min-h-12 items-center justify-center rounded-xl border border-ink-300 bg-white px-5 text-[15px] font-medium text-ink-900 hover:bg-ink-50 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none"
+                        >
+                          Open to print
+                        </a>
+                      </div>
+                    </div>
                   </div>
                 </li>
               ))}
-            </ol>
+            </ul>
+          </Section>
+
+          {/*
+            THE PREVIEWS ARE STILLS OF THE MASTERS, so the picture on this page
+            still shows the placeholder name and code. The file does not. Said
+            once, quietly, under the list — an owner who scans the picture
+            instead of the print and lands somewhere odd should not have to work
+            out why.
+          */}
+          <Section eyebrow="What you get">
+            <p className="text-[15px] leading-relaxed text-ink-900">
+              The previews above show the layout. On the file itself the card carries your
+              business name, and its QR opens your own feedback page — so check it by scanning a
+              printed card, not the picture.
+            </p>
+            <div className="mt-4 rounded-xl border border-ink-200 bg-ink-50 p-4">
+              <p className="text-[11px] font-semibold tracking-widest text-ink-500 uppercase">
+                Where the QR goes
+              </p>
+              <p className="mt-1.5 font-mono text-[13px] break-all text-ink-900">
+                {view.content.feedbackUrl}
+              </p>
+              <div className="mt-3">
+                <CopyButton value={view.content.feedbackUrl ?? ''} label="Copy link" />
+              </div>
+            </div>
           </Section>
 
           <Section eyebrow="Where to put it">
@@ -169,7 +214,7 @@ export default async function WorkspaceKitPage({
           </Section>
         </>
       ) : (
-        <Section eyebrow="Your sheet">
+        <Section eyebrow="Your sheets">
           <Quiet>
             {view.addressError ??
               'Headway does not yet know what address a customer would open, so there is no card to print. The team is setting this up.'}
