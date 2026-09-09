@@ -36,23 +36,30 @@ export const SERVICE_ACCESS_ACTIONS = [
 ] as const;
 export type ServiceAccessAction = (typeof SERVICE_ACCESS_ACTIONS)[number];
 
-/** What the operator's own record says afterwards. Written as a Minute. */
+/**
+ * What the operator's own record says afterwards. Written as a Minute.
+ *
+ * Each title names the act, and each pairs with its opposite, so a run of them
+ * reads as a history rather than as a list of settings. "Override" and
+ * "exemption" are the names of the columns; nobody reading this record has to
+ * know either word.
+ */
 const MINUTE_TITLE: Record<ServiceAccessAction, string> = {
   LOCK: 'Workspace locked by Headway',
   UNLOCK: 'Workspace unlocked by Headway',
-  OVERRIDE: 'Access override applied',
-  CLEAR_OVERRIDE: 'Access override removed',
-  EXEMPT_DEMO: 'Marked as the demonstration business',
-  CLEAR_EXEMPTION: 'Demonstration exemption removed',
+  OVERRIDE: 'Workspace opened by hand',
+  CLEAR_OVERRIDE: 'No longer opened by hand',
+  EXEMPT_DEMO: 'Marked as the demo business',
+  CLEAR_EXEMPTION: 'No longer the demo business',
 };
 
 const MINUTE_BODY: Record<ServiceAccessAction, string> = {
-  LOCK: 'The workspace is closed until this is lifted. The trial dates are unchanged, and the QR follows them as it did before.',
-  UNLOCK: 'The workspace is open again. The trial dates were never changed by the lock.',
-  OVERRIDE: 'The workspace is open despite the trial dates, which are unchanged.',
-  CLEAR_OVERRIDE: 'The override is gone; the stored trial dates decide again.',
-  EXEMPT_DEMO: 'This business never expires and its QR never goes inactive.',
-  CLEAR_EXEMPTION: 'This business follows the ordinary trial dates again.',
+  LOCK: 'The workspace is closed until Headway opens it again. The trial dates are unchanged, and the QR still follows them.',
+  UNLOCK: 'The workspace is open again. The lock never changed the trial dates.',
+  OVERRIDE: 'The workspace is open whatever the trial dates say. The dates are unchanged.',
+  CLEAR_OVERRIDE: 'The trial dates decide again. They were never changed.',
+  EXEMPT_DEMO: 'This business never expires, and its QR keeps taking feedback.',
+  CLEAR_EXEMPTION: 'This business follows its trial dates again.',
 };
 
 function err(message: string, errors: Record<string, string> = {}): ServiceErr {
@@ -86,8 +93,12 @@ export async function setServiceAccess(
   action: ServiceAccessAction,
   options: { now?: Date } = {},
 ): Promise<ServiceResult<{ clientId: string; action: ServiceAccessAction }>> {
+  // Its own sentence rather than the shared validation banner: the action comes
+  // off a button, so there is no field on screen to mark.
   if (!(SERVICE_ACCESS_ACTIONS as readonly string[]).includes(action)) {
-    return err('Some fields need attention.', { action: 'Pick an action.' });
+    return err('Headway did not recognise that action. Try one of the buttons again.', {
+      action: 'Pick an action.',
+    });
   }
   const now = options.now ?? new Date();
 
@@ -106,7 +117,11 @@ export async function setServiceAccess(
     applied = true;
   } catch (error) {
     if (!isMissingDbFunction(error)) {
-      return err(error instanceof Error ? error.message : 'Could not change this account.');
+      // The database's own words go to the server log, never to the screen: a
+      // permission-denied string from Postgres is a diagnostic, not a sentence
+      // anybody should have to read to find out what to do next.
+      console.error('app.set_service_access failed', error);
+      return err('Could not change this account. Try again.');
     }
   }
 

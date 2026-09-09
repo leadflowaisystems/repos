@@ -21,7 +21,7 @@ import { CARD_EYEBROW, Chip } from './primitives';
  * plainly part of the illustration.
  */
 
-const TABS = ['Home', 'Customers', 'Reviews', 'Improvements', 'Check-in'] as const;
+const TABS = ['Home', 'Customers', 'Feedback', 'Improvements', 'Check-in'] as const;
 
 function MiniRow({
   eyebrow,

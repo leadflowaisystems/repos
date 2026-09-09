@@ -33,7 +33,7 @@ describe('customers — why Headway is saying this', () => {
     const v = buildAnalysisView(input());
     expect(v.telling).toEqual([
       "Customers praise your doctor's care and explanation most.",
-      'Long waiting time is where the experience falls short most often.',
+      'Long waiting time is the complaint Headway would deal with first.',
     ]);
   });
 
@@ -64,7 +64,7 @@ describe('customers — why Headway is saying this', () => {
   it('puts early themes under not-yet-clear with the no-action sentence', () => {
     const v = buildAnalysisView(input());
     expect(v.early.map((s) => s.themeKey)).toEqual(['staff_friendly']);
-    expect(v.noAction).toMatch(/not recommending action/);
+    expect(v.noAction).toMatch(/not suggesting a change for any of these/);
   });
 
   it('never leaks internals or causes', () => {
@@ -81,17 +81,17 @@ describe('customers — why Headway is saying this', () => {
 describe('improvements — what did we do, and did it help', () => {
   it('keeps the record and files a compared change under compared', () => {
     const v = buildImprovementsView(input({ actions: [action('MEASURED', 'IMPROVED')] }));
-    expect(v.record).toBe('1 change compared · mentioned less often after 1');
+    expect(v.record).toBe('1 change compared · mentioned less often after it');
     expect(v.checked).toHaveLength(1);
     expect(v.open).toEqual([]);
     expect(v.notPursued).toEqual([]);
     expect(v.suggested).toBeNull();
-    expect(v.checked[0]?.nextStep).toMatch(/^Nothing in the feedback after the change says to undo it/);
+    expect(v.checked[0]?.nextStep).toMatch(/^Nothing in the feedback after the change says you should undo it/);
   });
 
   it('counts a theme that came up more often honestly, without calling it a cause', () => {
     const v = buildImprovementsView(input({ actions: [action('MEASURED', 'WORSENED')] }));
-    expect(v.record).toBe('1 change compared · more often after 1');
+    expect(v.record).toBe('1 change compared · mentioned more often after it');
     expect(v.checked[0]?.memory?.result).toBe('More often');
     expect(v.checked[0]?.nextStep).toMatch(/^It came up more often in the feedback after the change\. That does not show the change caused it/);
   });
@@ -101,7 +101,7 @@ describe('improvements — what did we do, and did it help', () => {
     const declined = buildImprovementsView(input({ actions: [action('DECLINED')] }));
     expect(declined.notPursued[0]?.stage).toBe('NOT_DOING');
     expect(declined.notPursued[0]?.decisionNote).toBe('Hiring a second receptionist first.');
-    expect(declined.record).toBe('No change has been compared against feedback yet.');
+    expect(declined.record).toBe('No change has been compared with later feedback yet.');
   });
 
   it('offers the leading complaint as the decision to start when nothing has been agreed', () => {
@@ -267,8 +267,8 @@ describe('reviews — the evidence', () => {
     expect(v.found).toEqual([
       'Across all 5 pieces of feedback read: 1 positive, 0 mixed, 1 neutral, 3 negative.',
       "The two things praised most are doctor's care and explanation and friendly, helpful staff.",
-      'The complaint that matters most is long waiting time. It appears in 9 of the 50 comments.',
-      '2 of the 5 need an answer from you. A draft is attached where Headway could write one safely; the rest need your own words.',
+      'The complaint Headway would deal with first is long waiting time. It appears in 9 of the 50 comments.',
+      '2 of the 5 pieces of feedback need an answer from you. Headway has written a draft where it safely could. Anything without one needs your own words.',
     ]);
     expect(v.quick).toEqual([
       { label: 'Long waiting time (9 comments)', query: 'theme=wait_time' },
@@ -362,14 +362,14 @@ describe('check-in — what changed', () => {
       ...input({ intelligence: intel({ pulse: pulseWith({ waitThen: 9, waitNow: 3 }) }), actions: [action('MEASURED')] }),
       checkins: TWO,
     });
-    expect(v.movementLine).toBe(`Since your check-in on ${MAR}: 1 thing improved.`);
+    expect(v.movementLine).toBe(`Since your check-in on ${MAR}: 1 thing is getting better.`);
     expect(v.better.map((s) => s.themeKey)).toEqual(['wait_time']);
     expect(v.better[0]?.movementBrief).toBe('Customers raised it less at your latest check-in than at the one before.');
     // Measured on 1 Jun, after the May check-in: reported as "since this check-in", not inside it.
     expect(v.checked).toEqual([]);
     expect(v.sinceCheckin).toHaveLength(1);
     expect(v.unchangedNote).toMatch(/^Everything else Headway could compare held steady, including doctor's care and explanation\./);
-    expect(v.unchangedNote).toMatch(/2 themes had too few mentions at one of the two check-ins to compare\.$/);
+    expect(v.unchangedNote).toMatch(/2 topics had too few mentions at one of the two check-ins to compare\.$/);
     expect(v.next.map((w) => w.themeKey)).toEqual(['wait_time']);
   });
 

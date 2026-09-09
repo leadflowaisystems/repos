@@ -8,15 +8,17 @@ import { IDLE, type ActionState } from '@/lib/actions/shared';
 /**
  * THE OWNER'S HALF OF THE COMMERCIAL CONVERSATION (M21, reshaped in M23).
  *
- * One form, two jobs. In `continue` mode it is the button an owner presses to
- * carry on with Headway after the trial: the button opens three prefilled
- * fields — the name to ask for, the address to write to, the number to
- * message — and one press sends them. In `update` mode the same fields keep
- * those details right, and nothing else happens.
+ * One form, two jobs. In `continue` mode it is how an owner asks to carry on
+ * with Headway after the trial: the button opens three prefilled fields — the
+ * name to ask for, the address to write to, the number to message — and one
+ * press sends them. It asks; it does not buy, and the label says so. In
+ * `update` mode the same fields keep those details right, and nothing else
+ * happens.
  *
  * It carries no amount, no plan, no card field and no payment page, because
  * RepOS takes no payments: the operator agrees a number by hand and sends the
- * payment information and QR to the details confirmed here.
+ * payment details and the payment QR to the details confirmed here. That QR is
+ * the one to pay with — never the feedback card customers scan.
  *
  * The fields sit behind a disclosure so the page leads with the decision, not
  * with a form. `<details>` rather than state, so it opens without JavaScript
@@ -123,14 +125,14 @@ export function ContinueWithHeadwayForm({
   return (
     <details className="group" open={state.message ? true : undefined}>
       <summary className={mode === 'continue' ? PRIMARY : QUIET}>
-        {mode === 'continue' ? 'Continue with Headway' : 'Update my details'}
+        {mode === 'continue' ? 'Ask to continue' : 'Update my details'}
       </summary>
 
       <form action={action} className="mt-5 max-w-xl">
         <input type="hidden" name="clientId" value={clientId} />
         <p className="mb-4 text-[14px] leading-relaxed text-ink-600">
           {mode === 'continue'
-            ? 'Confirm where to reach you. We will send the payment information and QR directly to you.'
+            ? 'Confirm where to reach you. We will send the payment details and the payment QR straight to you.'
             : 'These are the details Headway uses to reach you about your account.'}
         </p>
         <div className="grid grid-cols-1 gap-4">

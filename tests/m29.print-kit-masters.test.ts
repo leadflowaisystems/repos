@@ -192,7 +192,7 @@ describe('the owner’s print kit page', () => {
     // The previews are stills of the masters, so the picture still shows the
     // placeholder name and code while the file does not. An owner who scans the
     // picture and lands on an example address should not have to work out why.
-    expect(page).toContain('The previews above show the layout.');
+    expect(page).toContain('The pictures above show the layout, not your own card.');
     expect(page).toMatch(/scanning a\s+printed card, not the picture/);
     expect(page).toContain('view.content.feedbackUrl');
     expect(page).toContain('CopyButton');
@@ -207,7 +207,7 @@ describe('the owner’s print kit page', () => {
     expect(page).toContain("source: 'REP_OS_QR'");
     expect(page).toContain('through the card');
     expect(page).toContain('Your feedback card');
-    expect(page).toContain('Put it where customers naturally see it.');
+    expect(page).toContain('Put it where customers will see it.');
     expect(page).toContain('Staff guidance');
     expect(page.match(/Offer it to everyone/g)?.length ?? 0).toBe(1);
     expect(page).toContain('await requireOpenWorkspace(clientId)');

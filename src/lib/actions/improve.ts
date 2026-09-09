@@ -34,7 +34,9 @@ export async function createActionFromInsightAction(
   if (!gate.ok) return gate.state;
   const { clientId } = gate;
   const insightId = str(form, 'insightId');
-  if (!clientId || !insightId) return failure('Missing the insight to act on.');
+  if (!clientId || !insightId) {
+    return failure('Could not tell which insight this is. Reload the page and try again.');
+  }
 
   const result = await createActionFromInsight(prisma, clientId, insightId);
   if (!result.ok) return failure(result.message, result.errors);
@@ -51,7 +53,9 @@ export async function decideActionAction(
   if (!gate.ok) return gate.state;
   const { clientId } = gate;
   const actionId = str(form, 'actionId');
-  if (!clientId || !actionId) return failure('Missing action.');
+  if (!clientId || !actionId) {
+    return failure('Could not tell which improvement this is. Reload the page and try again.');
+  }
 
   const result = await decideAction(prisma, clientId, actionId, {
     decision: str(form, 'decision'),
@@ -76,7 +80,9 @@ export async function moveActionAction(
   if (!gate.ok) return gate.state;
   const { clientId } = gate;
   const actionId = str(form, 'actionId');
-  if (!clientId || !actionId) return failure('Missing action.');
+  if (!clientId || !actionId) {
+    return failure('Could not tell which improvement this is. Reload the page and try again.');
+  }
 
   const result = await moveAction(prisma, clientId, actionId, {
     to: str(form, 'to'),
@@ -101,7 +107,9 @@ export async function measureActionAction(
   if (!gate.ok) return gate.state;
   const { clientId } = gate;
   const actionId = str(form, 'actionId');
-  if (!clientId || !actionId) return failure('Missing action.');
+  if (!clientId || !actionId) {
+    return failure('Could not tell which improvement this is. Reload the page and try again.');
+  }
 
   const result = await measureClientAction(prisma, clientId, actionId);
   if (!result.ok) return failure(result.message, result.errors);
@@ -118,7 +126,9 @@ export async function recordLearningAction(
   if (!gate.ok) return gate.state;
   const { clientId } = gate;
   const actionId = str(form, 'actionId');
-  if (!clientId || !actionId) return failure('Missing action.');
+  if (!clientId || !actionId) {
+    return failure('Could not tell which improvement this is. Reload the page and try again.');
+  }
 
   const result = await recordLearning(prisma, clientId, actionId, {
     note: text(form, 'note'),

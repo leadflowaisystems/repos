@@ -1,6 +1,7 @@
 import type { Pack } from '@/lib/packs';
 import { summariseThemes, type StoredSnapshot } from '@/lib/health/health';
 import { MIN_PERIOD_FEEDBACK_TO_COMPARE } from '@/lib/intelligence/engine';
+import { formatDate } from '@/lib/format';
 
 /**
  * WHAT KEEPS COMING BACK (M12).
@@ -44,7 +45,9 @@ export type PresenceMap = {
 };
 
 function labelOf(snapshot: StoredSnapshot): string {
-  return snapshot.label ?? snapshot.capturedAt.toISOString().slice(0, 10);
+  // A check-in with no label of its own is named by its date, in the same
+  // format the rest of the workspace prints — never a raw 2026-09-08.
+  return snapshot.label ?? formatDate(snapshot.capturedAt);
 }
 
 export function presenceFrom(snapshots: StoredSnapshot[], pack: Pack): PresenceMap {

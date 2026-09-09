@@ -15,7 +15,7 @@ export const metadata = { title: 'Improvements' };
  * moments — the problem, what you changed, what Headway found when it
  * checked again — with the before and after numbers as the largest things
  * on the page, then what happened, what it means and what to do now in three
- * labelled lines. Why, the evidence and the original suggestion open on
+ * labelled lines. The numbers, the evidence and how it started open on
  * request. Honest on purpose: feedback that got worse after a change says
  * so, and a change that helped and is slipping says that too.
  *
@@ -52,13 +52,13 @@ export async function PortalImprovements({
 
       {empty ? (
         <Quiet>
-          Nothing here yet. When you act on something Headway suggested, this page remembers
-          the change and compares the feedback before and after it.
+          Nothing here yet. When you make a change Headway suggested, this page will compare
+          the feedback from before and after it.
         </Quiet>
       ) : null}
 
       {view.checked.length > 0 ? (
-        <Section eyebrow="Compared with feedback" note="Before and after, in customers' own words">
+        <Section eyebrow="Changes compared" note="How often the topic came up before and after">
           <div className="space-y-5">
             {view.checked.map((a) => (
               <ImprovementStory key={a.id} action={a} evidence={evidence} basePath={basePath} />
@@ -86,7 +86,7 @@ export async function PortalImprovements({
       ) : null}
 
       {view.notPursued.length > 0 ? (
-        <Section eyebrow="Not pursued">
+        <Section eyebrow="Not doing">
           <div className="space-y-5">
             {view.notPursued.map((a) => (
               <ImprovementStory key={a.id} action={a} evidence={evidence} basePath={basePath} />

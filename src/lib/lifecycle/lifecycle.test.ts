@@ -259,7 +259,7 @@ describe('the states, and which of them open the door', () => {
 
   it('tells the operator when an expired business is still inside its QR grace', () => {
     const inGrace = describeLifecycle(base({ now: at('2026-09-22T09:00:00+05:30') }));
-    expect(operatorLabel(inGrace)).toBe('Expired · QR in grace');
+    expect(operatorLabel(inGrace)).toBe('Expired · QR still live');
     const after = describeLifecycle(base({ now: at('2026-09-25T09:00:00+05:30') }));
     expect(operatorLabel(after)).toBe('Expired');
   });

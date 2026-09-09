@@ -59,19 +59,25 @@ export default async function WorkspaceKitPage({
       <PageIntro
         eyebrow="Print kit"
         title="Your feedback card"
-        description="Put it where customers naturally see it. Every scan is a customer telling you how it went."
+        description="Put it where customers will see it. Every scan is a customer telling you how it went."
       />
 
       {ready ? (
         <>
+          {/*
+            THE STRIP PRINTS THE VALUE FIRST AND THE LABEL AFTER IT, so each
+            label has to finish the phrase its value starts: "Live feedback
+            page", "Ready to print". Repeating the state word in the label read
+            back as "Live feedback page, live".
+          */}
           <StatusStrip
             items={[
               {
-                label: view.gatewayPaused ? 'feedback page, paused' : 'feedback page, live',
+                label: 'feedback page',
                 value: view.gatewayPaused ? 'Paused' : 'Live',
                 tone: view.gatewayPaused ? 'warn' : 'good',
               },
-              { label: 'card, ready to print', value: 'Ready' },
+              { label: 'to print', value: 'Ready' },
               {
                 label: through === 1 ? 'piece of feedback through the card' : 'pieces of feedback through the card',
                 value: through,
@@ -82,9 +88,8 @@ export default async function WorkspaceKitPage({
 
           <Section eyebrow="Your sheets" note="Two ways to stand it up">
             <p className="mb-5 text-[14px] leading-relaxed text-ink-600">
-              Same card either way, with your business name and your own QR already on it.
-              Pick the one that suits where it is going, print it at 100%, and check the ruler
-              bar on the sheet measures 100 mm.
+              Both sheets carry the same card. Pick the one that suits where it will stand.
+              Print it at 100%, then check that the ruler bar on the sheet measures 100 mm.
             </p>
 
             <ul className="space-y-5">
@@ -102,7 +107,7 @@ export default async function WorkspaceKitPage({
                     >
                       <Image
                         src={sheet.preview}
-                        alt={`${sheet.label} — the printable sheet`}
+                        alt={`${sheet.label} — a picture of the sheet`}
                         width={sheet.previewWidth}
                         height={sheet.previewHeight}
                         className="block h-auto w-full"
@@ -144,15 +149,14 @@ export default async function WorkspaceKitPage({
           {/*
             THE PREVIEWS ARE STILLS OF THE MASTERS, so the picture on this page
             still shows the placeholder name and code. The file does not. Said
-            once, quietly, under the list — an owner who scans the picture
-            instead of the print and lands somewhere odd should not have to work
-            out why.
+            once, under the list — an owner who scans the picture instead of the
+            print and lands somewhere odd should not have to work out why.
           */}
           <Section eyebrow="What you get">
             <p className="text-[15px] leading-relaxed text-ink-900">
-              The previews above show the layout. On the file itself the card carries your
-              business name, and its QR opens your own feedback page — so check it by scanning a
-              printed card, not the picture.
+              The pictures above show the layout, not your own card. The file you download
+              carries your business name, and its QR opens your feedback page. Check the QR by
+              scanning a printed card, not the picture on this page.
             </p>
             <div className="mt-4 rounded-xl border border-ink-200 bg-ink-50 p-4">
               <p className="text-[11px] font-semibold tracking-widest text-ink-500 uppercase">
@@ -196,7 +200,7 @@ export default async function WorkspaceKitPage({
                 </div>
                 {view.content.rules.length > 0 ? (
                   <div>
-                    <p className="text-[11px] font-semibold tracking-widest text-ink-500 uppercase">Never</p>
+                    <p className="text-[11px] font-semibold tracking-widest text-ink-500 uppercase">What never to do</p>
                     <ul className="mt-1 space-y-1">
                       {view.content.rules.map((rule) => (
                         <li key={rule} className="flex gap-2">
@@ -217,7 +221,7 @@ export default async function WorkspaceKitPage({
         <Section eyebrow="Your sheets">
           <Quiet>
             {view.addressError ??
-              'Headway does not yet know what address a customer would open, so there is no card to print. The team is setting this up.'}
+              'Your feedback page does not have a web address yet, so there is no card to print. Headway is setting it up.'}
           </Quiet>
         </Section>
       )}

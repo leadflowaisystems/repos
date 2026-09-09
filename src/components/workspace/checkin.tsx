@@ -71,7 +71,7 @@ function PlainBlock({ block, basePath }: { block: { kind: CheckinBlock['kind']; 
             href={`${basePath}/reviews?needs=reply`}
             className="mt-2 inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-ink-900 underline decoration-ink-300 underline-offset-4"
           >
-            Read them <span aria-hidden>→</span>
+            Read what needs a reply <span aria-hidden>→</span>
           </Link>
         )}
       </div>
@@ -140,7 +140,7 @@ export async function PortalCheckin({
         </p>
       ) : (
         <div className="mb-6 max-w-3xl">
-          <Quiet>Once feedback starts coming in, each check-in says what needs you, what to protect and what Headway is watching.</Quiet>
+          <Quiet>Headway has not read any feedback yet. Once it has, each check-in will show what needs you, what to keep doing and what Headway is watching.</Quiet>
         </div>
       )}
 
@@ -199,7 +199,7 @@ export async function PortalCheckin({
             {view.sinceCheckin.length > 0 ? (
               <div className="mt-6">
                 <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-ink-700 uppercase">
-                  Compared since this check-in
+                  Changes compared since this check-in
                 </p>
                 <ul className="divide-y divide-ink-200 border-y border-ink-200">
                   {view.sinceCheckin.map((a) => (
@@ -211,13 +211,13 @@ export async function PortalCheckin({
 
             {view.next.length > 1 ? (
               <div className="mt-6">
-                <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-ink-700 uppercase">Also being watched</p>
+                <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-ink-700 uppercase">Headway is also watching</p>
                 <WatchList items={view.next.slice(1)} basePath={basePath} />
               </div>
             ) : null}
 
             {!hasDetail ? (
-              <p className="mt-3 text-[13px] leading-relaxed text-ink-500">Nothing needs a decision from this check-in.</p>
+              <p className="mt-3 text-[13px] leading-relaxed text-ink-500">Nothing from this check-in needs a decision.</p>
             ) : null}
           </div>
         </Reveal>

@@ -19,11 +19,11 @@ import { formatDate } from '@/lib/format';
  *   YOU CHANGED        "Added a second server on Friday and Saturday evenings"  1 Aug
  *   HEADWAY CHECKED    47%     20 of 43, on 1 Sep
  *
- *   WHAT HAPPENED      More often after the change
+ *   WHAT HAPPENED      Mentioned more often after the change
  *   WHAT THIS MEANS    …and the one sentence about what that cannot prove
  *   WHAT TO DO NOW     one line
  *
- * Why, the evidence and the original suggestion sit behind three reveals.
+ * The numbers, the evidence and how it started sit behind three reveals.
  * Every date is the one the owner recorded; nothing here is recomputed.
  */
 
@@ -36,14 +36,22 @@ const READING_TONE: Record<string, string> = {
   INSUFFICIENT_DATA: 'text-ink-600',
 };
 
+/**
+ * The four readings, in the portal's fixed words.
+ *
+ * Each one names what was mentioned and when — never what the change did.
+ * "after the change" is the whole guard: it states the order of events and
+ * claims nothing about the cause, so the tail is not optional and the wording
+ * matches every other surface that shows the same four readings.
+ */
 function readingOf(result: string | undefined): string {
   switch (result) {
     case 'IMPROVED':
-      return 'Less often after the change';
+      return 'Mentioned less often after the change';
     case 'WORSENED':
-      return 'More often after the change';
+      return 'Mentioned more often after the change';
     case 'NO_CLEAR_CHANGE':
-      return 'No clear change after the change';
+      return 'No clear difference after the change';
     default:
       return 'Not enough feedback after the change';
   }
@@ -163,17 +171,17 @@ export function ImprovementStory({
         />
         <Arrow />
         <Moment
-          label={declined ? 'Not pursued' : 'You changed'}
+          label={declined ? 'Not doing' : 'You changed'}
           when={declined ? a.decidedAt : (a.doneAt ?? a.decidedAt)}
-          quote={declined ? undefined : a.decision || (a.doneAt ? 'You told us the change was in place.' : undefined)}
+          quote={declined ? undefined : a.decision || (a.doneAt ? 'You told us the change was made, but not what it was.' : undefined)}
           pending={
             declined
               ? a.decisionNote
-                ? `Reason recorded: ${a.decisionNote}`
+                ? `Your reason: ${a.decisionNote}`
                 : 'You decided not to make this change.'
               : !a.doneAt
                 ? a.decidedAt
-                  ? 'Agreed. Not made yet.'
+                  ? 'You agreed to this. Not made yet.'
                   : 'Waiting on your decision.'
                 : undefined
           }
@@ -190,7 +198,7 @@ export function ImprovementStory({
               ? declined
                 ? 'Nothing to compare: no change was made.'
                 : a.awaiting
-                  ? `Not yet. ${a.awaiting.have} of the ${a.awaiting.need} pieces of new feedback needed have come in.`
+                  ? `Not yet. Waiting for enough new feedback to compare — ${a.awaiting.have} of ${a.awaiting.need} so far.`
                   : 'Not yet. Waiting for the change to be made.'
               : undefined
           }
@@ -235,16 +243,22 @@ export function ImprovementStory({
         </dl>
       )}
 
+      {/*
+        A reading that has turned round again. The row above already says it
+        was mentioned less often after the change, so this line only carries
+        the new fact — and it asks the owner to look before acting, because
+        the rise has no named cause either.
+      */}
       {a.returning ? (
         <p className="mt-4 border-l-2 border-bad-600 pl-4 text-[14px] leading-relaxed font-medium text-ink-900">
-          This improved after your change but is starting to come up more again. Check whether the
-          earlier conditions have returned before making another change.
+          It is coming up more often again. Check what is different now before you make another
+          change.
         </p>
       ) : null}
 
       <div className="mt-5 flex flex-wrap gap-x-6 gap-y-1">
         {population ? (
-          <Reveal summary="Why?">
+          <Reveal summary="Show the numbers">
             <div className="rounded-xl border border-ink-200 bg-ink-50 p-4 sm:p-5">
               <Population population={population} />
             </div>
@@ -256,7 +270,7 @@ export function ImprovementStory({
               <>
                 <p className={EYEBROW}>After the change</p>
                 <div className="mt-2">
-                  <Quotes quotes={afterQuotes} seeAll={{ label: `See all ${a.about.toLowerCase()} comments`, href: reviews }} />
+                  <Quotes quotes={afterQuotes} seeAll={{ label: 'See the mentions', href: reviews }} />
                 </div>
                 {beforeQuotes.length > 0 ? (
                   <>
@@ -268,11 +282,11 @@ export function ImprovementStory({
                 ) : null}
               </>
             ) : (
-              <Quotes quotes={beforeQuotes.length > 0 ? beforeQuotes : afterQuotes} seeAll={{ label: 'Read the customer comments', href: reviews }} />
+              <Quotes quotes={beforeQuotes.length > 0 ? beforeQuotes : afterQuotes} seeAll={{ label: 'See the mentions', href: reviews }} />
             )}
           </div>
         </Reveal>
-        <Reveal summary="What was recommended?">
+        <Reveal summary="How this started">
           <dl className="space-y-3 rounded-xl border border-ink-200 bg-ink-50 p-4 sm:p-5">
             <div>
               <dt className={EYEBROW}>Headway suggested</dt>
@@ -294,14 +308,14 @@ export function ImprovementStory({
               </div>
             ) : null}
             <div>
-              <dt className={EYEBROW}>The problem, as counted</dt>
+              <dt className={EYEBROW}>The problem, in numbers</dt>
               <dd className="mt-1 text-[13px] leading-relaxed text-ink-700">
                 {a.problem}{' '}
                 <Link
                   href={reviews}
                   className="inline-flex min-h-11 items-center font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
                 >
-                  Read every comment about it →
+                  See the mentions →
                 </Link>
               </dd>
             </div>

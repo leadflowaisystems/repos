@@ -135,10 +135,11 @@ describe('the failure path that mattered', () => {
 
     const result = await run('a-good-password');
 
-    // The report of failure is TRUE: nothing was changed.
+    // The report of failure is TRUE: nothing was changed, and the sentence
+    // says which password the person can still use.
     expect(result).toEqual({
       ok: false,
-      message: 'That password could not be set.',
+      message: 'That password could not be set. Your old password still works.',
       errors: {},
     });
     expect(calls).toEqual(['bumpSessionVersion']);
@@ -150,9 +151,13 @@ describe('the failure path that mattered', () => {
 
     const result = await run('a-good-password');
 
-    expect(result).toMatchObject({ ok: false, message: 'That password could not be set.' });
+    expect(result).toMatchObject({
+      ok: false,
+      message: 'That password could not be set. Your old password still works.',
+    });
     // Sessions were ended and the password was not changed. The old one still
-    // works, so the person can ask for another link and try again.
+    // works — which is exactly what the message says — so the person can ask
+    // for another link and try again.
     expect(calls).toEqual(['bumpSessionVersion', 'supabase.updateUser']);
   });
 });

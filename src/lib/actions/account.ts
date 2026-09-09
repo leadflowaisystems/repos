@@ -29,7 +29,7 @@ import { failure, str, type ActionState } from './shared';
  */
 const SIGN_IN_FAILED = 'That email and password do not match.';
 const SIGN_UP_FAILED = 'That account could not be created.';
-const NOT_CONFIGURED = 'Sign-in is not configured on this installation yet.';
+const NOT_CONFIGURED = 'Sign-in is not set up yet. Contact Headway.';
 
 /**
  * Only same-site paths are followed, so this can never become an open redirect.
@@ -198,12 +198,15 @@ export async function updatePasswordAction(
     try {
       await bumpSessionVersion(prisma, userId);
     } catch {
-      return failure('That password could not be set.');
+      return failure('That password could not be set. Your old password still works.');
     }
   }
 
+  // Both failures say the same sentence because it is true of both: the
+  // password is the last thing to move, so nothing that fails before it has
+  // changed how this person signs in.
   const { error } = await supabase.auth.updateUser({ password });
-  if (error) return failure('That password could not be set.');
+  if (error) return failure('That password could not be set. Your old password still works.');
 
   redirect('/login');
 }

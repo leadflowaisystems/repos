@@ -201,11 +201,11 @@ export type ThemeMovement = {
 };
 
 export type InsightEvidence = {
-  /** How many stored, read feedback items mention this theme. */
+  /** How many stored, read pieces of feedback mention this theme. */
   count: number;
-  /** Out of how many read items — the denominator, always stated. */
+  /** Out of how many pieces read — the denominator, always stated. */
   outOf: number;
-  /** The rows behind the count. "Show me the reviews" always has an answer. */
+  /** The rows behind the count, so "what Headway based this on" always has an answer. */
   itemIds: string[];
   /** Says which pile the count is over, so it is never mistaken for a period. */
   scope: string;
@@ -318,8 +318,17 @@ function customers(n: number): string {
   return `${n} customer${n === 1 ? '' : 's'}`;
 }
 
-function reviews(n: number): string {
-  return `${n} review${n === 1 ? '' : 's'}`;
+/**
+ * The counting unit for the feedback pile.
+ *
+ * Never "reviews": a review is something published on a public listing, and
+ * almost everything counted here is private feedback a customer left after
+ * scanning the card. Calling it a review would break the one promise the
+ * product makes about where feedback goes. Counts count pieces of feedback,
+ * not people — one customer can leave several.
+ */
+function pieces(n: number): string {
+  return `${n} ${n === 1 ? 'piece' : 'pieces'} of feedback`;
 }
 
 /** Insight ids are stable so the action loop can key off them later. */
@@ -330,13 +339,13 @@ export function insightId(clientId: string, kind: InsightKind, themeKey: string)
 function evidenceNote(tier: EvidenceTier, analysed: number): string {
   switch (tier) {
     case 'STANDARD':
-      return `Based on ${reviews(analysed)} — enough to be confident about what keeps coming up.`;
+      return `Based on ${pieces(analysed)} — enough to be confident about what keeps coming up.`;
     case 'LIMITED':
-      return `Based on ${reviews(analysed)}. Enough to spot patterns, not enough to be sure of them yet.`;
+      return `Based on ${pieces(analysed)}. Enough to spot patterns, not enough to be sure of them yet.`;
     default:
       return analysed === 0
         ? 'No feedback has been read yet, so there is nothing to report.'
-        : `Only ${reviews(analysed)} so far — too few to draw conclusions from.`;
+        : `Only ${pieces(analysed)} so far — too few to draw conclusions from.`;
   }
 }
 
@@ -344,7 +353,7 @@ function confidenceFor(
   count: number,
   analysed: number,
 ): { level: Confidence; reason: string } {
-  const basis = `${count} of the ${reviews(analysed)} read so far mention this`;
+  const basis = `${count} of the ${pieces(analysed)} read so far mention this`;
   if (count >= MIN_MENTIONS_TO_NAME * 2 && analysed >= TIER_STANDARD_MIN) {
     return { level: 'STRONG', reason: `${basis} — repeated often enough to act on.` };
   }
@@ -353,7 +362,7 @@ function confidenceFor(
   }
   return {
     level: 'EARLY',
-    reason: `${basis} — an early signal, on too little feedback to be sure of.`,
+    reason: `${basis} — an early sign, on too little feedback to be sure of.`,
   };
 }
 
@@ -418,10 +427,10 @@ export function comparisonWindowFrom(pulse: Pulse): ComparisonWindow {
     // arrived since — and the fix is another check-in, not more feedback (M18).
     const bothEmpty = previous.feedbackCount === 0 && current.feedbackCount === 0;
     const reason = bothEmpty
-      ? `Your check-ins of ${previous.label} and ${current.label} have no feedback between them to compare — everything read so far arrived afterwards. The next check-in will bring it into the comparison.`
-      : `Too little feedback between your check-ins to compare topic by topic: ${previous.feedbackCount} at ` +
-        `${previous.label} and ${current.feedbackCount} at ${current.label} ` +
-        `(${MIN_PERIOD_FEEDBACK_TO_COMPARE} needed on both sides).`;
+      ? `Your check-ins of ${previous.label} and ${current.label} have no feedback between them to compare. Everything read so far arrived after them, and your next check-in will include it.`
+      : `Not enough feedback between your check-ins to compare topic by topic: ${previous.feedbackCount} at ` +
+        `${previous.label} and ${current.feedbackCount} at ${current.label}. ` +
+        `Headway needs ${MIN_PERIOD_FEEDBACK_TO_COMPARE} on each side.`;
     return { ...NO_WINDOW(reason), ...base, available: false, reason, note: reason };
   }
 
@@ -434,12 +443,12 @@ export function comparisonWindowFrom(pulse: Pulse): ComparisonWindow {
     available: true,
     reason: '',
     note:
-      `Comparing your check-in of ${previous.label} (${previous.feedbackCount} feedback items) ` +
-      `with ${current.label} (${current.feedbackCount} items).`,
+      `Comparing your check-in of ${previous.label} (${pieces(previous.feedbackCount)}) ` +
+      `with ${current.label} (${current.feedbackCount}).`,
     volumeCaveat: lopsided
       ? `One check-in holds far more feedback than the other (${previous.feedbackCount} then, ` +
-        `${current.feedbackCount} now), so some of this movement is simply more feedback ` +
-        `rather than a change in what customers think.`
+        `${current.feedbackCount} now). Some of this movement is simply more feedback, ` +
+        `not a change in what customers think.`
       : null,
   };
 }
@@ -486,14 +495,14 @@ export function movementFor(
   const previousCount = countIn(pulse.previous, sentiment, themeKey);
   const currentCount = countIn(pulse.current, sentiment, themeKey);
 
-  // The check-ins hold the reviews the operator observed; the theme counts on
-  // an insight come from the feedback pile. A theme can be well evidenced in
-  // one and absent from the other, and calling that "holding steady" would be
-  // a claim about reviews that never mentioned it.
+  // A check-in only holds the feedback attached to it; the theme counts on an
+  // insight come from the whole pile. A theme can be well evidenced in one and
+  // absent from the other, and calling that "holding steady" would be a claim
+  // about feedback that never mentioned it.
   if (previousCount === 0 && currentCount === 0) {
     return NO_MOVEMENT(
-      `${themeLabel} has not come up in the reviews attached to either check-in, ` +
-        `so there is nothing to compare for it.`,
+      `${themeLabel} has not come up in the feedback attached to either check-in, ` +
+        `so there is nothing to compare.`,
     );
   }
 
@@ -523,8 +532,8 @@ export function movementFor(
   // themes: at least one side has to be a pattern before a direction is real.
   if (Math.max(previousCount, currentCount) < MIN_MENTIONS_TO_NAME) {
     const pointNote =
-      `${point} — too few either way to read as a change ` +
-      `(${MIN_MENTIONS_TO_NAME} needed on one side).`;
+      `${point}. Too few either way to call it a change. ` +
+      `Headway needs ${MIN_MENTIONS_TO_NAME} on one side.`;
     return {
       available: true,
       previousCount,
@@ -618,8 +627,8 @@ export function signalsFor(
       signal(
         'mention',
         sentiment === 'ISSUE'
-          ? `${customers(theme.count)} raised it.`
-          : `${customers(theme.count)} praised it.`,
+          ? `Raised ${theme.count} time${theme.count === 1 ? '' : 's'}.`
+          : `Praised ${theme.count} time${theme.count === 1 ? '' : 's'}.`,
         mentionWeight,
       ),
     );
@@ -629,7 +638,7 @@ export function signalsFor(
     out.push(
       signal(
         'pattern',
-        `Named by at least ${MIN_MENTIONS_TO_NAME} customers, so it is a pattern rather than a one-off.`,
+        `Mentioned at least ${MIN_MENTIONS_TO_NAME} times, so it is a pattern, not a one-off.`,
       ),
     );
   }
@@ -639,7 +648,7 @@ export function signalsFor(
     theme.count >= MIN_MENTIONS_TO_NAME * 2
   ) {
     out.push(
-      signal('strength', 'Praised often enough to be a genuine strength worth protecting.'),
+      signal('strength', 'Praised often enough to be a strength worth protecting.'),
     );
   }
 
@@ -754,7 +763,7 @@ function buildInsightFor(args: {
     count: theme.count,
     outOf: analysed,
     itemIds: args.itemIds,
-    scope: `across the ${reviews(analysed)} read so far`,
+    scope: `across the ${pieces(analysed)} read so far`,
   };
   const signals = signalsFor(sentiment, theme, movement, args.verticalLabel, args.rated ?? null);
   const confidence = confidenceFor(theme.count, analysed);
@@ -816,14 +825,14 @@ export function overallTrendFrom(
     case 'STABLE':
       return {
         state: 'STABLE',
-        note: `Nothing moved enough to call a direction either way.${scope}`,
+        note: `Things are holding steady.${scope}`,
       };
     default:
       return {
         state: 'INSUFFICIENT_DATA',
         note:
           pulse.reason ||
-          'There is not enough comparable data to say which way things are going.',
+          'There is not enough to compare yet, so Headway cannot say which way things are going.',
       };
   }
 }
@@ -845,9 +854,9 @@ function headlineNoteFor(count: number): string {
     case 0:
       return 'Nothing has been said often enough yet for Headway to call it a pattern.';
     case 1:
-      return 'Only 1 clear signal so far. More will appear as feedback comes in.';
+      return 'Only 1 clear pattern so far. More will appear as feedback comes in.';
     case 2:
-      return 'Only 2 clear signals so far. More will appear as feedback comes in.';
+      return 'Only 2 clear patterns so far. More will appear as feedback comes in.';
     default:
       return 'The clearest things customers are telling this business right now.';
   }
@@ -986,11 +995,11 @@ export function buildIntelligence(input: IntelligenceInput): ClientIntelligence 
     limits.push(
       unread > 0
         ? `${unread} piece${unread === 1 ? '' : 's'} of feedback ${unread === 1 ? 'is' : 'are'} being read now. Nothing is counted until Headway has read it.`
-        : 'No feedback has been read yet, so Headway has nothing to tell you about customers.',
+        : 'No feedback has been read yet, so there is nothing for Headway to tell you.',
     );
   } else if (tier === 'INSUFFICIENT') {
     limits.push(
-      `Only ${reviews(analysed)} have been read. Everything above is an early signal, not a conclusion.`,
+      `Only ${pieces(analysed)} have been read. Everything above is an early sign, not a conclusion.`,
     );
   }
   if (unread > 0 && analysed > 0) {
@@ -1004,7 +1013,7 @@ export function buildIntelligence(input: IntelligenceInput): ClientIntelligence 
   const quiet = [...belowFloor(input.themes.praises), ...belowFloor(input.themes.issues)];
   if (quiet.length > 0) {
     limits.push(
-      `${quiet.length} other thing${quiet.length === 1 ? ' was' : 's were'} mentioned once or twice — not enough to call a pattern yet.`,
+      `${quiet.length} other topic${quiet.length === 1 ? ' was' : 's were'} mentioned once or twice — not enough to call a pattern yet.`,
     );
   }
   if (window.volumeCaveat) {

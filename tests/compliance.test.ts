@@ -1662,10 +1662,12 @@ describe('V1 hard rules — the owner reads sentences, not labels (M18)', () => 
   });
 
   it('claims a clear read only when nothing at all is waiting on the owner', () => {
-    // It used to test DO_NOW only, so "Found no new issue strong enough to
-    // recommend action" printed directly under a live follow-up.
+    // It used to test DO_NOW only, so "Found no new problem big enough to act
+    // on" printed directly under a live follow-up.
     const engine = EXECUTABLE.find(({ file }) => file === 'src/lib/responsibility/engine.ts');
-    expect(engine?.code).toMatch(/!args\.hasNeedsYou[\s\S]{0,120}Found no new issue/);
+    expect(engine?.code).toMatch(
+      /!args\.hasNeedsYou[\s\S]{0,120}Found no new problem big enough to act on\./,
+    );
   });
   it('never lets a server action read a constant out of a client component', () => {
     // M19. The customer form declared the names its dimension fields post

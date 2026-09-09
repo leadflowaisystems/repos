@@ -266,7 +266,13 @@ export function describeLifecycle(input: LifecycleInput): Lifecycle {
 // What each state is called, for the people who read it
 // ---------------------------------------------------------------------------
 
-/** The owner's own words for where they stand. Never a countdown in hours. */
+/**
+ * The owner's own words for where they stand. Never a countdown in hours.
+ *
+ * MANUALLY_LOCKED says "Paused", the same word the workspace banner uses, and
+ * for the same reason: what an owner needs to know is that new feedback is
+ * still saved and simply is not being read yet. "On hold" said neither half.
+ */
 export function statusLabel(lifecycle: Lifecycle): string {
   switch (lifecycle.state) {
     case 'ACTIVE_TRIAL':
@@ -276,17 +282,25 @@ export function statusLabel(lifecycle: Lifecycle): string {
     case 'TRIAL_EXPIRED':
       return 'Trial ended';
     case 'MANUALLY_LOCKED':
-      return 'On hold';
+      return 'Paused';
     case 'ADMIN_OVERRIDE':
       return 'Active service';
     case 'FOUNDER_EXEMPT':
       return 'Headway staff access';
     case 'DEMO_EXEMPT':
-      return 'Demonstration workspace';
+      return 'Demo workspace';
   }
 }
 
-/** The operator's shorter word for the same thing, for the client list. */
+/**
+ * The operator's shorter word for the same thing, for the client list.
+ *
+ * Staff read these, so they name the mechanism the owner never sees: a pair of
+ * hand decisions, "Locked by hand" and "Opened by hand", and the one badge that
+ * has to carry two facts at once — the workspace is shut AND customers can
+ * still leave feedback for a few days. "Grace" is the word for that in the
+ * code, and nowhere on a screen.
+ */
 export function operatorLabel(lifecycle: Lifecycle): string {
   switch (lifecycle.state) {
     case 'ACTIVE_TRIAL':
@@ -294,11 +308,11 @@ export function operatorLabel(lifecycle: Lifecycle): string {
     case 'ACTIVE_SERVICE':
       return 'Active';
     case 'TRIAL_EXPIRED':
-      return lifecycle.inQrGrace ? 'Expired · QR in grace' : 'Expired';
+      return lifecycle.inQrGrace ? 'Expired · QR still live' : 'Expired';
     case 'MANUALLY_LOCKED':
       return 'Locked by hand';
     case 'ADMIN_OVERRIDE':
-      return 'Access override';
+      return 'Opened by hand';
     case 'FOUNDER_EXEMPT':
       return 'Staff';
     case 'DEMO_EXEMPT':

@@ -92,14 +92,14 @@ export function InviteForm({ clientId }: { clientId: string }) {
       {state.data?.link ? (
         <div className="mt-3 rounded-xl border border-ink-200 bg-ink-50 p-3">
           <p className="text-[12px] font-medium tracking-wide text-ink-500 uppercase">
-            {state.data.sent === 'yes' ? 'Invitation link — in case it does not arrive' : 'Send them this link'}
+            {state.data.sent === 'yes' ? 'Invitation link, in case the email does not arrive' : 'Send them this link'}
           </p>
           <p className="mt-1.5 font-mono text-[12px] break-all text-ink-700">{state.data.link}</p>
           <div className="mt-2.5">
             <CopyButton value={state.data.link} label="Copy invitation link" copiedLabel="Copied" />
           </div>
           <p className="mt-2 text-[12px] leading-relaxed text-ink-500">
-            It expires in 7 days, works once, and only for {state.data.email}.
+            It works once, only for {state.data.email}, and expires in 7 days.
           </p>
         </div>
       ) : null}
@@ -107,6 +107,12 @@ export function InviteForm({ clientId }: { clientId: string }) {
   );
 }
 
+/**
+ * Calls off an invitation nobody has accepted yet. The button says "Cancel",
+ * because revoke is the action's name and not a word an owner uses; the row's
+ * own email says what is being cancelled, which is why the label stays one
+ * word and does not push the row onto a second line on a phone.
+ */
 export function RevokeInviteButton({
   clientId,
   inviteId,
@@ -120,7 +126,7 @@ export function RevokeInviteButton({
       <input type="hidden" name="clientId" value={clientId} />
       <input type="hidden" name="inviteId" value={inviteId} />
       <button type="submit" disabled={pending} className={QUIET}>
-        {pending ? 'Revoking…' : 'Revoke'}
+        {pending ? 'Cancelling…' : 'Cancel'}
       </button>
       {state.message && !state.ok ? (
         <p className="mt-1 text-[13px] text-bad-700">{state.message}</p>

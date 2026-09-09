@@ -1,8 +1,11 @@
 import { PageIntro, PeriodSwitch, Quiet, Section } from '@/components/portal/portal-ui';
+import { pieces } from '@/lib/portal/view';
 import type { PeriodReport, PeriodTheme } from '@/lib/reporting/service';
 
 /**
- * The weekly Pulse and the monthly Review, rendered (M20 Stage 4).
+ * The weekly Pulse and the monthly Review, rendered (M20 Stage 4). Those are
+ * code names: to the owner these two pages are "This week" and "This month",
+ * two windows of the one Check-in family.
  *
  * One component for both, because they answer the same questions over
  * different windows and two components would drift.
@@ -16,14 +19,19 @@ function dateLabel(d: Date): string {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
+/** One mention is one piece of feedback that names the topic, never one customer. */
+function mentions(n: number): string {
+  return `${n} ${n === 1 ? 'mention' : 'mentions'}`;
+}
+
 function MovementNote({ theme }: { theme: PeriodTheme }) {
   if (theme.movement === null) {
-    return <span className="text-[13px] text-ink-500">{theme.count} this period</span>;
+    return <span className="text-[13px] text-ink-500">{mentions(theme.count)}</span>;
   }
   if (theme.movement === 'STEADY') {
     return (
       <span className="text-[13px] text-ink-500">
-        {theme.before} → {theme.count}, about the same
+        {theme.before} → {mentions(theme.count)}, about the same
       </span>
     );
   }
@@ -37,7 +45,7 @@ function MovementNote({ theme }: { theme: PeriodTheme }) {
             : 'text-[13px] text-ink-600'
       }
     >
-      {theme.before} → {theme.count}
+      {theme.before} → {mentions(theme.count)}
     </span>
   );
 }
@@ -68,6 +76,10 @@ export function PeriodReportView({
 }) {
   const isWeek = report.kind === 'WEEK';
   const title = isWeek ? 'This week' : 'This month';
+  // This page knows exactly which window it is reading, so it names it. Only
+  // shared code that genuinely cannot tell is allowed to say "period".
+  const thisWindow = isWeek ? 'this week' : 'this month';
+  const lastWindow = isWeek ? 'the week before' : 'the month before';
 
   return (
     <div className="max-w-3xl">
@@ -84,7 +96,7 @@ export function PeriodReportView({
         {report.headline}
       </p>
       <p className="mt-1.5 text-[13px] text-ink-600">
-        {report.volume.current} this period · {report.volume.previous} the period before
+        {pieces(report.volume.current)} {thisWindow} · {report.volume.previous} {lastWindow}
       </p>
 
       {report.enoughEvidence ? (
@@ -102,24 +114,29 @@ export function PeriodReportView({
           ) : null}
 
           {report.praise.length > 0 ? (
-            <Section eyebrow="What customers responded well to">
+            <Section eyebrow="What customers praised">
               <ThemeList themes={report.praise} />
             </Section>
           ) : null}
 
           {!isWeek && report.unresolved.length > 0 ? (
-            <Section eyebrow="Still unresolved">
+            <Section eyebrow="Still coming up">
+              {/* The list is "raised in both windows and not less often". It
+                  does not know whether the owner fixed anything, so the words
+                  cover steady as well as rising and judge neither. */}
               <p className="mb-3 text-[13px] leading-relaxed text-ink-600">
-                Raised in both periods, and no less often than before.
+                {`Customers mentioned these ${thisWindow} and ${lastWindow}, just as often or more often.`}
               </p>
               <ThemeList themes={report.unresolved} />
             </Section>
           ) : null}
 
           {report.issues.length === 0 && report.praise.length === 0 ? (
-            <Section eyebrow="Themes">
+            <Section eyebrow="Topics">
+              {/* Thin evidence, not a quiet week. Naming the bar is what keeps
+                  the two apart, so the number stays in the sentence. */}
               <Quiet>
-                No theme was named by enough customers this period to report on.
+                {`Nothing came up 3 or more times ${thisWindow}. Once something does, Headway will name it here.`}
               </Quiet>
             </Section>
           ) : null}
@@ -136,7 +153,7 @@ export function PeriodReportView({
                 {a.outcome ? (
                   <p className="mt-1 text-[13px] text-ink-700">{a.outcome}</p>
                 ) : (
-                  <p className="mt-1 text-[13px] text-ink-500">Not measured yet.</p>
+                  <p className="mt-1 text-[13px] text-ink-500">Being checked.</p>
                 )}
               </li>
             ))}
@@ -151,7 +168,7 @@ export function PeriodReportView({
       ) : null}
 
       {report.limits.length > 0 ? (
-        <Section eyebrow="What this cannot tell you">
+        <Section eyebrow="What Headway cannot tell you yet">
           <ul className="space-y-1.5">
             {report.limits.map((l) => (
               <li key={l} className="text-[13px] leading-relaxed text-ink-600">

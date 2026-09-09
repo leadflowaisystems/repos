@@ -160,7 +160,9 @@ describe('status — insufficient data', () => {
   it('reports INSUFFICIENT_DATA with no snapshots at all', () => {
     const result = card([]);
     expect(result.status).toBe('INSUFFICIENT_DATA');
-    expect(result.statusSummary).toContain('No snapshot has been taken yet');
+    expect(result.statusSummary).toContain(
+      'No check-in yet. Take the first one to give this client a health status.',
+    );
     expect(result.distribution.total).toBe(0);
     expect(result.distribution.shares).toBeNull();
     expect(result.coverage.snapshotCount).toBe(0);
@@ -198,7 +200,7 @@ describe('status — healthy', () => {
   });
 
   it('explains what it checked instead of leaving the reason blank', () => {
-    expect(healthy.statusSummary).toContain('13 stored feedback items');
+    expect(healthy.statusSummary).toContain('13 pieces of feedback');
   });
 });
 
@@ -236,7 +238,9 @@ describe('status — watch', () => {
     expect(result.status).toBe('WATCH');
     const signal = result.signals.find((s) => s.key === 'stale_data');
     expect(signal?.level).toBe('WATCH');
-    expect(signal?.detail).toContain(`${STALE_SNAPSHOT_WATCH_DAYS} days old`);
+    expect(signal?.detail).toContain(
+      `The last check-in was ${STALE_SNAPSHOT_WATCH_DAYS} days ago`,
+    );
   });
 
   it('fires when almost no reviews are arriving', () => {
@@ -349,7 +353,7 @@ describe('trend', () => {
     const t = computeTrend([]);
     expect(t.direction).toBe('NONE');
     expect(t.available).toBe(false);
-    expect(t.reason).toContain('No snapshots yet');
+    expect(t.reason).toContain('No check-ins yet, so there is nothing to compare.');
   });
 
   it('is unavailable with a single snapshot', () => {
@@ -365,7 +369,7 @@ describe('trend', () => {
     ]);
     expect(t.direction).toBe('NONE');
     expect(t.available).toBe(false);
-    expect(t.reason).toContain('no comparable measurement');
+    expect(t.reason).toContain('The last two check-ins have no figure in common');
   });
 
   it('reports IMPROVING when the rating rises meaningfully', () => {
@@ -403,7 +407,7 @@ describe('trend', () => {
     const metric = t.metrics.find((m) => m.key === 'negativeShare');
     expect(metric?.delta).toBeCloseTo(1, 4);
     expect(metric?.contributes).toBe(false);
-    expect(metric?.note).toContain('Sample too small');
+    expect(metric?.note).toContain('Too little feedback to read as a trend');
     expect(t.direction).toBe('STABLE');
   });
 
@@ -476,7 +480,9 @@ describe('pulse', () => {
     expect(p.available).toBe(false);
     expect(p.current?.feedbackCount).toBe(5);
     expect(p.previous).toBeNull();
-    expect(p.reason).toContain('Only one snapshot exists');
+    expect(p.reason).toContain(
+      'Only one check-in so far. The next one will let Headway compare the two.',
+    );
   });
 
   it('compares the two most recent snapshots', () => {
@@ -516,7 +522,7 @@ describe('pulse', () => {
       snapshot({ id: 'then', capturedAt: daysAgo(31), feedback: many(20, 'POSITIVE') }),
     ]);
     expect(p.sampleWarning).toContain(`needs ${MIN_FEEDBACK_FOR_TREND_CLAIMS}`);
-    expect(p.sampleWarning).toContain('20 feedback items in the previous period');
+    expect(p.sampleWarning).toContain('20 pieces of feedback at the earlier check-in');
   });
 
   it('does not warn when both sides clear the floor', () => {

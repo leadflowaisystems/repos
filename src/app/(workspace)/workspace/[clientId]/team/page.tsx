@@ -27,7 +27,7 @@ export const metadata: Metadata = { title: 'Team' };
  */
 
 const ROLE_CAN: Record<string, string> = {
-  [ROLE_OWNER]: 'Reads everything, and can change the team and the account.',
+  [ROLE_OWNER]: 'Reads everything. Can change the team and the account.',
   BUSINESS_STAFF: 'Reads everything. Cannot change the team or the account.',
 };
 
@@ -69,7 +69,7 @@ export default async function TeamPage({
                 </p>
               </div>
               <p className="mt-1 text-[13px] text-ink-500">
-                {m.status === 'ACTIVE' ? (ROLE_CAN[m.role] ?? ROLE_CAN.BUSINESS_STAFF) : 'Cannot open the workspace until restored.'}
+                {m.status === 'ACTIVE' ? (ROLE_CAN[m.role] ?? ROLE_CAN.BUSINESS_STAFF) : 'Cannot open the workspace until you restore access.'}
               </p>
               <div className="mt-2.5">
                 <MembershipControls

@@ -188,7 +188,7 @@ describe('nothing is named without enough evidence behind it', () => {
     });
 
     expect(intel.unhappy).toEqual([]);
-    expect(intel.limits.join(' ')).toMatch(/2 other things were mentioned once or twice/);
+    expect(intel.limits.join(' ')).toMatch(/2 other topics were mentioned once or twice/);
   });
 
   it('keeps the feedback ids behind every count', () => {
@@ -206,7 +206,7 @@ describe('nothing is named without enough evidence behind it', () => {
     const insight = themeIn(intel.unhappy, 'wait_time');
     expect(insight.evidence.outOf).toBe(40);
     expect(insight.detail).toContain('7 mentions');
-    expect(insight.detail).toContain('40 reviews');
+    expect(insight.detail).toContain('40 pieces of feedback');
     expect(insight.confidenceReason).toContain('40');
   });
 
@@ -548,7 +548,7 @@ describe('three signals at most, and honest when there are fewer', () => {
     expect(intel.headlineNote).not.toMatch(/only/i);
   });
 
-  it('says "only 2 clear signals" rather than padding to three', () => {
+  it('says "only 2 clear patterns" rather than padding to three', () => {
     const intel = build({
       themes: themes(
         [theme('doctor_care', "Doctor's care", 'PRAISE', 12)],
@@ -558,7 +558,7 @@ describe('three signals at most, and honest when there are fewer', () => {
       totalFeedback: 30,
     });
     expect(intel.headline.length).toBe(2);
-    expect(intel.headlineNote).toContain('Only 2 clear signals');
+    expect(intel.headlineNote).toContain('Only 2 clear patterns');
   });
 
   it('never shows the same theme twice in the headline', () => {
@@ -617,7 +617,7 @@ describe('the empty and low-data states are honest', () => {
       themes: themes([], [theme('wait_time', 'Long waiting time', 'ISSUE', 3)], 8),
       totalFeedback: 8,
     });
-    expect(intel.limits.join(' ')).toMatch(/early signal, not a conclusion/i);
+    expect(intel.limits.join(' ')).toMatch(/early sign, not a conclusion/i);
     expect(intel.evidence.tier).toBe('INSUFFICIENT');
   });
 

@@ -52,7 +52,7 @@ export default async function WorkspaceLayout({
   const locked = lifecycle?.workspaceLocked ?? false;
 
   // Paused is worth one line at the top of every page, because the difference
-  // between "nothing is arriving" and "arriving, kept, not being read yet" is
+  // between "nothing is arriving" and "arriving, saved, not being read yet" is
   // exactly the thing an owner would otherwise get wrong.
   const paused =
     client.subscriptionStatus === 'PAUSED' || client.subscriptionStatus === 'CANCELLED';
@@ -80,12 +80,12 @@ export default async function WorkspaceLayout({
       />
       {paused ? (
         <p className="mb-6 border-l-2 border-warn-600 bg-warn-50 px-4 py-3 text-[14px] leading-relaxed text-ink-800">
-          Headway is paused. New feedback is kept but not read until the account is resumed.{' '}
+          Headway is paused. New feedback is still saved, but nobody is reading it yet.{' '}
           <Link
             href={`/workspace/${clientId}/account`}
             className="inline-flex min-h-11 items-center font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
           >
-            Account
+            Go to Account <span aria-hidden>→</span>
           </Link>
         </p>
       ) : null}

@@ -98,7 +98,7 @@ describe('do I need to do anything?', () => {
     expect(r.answer).toBe('Nothing needs you right now.');
     expect(r.needsYou).toEqual([]);
     expect(r.watching.map((i) => i.state)).toEqual(['KEEP_DOING']);
-    expect(r.did).toContain('Found no new issue strong enough to recommend action.');
+    expect(r.did).toContain('Found no new problem big enough to act on.');
   });
 
   it('3. a clear recurring complaint is the one thing to decide on', () => {
@@ -111,7 +111,7 @@ describe('do I need to do anything?', () => {
     expect(top?.headline).toBe('Long waiting time is the clearest thing customers are unhappy about.');
     expect(top?.recommendedNextStep).toMatch(/^Start here: /);
     expect(top?.evidence).toMatchObject({ count: 9, outOf: 50 });
-    expect(top?.evidence?.line).toBe('9 of the 50 pieces of feedback we have read mention it.');
+    expect(top?.evidence?.line).toBe('9 of the 50 pieces of feedback Headway has read mention it.');
     expect(top?.relatedInsight).toBe('c1:UNHAPPY:wait_time');
   });
 
@@ -125,7 +125,7 @@ describe('do I need to do anything?', () => {
   it('5. an agreed change nobody has made yet is something to follow through on', () => {
     const r = build({ portal: { actions: [action('ACCEPTED')] } });
     expect(r.state).toBe('FOLLOW_UP');
-    expect(r.answer).toBe('One thing to follow through on.');
+    expect(r.answer).toBe('Yes — one thing to follow through on.');
     const top = r.needsYou[0];
     expect(top?.instruction).toBe('Finish the change you agreed');
     expect(top?.headline).toBe('The change you agreed for long waiting time has not been made yet.');
@@ -136,8 +136,8 @@ describe('do I need to do anything?', () => {
   it('6. a change made with enough feedback after it is a comparison due', () => {
     const r = build({ portal: { actions: [measurable('DONE', true)] } });
     expect(r.state).toBe('FOLLOW_UP');
-    expect(r.needsYou[0]?.instruction).toBe('A comparison is due');
-    expect(r.nextUsefulCheck).toMatch(/^A comparison is due now/);
+    expect(r.needsYou[0]?.instruction).toBe('Ready to compare');
+    expect(r.nextUsefulCheck).toBe('Headway can now compare your change before and after.');
 
     const notYet = build({ portal: { actions: [action('DONE')] } });
     expect(notYet.state).toBe('CLEAR');
@@ -153,7 +153,7 @@ describe('do I need to do anything?', () => {
     const kept = r.watching.find((i) => i.themeKey === 'wait_time');
     expect(kept?.state).toBe('KEEP_DOING');
     expect(kept?.instruction).toBe('Keep the change in place');
-    expect(kept?.headline).toBe('Long waiting time came up less often in the feedback after your change.');
+    expect(kept?.headline).toBe('Customers mentioned long waiting time less often after your change.');
   });
 
   it('8. a change that read worse afterwards needs looking at again', () => {
@@ -161,7 +161,7 @@ describe('do I need to do anything?', () => {
     expect(r.state).toBe('DO_NOW');
     const top = r.needsYou[0];
     expect(top?.instruction).toBe('Look at this again');
-    expect(top?.reasons.some((s) => /came up more often in the feedback after your change/.test(s.reason))).toBe(true);
+    expect(top?.reasons.some((s) => /Customers mentioned it more often after your change/.test(s.reason))).toBe(true);
     expect(top?.recommendedNextStep).toMatch(/That does not show the change caused it/);
   });
 
@@ -175,8 +175,10 @@ describe('do I need to do anything?', () => {
     expect(r.state).toBe('DO_NOW');
     const top = r.needsYou[0];
     expect(top?.headline).toBe('Long waiting time is coming back after your change.');
-    expect(top?.reasons.some((s) => /starting to come up more again/.test(s.reason))).toBe(true);
-    expect(top?.thread.find((s) => s.key === 'now')?.text).toMatch(/starting to come up more again/);
+    expect(top?.reasons.some((s) => /came up less often after your change, and now it is coming up more again/.test(s.reason))).toBe(true);
+    expect(top?.thread.find((s) => s.key === 'now')?.text).toMatch(
+      /came up less often after your earlier change, and it is coming up more again/,
+    );
   });
 
   it('10. a strong, consistent strength is something to keep doing', () => {
@@ -196,7 +198,7 @@ describe('do I need to do anything?', () => {
     expect(r.state).toBe('WAITING_FOR_EVIDENCE');
     expect(r.answer).toBe('Not enough feedback yet to say.');
     expect(r.needsYou).toEqual([]);
-    expect(r.did).not.toContain('Found no new issue strong enough to recommend action.');
+    expect(r.did).not.toContain('Found no new problem big enough to act on.');
   });
 });
 
@@ -465,10 +467,12 @@ describe('continuity', () => {
     expect(r.state).toBe('CLEAR');
     const item = r.watching.find((i) => i.themeKey === 'wait_time')!;
     expect(item.state).toBe('WATCH');
-    expect(item.headline).toBe('Long waiting time is still the clearest complaint. You decided not to pursue a change.');
+    expect(item.headline).toBe(
+      'Long waiting time is still what customers complain about most. You decided not to make this change.',
+    );
     expect(item.thread.find((s) => s.key === 'decided')).toMatchObject({
       source: 'YOU',
-      text: 'Not to pursue this. Hiring a second receptionist first.',
+      text: 'Not to make this change. Hiring a second receptionist first.',
     });
   });
 
@@ -493,14 +497,14 @@ describe('continuity', () => {
     const quiet = build({ checkins: [checkin('s1', new Date(2026, 2, 1))], feedbackSince: NO_NEW });
     expect(quiet.did[0]).toBe('No new feedback has come in since your check-in on 01 Mar 2026.');
     expect(quiet.did.some((l) => l.startsWith('Checked whether'))).toBe(false);
-    expect(quiet.did).not.toContain('Found no new issue strong enough to recommend action.');
+    expect(quiet.did).not.toContain('Found no new problem big enough to act on.');
   });
 
   it('says when the next check would show something, as a condition, never a countdown', () => {
     expect(build().nextUsefulCheck).toBe('A first check-in now would give Headway something to compare your next one against.');
     const one = build({ checkins: [checkin('s1', new Date(2026, 2, 1))], feedbackSince: { total: 4, read: 4, unread: 0, direct: 0 } });
     expect(one.nextUsefulCheck).toBe(
-      'A second check-in will show what changed. So far 4 of the 10 pieces of new feedback that make a comparison worthwhile have come in.',
+      'A second check-in will show what changed. 4 of the 10 new pieces of feedback needed to compare have come in so far.',
     );
     const enough = build({ checkins: [checkin('s1', new Date(2026, 2, 1))], feedbackSince: { total: 12, read: 12, unread: 0, direct: 0 } });
     expect(enough.nextUsefulCheck).toBe('A second check-in now would let Headway show what changed — 12 pieces of feedback have come in since the first.');
@@ -509,7 +513,7 @@ describe('continuity', () => {
       feedbackSince: { total: 3, read: 3, unread: 0, direct: 0 },
     });
     expect(two.nextUsefulCheck).toBe(
-      'Not yet. 3 pieces of feedback have come in since your check-in on 20 May 2026; Headway will say when another check-in would show something new.',
+      'Not yet. 3 pieces of feedback have come in since your check-in on 20 May 2026. Headway will say when another check-in would show something new.',
     );
     const stale = build({
       checkins: [checkin('s2', new Date(2026, 1, 1)), checkin('s1', new Date(2025, 11, 1))],
@@ -563,7 +567,9 @@ describe('the edges', () => {
     expect(r.state).toBe('CLEAR');
     const item = r.watching.find((i) => i.themeKey === 'wait_time')!;
     expect(item.state).toBe('WAITING_FOR_EVIDENCE');
-    expect(item.headline).toBe('Not enough feedback after your change for long waiting time to compare yet.');
+    expect(item.headline).toBe(
+      'Not enough new feedback has come in since your change for long waiting time to compare yet.',
+    );
   });
 
   it('a change with no clear result is watched, with the loop still attached', () => {
@@ -578,7 +584,10 @@ describe('the edges', () => {
     const r = build();
     const early = r.watching.filter((i) => i.state === 'WAITING_FOR_EVIDENCE');
     expect(early).toHaveLength(1);
-    expect(early[0]?.headline).toBe('Friendly, helpful staff is praised, but not yet often enough to call a strength.');
-    expect(early[0]?.recommendedNextStep).toBe('Nothing to do. Headway will say so when any of these clears the floor.');
+    expect(early[0]?.headline).toBe(
+      'Customers praise friendly, helpful staff, but not often enough yet to call it a strength.',
+    );
+    expect(early[0]?.instruction).toBe('Nothing to do yet');
+    expect(early[0]?.recommendedNextStep).toBe('Headway will tell you when one of these comes up often enough.');
   });
 });

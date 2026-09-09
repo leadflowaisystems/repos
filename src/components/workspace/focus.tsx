@@ -33,9 +33,13 @@ const MOOD_DOT: Record<PortalMood, string> = {
   TOO_EARLY: 'bg-ink-300',
 };
 
+// The direction words themselves are written in view.ts, so the colour is
+// chosen by matching them here. The older wordings are kept beside the current
+// ones on purpose: a pill that stops matching does not break, it silently goes
+// grey, and grey is what "Not enough to say" is supposed to look like.
 const DIRECTION_PILL: Array<[RegExp, string]> = [
-  [/improving/i, 'border-good-200 bg-good-50 text-good-700'],
-  [/needs attention|worsening/i, 'border-bad-200 bg-bad-50 text-bad-700'],
+  [/getting better|improving/i, 'border-good-200 bg-good-50 text-good-700'],
+  [/getting worse|worsening|needs attention/i, 'border-bad-200 bg-bad-50 text-bad-700'],
   [/steady/i, 'border-ink-200 bg-ink-100 text-ink-700'],
 ];
 

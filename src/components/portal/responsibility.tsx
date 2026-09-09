@@ -19,8 +19,8 @@ import { EvidenceLink, ThemeStory } from './portal-ui';
  * and exactly what would make Headway interrupt them about it. The one thing
  * that needs the owner is no longer here: it is the focus block at the top
  * of Home. What remains is the counterweight that makes the focus block's
- * "no" believable — here is what we are holding, and here is the condition
- * that brings it back to you.
+ * "no" believable — here is what Headway is holding, and here is the
+ * condition that brings it back to you.
  *
  * Renders what the responsibility object already decided and adds nothing.
  */
@@ -133,7 +133,7 @@ export function NeedsYouItem({
             href={`${basePath}/reviews?needs=reply`}
             className="inline-flex min-h-11 items-center gap-1.5 text-[13px] font-medium text-ink-700 hover:text-ink-900"
           >
-            Read them <span aria-hidden>→</span>
+            Read what needs a reply <span aria-hidden>→</span>
           </Link>
         </div>
       )}
@@ -183,7 +183,7 @@ function WatchingRow({ item, basePath }: { item: ResponsibilityItem; basePath: s
             <StateChip item={item} />
             {item.evidence ? (
               <span className="text-[12px] text-ink-500 tabular-nums">
-                {item.evidence.count} of {item.evidence.outOf}
+                {item.evidence.count} of {item.evidence.outOf} pieces of feedback
               </span>
             ) : null}
           </div>
@@ -225,8 +225,9 @@ function WatchingRow({ item, basePath }: { item: ResponsibilityItem; basePath: s
 }
 
 /**
- * A strength, with the proof. Not a badge and not a score: the customers'
- * count, Headway's reading of why it matters, and one tap to the words.
+ * A strength, with the proof. Not a badge and not a score: how many pieces of
+ * feedback said it, Headway's reading of why it matters, and one tap to the
+ * words.
  */
 function StrengthRow({ item, basePath }: { item: ResponsibilityItem; basePath: string }) {
   return (
@@ -237,7 +238,7 @@ function StrengthRow({ item, basePath }: { item: ResponsibilityItem; basePath: s
             <StateChip item={item} />
             {item.evidence ? (
               <span className="text-[12px] text-ink-500 tabular-nums">
-                {item.evidence.count} of {item.evidence.outOf}
+                {item.evidence.count} of {item.evidence.outOf} pieces of feedback
               </span>
             ) : null}
           </div>

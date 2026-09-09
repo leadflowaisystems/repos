@@ -192,7 +192,7 @@ describe('the pause and the resume are stamped, and not by the business', () => 
     session = { id: AUTH.alpha };
     const state = await commercial.getAccountState(app, seeded.alphaClientId, { now: resumedAt });
     expect(state?.headline).toBe('Headway is active');
-    expect(state?.note).toBe('Headway has resumed reading new feedback.');
+    expect(state?.note).toBe('Your account was paused. It is running again.');
   });
 
   it('gives the business owner no privilege on either stamp', async () => {

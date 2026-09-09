@@ -210,11 +210,11 @@ describe('when the trial ends', () => {
     now: NOW,
   };
 
-  it('says the workspace and history are still here, and offers to continue', () => {
+  it('says the feedback and the history are safe, and offers to continue', () => {
     const ended = describeAccount({ ...base, subscriptionStatus: 'TRIAL' });
     expect(ended.phase).toBe('TRIAL_ENDED');
     expect(ended.headline).toBe('Your trial has ended');
-    expect(ended.line).toBe('Your Headway workspace and history are still here.');
+    expect(ended.line).toBe('Your feedback and your history are safe.');
     expect(ended.trialExpired).toBe(true);
     expect(ended.line).not.toMatch(/₹|\$|price|pricing|per month|locked|expired/i);
   });
@@ -367,7 +367,7 @@ describe('a paused account', () => {
     expect(paused?.phase).toBe('PAUSED');
     expect(paused?.headline).toBe('Headway is paused');
     expect(paused?.line).toBe(
-      'Your customer history is safe. New feedback will be kept, but Headway is not actively processing it right now.',
+      'Your feedback and your history are safe. New feedback is still saved, but Headway is not reading it yet.',
     );
     expect(paused?.servicePausedAt?.toISOString()).toBe(NOW.toISOString());
     expect(paused?.note).toBe('Paused since 7 September 2026.');
@@ -378,8 +378,8 @@ describe('a paused account', () => {
     const resumed = await getAccountState(db, id, { now: later });
     expect(resumed?.phase).toBe('ACTIVE');
     expect(resumed?.headline).toBe('Headway is active');
-    expect(resumed?.line).toBe('Your workspace is active.');
-    expect(resumed?.note).toBe('Headway has resumed reading new feedback.');
+    expect(resumed?.line).toBe('Headway is reading new feedback as it arrives.');
+    expect(resumed?.note).toBe('Your account was paused. It is running again.');
     expect(resumed?.serviceResumedAt?.toISOString()).toBe(later.toISOString());
     expect(resumed?.servicePausedAt).toBeNull();
 
@@ -397,7 +397,7 @@ describe('a paused account', () => {
     await resumeService(db, id, { now: new Date(NOW.getTime() + DAY) });
     const state = await getAccountState(db, id, { now: new Date(NOW.getTime() + DAY) });
     expect(state?.phase).toBe('TRIAL');
-    expect(state?.note).toBe('Headway has resumed reading new feedback.');
+    expect(state?.note).toBe('Your account was paused. It is running again.');
   });
 });
 
@@ -458,24 +458,27 @@ describe('the words an owner reads', () => {
 
   it('offers the continuation on the Account page, and still names no price', () => {
     // M28 replaced the three-field "Continue with Headway" form on this page
-    // with "Extend access": phone required, email optional, and no name field,
-    // because the person is signed in and the business is already known. What
-    // has NOT changed is the thing this test was written for — there is no
-    // amount, no price and no plan anywhere an owner can see.
+    // with the ExtendAccessForm: phone required, email optional, and no name
+    // field, because the person is signed in and the business is already known.
+    // Its label now reads "Ask to continue" — "Extend access" was the one
+    // phrase a customer would read as "my trial just got longer", and pressing
+    // it only ever sends a message. What has NOT changed is the thing this test
+    // was written for — there is no amount, no price and no plan anywhere an
+    // owner can see.
     const page = stripComments(
       read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'account', 'page.tsx'),
     );
     expect(page).toContain('ExtendAccessForm');
     expect(page).toContain('account.headline');
     expect(page).toContain('Want to continue with Headway?');
-    expect(page).toContain('nothing is charged automatically');
+    expect(page).toContain('Nothing is charged automatically.');
     // Nothing on the page knows the amount.
     expect(page).not.toContain('getCommercial');
     expect(page).not.toContain('amountInr');
     expect(page).not.toMatch(/paymentInstructions|note\s*[:=]/);
 
     const form = stripComments(read('src', 'components', 'forms', 'extend-access-form.tsx'));
-    expect(form).toContain('Extend access');
+    expect(form).toContain("label = 'Ask to continue'");
     expect(form).toContain('name="phone"');
     expect(form).toContain('name="email"');
     expect(form).toContain('type="tel"');
@@ -487,7 +490,7 @@ describe('the words an owner reads', () => {
 
     const action = stripComments(read('src', 'lib', 'actions', 'continuation.ts'));
     expect(action).toContain(
-      "Request received. Thank you. We'll contact you to arrange continued access.",
+      "We'll contact you about continuing your Headway service. Nothing is charged automatically.",
     );
     // The request is a message, not a transaction.
     expect(action).not.toMatch(/trialEndsAt|trialStartsAt/);
@@ -496,10 +499,10 @@ describe('the words an owner reads', () => {
   it('says paused and resumed in the words the owner is promised', () => {
     const service = stripComments(read('src', 'lib', 'commercial', 'service.ts'));
     expect(service).toContain("headline = 'Headway is paused'");
-    expect(service).toContain('Your customer history is safe. New feedback will be kept, but Headway is not actively processing it right now.');
+    expect(service).toContain('Your feedback and your history are safe. New feedback is still saved, but Headway is not reading it yet.');
     expect(service).toContain("headline = 'Headway is active'");
-    expect(service).toContain("line = 'Your workspace is active.'");
-    expect(service).toContain('Headway has resumed reading new feedback.');
+    expect(service).toContain("line = 'Headway is reading new feedback as it arrives.'");
+    expect(service).toContain('Your account was paused. It is running again.');
     const layout = stripComments(
       read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'layout.tsx'),
     );
@@ -520,10 +523,14 @@ describe('the words an owner reads', () => {
   it('keeps current signals on Home and the full method on Customers, once', () => {
     const home = stripComments(read('src', 'components', 'workspace', 'home.tsx'));
     expect(home).toContain('<SoFar soFar={view.soFar} basePath={basePath} />');
-    expect(home).toContain('note="Current signals, not conclusions"');
+    expect(home).toContain('note="Counts, not conclusions"');
     expect(home).toContain('<Limits limits={r.limitations} collapsed />');
     expect(home).not.toContain('Not worth your time right now');
-    expect(home).toContain('Next check.');
+    // The reason to come back is still on Home. The bold "Next check." run-in
+    // went with the copy pass — the eyebrow above it already names the
+    // check-in — so the section itself is what this holds in place.
+    expect(home).toContain('eyebrow="Your next check-in"');
+    expect(home).toContain('{r.nextUsefulCheck}');
 
     const customers = stripComments(read('src', 'components', 'workspace', 'analysis.tsx'));
     expect(customers).toContain('<SoFar soFar={view.soFar} basePath={basePath} explain />');
@@ -546,7 +553,7 @@ describe('the words an owner reads', () => {
     // one disclosure. See tests/m29.print-kit-masters.test.ts for the sheets.
     const kit = stripComments(read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'kit', 'page.tsx'));
     expect(kit).toContain('Your feedback card');
-    expect(kit).toContain('Put it where customers naturally see it.');
+    expect(kit).toContain('Put it where customers will see it.');
     expect(kit).toContain('PRINT_SHEETS.map');
     expect(kit).toContain('Open to print');
     expect(kit).toContain('Staff guidance');

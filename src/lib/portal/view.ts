@@ -62,7 +62,7 @@ import { presenceFrom, recurrenceFor, type PresenceMap, type Recurrence } from '
  */
 
 /** Bump when the shape or the wording rules change. */
-export const PORTAL_VERSION = 3;
+export const PORTAL_VERSION = 4;
 
 // ---------------------------------------------------------------------------
 // Vocabulary
@@ -79,8 +79,8 @@ export type PortalBucket = 'FIRST' | 'KEEP' | 'WATCH' | 'EARLY';
 export const BUCKET_LABELS: Record<PortalBucket, string> = {
   FIRST: 'Do this first',
   KEEP: 'Keep doing this',
-  WATCH: 'Watch this',
-  EARLY: 'Not enough evidence yet',
+  WATCH: 'Watching',
+  EARLY: 'Waiting for more feedback',
 };
 
 /** The short instruction attached to a theme. */
@@ -97,12 +97,12 @@ export type PortalAdvice =
 
 export const ADVICE_LABELS: Record<PortalAdvice, string> = {
   START: 'Act on this',
-  HOLD: 'Easing',
+  HOLD: 'Coming up less on its own',
   CONTINUE: 'Finish the change you agreed',
   CHECKING: 'Change made, not yet checked',
   KEEP_CHANGE: 'Keep it in place',
   REVIEW_CHANGE: 'Look at this again',
-  PROTECT: 'Protect this',
+  PROTECT: 'Worth protecting',
   WATCH: 'Keep watching',
   WAIT: 'Wait for more feedback',
 };
@@ -118,11 +118,11 @@ export type PortalFact = { label: string; value: string; scope: string };
 /**
  * CURRENT SIGNALS — what customers are saying so far, before it is a pattern.
  *
- * The intelligence names a theme only once three customers have raised it,
+ * The intelligence names a theme only once it has been raised three times,
  * and that floor is right for a conclusion. It is wrong for a first week: an
  * owner with two pieces of feedback should still see what those two said.
  * So this lists every mention RepOS has read, marks the ones that have
- * cleared the floor, and says plainly that the rest are single mentions.
+ * cleared the floor, and says plainly that the rest are only being watched.
  * Nothing here is a trend, a comparison or a cause.
  */
 export type PortalSoFar = {
@@ -135,7 +135,7 @@ export type PortalSoFar = {
     label: string;
     kind: 'PRAISE' | 'ISSUE';
     count: number;
-    /** Raised by enough customers to be called a pattern. */
+    /** Raised often enough to be called a pattern. */
     pattern: boolean;
   }>;
   /** The parts of the visit customers rated on the feedback page, with the average. */
@@ -163,7 +163,7 @@ export type PortalOutcome = {
   afterLine: string;
   /** "Feedback read up to 12 Mar 2026" */
   beforeScope: string;
-  /** "Feedback after the change, recorded 1 Apr 2026" */
+  /** "Feedback after the change you made on 1 Apr 2026" */
   afterScope: string;
   /** When the change was recorded as made. */
   changeDate: Date | null;
@@ -223,7 +223,7 @@ export type PortalSignal = {
   kind: 'PRAISE' | 'ISSUE';
 
   // ---- customer fact --------------------------------------------------
-  /** "14 of the 110 pieces of feedback we have read mention it." */
+  /** "14 of the 110 pieces of feedback Headway has read mention it." */
   fact: string;
   evidenceCount: number;
   evidenceTotal: number;
@@ -448,14 +448,14 @@ const STAGE_LABELS: Record<PortalActionStage, string> = {
   AGREED: 'Agreed',
   DONE: 'Change made',
   CHECKED: 'Checked',
-  NOT_DOING: 'Not pursued',
+  NOT_DOING: 'Not doing',
 };
 
 const STAGE_MEANINGS: Record<PortalActionStage, string> = {
   SUGGESTED: 'Suggested from your feedback. Nothing has been decided yet.',
   AGREED: 'You agreed to make this change. It has not been made yet.',
-  DONE: 'You told us the change was made. We have not compared the feedback yet.',
-  CHECKED: 'We compared how often it came up before and after the change.',
+  DONE: 'You told us the change was made. Headway has not compared the feedback yet.',
+  CHECKED: 'Headway compared how often it came up before and after the change.',
   NOT_DOING: 'You decided not to make this change.',
 };
 
@@ -531,7 +531,7 @@ export function outcomeFrom(progress: ActionProgress | undefined): PortalOutcome
     afterLine: m.after.line,
     beforeScope: `Feedback read up to ${formatDate(progress.action.baseline.capturedAt)}`,
     afterScope: doneAt
-      ? `Feedback after the change, recorded ${formatDate(doneAt)}`
+      ? `Feedback after the change you made on ${formatDate(doneAt)}`
       : 'Feedback after the change',
     changeDate: doneAt,
     direction: delta === 0 ? 'FLAT' : delta < 0 ? 'DOWN' : 'UP',
@@ -559,54 +559,62 @@ function nextStepFor(args: {
   const { progress, suggestion, bucket } = args;
   const a = progress?.action;
   const returnNote = args.returning
-    ? ' It is starting to come up more again, so check whether the earlier conditions have returned before making another change.'
+    ? ' It is coming up more again, so check what else has changed before you make another change.'
     : '';
 
   if (!a) {
     if (args.kind === 'PRAISE') {
-      return 'Keep doing what customers describe here. Headway will flag it if the praise starts to drop.';
+      // The watch line beside this already names the drop Headway would flag,
+      // and names the number. Saying it here too would repeat it on one card —
+      // and it would be wrong on a strength that has already slipped.
+      return 'Keep doing what customers describe here.';
     }
     if (bucket === 'WATCH') {
+      // Same reason as above: the watch line says what Headway will flag, and
+      // at what number.
       return suggestion
-        ? `No action needed yet. If you want to get ahead of it, the usual fix is: ${suggestion}`
-        : 'No action needed yet. Headway will flag it if it starts climbing.';
+        ? `No change needed yet. If you want to get ahead of it, the usual fix is: ${suggestion}`
+        : 'No change needed yet.';
     }
+    // On the card, the advice label beside this already says the complaint is
+    // coming up less on its own, so this sentence gives the decision rather
+    // than repeating the movement a third time.
     if (args.easing) {
       return suggestion
-        ? `It is coming up less on its own, so decide whether to act now or wait. If it climbs again, start here: ${suggestion}`
-        : 'It is coming up less on its own, so decide whether to act now or wait.';
+        ? `Decide whether to act now or wait. If it comes up more again, start here: ${suggestion}`
+        : 'Decide whether to act now or wait.';
     }
     return suggestion
       ? `Start here: ${suggestion}`
-      : 'Customers have raised this often enough to act on; decide what to change and tell us.';
+      : 'Customers have raised this often enough to act on. Decide what to change and tell us.';
   }
 
   switch (a.status) {
     case 'RECOMMENDED':
-      return 'Headway has suggested a change for this. It is waiting on your decision.';
+      return 'Decide whether to make this change and tell us.';
     case 'ACCEPTED':
-      return 'Tell us once the change is in place, so we can start comparing the feedback that comes after it.';
+      return 'Tell us once the change is made. Then Headway can compare the feedback that comes after it.';
     case 'PAUSED':
-      return 'The change you agreed is on hold. Nothing is being compared until it is made.';
+      return 'The change you agreed is on hold. Headway cannot compare anything until it is made.';
     case 'DONE': {
       // Once enough has arrived, saying "48 of the 10 needed" is nonsense —
       // and it is what an owner saw on every page of a busy client (M18).
       const have = progress?.newFeedbackSinceDone ?? 0;
-      const made = `Made${a.doneAt ? ` on ${formatDate(a.doneAt)}` : ''}.`;
+      const made = `You made the change${a.doneAt ? ` on ${formatDate(a.doneAt)}` : ''}.`;
       return have >= MIN_FEEDBACK_TO_MEASURE
-        ? `${made} ${have} ${have === 1 ? 'piece' : 'pieces'} of feedback have come in since — enough to compare before and after.`
+        ? `${made} ${have} ${have === 1 ? 'piece of feedback has' : 'pieces of feedback have'} come in since — enough to compare before and after.`
         : `${made} Headway is waiting for enough new feedback to compare — ${have} of the ${MIN_FEEDBACK_TO_MEASURE} needed so far.`;
     }
     case 'MEASURED': {
       switch (a.measurement?.result) {
         case 'IMPROVED':
-          return `Nothing in the feedback after the change says to undo it. Headway will keep comparing as more comes in.${returnNote}`;
+          return `Nothing in the feedback after the change says you should undo it. Headway will keep comparing as more comes in.${returnNote}`;
         case 'WORSENED':
-          return `It came up more often in the feedback after the change. That does not show the change caused it — before undoing anything, check what else changed.${suggestion ? ` The original suggestion still stands: ${suggestion}` : ''}`;
+          return `It came up more often in the feedback after the change. That does not show the change caused it. Check what else changed before undoing anything.${suggestion ? ` The original suggestion still stands: ${suggestion}` : ''}`;
         case 'NO_CLEAR_CHANGE':
-          return 'The feedback after the change reads about the same as before. Keep collecting it; Headway will compare again.';
+          return 'The feedback after the change reads about the same as before. Keep collecting it. Headway will compare again.';
         default:
-          return `Not enough feedback after the change to compare yet. Headway will compare once at least ${MIN_FEEDBACK_TO_MEASURE} pieces have come in after it.`;
+          return `Not enough feedback after the change to compare yet. Headway will compare once ${MIN_FEEDBACK_TO_MEASURE} pieces have come in after it.`;
       }
     }
     default:
@@ -703,7 +711,7 @@ function movementBriefFor(insight: Insight): string {
   const issue = insight.sentiment === 'ISSUE';
   if (move === 'WORSENING') {
     return issue
-      ? 'Customers raised it more at your latest check-in than at the one before, so it is becoming more prominent.'
+      ? 'Customers raised it more at your latest check-in than at the one before.'
       : 'Customers praised it less at your latest check-in than at the one before.';
   }
   if (move === 'IMPROVING') {
@@ -711,7 +719,7 @@ function movementBriefFor(insight: Insight): string {
       ? 'Customers raised it less at your latest check-in than at the one before.'
       : 'Customers praised it more at your latest check-in than at the one before.';
   }
-  if (move === 'STABLE') return 'About as often at your latest check-in as at the one before.';
+  if (move === 'STABLE') return 'Mentioned about as often at your latest check-in as at the one before.';
   return 'Too few mentions at one of your last two check-ins to compare.';
 }
 
@@ -739,7 +747,7 @@ function meaningFor(args: {
   if (insight.sentiment === 'ISSUE') {
     if (counterpart) {
       sentences.push(
-        `${counterpart.themeLabel} is mostly a strength — ${comments(counterpart.count)} praised it — but ${comments(insight.evidence.count)} said the opposite.`,
+        `${counterpart.themeLabel} is mostly a strength — ${comments(counterpart.count)} praised it. But ${comments(insight.evidence.count)} said the opposite.`,
       );
     }
     let primary: string;
@@ -752,29 +760,29 @@ function meaningFor(args: {
       const when = outcome.changeDate ? ` on ${formatDate(outcome.changeDate)}` : '';
       switch (outcome.result) {
         case 'IMPROVED':
-          primary = `In the feedback after your change${when} it has come up less often${range}${
+          primary = `In the feedback after the change${when}, it has come up less often${range}${
             args.isAttention ? ', but it is still the complaint Headway would watch most closely' : ''
           }.`;
           afterNote = outcome.note;
           break;
         case 'WORSENED':
-          primary = `In the feedback after your change${when} it has come up more often${range}.`;
+          primary = `In the feedback after the change${when}, it has come up more often${range}.`;
           afterNote = `${outcome.note} Worth looking at again.`;
           break;
         case 'NO_CLEAR_CHANGE':
-          primary = `In the feedback after your change${when} it is coming up about as often as before${range}.`;
+          primary = `In the feedback after the change${when}, it is coming up about as often as before${range}.`;
           break;
         default:
-          primary = `Not enough feedback after your change${when} to compare yet.`;
+          primary = `Not enough feedback after the change${when} to compare yet.`;
       }
     } else if (move === 'WORSENING') {
       primary = movementBriefFor(insight);
     } else if (move === 'IMPROVING') {
       primary = movementBriefFor(insight);
     } else if (recurrence.recurring) {
-      primary = `It has come up at each of your recent check-ins — a recurring part of the experience, not a one-off.`;
+      primary = `It has come up at each of your recent check-ins, so it is not a one-off.`;
     } else if (recurrence.isNew) {
-      primary = `It reached a pattern at your latest check-in for the first time — worth watching before drawing conclusions.`;
+      primary = `It became a pattern for the first time at your latest check-in, so watch it before you decide anything.`;
     } else if (bucket === 'EARLY') {
       primary = `Raised in ${comments(insight.evidence.count)} so far — too few to be sure it is a pattern.`;
     } else if (bucket === 'WATCH') {
@@ -786,7 +794,7 @@ function meaningFor(args: {
     if (afterNote) sentences.push(afterNote);
     if (args.returning) {
       sentences.push(
-        `It came up less often after your earlier change but is starting to come up more again.`,
+        `It came up less often after your earlier change, but it is coming up more again.`,
       );
     }
     return { brief: primary, meaning: sentences.join(' ') };
@@ -798,25 +806,25 @@ function meaningFor(args: {
   let primary: string;
   if (strong && move === 'IMPROVING') {
     primary = top
-      ? `Customers are increasingly noticing this — one of the things they praise most in your feedback.`
-      : `Customers are increasingly noticing this — a growing positive in your feedback.`;
+      ? `This is one of the things customers praise most, and they are mentioning it more than before.`
+      : `This is a strength, and customers are mentioning it more than before.`;
   } else if (strong && move === 'WORSENING') {
-    primary = `Still a strength, but customers praised it less at your latest check-in than at the one before — worth checking on.`;
+    primary = `Still a strength, but customers praised it less at your latest check-in than at the one before.`;
   } else if (strong && recurrence.recurring) {
     primary = top
       ? `Praised at each of your recent check-ins — one of the things customers praise most.`
-      : `Praised at each of your recent check-ins — a steady positive in your feedback.`;
+      : `Praised at each of your recent check-ins — a steady strength.`;
   } else if (strong) {
     primary = top
-      ? `One of the things customers praise most in your feedback.`
-      : `A steady positive in your feedback.`;
+      ? `This is one of the things customers praise most.`
+      : `This is one of your strengths.`;
   } else {
-    primary = `Positive, and mentioned by a few customers, but not yet often enough to call it a strength.`;
+    primary = `This has been praised a few times, but not often enough yet to call it a strength.`;
   }
   sentences.push(primary);
   if (counterpart) {
     sentences.push(
-      `Not universal: ${comments(counterpart.count)} said the opposite — ${lower(counterpart.themeLabel)}.`,
+      `Not everyone agrees: ${comments(counterpart.count)} said the opposite — ${lower(counterpart.themeLabel)}.`,
     );
   }
   return { brief: primary, meaning: sentences.join(' ') };
@@ -831,19 +839,19 @@ function watchLineFor(
   const label = lower(insight.themeLabel);
   if (bucket === 'EARLY') {
     return insight.sentiment === 'PRAISE'
-      ? `Headway is watching whether ${label} is praised often enough to count as a strength — it calls it one once ${MIN_MENTIONS_TO_NAME * 2} comments have.`
-      : `Headway is watching whether more customers raise ${label} — it names a pattern once ${MIN_MENTIONS_TO_NAME} have.`;
+      ? `Headway is watching whether ${label} is praised often enough to count as a strength. It needs ${MIN_MENTIONS_TO_NAME * 2} comments before it says so.`
+      : `Headway is watching whether ${label} comes up more often. It calls this a pattern once it has been raised ${MIN_MENTIONS_TO_NAME} times.`;
   }
   if (insight.sentiment === 'PRAISE') {
     return `Headway is checking that ${label} keeps being praised, and will flag it if the praise drops by ${MIN_CHANGE_TO_REPORT} or more mentions at a check-in.`;
   }
   if (state === 'CHECKED' && outcome?.result === 'IMPROVED') {
-    return `Headway is checking whether ${label} keeps coming up less often as new feedback arrives, and will flag it if it starts rising again.`;
+    return `Headway is checking whether ${label} keeps coming up less often as new feedback arrives, and will flag it if it comes up more again.`;
   }
   if (state === 'IN_PROGRESS') {
-    return `Headway is waiting for feedback that arrives after your change, to compare how often ${label} comes up.`;
+    return `Headway is waiting for the feedback that comes in after the change, so it can compare how often ${label} comes up.`;
   }
-  return `Headway is checking whether ${label} comes up more or less at your next check-in, and will flag a move of ${MIN_CHANGE_TO_REPORT} or more mentions.`;
+  return `Headway is checking whether ${label} comes up more or less at your next check-in, and will flag it if the count moves by ${MIN_CHANGE_TO_REPORT} or more mentions.`;
 }
 
 /**
@@ -915,23 +923,28 @@ export function toSignal(insight: Insight, ctx: ThemeContext): PortalSignal {
   );
   const answered = answerFor(ctx.context, insight.themeKey);
 
+  // This line sits in the owner's own row, so it opens with "You" even when
+  // the owner recorded no words of their own. It never guesses WHAT changed —
+  // Headway does not know.
   const decision = progress?.action.description.trim() ?? '';
   const actionLine = !progress
     ? null
     : state === 'DECLINED'
-      ? `You decided not to pursue this.`
+      ? `You decided not to make this change.`
       : state === 'SUGGESTED'
-        ? `Headway has suggested a change; it is waiting on your decision.`
+        ? `You have not decided on Headway's suggestion yet.`
         : decision
           ? `You ${state === 'CHECKED' || progress.action.status === 'DONE' ? 'changed' : 'agreed to change'}: ${decision}`
-          : `A change is ${state === 'CHECKED' ? 'checked' : 'in progress'}.`;
+          : state === 'CHECKED'
+            ? `You made a change here.`
+            : `You agreed to a change here.`;
 
   return {
     themeKey: insight.themeKey,
     themeLabel: insight.themeLabel,
     kind: insight.sentiment,
 
-    fact: `${count} of the ${pieces(outOf)} we have read mention it.`,
+    fact: `${count} of the ${pieces(outOf)} Headway has read mention it.`,
     evidenceCount: count,
     evidenceTotal: outOf,
     share: shareText(count, outOf),
@@ -980,7 +993,7 @@ export function toSignal(insight: Insight, ctx: ThemeContext): PortalSignal {
             themeLabel: insight.themeLabel,
             question: ask.question,
             options: ask.options,
-            why: `${comments(count)} mention ${lower(insight.themeLabel)}. Headway cannot tell from the feedback alone which of these fits best, and it shapes what to try first.`,
+            why: `${comments(count)} mention ${lower(insight.themeLabel)}. Headway cannot tell from the feedback alone which of these fits. Your answer decides what to try first.`,
           }
         : null,
   };
@@ -1009,13 +1022,13 @@ export function summaryFor(
       summary:
         arrived > 0
           ? `${pieces(arrived)} ${arrived === 1 ? 'has' : 'have'} arrived and Headway is reading ${arrived === 1 ? 'it' : 'them'} now.`
-          : 'We have not collected any feedback yet, so there is nothing to tell you about your customers.',
+          : 'No feedback has come in yet. Once customers leave feedback through your QR code, Headway will read it and say what matters.',
     };
   }
   if (!intel.evidence.enough) {
     return {
       mood: 'TOO_EARLY',
-      summary: `It is still early days — we have read ${pieces(intel.evidence.analysed)}, enough to start looking but not enough to be sure of anything.`,
+      summary: `It is still early days — Headway has read ${pieces(intel.evidence.analysed)}, enough to start looking but not enough to be sure of anything.`,
     };
   }
 
@@ -1024,7 +1037,7 @@ export function summaryFor(
     .sort((a, b) => b.evidence.count - a.evidence.count)
     .slice(0, 2);
   const praiseClause = growing.length
-    ? `Customers are increasingly praising your ${joinNames(growing.map((i) => lower(i.themeLabel)))}.`
+    ? `Customers are praising your ${joinNames(growing.map((i) => lower(i.themeLabel)))} more than before.`
     : keep
       ? keep.recurring
         ? `Customers keep praising your ${lower(keep.insight.themeLabel)}.`
@@ -1038,9 +1051,9 @@ export function summaryFor(
     const still = first.recurring || first.outcome !== null ? 'still ' : '';
     const tail =
       first.outcome?.result === 'IMPROVED'
-        ? ', although it has come up less in the feedback after your change'
+        ? ', although it has come up less in the feedback after the change'
         : first.outcome?.result === 'WORSENED'
-          ? ', and it has come up more in the feedback after your change'
+          ? ', and it has come up more in the feedback after the change'
           : move === 'WORSENING'
             ? ', and it came up more at your latest check-in'
             : move === 'IMPROVING'
@@ -1067,7 +1080,7 @@ export function summaryFor(
   }
   return {
     mood: 'GOOD',
-    summary: 'Nothing is standing out as a problem in what your customers are telling you.',
+    summary: 'Nothing in your feedback is standing out as a problem.',
   };
 }
 
@@ -1096,7 +1109,7 @@ export function buildPortalView(input: PortalInput): PortalView {
     : strongest.movement.state === 'IMPROVING'
       ? 'Chosen because customers are mentioning it more than before, not only because it is mentioned often.'
       : strongest.evidence.count < biggestOther
-        ? 'Not your most-mentioned strength, but the one carrying the most weight right now.'
+        ? 'Not your most-mentioned strength, but the one that matters most right now.'
         : null;
   // "Praised most" is reserved for the top two strengths by count.
   const byCount = [...intel.loved]
@@ -1176,25 +1189,27 @@ export function buildPortalView(input: PortalInput): PortalView {
       mentions.length === 0 && rated.length === 0
         ? 'Once Headway has read some feedback, what customers mention appears here.'
         : mentions.some((m) => m.pattern)
-          ? `Marked ones are patterns — raised by ${MIN_MENTIONS_TO_NAME} or more customers. The rest are mentions Headway is keeping an eye on, not conclusions.`
-          : `So far these are single mentions. Headway calls something a pattern once ${MIN_MENTIONS_TO_NAME} customers have raised it, and says nothing about direction until there is history to compare.`,
+          ? `The marked ones are patterns — raised ${MIN_MENTIONS_TO_NAME} or more times. The rest are mentions Headway is watching, not conclusions.`
+          : `Nothing here has been raised ${MIN_MENTIONS_TO_NAME} times yet, so Headway is not calling any of it a pattern. It cannot say whether anything is coming up more or less until there are two check-ins to compare.`,
   };
 
   // ---- Facts, each with its own scope ---------------------------------------
   const facts: PortalFact[] = [
     {
       label: 'Overall direction',
+      // The portal's one set of direction words. focus.tsx colours this pill
+      // by matching these exact words, so the two change together.
       value:
         trend === 'IMPROVING'
-          ? 'Improving'
+          ? 'Getting better'
           : trend === 'WORSENING'
-            ? 'Needs attention'
+            ? 'Getting worse'
             : trend === 'STABLE'
-              ? 'Steady'
-              : 'Too early to say',
+              ? 'Holding steady'
+              : 'Not enough to say',
       scope:
         trend === 'INSUFFICIENT_DATA'
-          ? 'We need two check-ins before we can compare'
+          ? 'Headway needs two check-ins before it can compare'
           : 'Compared with your previous check-in',
     },
   ];
@@ -1205,8 +1220,8 @@ export function buildPortalView(input: PortalInput): PortalView {
       value: observed.rating.toFixed(1),
       scope:
         observed.reviewCount !== null
-          ? `All ${observed.reviewCount} public reviews, not just the feedback we have read`
-          : 'Your public listing, not the feedback we have read',
+          ? `All ${observed.reviewCount} public reviews, not just the feedback Headway has read`
+          : 'Your public listing, not the feedback Headway has read',
     });
   }
 
@@ -1223,7 +1238,7 @@ export function buildPortalView(input: PortalInput): PortalView {
     work.push(
       patterns > 0
         ? `Grouped them into ${patterns} ${patterns === 1 ? 'thing' : 'things'} customers keep raising${quiet > 0 ? `, and set aside ${quiet} ${quiet === 1 ? 'topic' : 'topics'} mentioned only once or twice` : ''}.`
-        : `Found nothing yet that ${MIN_MENTIONS_TO_NAME} or more customers have raised.`,
+        : `Found nothing yet that has been raised ${MIN_MENTIONS_TO_NAME} or more times.`,
     );
   }
   if (intel.window.available && intel.window.previousCapturedAt && intel.window.currentCapturedAt) {
@@ -1232,7 +1247,7 @@ export function buildPortalView(input: PortalInput): PortalView {
       `Compared your check-ins of ${formatDate(intel.window.previousCapturedAt)} and ${formatDate(intel.window.currentCapturedAt)}.`,
     );
   } else if (presence.checkins === 1) {
-    work.push('Recorded your first check-in. The next one lets us show what changed.');
+    work.push('Recorded your first check-in. The next one lets Headway show what changed.');
   }
   const measured = input.actions.filter((p) => p.action.measurement).length;
   const remembered = input.actions.length - measured;
@@ -1251,15 +1266,21 @@ export function buildPortalView(input: PortalInput): PortalView {
       ? `${quiet} other ${quiet === 1 ? 'topic was' : 'topics were'} mentioned once or twice — not enough to call a pattern.`
       : null;
   const earlyNames = early.map((s) => lower(s.themeLabel));
-  const lead = watch.length > 0 ? 'Nothing else needs your attention first.' : 'Nothing else needs your attention.';
+  // With a watch list on screen, the bare "nothing else needs your attention"
+  // would be false — the watch items are right there. So the lead only claims
+  // that nothing comes ahead of them.
+  const lead =
+    watch.length > 0
+      ? 'Nothing else comes ahead of what is listed above.'
+      : 'Nothing else needs your attention.';
   const noAction =
     early.length > 0 || quiet > 0
-      ? `${lead} ${earlyNames.length ? `${joinNames(earlyNames).replace(/^./, (c) => c.toUpperCase())} ${earlyNames.length === 1 ? 'has' : 'have'} come up, but not often enough to act on yet. ` : ''}${quiet > 0 ? `${quiet} other ${quiet === 1 ? 'topic was' : 'topics were'} mentioned once or twice. ` : ''}Headway is not recommending action on any of these until more customers raise them.`
+      ? `${lead} ${earlyNames.length ? `${joinNames(earlyNames).replace(/^./, (c) => c.toUpperCase())} ${earlyNames.length === 1 ? 'has' : 'have'} come up, but not often enough to act on yet. ` : ''}${quiet > 0 ? `${quiet} other ${quiet === 1 ? 'topic was' : 'topics were'} mentioned once or twice. ` : ''}Headway is not suggesting a change for any of these until they come up more often.`
       : intel.evidence.analysed > 0
         ? watch.length > 0
-          ? `${lead} Everything else customers raised is in the watch list above, and none of it needs action yet.`
+          ? `${lead} Everything else customers raised is in the watch list above, and none of it needs a change yet.`
           : 'Nothing else is coming up often enough to act on.'
-        : 'Nothing to report yet.';
+        : 'There is nothing to set aside yet.';
 
   // ---- The improvement loop, told end to end ---------------------------------
   const windowAfter = (doneAt: Date | null): boolean =>
@@ -1302,9 +1323,11 @@ export function buildPortalView(input: PortalInput): PortalView {
       measuredAt: a.measuredAt,
       steps: [
         { label: 'Suggested', done: true },
-        { label: stage === 'NOT_DOING' ? 'Not pursued' : 'Agreed', done: a.decidedAt !== null },
+        { label: stage === 'NOT_DOING' ? 'Not doing' : 'Agreed', done: a.decidedAt !== null },
         { label: 'Change made', done: a.doneAt !== null && stage !== 'NOT_DOING' },
-        { label: 'Compared', done: measuredNow },
+        // One stage word, "Checked"; "compared" stays as the verb inside the
+        // stage meaning, never as a competing name for the same step.
+        { label: 'Checked', done: measuredNow },
       ],
       outcome,
       learning: a.learningNote.trim() || null,
@@ -1328,8 +1351,8 @@ export function buildPortalView(input: PortalInput): PortalView {
                   : m.result === 'WORSENED'
                     ? 'More often'
                     : m.result === 'NO_CLEAR_CHANGE'
-                      ? 'No clear change'
-                      : 'Not enough to tell',
+                      ? 'No clear difference'
+                      : 'Not enough feedback',
             }
           : null,
       // Only check-ins recorded after the change count as "since". Earlier
@@ -1355,21 +1378,23 @@ export function buildPortalView(input: PortalInput): PortalView {
         ? 'warn'
         : 'neutral';
   const stateOf = (s: PortalSignal): string => {
-    if (s.returning) return 'coming back';
+    if (s.returning) return 'coming up again';
     if (s.actionState === 'IN_PROGRESS') return 'change in progress';
-    if (s.outcome?.result === 'IMPROVED') return 'less often after your change';
-    if (s.outcome?.result === 'WORSENED') return 'more often after your change';
+    if (s.outcome?.result === 'IMPROVED') return 'less often after the change';
+    if (s.outcome?.result === 'WORSENED') return 'more often after the change';
     if (s.movementDirection === null) {
       return intel.window.available ? 'too few to compare yet' : 'one check-in so far';
     }
+    // Mention counts, in the portal's three words: more often, less often,
+    // about the same. The verb says which side of the ledger it is.
     if (s.kind === 'ISSUE') {
-      if (s.movementDirection === 'IMPROVING') return 'easing';
-      if (s.movementDirection === 'WORSENING') return 'getting worse';
-      return 'steady';
+      if (s.movementDirection === 'IMPROVING') return 'raised less often';
+      if (s.movementDirection === 'WORSENING') return 'raised more often';
+      return 'about the same';
     }
-    if (s.movementDirection === 'IMPROVING') return 'strengthening';
-    if (s.movementDirection === 'WORSENING') return 'fading';
-    return 'steady';
+    if (s.movementDirection === 'IMPROVING') return 'praised more often';
+    if (s.movementDirection === 'WORSENING') return 'praised less often';
+    return 'about the same';
   };
   // The watch-this themes already carry their own flag line in their section;
   // listing them again here would say the same sentence twice on one page.
@@ -1387,7 +1412,7 @@ export function buildPortalView(input: PortalInput): PortalView {
       watching.push({
         themeKey: a.themeKey,
         label: a.about,
-        state: 'awaiting feedback after your change',
+        state: 'not yet checked',
         tone: 'neutral',
         next: `Headway is waiting for enough new feedback to compare — ${a.awaiting.have} of ${a.awaiting.need} so far.`,
       });
@@ -1397,12 +1422,12 @@ export function buildPortalView(input: PortalInput): PortalView {
     watching.push({
       themeKey: null,
       label: joinNames(early.map((s) => s.themeLabel)),
-      state: 'not enough evidence yet',
+      state: 'waiting for more feedback',
       tone: 'neutral',
       next:
         early.length === 1 && early[0]
           ? early[0].watchLine
-          : `Headway is watching whether more customers raise these before it says anything about them.`,
+          : `Headway is watching whether these come up more often before it says anything about them.`,
     });
   }
 
@@ -1449,11 +1474,11 @@ export function buildPortalView(input: PortalInput): PortalView {
     basis:
       intel.evidence.analysed === 0
         ? intel.evidence.unread > 0
-          ? 'Usually read within a minute of arriving. Reload to see what Headway found.'
+          ? 'Feedback is usually read within a minute of arriving. Refresh this page to see what Headway found.'
           : 'No feedback collected yet.'
         : intel.evidence.unread > 0
-          ? `Based on ${pieces(intel.evidence.analysed)} we have read; ${intel.evidence.unread} more ${intel.evidence.unread === 1 ? 'is' : 'are'} being read now.`
-          : `Based on ${pieces(intel.evidence.analysed)} we have read.`,
+          ? `Based on ${pieces(intel.evidence.analysed)} Headway has read. ${intel.evidence.unread} more ${intel.evidence.unread === 1 ? 'is' : 'are'} being read now.`
+          : `Based on ${pieces(intel.evidence.analysed)} Headway has read.`,
     facts,
     soFar,
     work,
@@ -1472,7 +1497,7 @@ export function buildPortalView(input: PortalInput): PortalView {
       ? intel.window.previousCapturedAt && intel.window.currentCapturedAt
         ? `Comparing your check-ins of ${formatDate(intel.window.previousCapturedAt)} (${intel.window.previousFeedbackCount ?? 0} pieces of feedback) and ${formatDate(intel.window.currentCapturedAt)} (${intel.window.currentFeedbackCount ?? 0}).`
         : intel.window.note
-      : 'We need two check-ins before we can show you what changed.',
+      : 'Headway needs two check-ins before it can show you what changed.',
     steady,
     notComparable,
 

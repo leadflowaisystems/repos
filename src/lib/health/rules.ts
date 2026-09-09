@@ -99,21 +99,28 @@ export type TrendDirection = 'IMPROVING' | 'STABLE' | 'DECLINING' | 'NONE';
 export const STATUS_LABELS: Record<HealthStatus, string> = {
   HEALTHY: 'Healthy',
   WATCH: 'Watch',
-  ATTENTION: 'Attention',
-  INSUFFICIENT_DATA: 'Insufficient data',
+  ATTENTION: 'Needs attention',
+  /** Not a verdict: Headway is refusing to give one until it has enough. */
+  INSUFFICIENT_DATA: 'Not enough yet',
 };
 
 export const STATUS_DESCRIPTIONS: Record<HealthStatus, string> = {
-  HEALTHY: 'Nothing in the stored data is currently flagging.',
+  /**
+   * Naming the two inputs is what keeps this honest: healthy means nothing
+   * fired in what Headway holds, not that the business is fine. Kept as a
+   * complete sentence because health.ts joins another one onto the end of it.
+   */
+  HEALTHY: 'Nothing in the feedback or the listing figures is a problem right now.',
   WATCH: 'Something is moving in the wrong direction but is not urgent.',
-  ATTENTION: 'At least one signal needs acting on this month.',
+  ATTENTION: 'At least one thing needs acting on this month.',
   INSUFFICIENT_DATA:
-    'There is not enough stored data to say anything honest about this client yet.',
+    'There is not enough here yet to say anything honest about this client.',
 };
 
 export const TREND_LABELS: Record<TrendDirection, string> = {
   IMPROVING: 'Improving',
   STABLE: 'Stable',
   DECLINING: 'Declining',
-  NONE: 'No trend available',
+  /** "Yet" carries that check-ins are missing, not that results are flat. */
+  NONE: 'No trend yet',
 };

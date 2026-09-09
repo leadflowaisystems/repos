@@ -12,12 +12,12 @@ import { ShareBar } from '@/components/portal/portal-ui';
  * Customers used to read as a written analysis: every theme told in four
  * labelled layers, one under the other, strengths then issues then movement
  * then recurrence. All true, all the same size. The board shows the same
- * themes by importance instead — NEEDS YOU, WATCHING, PROTECT, NOT YET CLEAR —
- * as cards an owner scans in a few seconds, and each card opens in place into
- * exactly the reading the old page laid out: what customers are saying (in
- * their words), what they tapped on the feedback page, what Headway sees,
- * what to do, why, what Headway will check next, and where the number came
- * from. Nobody has to leave the page to understand one signal.
+ * themes by importance instead — NEEDS YOU, WATCHING, GOING WELL, NOT YET
+ * CLEAR — as cards an owner scans in a few seconds, and each card opens in
+ * place into exactly the reading the old page laid out: what customers are
+ * saying (in their words), what they tapped on the feedback page, what
+ * Headway sees, what to do, why, what Headway will check next, and what
+ * Headway based it on. Nobody has to leave the page to understand one signal.
  */
 
 export type SignalGroupKey = 'NEEDS_YOU' | 'WATCHING' | 'PROTECT' | 'EARLY';
@@ -36,17 +36,23 @@ const GROUP_CHIP: Record<SignalGroupKey, string> = {
   EARLY: 'bg-ink-100 text-ink-600',
 };
 
+/**
+ * One word for one pile, portal-wide: Home, Customers and this board all call
+ * the good-news group "Going well". "Protect" is an order; "Going well" says
+ * what the pile actually is, which is what a heading is for.
+ */
 const GROUP_WORD: Record<SignalGroupKey, string> = {
   NEEDS_YOU: 'Needs you',
   WATCHING: 'Watching',
-  PROTECT: 'Protect',
+  PROTECT: 'Going well',
   EARLY: 'Not yet clear',
 };
 
+/** Two labels only, and both name what tapping does — never a task to do. */
 const GROUP_CTA: Record<SignalGroupKey, string> = {
   NEEDS_YOU: 'See why',
-  WATCHING: 'Watch this',
-  PROTECT: 'Protect this',
+  WATCHING: 'See why',
+  PROTECT: 'See why',
   EARLY: 'See the mentions',
 };
 
@@ -59,37 +65,39 @@ function Trend({ signal }: { signal: PortalSignal }) {
   const d = signal.movementDirection;
   if (!d) return null;
   const issue = signal.kind === 'ISSUE';
-  if (d === 'STABLE') return <span className="text-[13px] text-ink-500">→ steady</span>;
+  if (d === 'STABLE') return <span className="text-[13px] text-ink-500">→ about the same</span>;
   const rose = issue ? d === 'WORSENING' : d === 'IMPROVING';
   const good = d === 'IMPROVING';
-  const word = issue
-    ? rose
-      ? 'increasing'
-      : 'easing'
-    : rose
-      ? 'growing'
-      : 'fading';
+  // What moved is how often customers mentioned it, not whether the thing
+  // itself got better or worse — so the words only ever say how often.
+  const word = rose ? 'more often' : 'less often';
   return (
     <span className={clsx('text-[13px] font-medium', good ? 'text-good-700' : 'text-bad-700')}>
       <span aria-hidden>{rose ? '↑' : '↓'}</span>
-      <span className="sr-only">{rose ? 'up,' : 'down,'}</span> {word}
+      <span className="sr-only">Mentioned</span> {word}
     </span>
   );
 }
 
+/**
+ * The four readings, worded exactly as the rest of the portal words them.
+ * "after the change" is the whole guarantee: Headway says what came next, not
+ * what the change caused, and the last reading says the feedback is missing —
+ * never that the change failed.
+ */
 function outcomeWord(signal: PortalSignal): { text: string; tone: string } | null {
   const r = signal.outcome?.result;
   if (!r) return null;
-  if (r === 'IMPROVED') return { text: 'less often after your change', tone: 'text-good-700' };
-  if (r === 'WORSENED') return { text: 'more often after your change', tone: 'text-bad-700' };
-  if (r === 'NO_CLEAR_CHANGE') return { text: 'no clear change after your change', tone: 'text-ink-600' };
-  return { text: 'too early to compare your change', tone: 'text-ink-600' };
+  if (r === 'IMPROVED') return { text: 'Mentioned less often after the change', tone: 'text-good-700' };
+  if (r === 'WORSENED') return { text: 'Mentioned more often after the change', tone: 'text-bad-700' };
+  if (r === 'NO_CLEAR_CHANGE') return { text: 'No clear difference after the change', tone: 'text-ink-600' };
+  return { text: 'Not enough feedback after the change', tone: 'text-ink-600' };
 }
 
 /**
  * What customers tapped on the feedback page, added up. The ratings are the
  * majority of what the card collects and, until now, the only place they
- * appeared was one row at a time on Reviews.
+ * appeared was one row at a time in the feedback list.
  */
 function Tapped({ tapped }: { tapped: NonNullable<PortalSignal['tapped']> }) {
   return (
@@ -184,10 +192,10 @@ export function SignalCard({
         <Row label="What customers are saying">
           <Quotes
             quotes={quotes}
-            seeAll={{ label: `See all ${s.evidenceCount}`, href: reviews }}
+            seeAll={{ label: 'See the mentions', href: reviews }}
             empty={
               issue
-                ? 'Nobody has written about this yet; the ratings on your feedback page carry it.'
+                ? 'Nobody has written about this yet. It comes from what customers tapped on your feedback page.'
                 : 'Nobody has written about this yet.'
             }
           />
@@ -216,7 +224,7 @@ export function SignalCard({
                 href={`${basePath}/improvements`}
                 className="mt-1 inline-flex min-h-11 items-center text-[13px] font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
               >
-                What the feedback did afterwards →
+                See what happened after the change →
               </Link>
             ) : null}
           </Row>
@@ -229,7 +237,7 @@ export function SignalCard({
         </Row>
         <Row label="Why">{why}</Row>
         <Row label="Headway will check next">{s.watchLine}</Row>
-        <Row label="Source">
+        <Row label="What Headway based this on">
           <span className="tabular-nums">
             {s.evidenceCount} of the {pieces(s.evidenceTotal)} Headway has read
           </span>

@@ -46,7 +46,7 @@ export async function inviteMemberAction(
   // The invitation exists either way. Sending is reported separately, and only
   // "sent" when the email provider actually accepted the message — an owner who
   // is told an email went out and then waits for a reply that never comes is
-  // worse off than one who was told to send the link themselves.
+  // worse off than one who is handed the link to send themselves.
   const delivery = await deliverInvitation({
     email: result.data.email,
     token: result.data.token,
@@ -64,7 +64,10 @@ export async function inviteMemberAction(
     ok: true,
     message: delivery.sent
       ? `Invitation email sent to ${result.data.email}.`
-      : `Invitation created for ${result.data.email}, but no email was sent. ${delivery.reason}`,
+      : // Two facts, one per sentence, then the reason. What to do about it is
+        // the link below this banner, which names itself — saying it here as
+        // well would be the third time on one screen.
+        `Invitation created for ${result.data.email}. The email did not go out. ${delivery.reason}`,
     errors: {},
     data: { link, email: result.data.email, sent: delivery.sent ? 'yes' : 'no' },
   };
@@ -102,7 +105,7 @@ export async function setMembershipAction(
   if (!result.ok) return failure(result.message, result.errors);
 
   revalidateTeam(clientId);
-  return success('Updated.');
+  return success('Saved.');
 }
 
 export async function acceptInviteAction(
@@ -110,7 +113,7 @@ export async function acceptInviteAction(
   form: FormData,
 ): Promise<ActionState> {
   const actor = await currentActor(prisma);
-  if (!actor) return failure('Please sign in to accept this invitation.');
+  if (!actor) return failure('Sign in to accept this invitation.');
 
   const result = await acceptInviteViaResolver(prisma, str(form, 'token'), actor.userId);
   if (!result.ok) return failure(result.message, result.errors);

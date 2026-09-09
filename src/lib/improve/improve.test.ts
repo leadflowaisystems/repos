@@ -248,9 +248,9 @@ describe('an action freezes what Headway said at the time', () => {
   });
 
   it('never prints a count without its denominator', () => {
-    expect(evidenceLine(9, 50)).toBe('9 of 50 reviews (18%)');
-    expect(evidenceLine(0, 12)).toBe('0 of 12 reviews (0%)');
-    expect(evidenceLine(1, 1)).toBe('1 of 1 review (100%)');
+    expect(evidenceLine(9, 50)).toBe('9 of 50 pieces of feedback (18%)');
+    expect(evidenceLine(0, 12)).toBe('0 of 12 pieces of feedback (0%)');
+    expect(evidenceLine(1, 1)).toBe('1 of 1 piece of feedback (100%)');
     expect(evidenceLine(3, 0)).toBe('No feedback read for this period');
   });
 
@@ -372,8 +372,8 @@ describe('measurement compares shares, never bare counts', () => {
     const result = measure(batch('after', '2026-05-01T00:00:00.000Z', 30, 2));
 
     expect(result.result).toBe('IMPROVED');
-    expect(result.before.line).toBe('9 of 50 reviews (18%)');
-    expect(result.after.line).toBe('2 of 30 reviews (7%)');
+    expect(result.before.line).toBe('9 of 50 pieces of feedback (18%)');
+    expect(result.after.line).toBe('2 of 30 pieces of feedback (7%)');
     expect(result.shareDelta).toBeLessThan(0);
   });
 
@@ -412,8 +412,8 @@ describe('measurement compares shares, never bare counts', () => {
     const result = measure(batch('after', '2026-05-01T00:00:00.000Z', 10, 5));
     expect(result.after.count).toBeLessThan(result.before.count);
     expect(result.result).toBe('WORSENED');
-    expect(result.why.join(' ')).toContain('9 of 50 reviews (18%)');
-    expect(result.why.join(' ')).toContain('5 of 10 reviews (50%)');
+    expect(result.why.join(' ')).toContain('9 of 50 pieces of feedback (18%)');
+    expect(result.why.join(' ')).toContain('5 of 10 pieces of feedback (50%)');
   });
 
   it('only counts feedback from after the change', () => {
@@ -493,11 +493,11 @@ describe('measurement refuses to guess', () => {
     expect(result.result).toBe('INSUFFICIENT_DATA');
   });
 
-  it('does not call a theme vanishing from four reviews an improvement', () => {
+  it('does not call a theme vanishing from four pieces of feedback an improvement', () => {
     // The most flattering reading, and the least justified.
     const result = measure(batch('after', '2026-05-01T00:00:00.000Z', 4, 0));
     expect(result.result).not.toBe('IMPROVED');
-    expect(result.why.join(' ')).toMatch(/too little feedback to read as an improvement/i);
+    expect(result.why.join(' ')).toMatch(/too little feedback to say it is coming up less/i);
     expect(result.why.join(' ')).toMatch(/nobody has mentioned it yet/i);
   });
 
@@ -506,7 +506,9 @@ describe('measurement refuses to guess', () => {
       baseline: baseline({ count: 3, total: 6 }),
     });
     expect(result.result).toBe('INSUFFICIENT_DATA');
-    expect(result.why.join(' ')).toMatch(/baseline rests on 6 read reviews/i);
+    expect(result.why.join(' ')).toMatch(
+      /only 6 pieces of feedback had been read before the change/i,
+    );
   });
 
   it('uses the health engine floors rather than inventing its own', () => {
@@ -548,9 +550,9 @@ describe('the language never claims the change caused anything', () => {
   it('names the theme and both periods in every comparison', () => {
     const result = results[0]!;
     const prose = result.why.join(' ');
-    expect(prose).toContain('Long waiting time');
-    expect(prose).toContain('when the action was agreed');
-    expect(prose).toContain('since the change on 1 Apr 2026');
+    expect(prose).toContain('customers mentioned long waiting time');
+    expect(prose).toContain('everything read up to 1 Mar 2026');
+    expect(prose).toContain('Since the change on 1 Apr 2026');
   });
 
   it('states no number it cannot show the evidence for', () => {

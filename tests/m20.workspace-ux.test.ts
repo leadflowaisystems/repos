@@ -72,7 +72,7 @@ describe('every piece of feedback', () => {
     const understood = row.slice(row.indexOf('Headway understood'));
     expect(understood).toContain("{item.state === 'ANALYSED' ? (");
     expect(understood).toContain("item.themes.join(' · ')");
-    expect(understood).toContain('Nothing here matched a theme Headway tracks.');
+    expect(understood).toContain('Nothing here matched a topic Headway tracks.');
     expect(understood).toContain('in tone');
     expect(understood).toContain('Sorted as');
   });
@@ -101,7 +101,11 @@ describe('the reviews page', () => {
   });
 
   it('is hopeful before the first customer, never empty', () => {
-    expect(page).toContain('Your first customer signals will appear here. Headway is ready.');
+    // Empty says what happens next, and how it starts, rather than stopping at
+    // the absence.
+    expect(page).toContain(
+      'Nothing has come in yet. Feedback starts arriving once customers scan your QR code.',
+    );
     expect(page).not.toContain('No feedback has been collected yet');
     expect(page).not.toMatch(/No data/i);
   });
@@ -110,7 +114,9 @@ describe('the reviews page', () => {
     expect(page).toContain('<StatusStrip');
     expect(page).toContain("{ label: 'read by Headway', value: view.analysed }");
     expect(page).toContain("{ label: 'being read now', value: inHand, tone: 'warn' as const }");
-    expect(page).toContain('Feedback has arrived and Headway is reading it now');
+    expect(page).toContain(
+      'Feedback has arrived. Headway is reading it now — usually under a minute. Reload to see what it found.',
+    );
   });
 
   it('lays the filters out as a grid, never a sideways scroll', () => {
@@ -139,13 +145,17 @@ describe('the workspace navigation', () => {
     expect(labels).toEqual([
       'Home',
       'Customers',
-      'Reviews',
+      'Feedback',
       'Improvements',
       'Check-in',
       'Team',
       'Print kit',
       'Account',
     ]);
+    // The door reads "Feedback" because what it lists is private customer
+    // feedback, which this product promises is never posted publicly. The slug
+    // stays `reviews`: a URL is not copy, and old links must keep working.
+    expect(slugs).toContain('reviews');
   });
 
   it('keeps the extra doors out of the read-only shared link', () => {
@@ -238,9 +248,14 @@ describe('home, as a command centre', () => {
   it("shows the first customers' signals before anything is a pattern, and never a blank", () => {
     expect(home).toContain('<SoFar soFar={view.soFar} basePath={basePath} />');
     expect(home).toContain('eyebrow="What customers are mentioning so far"');
-    expect(home).toContain('note="Current signals, not conclusions"');
+    // Counted, and said to be counts — never dressed up as a conclusion.
+    expect(home).toContain('note="Counts, not conclusions"');
     expect(focus).toContain('{focus.cta.label}');
-    expect(home).toContain('Your first customer signals will appear here. Headway is ready');
+    // Before the first piece of feedback the page still says what will happen
+    // and where it comes from, rather than stopping at the absence.
+    expect(home).toMatch(
+      /Nothing has come in yet\. Once customers leave feedback through your QR code, this\s+page will say what matters and whether anything needs you\./,
+    );
     expect(home).not.toMatch(/No data/i);
   });
 
@@ -293,7 +308,7 @@ describe('one word for one idea', () => {
 
   it('reads the improvement loop as The problem · You changed · Headway checked again', () => {
     expect(story).toContain('label="The problem"');
-    expect(story).toContain("declined ? 'Not pursued' : 'You changed'");
+    expect(story).toContain("declined ? 'Not doing' : 'You changed'");
     expect(story).toContain('label="Headway checked again"');
     expect(disclose).toContain("label: 'Before'");
     expect(disclose).toContain("label: 'After'");

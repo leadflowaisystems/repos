@@ -317,10 +317,15 @@ describe('colour carries meaning, and only its own meaning', () => {
 
   it('never leaves colour as the only carrier of meaning', () => {
     // Every arrow on a signal card is aria-hidden and sits beside a word; the
-    // direction is also announced for a reader who cannot see the glyph.
+    // direction is also announced for a reader who cannot see the glyph. The
+    // words now say how often a theme was mentioned rather than up and down,
+    // so the sr-only run-in carries "Mentioned" and the direction rides on
+    // "more often" / "less often" — still text, never the glyph or the colour.
     const board = read('src', 'components', 'workspace', 'signal-board.tsx');
     expect(board).toContain('<span className="sr-only">');
-    expect(board).toMatch(/sr-only">\{rose \? 'up,' : 'down,'\}/);
+    expect(board).toContain("<span aria-hidden>{rose ? '↑' : '↓'}</span>");
+    expect(board).toMatch(/sr-only">Mentioned<\/span> \{word\}/);
+    expect(board).toContain("const word = rose ? 'more often' : 'less often';");
   });
 });
 

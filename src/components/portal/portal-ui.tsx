@@ -28,10 +28,10 @@ import { formatDate } from '@/lib/format';
  * one tap away; the customer words one tap further. Four kinds of statement
  * are visibly different so an owner never mistakes one for another —
  *
- *   CUSTOMERS SAY     what the feedback shows
- *   WHAT IT MEANS     RepOS's reading of it
- *   REPOS RECOMMENDS  what to consider doing
- *   YOU TOLD US       what the owner said
+ *   CUSTOMERS SAY       what the feedback shows
+ *   WHAT IT MEANS       Headway's reading of it
+ *   HEADWAY RECOMMENDS  what to consider doing
+ *   YOU TOLD US         what the owner said
  *
  * Status colour is used only where direction genuinely matters. Rules and
  * spacing separate sections; cards are not nested in cards.
@@ -154,7 +154,7 @@ export function Limits({ limits, collapsed = false }: { limits: string[]; collap
     return (
       <details className="group mt-10 border-t border-ink-200 pt-4">
         <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-[11px] font-medium tracking-widest text-ink-500 uppercase hover:text-ink-900">
-          What we cannot tell you yet <span aria-hidden>›</span>
+          What Headway cannot tell you yet <span aria-hidden>›</span>
         </summary>
         {list}
       </details>
@@ -163,7 +163,7 @@ export function Limits({ limits, collapsed = false }: { limits: string[]; collap
   return (
     <section className="mt-12 border-t border-ink-200 pt-5">
       <h2 className="text-[11px] font-medium tracking-widest text-ink-500 uppercase">
-        What we cannot tell you yet
+        What Headway cannot tell you yet
       </h2>
       {list}
     </section>
@@ -247,7 +247,7 @@ export function Tag({ bucket }: { bucket: PortalBucket }) {
           ? 'Keep doing this'
           : bucket === 'WATCH'
             ? 'Watching'
-            : 'Not enough evidence'}
+            : 'Waiting for more feedback'}
     </span>
   );
 }
@@ -269,7 +269,12 @@ export function EvidenceLink({
       href={`${basePath}/reviews?theme=${encodeURIComponent(themeKey)}`}
       className="inline-flex min-h-11 items-center gap-1.5 group text-[13px] font-medium text-ink-700 transition-colors hover:text-ink-900 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:ring-offset-2 focus-visible:outline-none"
     >
-      {label ?? `Read the ${count} ${count === 1 ? 'comment' : 'comments'}`}
+      {label ??
+        (count === undefined
+          ? 'Read the comments'
+          : count === 1
+            ? 'Read the comment'
+            : `Read the ${count} comments`)}
       <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
         →
       </span>
@@ -326,21 +331,23 @@ export function ShareBar({ signal }: { signal: PortalSignal }) {
 function readingOf(outcome: PortalOutcome): { label: string; tone: string } {
   switch (outcome.result) {
     case 'IMPROVED':
-      return { label: 'Less often after the change', tone: 'text-good-700' };
+      return { label: 'Mentioned less often after the change', tone: 'text-good-700' };
     case 'WORSENED':
       // Red, not gold. A theme that came up MORE after a change is the
       // definition of something getting worse, and gold means Headway is
       // watching — a different thing entirely. This read as gold for exactly
       // as long as it took to re-check every use of the token.
-      return { label: 'More often after the change', tone: 'text-bad-700' };
+      return { label: 'Mentioned more often after the change', tone: 'text-bad-700' };
     case 'NO_CLEAR_CHANGE':
-      return { label: 'No clear change after the change', tone: 'text-ink-500' };
+      // "No clear difference", not "no difference": Headway failed to see one,
+      // which is not the same as having measured its absence.
+      return { label: 'No clear difference after the change', tone: 'text-ink-500' };
     default:
       return { label: 'Not enough feedback after the change', tone: 'text-ink-500' };
   }
 }
 
-/** "15% → 7% · less often after the change" in one line. The bars live on Improvements. */
+/** "15% → 7% · mentioned less often after the change" in one line. The bars live on Improvements. */
 function OutcomeLine({ outcome }: { outcome: PortalOutcome }) {
   const reading = readingOf(outcome);
   return (
@@ -436,7 +443,7 @@ export function ThemeStory({
           </Layer>
         ) : null}
 
-        {/* Everything the owner told RepOS about this theme — the decision,
+        {/* Everything the owner told Headway about this theme — the decision,
             the priority, the context — in one attributed row. Theirs, shown as
             theirs, never mixed into the reading above. */}
         {s.actionLine || s.ownerPriority || (depth === 'full' && s.ownerContext.length > 0) ? (
@@ -456,7 +463,7 @@ export function ThemeStory({
                   href={`${basePath}/improvements`}
                   className="inline-flex min-h-11 items-center text-[13px] font-medium text-ink-700 hover:text-ink-900"
                 >
-                  What the feedback did afterwards →
+                  See what happened after the change →
                 </Link>
               </span>
             ) : null}
@@ -568,7 +575,7 @@ export function ThemeRows({
 }
 
 // ---------------------------------------------------------------------------
-// The work RepOS did, the watch list, the one question
+// The work Headway did, the watch list, the one question
 // ---------------------------------------------------------------------------
 
 export function WorkList({ work }: { work: string[] }) {
@@ -618,7 +625,7 @@ export function WatchList({ items, basePath }: { items: PortalWatch[]; basePath:
   );
 }
 
-/** What the owner told RepOS, shown back to them. Their words, their label. */
+/** What the owner told Headway, shown back to them. Their words, their label. */
 export function Knows({ items, basePath }: { items: PortalKnown[]; basePath: string }) {
   return (
     <div>
@@ -632,7 +639,7 @@ export function Knows({ items, basePath }: { items: PortalKnown[]; basePath: str
                   href={`${basePath}/reviews?theme=${encodeURIComponent(k.themeKey)}`}
                   className="inline-flex min-h-11 items-center text-ink-700 hover:text-ink-900"
                 >
-                  the customer comments →
+                  Read the comments →
                 </Link>
               ) : (
                 formatDate(k.recordedAt)
@@ -664,7 +671,7 @@ export function Question({ q }: { q: PortalQuestion }) {
         ))}
       </ul>
       <p className="mt-2.5 text-[12px] leading-relaxed text-ink-500">
-        Tell your Headway contact which fits.
+        Tell your Headway contact which one fits.
       </p>
     </div>
   );
@@ -692,7 +699,7 @@ export function OutcomeRow({ action, basePath }: { action: PortalAction; basePat
           </span>
         ) : a.awaiting ? (
           <span className="text-[12px] text-ink-500 tabular-nums">
-            Waiting for feedback · {a.awaiting.have} of {a.awaiting.need}
+            Waiting for more feedback · {a.awaiting.have} of the {a.awaiting.need} needed
           </span>
         ) : null}
       </div>
@@ -749,7 +756,7 @@ export function SentimentBar({
   sentiments: Array<{ key: string; label: string; count: number }>;
 }) {
   const total = sentiments.reduce((s, x) => s + x.count, 0);
-  if (total === 0) return <Quiet>Nothing has been read yet.</Quiet>;
+  if (total === 0) return <Quiet>Nothing read yet.</Quiet>;
   const tone: Record<string, string> = {
     POSITIVE: 'bg-good-600',
     MIXED: 'bg-warn-600',
@@ -789,7 +796,7 @@ const SENTIMENT_DOT: Record<string, string> = {
 
 function Stars({ value }: { value: number }) {
   return (
-    <span className="font-medium text-warn-600" aria-label={`${value} out of 5`}>
+    <span className="font-medium text-warn-600" aria-label={`${value} out of 5 stars`}>
       {'★'.repeat(value)}
       <span className="text-ink-300" aria-hidden>
         {'☆'.repeat(5 - value)}
@@ -807,7 +814,7 @@ function Stars({ value }: { value: number }) {
  * is paraphrased, and a customer who wrote nothing is shown as having written
  * nothing.
  *
- * REPOS UNDERSTOOD is everything derived from that: the themes, the tone, how
+ * HEADWAY UNDERSTOOD is everything derived from that: the topics, the tone, how
  * it was sorted, and whether it needs an answer. Labelled as a reading, placed
  * beside the evidence rather than woven into it, so an owner can always check
  * the one against the other — and can never mistake "Slow service" for
@@ -895,7 +902,7 @@ export function ReviewRow({ item }: { item: ReviewItem }) {
               {item.themes.length > 0 ? (
                 <p className="text-ink-900">{item.themes.join(' · ')}</p>
               ) : (
-                <p className="text-ink-500">Nothing here matched a theme Headway tracks.</p>
+                <p className="text-ink-500">Nothing here matched a topic Headway tracks.</p>
               )}
               <p className="flex items-center gap-1.5">
                 <span
@@ -912,9 +919,9 @@ export function ReviewRow({ item }: { item: ReviewItem }) {
               {item.replyState === 'SUGGESTED' ? (
                 <p className="font-medium text-warn-700">Needs your answer · draft ready</p>
               ) : item.replyState === 'YOURS' ? (
-                <p className="font-medium text-warn-700">Needs your own reply</p>
+                <p className="font-medium text-warn-700">Needs your answer · no draft</p>
               ) : item.replyState === 'DRAFT' ? (
-                <p className="text-ink-500">Draft ready, optional</p>
+                <p className="text-ink-500">Answer optional · draft ready</p>
               ) : item.replyState === 'ANSWERED' ? (
                 <p className="text-good-700">Answered</p>
               ) : null}
@@ -1012,7 +1019,7 @@ export function PeriodSwitch({
     { slug: 'review', label: 'This month' },
   ] as const;
   return (
-    <nav aria-label="Period" className="mb-8 -mt-3 flex flex-wrap gap-1.5">
+    <nav aria-label="Time range" className="mb-8 -mt-3 flex flex-wrap gap-1.5">
       {options.map((o) => (
         <Link
           key={o.slug}
@@ -1062,11 +1069,11 @@ export function StatusStrip({
 }
 
 /**
- * CURRENT SIGNALS: what customers are mentioning so far, counted and marked.
+ * WHAT KEEPS COMING UP: what customers are mentioning so far, counted and marked.
  *
  * Every chip is one tap from the comments behind it. A chip with the mark
- * has cleared the evidence floor and is a pattern; the others are mentions
- * RepOS is keeping an eye on. The note underneath says exactly that, so a
+ * has cleared the mention floor and is a pattern; the others are mentions
+ * Headway is keeping an eye on. The note underneath says exactly that, so a
  * first week reads as a first week and never as a verdict.
  */
 export function SoFar({
@@ -1082,7 +1089,7 @@ export function SoFar({
   return (
     <div>
       <p className="text-[13px] leading-relaxed text-ink-600">
-        {soFar.read > 0 ? `Read ${pieces(soFar.read)}.` : 'Nothing read yet.'}
+        {soFar.read > 0 ? `Headway has read ${pieces(soFar.read)}.` : 'Nothing read yet.'}
         {soFar.waiting > 0
           ? ` ${soFar.waiting} more ${soFar.waiting === 1 ? 'is' : 'are'} being read now.`
           : ''}
@@ -1101,7 +1108,7 @@ export function SoFar({
                     : 'border-good-200 bg-good-50 text-good-700 hover:border-good-600',
                   m.pattern && 'font-semibold',
                 )}
-                aria-label={`${m.label}, mentioned by ${m.count} ${m.count === 1 ? 'customer' : 'customers'}${m.pattern ? ', a pattern' : ''}`}
+                aria-label={`${m.label}, ${m.count} ${m.count === 1 ? 'mention' : 'mentions'}${m.pattern ? '. Raised enough times to be a pattern.' : ''}`}
               >
                 {m.pattern ? <span aria-hidden>●</span> : null}
                 {m.label}

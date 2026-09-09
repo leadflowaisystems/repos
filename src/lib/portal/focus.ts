@@ -22,7 +22,7 @@ import { formatDate } from '@/lib/format';
  *   WHY          "Customers are not unhappy about the food. What they keep
  *                 raising is slow service."
  *   EVIDENCE     39% of feedback → 34 of 87, three customers in their words
- *                Worse after your change → 32% before, 47% after
+ *                More often after the change → 32% before, 47% after
  *                At both recent check-ins → raised at 2 of your last 2
  *   WHAT TO DO   "Check what else changed before undoing anything."
  *   CHECK NEXT   "Headway is checking whether slow service comes up more or
@@ -40,7 +40,7 @@ import { formatDate } from '@/lib/format';
 export type ProofPopulation = {
   before: { count: number; total: number; share: string; scope: string };
   after: { count: number; total: number; share: string; scope: string };
-  /** "More often after the change". */
+  /** "Mentioned more often after the change". */
   reading: string;
   tone: 'good' | 'bad' | 'neutral';
   /** The engine's own sentences, for "Why Headway says this". */
@@ -60,7 +60,7 @@ export type FocusProof = {
   tone: 'good' | 'bad' | 'neutral';
   /** For the share chip: three customers, in their words. */
   quotes: Quote[];
-  /** "See all 34" → the filtered evidence. */
+  /** "See all 34 mentions" → the filtered evidence. */
   seeAll: { label: string; href: string } | null;
   /** For the outcome chip: the two piles. */
   population: ProofPopulation | null;
@@ -125,11 +125,11 @@ function signalHref(basePath: string, themeKey: string): string {
 function outcomeReading(outcome: PortalOutcome): { reading: string; tone: 'good' | 'bad' | 'neutral' } {
   switch (outcome.result) {
     case 'IMPROVED':
-      return { reading: 'Less often after the change', tone: 'good' };
+      return { reading: 'Mentioned less often after the change', tone: 'good' };
     case 'WORSENED':
-      return { reading: 'More often after the change', tone: 'bad' };
+      return { reading: 'Mentioned more often after the change', tone: 'bad' };
     case 'NO_CLEAR_CHANGE':
-      return { reading: 'No clear change after the change', tone: 'neutral' };
+      return { reading: 'No clear difference after the change', tone: 'neutral' };
     default:
       return { reading: 'Not enough feedback after the change', tone: 'neutral' };
   }
@@ -165,11 +165,11 @@ function parseLine(line: string): { count: number; total: number } | null {
 function outcomeChip(outcome: PortalOutcome): { label: string; tone: 'good' | 'bad' | 'neutral' } {
   switch (outcome.result) {
     case 'IMPROVED':
-      return { label: 'Less often after your change', tone: 'good' };
+      return { label: 'Less often after the change', tone: 'good' };
     case 'WORSENED':
-      return { label: 'More often after your change', tone: 'bad' };
+      return { label: 'More often after the change', tone: 'bad' };
     case 'NO_CLEAR_CHANGE':
-      return { label: 'About the same after your change', tone: 'neutral' };
+      return { label: 'No clear difference after the change', tone: 'neutral' };
     default:
       return { label: 'Too early to compare', tone: 'neutral' };
   }
@@ -191,11 +191,11 @@ function movementChip(signal: PortalSignal): { label: string; tone: 'good' | 'ba
   const d = signal.movementDirection;
   if (!d) return null;
   const issue = signal.kind === 'ISSUE';
-  if (d === 'STABLE') return { label: 'Steady across your check-ins', tone: 'neutral' };
+  if (d === 'STABLE') return { label: 'Holding steady across your check-ins', tone: 'neutral' };
   const rose = issue ? d === 'WORSENING' : d === 'IMPROVING';
   const good = d === 'IMPROVING';
   return {
-    label: rose ? 'More at your latest check-in' : 'Less at your latest check-in',
+    label: rose ? 'More often at your latest check-in' : 'Less often at your latest check-in',
     tone: good ? 'good' : 'bad',
   };
 }
@@ -221,7 +221,7 @@ export function proofsFor(
     tone,
     quotes: quotesFor(evidence, signal.themeKey, { limit: 3 }),
     seeAll: {
-      label: `See all ${signal.evidenceCount}`,
+      label: `See all ${signal.evidenceCount} ${signal.evidenceCount === 1 ? 'mention' : 'mentions'}`,
       href: reviewsHref(basePath, signal.themeKey),
     },
     population: null,
@@ -278,8 +278,8 @@ export function proofsFor(
     if (rated && rated.rated > 0) {
       out.push({
         key: 'rated',
-        label: `Rated ${rated.average.toFixed(1)}/5 by ${rated.rated}`,
-        detail: `${rated.low} of the ${rated.rated} customers who rated ${spoken(rated.label)} on your feedback page put it at 3 or below.`,
+        label: `Rated ${rated.average.toFixed(1)}/5 by ${rated.rated} ${rated.rated === 1 ? 'customer' : 'customers'}`,
+        detail: `${rated.low} of the ${rated.rated} ${rated.rated === 1 ? 'customer' : 'customers'} who rated ${spoken(rated.label)} on your feedback page gave it 3 or below.`,
         tone: rated.low >= 3 ? 'bad' : 'neutral',
         quotes: [],
         seeAll: null,
@@ -307,7 +307,7 @@ function headlineFor(
       : 'No customer feedback yet.';
   }
   if (r.state === 'WAITING_FOR_EVIDENCE' && !top) {
-    return `Still early days — ${pieces(view.basedOn)} read.`;
+    return 'Too early to say what needs you.';
   }
   if (top) {
     if (top.themeLabel && top.state === 'DO_NOW') {
@@ -361,7 +361,7 @@ function synthesisFor(top: ResponsibilityItem | null, view: PortalView): string 
     return `Customers praise your ${spoken(keep.themeLabel)} most — ${keep.evidenceCount} of the ${pieces(keep.evidenceTotal)} read. ${eased.themeLabel} is still mentioned, but it has come up less often since your change.`;
   }
   if (keep && view.first) {
-    return `Customers praise your ${spoken(keep.themeLabel)} most — ${keep.evidenceCount} of the ${pieces(keep.evidenceTotal)} read. ${view.first.themeLabel} is still mentioned; Headway is watching it and will say if it needs you.`;
+    return `Customers praise your ${spoken(keep.themeLabel)} most — ${keep.evidenceCount} of the ${pieces(keep.evidenceTotal)} read. ${view.first.themeLabel} is still mentioned. Headway is watching it and will tell you if it needs you.`;
   }
   if (keep) {
     return `Customers praise your ${spoken(keep.themeLabel)} most — ${keep.evidenceCount} of the ${pieces(keep.evidenceTotal)} read. Nothing is coming up often enough to call a weakness.`;
@@ -394,7 +394,7 @@ function nextFor(top: ResponsibilityItem | null, view: PortalView): FocusNext | 
     }
     if (top.state === 'DO_NOW' && signal.returning) {
       return {
-        headline: 'Check whether the earlier conditions have returned before making another change.',
+        headline: 'Check whether the old problem is back before making another change.',
         detail: suggestion ? `The original suggestion: ${suggestion}` : null,
         why: [signal.brief],
         watching: signal.watchLine,
@@ -402,8 +402,8 @@ function nextFor(top: ResponsibilityItem | null, view: PortalView): FocusNext | 
     }
     if (top.state === 'DO_NOW' && signal.advice === 'HOLD') {
       return {
-        headline: 'Decide whether to act now or wait: it is coming up less on its own.',
-        detail: signal.suggestion ? `If it climbs again, start here: ${signal.suggestion}` : null,
+        headline: 'Decide whether to act now or wait. It is coming up less on its own.',
+        detail: signal.suggestion ? `If it comes up more often again, start here: ${signal.suggestion}` : null,
         why: [signal.brief, ...signal.why.slice(0, 1)],
         watching: signal.watchLine,
       };
@@ -437,7 +437,7 @@ function nextFor(top: ResponsibilityItem | null, view: PortalView): FocusNext | 
   const keep = view.keep;
   if (keep) {
     return {
-      headline: `Nothing to do. Keep doing what customers describe under ${spoken(keep.themeLabel)}.`,
+      headline: `Nothing to do. Keep doing what customers praise you for: ${spoken(keep.themeLabel)}.`,
       detail: null,
       why: [keep.brief],
       watching: keep.watchLine,
@@ -473,7 +473,7 @@ export function buildFocus(input: FocusInput): Focus {
         href: signalHref(basePath, signal.themeKey),
       }
     : top
-      ? { label: 'Read the comments that need you', href: `${basePath}/reviews?needs=reply` }
+      ? { label: 'Read what needs a reply', href: `${basePath}/reviews?needs=reply` }
       : view.keep
         ? { label: 'See what is going well', href: signalHref(basePath, view.keep.themeKey) }
         : null;
@@ -575,19 +575,26 @@ export function activityFacts(view: PortalView, r: Responsibility, basePath: str
   const facts: ActivityFact[] = [
     { label: 'Pieces of feedback read', value: String(view.basedOn), href: `${basePath}/reviews` },
     {
-      label: 'Recurring signals',
+      label: 'What keeps coming up',
       value: String(signals),
       href: signals > 0 ? `${basePath}/analysis` : null,
     },
     {
-      label: issues === 1 ? 'Active issue' : 'Active issues',
+      label: issues === 1 ? 'Issue that needs you' : 'Issues that need you',
       value: String(issues),
       href: issues > 0 ? basePath : null,
     },
   ];
   if (checked + inProgress > 0) {
     facts.push({
-      label: checked > 0 ? (checked === 1 ? 'Improvement compared' : 'Improvements compared') : 'Improvements being checked',
+      label:
+        checked > 0
+          ? checked === 1
+            ? 'Change compared'
+            : 'Changes compared'
+          : inProgress === 1
+            ? 'Change being checked'
+            : 'Changes being checked',
       value: String(checked > 0 ? checked : inProgress),
       href: `${basePath}/improvements`,
     });

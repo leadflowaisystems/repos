@@ -90,9 +90,13 @@ export type TenantGate =
  * that must keep working while shut opt out by name.
  *
  * The message is the owner's, not an error: they have not done anything wrong.
+ * It does not name the trial, because the same lock covers a trial that has run
+ * out AND a workspace Headway staff closed by hand — and the second of those
+ * has trial dates that are still perfectly good. Account is the one page that
+ * knows which it is, so the message sends them there rather than guessing.
  */
 const LOCKED_MESSAGE =
-  'Your Headway trial has ended. Continue your service from the Account page to carry on.';
+  'Your Headway workspace is closed for now. Your feedback and your history are safe. Go to Account and ask to continue.';
 
 async function isLockedOut(clientId: string, actor: Actor): Promise<boolean> {
   // Platform staff are never locked out of anything they can already reach.

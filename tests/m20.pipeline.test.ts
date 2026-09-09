@@ -213,7 +213,7 @@ describe('what the owner sees', () => {
     const home = await getPortalView(db, clientId);
     expect(home?.view.basedOn).toBe(0);
     expect(home?.view.summary).toBe('2 pieces of feedback have arrived and Headway is reading them now.');
-    expect(home?.view.basis).toMatch(/Usually read within a minute/);
+    expect(home?.view.basis).toMatch(/Feedback is usually read within a minute of arriving/);
     expect(home?.view.soFar.waiting).toBe(2);
 
     const bundle = await getResponsibility(db, clientId);
@@ -239,7 +239,9 @@ describe('what the owner sees', () => {
     const home = await getPortalView(db, clientId);
     const view = home!.view;
     expect(view.basedOn).toBe(2);
-    expect(view.summary).not.toMatch(/nothing to tell you/);
+    // Two pieces have been read, so neither the "none yet" line nor the "still
+    // reading" one can still be on screen.
+    expect(view.summary).not.toMatch(/No feedback has come in yet/);
     expect(view.summary).not.toMatch(/reading them now/);
     // The picture is honest about a first week...
     expect(view.mood).toBe('TOO_EARLY');
@@ -255,10 +257,12 @@ describe('what the owner sees', () => {
     );
     expect(view.soFar.mentions.length).toBeGreaterThan(0);
     expect(view.soFar.mentions.every((m) => !m.pattern)).toBe(true);
-    expect(view.soFar.note).toMatch(/single mentions/);
+    // Nothing has cleared the floor, and the note says so rather than letting
+    // a count read as a pattern.
+    expect(view.soFar.note).toMatch(/not calling any of it a pattern/);
 
     // Nothing historical: no direction, no change, no comparison.
-    expect(view.facts[0]).toMatchObject({ label: 'Overall direction', value: 'Too early to say' });
+    expect(view.facts[0]).toMatchObject({ label: 'Overall direction', value: 'Not enough to say' });
     expect(view.changed).toEqual([]);
     expect(view.changedNote).toMatch(/two check-ins/);
     expect(view.loved).toEqual([]);
@@ -288,6 +292,6 @@ describe('what the owner sees', () => {
     expect(reviews?.analysed).toBe(2);
     expect(reviews?.waiting).toBe(0);
     expect(reviews?.items.every((i) => i.state === 'ANALYSED')).toBe(true);
-    expect(reviews?.items.every((i) => i.themes.length > 0 || i.sentimentLabel !== 'Not analysed')).toBe(true);
+    expect(reviews?.items.every((i) => i.themes.length > 0 || i.sentimentLabel !== 'Not read yet')).toBe(true);
   });
 });

@@ -174,7 +174,7 @@ export type AccountState = {
   phase: AccountPhase;
   /** "Your Headway trial", "Your trial has ended", "Headway is active", "Headway is paused". */
   headline: string;
-  /** One sentence under it. Never a price, never a countdown to a sale. */
+  /** One or two short sentences under it. Never a price, never a countdown to a sale. */
   line: string;
   /** A second fact when there is one: paused since, or resumed. */
   note: string | null;
@@ -215,8 +215,8 @@ const RESUMED_IS_NEWS_FOR_DAYS = 14;
  * Deliberately calm. A trial says the date it runs to, because that is a fact
  * they need; it does not count down in hours, colour itself red, or suggest
  * that acting today is cheaper than acting on Friday. An ended trial says the
- * workspace and its history are still here, because they are. A pause says
- * what is kept and what has stopped, and nothing else.
+ * feedback and the history are safe, because they are. A pause says what is
+ * still saved and what has stopped, and nothing else.
  */
 export function describeAccount(input: {
   subscriptionStatus: string;
@@ -249,21 +249,21 @@ export function describeAccount(input: {
     phase = 'PAUSED';
     headline = 'Headway is paused';
     line =
-      'Your customer history is safe. New feedback will be kept, but Headway is not actively processing it right now.';
+      'Your feedback and your history are safe. New feedback is still saved, but Headway is not reading it yet.';
     note = servicePausedAt ? `Paused since ${formatLongDate(servicePausedAt)}.` : null;
   } else if (state === 'CANCELLED') {
     phase = 'CLOSED';
     headline = 'This account is closed';
-    line = 'Everything already collected is kept, and nothing new is being read.';
+    line = 'Your feedback and your history are safe. Nothing new is being read.';
   } else if (state === 'ACTIVE') {
     phase = 'ACTIVE';
     headline = 'Headway is active';
-    line = 'Your workspace is active.';
-    note = resumedRecently ? 'Headway has resumed reading new feedback.' : null;
+    line = 'Headway is reading new feedback as it arrives.';
+    note = resumedRecently ? 'Your account was paused. It is running again.' : null;
   } else if (trialExpired) {
     phase = 'TRIAL_ENDED';
     headline = 'Your trial has ended';
-    line = 'Your Headway workspace and history are still here.';
+    line = 'Your feedback and your history are safe.';
   } else {
     phase = 'TRIAL';
     headline = 'Your Headway trial';
@@ -272,7 +272,7 @@ export function describeAccount(input: {
       : // Only for a business created before every trial carried a window, and
         // only until the M23 backfill runs. Never "no end date".
         'Your trial is active. Your Headway contact will confirm the end date.';
-    note = resumedRecently ? 'Headway has resumed reading new feedback.' : null;
+    note = resumedRecently ? 'Your account was paused. It is running again.' : null;
   }
 
   return {
@@ -377,7 +377,9 @@ export async function setSubscription(
     return ok({ clientId });
   } catch (error) {
     if (!isMissingDbFunction(error)) {
-      return err(error instanceof Error ? error.message : 'Could not change this account.');
+      // The database's own words go to the server log, never to the screen.
+      console.error('app.set_subscription failed', error);
+      return err('Could not change this account. Try again.');
     }
   }
 
@@ -526,10 +528,10 @@ function cleanContact(
   const phone = (input.phone ?? '').replace(/[^\d+ ]/g, '').trim();
 
   const errors: Record<string, string> = {};
-  if (name.length < 2) errors.name = 'Add the name we should ask for.';
-  if (!email.includes('@') || email.length < 5) errors.email = 'Add a valid email address.';
+  if (name.length < 2) errors.name = 'Add your name.';
+  if (!email.includes('@') || email.length < 5) errors.email = 'Add a full email address.';
   if (phone.replace(/\D/g, '').length < 8) {
-    errors.phone = 'Add a mobile or WhatsApp number we can reach you on.';
+    errors.phone = 'Add a WhatsApp or mobile number we can reach you on.';
   }
   if (Object.keys(errors).length > 0) return err('Some fields need attention.', errors);
   return ok({ name, email, phone });

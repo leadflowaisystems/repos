@@ -1,5 +1,6 @@
 import { MIN_MENTIONS_FOR_THEME } from '@/lib/analysis/aggregate';
 import type { Sentiment } from '@/lib/analysis/classify';
+import { formatDate } from '@/lib/format';
 import type { Pack } from '@/lib/packs';
 import {
   LOW_VELOCITY_PER_WEEK,
@@ -226,6 +227,17 @@ function stars(value: number): string {
   return value.toFixed(1);
 }
 
+/**
+ * The counting unit for feedback, everywhere.
+ *
+ * Never "items" or "stored items": those name a row in a table, not the thing
+ * a customer left. And counts count pieces of feedback, not people — one
+ * customer can leave several.
+ */
+function pieces(n: number): string {
+  return `${n} ${n === 1 ? 'piece' : 'pieces'} of feedback`;
+}
+
 function daysBetween(a: Date, b: Date): number {
   return Math.round(Math.abs(a.getTime() - b.getTime()) / 86_400_000);
 }
@@ -268,8 +280,8 @@ export function summariseDistribution(feedback: StoredFeedback[]): Distribution 
     shares,
     reliable,
     note: reliable
-      ? `Based on ${total} stored feedback items.`
-      : `Only ${total} feedback item${total === 1 ? '' : 's'} stored — below the ${MIN_FEEDBACK_FOR_SHARE_CLAIMS} needed before Headway treats a share as meaningful.`,
+      ? `Based on ${pieces(total)}.`
+      : `Only ${pieces(total)} so far, below the ${MIN_FEEDBACK_FOR_SHARE_CLAIMS} Headway needs before it states a share.`,
   };
 }
 
@@ -332,7 +344,7 @@ function buildTrendMetrics(
 
     let note: string;
     if (!comparable || delta === null) {
-      note = 'Rating was not observed in both snapshots, so it cannot be compared.';
+      note = 'The rating was not recorded at both check-ins, so it cannot be compared.';
     } else {
       const move = `Rating moved from ${stars(then)} to ${stars(now)}`;
       note = contributes
@@ -379,9 +391,9 @@ function buildTrendMetrics(
       score: contributes && delta !== null ? (delta < 0 ? 1 : -1) : 0,
       note:
         delta === null
-          ? 'One of the two periods has no stored feedback, so the share cannot be compared.'
+          ? 'One of the two check-ins has no feedback, so the share cannot be compared.'
           : !bigEnough
-            ? `Sample too small to read as a trend: ${previousDist.total} then, ${currentDist.total} now (need ${MIN_FEEDBACK_FOR_TREND_CLAIMS} on both sides).`
+            ? `Too little feedback to read as a trend: ${previousDist.total} then, ${currentDist.total} now. Headway needs ${MIN_FEEDBACK_FOR_TREND_CLAIMS} on each side.`
             : contributes
               ? `Negative share moved from ${pct(then as number)} to ${pct(now as number)}.`
               : `Negative share moved from ${pct(then as number)} to ${pct(now as number)} — under the ${pct(TREND_SHARE_DELTA)} needed to call a direction.`,
@@ -396,7 +408,7 @@ function buildTrendMetrics(
     const contributes = delta !== null && Math.abs(delta) >= TREND_SHARE_DELTA;
     metrics.push({
       key: 'unansweredShare',
-      label: 'Unanswered reviews',
+      label: 'Unanswered public reviews',
       current: now,
       previous: then,
       delta,
@@ -405,7 +417,7 @@ function buildTrendMetrics(
       score: contributes && delta !== null ? (delta < 0 ? 1 : -1) : 0,
       note:
         delta === null
-          ? 'Unanswered reviews were not observed in both snapshots, so they cannot be compared.'
+          ? 'Unanswered public reviews were not recorded at both check-ins, so they cannot be compared.'
           : contributes
             ? `Unanswered share moved from ${pct(then as number)} to ${pct(now as number)}.`
             : `Unanswered share moved from ${pct(then as number)} to ${pct(now as number)} — under the ${pct(TREND_SHARE_DELTA)} needed to call a direction.`,
@@ -436,8 +448,8 @@ export function computeTrend(snapshots: StoredSnapshot[]): Trend {
       available: false,
       reason:
         ordered.length === 0
-          ? 'No snapshots yet, so there is nothing to compare.'
-          : 'Only one snapshot exists. A trend needs at least two.',
+          ? 'No check-ins yet, so there is nothing to compare.'
+          : 'Only one check-in so far. A trend needs at least two.',
       metrics: [],
       comparedSnapshotIds: null,
       periodDays: null,
@@ -453,7 +465,7 @@ export function computeTrend(snapshots: StoredSnapshot[]): Trend {
       label: TREND_LABELS.NONE,
       available: false,
       reason:
-        'The two most recent snapshots share no comparable measurement, so no direction can be given.',
+        'The last two check-ins have no figure in common, so Headway cannot say which way things are going.',
       metrics,
       comparedSnapshotIds: [current.id, previous.id],
       periodDays: daysBetween(current.capturedAt, previous.capturedAt),
@@ -469,7 +481,7 @@ export function computeTrend(snapshots: StoredSnapshot[]): Trend {
     available: true,
     reason:
       moving.length === 0
-        ? `Nothing moved by more than the thresholds Headway requires, across ${comparable.length} comparable measurement${comparable.length === 1 ? '' : 's'}.`
+        ? `Nothing moved far enough to count, across ${comparable.length} figure${comparable.length === 1 ? '' : 's'} Headway could compare.`
         : moving.map((m) => m.note).join(' '),
     metrics,
     comparedSnapshotIds: [current.id, previous.id],
@@ -499,14 +511,16 @@ function buildSignals(
         key: 'negative_share',
         level: 'ATTENTION',
         label: 'High share of negative feedback',
-        detail: `${count} of ${distribution.total} stored items are negative (${pct(share)}), at or above the ${pct(NEGATIVE_SHARE_ATTENTION)} attention threshold.`,
+        detail: `${count} of ${pieces(distribution.total)} are negative (${pct(share)}). Headway flags anything at ${pct(NEGATIVE_SHARE_ATTENTION)} or above.`,
       });
     } else if (share >= NEGATIVE_SHARE_WATCH) {
+      // A level, not a direction: this fires on one check-in's share and never
+      // looks at the one before, so the label must not say "climbing".
       signals.push({
         key: 'negative_share',
         level: 'WATCH',
-        label: 'Negative feedback climbing',
-        detail: `${count} of ${distribution.total} stored items are negative (${pct(share)}), at or above the ${pct(NEGATIVE_SHARE_WATCH)} watch threshold.`,
+        label: 'Negative feedback worth watching',
+        detail: `${count} of ${pieces(distribution.total)} are negative (${pct(share)}). Headway watches anything at ${pct(NEGATIVE_SHARE_WATCH)} or above.`,
       });
     }
   }
@@ -519,7 +533,7 @@ function buildSignals(
       key: 'severe_issue',
       level: 'ATTENTION',
       label: `Recurring issue: ${severeIssue.label}`,
-      detail: `Mentioned in ${severeIssue.count} of ${distribution.total} stored items, at or above the ${MIN_MENTIONS_FOR_THEME}-mention floor, and rated high severity for this vertical.`,
+      detail: `Mentioned in ${severeIssue.count} of ${pieces(distribution.total)} — at or above the ${MIN_MENTIONS_FOR_THEME} needed to call it a pattern, and a serious complaint for this kind of business.`,
     });
   } else if (qualifying.length > 0) {
     const top = qualifying[0] as ThemeCount;
@@ -527,7 +541,7 @@ function buildSignals(
       key: 'recurring_issue',
       level: 'WATCH',
       label: `Recurring issue: ${top.label}`,
-      detail: `Mentioned in ${top.count} of ${distribution.total} stored items, at or above the ${MIN_MENTIONS_FOR_THEME}-mention floor.`,
+      detail: `Mentioned in ${top.count} of ${pieces(distribution.total)}, at or above the ${MIN_MENTIONS_FOR_THEME} needed to call it a pattern.`,
     });
   }
 
@@ -539,7 +553,7 @@ function buildSignals(
         key: 'rating_drop',
         level: 'ATTENTION',
         label: 'Rating fell',
-        detail: `Rating went from ${stars(previous.rating)} to ${stars(latest.rating)} (${delta}), at or beyond the ${RATING_DROP_ATTENTION} attention threshold.`,
+        detail: `Rating went from ${stars(previous.rating)} to ${stars(latest.rating)} (${delta}). Headway flags a fall of ${Math.abs(RATING_DROP_ATTENTION)} or more.`,
       });
     } else if (delta <= RATING_DROP_WATCH) {
       signals.push({
@@ -558,15 +572,17 @@ function buildSignals(
       signals.push({
         key: 'reply_gap',
         level: 'ATTENTION',
-        label: 'Most reviews have no reply',
-        detail: `${latest.unansweredCount} of ${latest.reviewCount} reviews are unanswered (${pct(unansweredShare)}), at or above the ${pct(UNANSWERED_SHARE_ATTENTION)} attention threshold.`,
+        label: 'Most public reviews have no reply',
+        detail: `${latest.unansweredCount} of ${latest.reviewCount} public reviews have no reply (${pct(unansweredShare)}). Headway flags ${pct(UNANSWERED_SHARE_ATTENTION)} or more.`,
       });
     } else if (unansweredShare >= UNANSWERED_SHARE_WATCH) {
+      // Again a level, not a direction: the share at this check-in only. The
+      // old "backlog building" claimed a movement nothing here measured.
       signals.push({
         key: 'reply_gap',
         level: 'WATCH',
-        label: 'Reply backlog building',
-        detail: `${latest.unansweredCount} of ${latest.reviewCount} reviews are unanswered (${pct(unansweredShare)}).`,
+        label: 'Some public reviews have no reply',
+        detail: `${latest.unansweredCount} of ${latest.reviewCount} public reviews have no reply (${pct(unansweredShare)}). Headway watches ${pct(UNANSWERED_SHARE_WATCH)} or more.`,
       });
     }
   }
@@ -577,15 +593,15 @@ function buildSignals(
     signals.push({
       key: 'stale_data',
       level: 'ATTENTION',
-      label: 'Health data is out of date',
-      detail: `The most recent snapshot is ${age} days old, past the ${STALE_SNAPSHOT_ATTENTION_DAYS}-day limit. This card describes the past, not the present.`,
+      label: 'Last check-in is out of date',
+      detail: `The last check-in was ${age} days ago, past the ${STALE_SNAPSHOT_ATTENTION_DAYS}-day limit. This card describes then, not now.`,
     });
   } else if (age >= STALE_SNAPSHOT_WATCH_DAYS) {
     signals.push({
       key: 'stale_data',
       level: 'WATCH',
-      label: 'Snapshot due',
-      detail: `The most recent snapshot is ${age} days old, past the ${STALE_SNAPSHOT_WATCH_DAYS}-day mark.`,
+      label: 'Check-in due',
+      detail: `The last check-in was ${age} days ago, past the ${STALE_SNAPSHOT_WATCH_DAYS}-day mark.`,
     });
   }
 
@@ -597,8 +613,8 @@ function buildSignals(
     signals.push({
       key: 'low_velocity',
       level: 'WATCH',
-      label: 'Almost no new reviews arriving',
-      detail: `${latest.reviewsPerWeek} reviews per week observed, below the ${LOW_VELOCITY_PER_WEEK} floor. The feedback kit and staff ask-script are the lever.`,
+      label: 'Almost no new public reviews',
+      detail: `${latest.reviewsPerWeek} public reviews a week at the last check-in, below the ${LOW_VELOCITY_PER_WEEK} Headway expects. The print kit and staff asking customers for a review are what change this.`,
     });
   }
 
@@ -645,10 +661,10 @@ export function computeHealthCard(input: HealthInput): HealthCard {
     daysSinceLastSnapshot: latest ? daysBetween(now, latest.capturedAt) : null,
     totalFeedbackStored,
     note: !latest
-      ? 'No snapshots have been saved for this client yet.'
+      ? 'No check-ins have been saved for this client yet.'
       : ordered.length === 1
-        ? `One snapshot, covering the moment it was taken. ${totalFeedbackStored} feedback item${totalFeedbackStored === 1 ? '' : 's'} stored.`
-        : `${ordered.length} snapshots spanning ${daysBetween(latest.capturedAt, (first as StoredSnapshot).capturedAt)} days. ${totalFeedbackStored} feedback item${totalFeedbackStored === 1 ? '' : 's'} stored.`,
+        ? `One check-in, covering the day it was taken. ${pieces(totalFeedbackStored)}.`
+        : `${ordered.length} check-ins over ${daysBetween(latest.capturedAt, (first as StoredSnapshot).capturedAt)} days. ${pieces(totalFeedbackStored)}.`,
   };
 
   const distribution = summariseDistribution(latest?.feedback ?? []);
@@ -663,8 +679,8 @@ export function computeHealthCard(input: HealthInput): HealthCard {
       status: 'INSUFFICIENT_DATA',
       statusLabel: STATUS_LABELS.INSUFFICIENT_DATA,
       statusSummary: !latest
-        ? 'No snapshot has been taken yet. Take the first snapshot to give this client a health status.'
-        : 'The latest snapshot has neither an observed rating nor any pasted feedback, so there is nothing to judge.',
+        ? 'No check-in yet. Take the first one to give this client a health status.'
+        : 'The last check-in has no rating and no feedback, so there is nothing to judge.',
       signals: [],
       latestSnapshotId: latest?.id ?? null,
       latestSnapshotLabel: latest?.label ?? null,
@@ -700,8 +716,8 @@ export function computeHealthCard(input: HealthInput): HealthCard {
 
   const statusSummary =
     status === 'HEALTHY'
-      ? `${STATUS_DESCRIPTIONS.HEALTHY} Checked against ${distribution.total} stored feedback item${distribution.total === 1 ? '' : 's'} and the observed listing figures.`
-      : `${signals.length} signal${signals.length === 1 ? '' : 's'} fired: ${signals.map((s) => s.label.toLowerCase()).join('; ')}.`;
+      ? `${STATUS_DESCRIPTIONS.HEALTHY} That is ${pieces(distribution.total)} and the figures from the last check-in.`
+      : `Headway flagged ${signals.length} thing${signals.length === 1 ? '' : 's'}: ${signals.map((s) => s.label.toLowerCase()).join('; ')}.`;
 
   return {
     status,
@@ -735,7 +751,10 @@ export function computeHealthCard(input: HealthInput): HealthCard {
 function toPeriod(snapshot: StoredSnapshot, pack: Pack): PulsePeriod {
   return {
     snapshotId: snapshot.id,
-    label: snapshot.label ?? snapshot.capturedAt.toISOString().slice(0, 10),
+    // House date format, never an ISO string: this label is read out loud in
+    // sentences like "your check-ins of 1 Mar and 1 Apr", and "2026-03-01"
+    // among human dates reads as a machine leaking through.
+    label: snapshot.label ?? formatDate(snapshot.capturedAt),
     capturedAt: snapshot.capturedAt,
     feedbackCount: snapshot.feedback.length,
     distribution: summariseDistribution(snapshot.feedback),
@@ -782,7 +801,7 @@ export function computePulse(input: HealthInput): Pulse {
     return {
       available: false,
       reason:
-        'Only one snapshot exists. The next snapshot will give this client its first period-over-period comparison.',
+        'Only one check-in so far. The next one will let Headway compare the two.',
       direction: 'NONE',
       directionLabel: TREND_LABELS.NONE,
       current,
@@ -842,7 +861,7 @@ export function computePulse(input: HealthInput): Pulse {
     metrics,
     notableChanges,
     sampleWarning: tooSmall
-      ? `Small samples: ${previous.feedbackCount} feedback item${previous.feedbackCount === 1 ? '' : 's'} in the previous period and ${current.feedbackCount} in the current one. Headway needs ${MIN_FEEDBACK_FOR_TREND_CLAIMS} on both sides before treating a change in feedback as a trend — read these as counts, not as a pattern.`
+      ? `Small numbers: ${pieces(previous.feedbackCount)} at the earlier check-in and ${current.feedbackCount} at the later one. Headway needs ${MIN_FEEDBACK_FOR_TREND_CLAIMS} on each side before it calls a change a trend — read these as counts, not a pattern.`
       : null,
   };
 }

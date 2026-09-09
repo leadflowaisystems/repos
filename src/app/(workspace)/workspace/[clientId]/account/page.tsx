@@ -62,13 +62,13 @@ function serviceFacts(account: AccountState, lifecycle: Lifecycle): Fact[] {
   const facts: Fact[] = [];
 
   if (lifecycle.state === 'DEMO_EXEMPT') {
-    facts.push({ label: 'Service', value: 'Demonstration workspace' });
+    facts.push({ label: 'Service', value: 'Headway demo' });
     facts.push({ label: 'Status', value: statusLabel(lifecycle) });
     return facts;
   }
 
   if (lifecycle.state === 'ACTIVE_SERVICE' || lifecycle.state === 'ADMIN_OVERRIDE') {
-    facts.push({ label: 'Service', value: 'Headway, active' });
+    facts.push({ label: 'Service', value: 'Headway' });
     if (account.phase === 'PAUSED' && account.servicePausedAt) {
       facts.push({ label: 'Paused since', value: formatDate(account.servicePausedAt) });
     } else if (account.serviceResumedAt) {
@@ -92,7 +92,7 @@ function serviceFacts(account: AccountState, lifecycle: Lifecycle): Fact[] {
   if (!lifecycle.expired && lifecycle.daysRemaining !== null) {
     const days = lifecycle.daysRemaining;
     facts.push({
-      label: 'Days remaining',
+      label: 'Days left',
       value: days === 0 ? 'Ends today' : days === 1 ? '1 day' : `${days} days`,
     });
   }
@@ -129,9 +129,9 @@ function Facts({ facts }: { facts: Fact[] }) {
  *
  * `describeAccount` reads `subscriptionStatus` and the trial dates, which is
  * right for the four states it was built for and wrong for the three M28 added.
- * A demonstration workspace still has a lapsed date on its row, so left alone
- * this page would put "Your trial has ended" above a table saying
- * "Demonstration workspace" — the contradiction the pass exists to remove.
+ * The demo workspace still has a lapsed date on its row, so left alone this
+ * page would put "Your trial has ended" above a table saying "Headway demo" —
+ * the contradiction the pass exists to remove.
  */
 function headlineFor(
   account: AccountState,
@@ -140,7 +140,7 @@ function headlineFor(
   if (lifecycle.state === 'DEMO_EXEMPT') {
     return {
       title: 'Your Headway workspace',
-      description: 'This is the demonstration workspace. It does not expire.',
+      description: 'This is the demo workspace. It stays open.',
     };
   }
   if (lifecycle.state === 'FOUNDER_EXEMPT') {
@@ -157,9 +157,9 @@ function headlineFor(
   }
   if (lifecycle.state === 'MANUALLY_LOCKED') {
     return {
-      title: 'Your Headway workspace is on hold',
+      title: 'Your Headway workspace is paused',
       description:
-        'Your customer intelligence and improvement workspace is ready when you continue your Headway service.',
+        'Your feedback and your history are safe. Your workspace opens again when you continue your Headway service.',
     };
   }
   return { title: account.headline, description: account.line };
@@ -177,8 +177,7 @@ function HeadwayContact() {
   return (
     <Section eyebrow="Reaching Headway">
       <p className="text-[15px] leading-relaxed text-ink-700">
-        Your Headway contact will reply to a request from this page. You can also reach us
-        directly.
+        We reply to any request you send from this page. You can also reach us directly.
       </p>
       <dl className="mt-3 divide-y divide-ink-200 border-y border-ink-200 text-[14px]">
         <div className="grid grid-cols-1 gap-x-6 gap-y-0.5 py-2.5 sm:grid-cols-[12rem_1fr]">
@@ -231,10 +230,10 @@ export default async function WorkspaceAccountPage({
           eyebrow="Account"
           title={
             lifecycle.state === 'MANUALLY_LOCKED'
-              ? 'Your Headway workspace is on hold'
-              : 'Your Headway trial has ended.'
+              ? 'Your Headway workspace is paused'
+              : 'Your Headway trial has ended'
           }
-          description="Your customer intelligence and improvement workspace is ready when you continue your Headway service."
+          description="Your feedback and your history are safe. Your workspace opens again when you continue your Headway service."
         />
       ) : (
         <>
@@ -247,29 +246,28 @@ export default async function WorkspaceAccountPage({
 
       {/* The lock, said once, where it can be acted on. */}
       {locked && isOwner ? (
-        <Section eyebrow="Continue your service">
+        <Section eyebrow="Continuing with Headway">
           {pending ? (
             <>
               <p className="text-[17px] leading-snug font-semibold tracking-tight text-ink-900">
-                Continuation requested
+                Request received
               </p>
               <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink-700">
-                We&rsquo;ll be in touch shortly on {pending.phone}. Nothing is charged
+                We&rsquo;ll be in touch soon on {pending.phone}. Nothing is charged
                 automatically.
               </p>
             </>
           ) : (
             <>
               <p className="max-w-2xl text-[15px] leading-relaxed text-ink-700">
-                Everything Headway has collected and read is still here, exactly as it was.
-                Nothing is charged automatically.
+                Ask to continue and we&rsquo;ll be in touch. Nothing is charged automatically.
               </p>
               <div className="mt-5">
                 <ExtendAccessForm
                   clientId={clientId}
                   ownerPhone={account.owner.phone}
                   ownerEmail={account.owner.email}
-                  label="Continue service"
+                  label="Ask to continue"
                 />
               </div>
             </>
@@ -305,24 +303,24 @@ export default async function WorkspaceAccountPage({
           <Facts facts={activity} />
         ) : (
           <Quiet>
-            Nothing yet. Once customers start scanning your card, what Headway collects, reads
-            and finds appears here.
+            Nothing yet. Once customers start scanning your card, this section will count their
+            feedback and what Headway found in it.
           </Quiet>
         )}
       </Section>
 
-      {/* Carrying on, for a trial that is still running. */}
+      {/* Continuing with Headway, for a trial that is still running. */}
       {!locked && onTrial && !stopped ? (
-        <Section eyebrow="Carrying on">
+        <Section eyebrow="Continuing with Headway">
           {pending ? (
             <>
               <p className="text-[17px] leading-snug font-semibold tracking-tight text-ink-900">
-                Continuation requested
+                Request received
               </p>
               <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink-700">
-                We&rsquo;ll be in touch shortly on {pending.phone}. You asked on{' '}
-                {formatLongDate(pending.createdAt)}. Nothing is charged automatically, and your
-                trial dates are unchanged.
+                You asked on {formatLongDate(pending.createdAt)}. We&rsquo;ll be in touch soon
+                on {pending.phone}. Nothing is charged automatically. Your trial dates do not
+                change until we have spoken.
               </p>
             </>
           ) : (
@@ -331,9 +329,8 @@ export default async function WorkspaceAccountPage({
                 Want to continue with Headway?
               </p>
               <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink-700">
-                Your trial gives you full access to your customer intelligence and improvement
-                workspace. When your trial ends, you can continue your Headway service —
-                nothing is charged automatically.
+                Your trial gives you the whole workspace. When it ends, you can ask to continue.
+                Nothing is charged automatically.
               </p>
               <div className="mt-5">
                 {isOwner ? (
@@ -343,7 +340,7 @@ export default async function WorkspaceAccountPage({
                     ownerEmail={account.owner.email}
                   />
                 ) : (
-                  <Quiet>The owner of this business can continue from this page.</Quiet>
+                  <Quiet>Only the owner can ask to continue.</Quiet>
                 )}
               </div>
             </>
@@ -361,7 +358,7 @@ export default async function WorkspaceAccountPage({
                 <Reach account={account} />
               </>
             ) : (
-              'No contact details on record yet.'
+              'No contact details yet.'
             )}
           </p>
           <div className="mt-4">

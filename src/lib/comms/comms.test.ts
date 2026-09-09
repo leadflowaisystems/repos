@@ -270,7 +270,11 @@ describe('the owner update is useful and honest', () => {
     expect(message.body).toContain('Long waiting time');
     expect(message.body).toContain('mentioned 9 times across all the feedback');
     expect(message.body).toContain('Recommended next step:');
-    expect(message.body).toContain('Based on 50 reviews');
+    // One pile, one unit. The line above this one says "across all the
+    // feedback", so naming the same private pile "reviews" in the very next
+    // sentence gave the owner two words for one thing — and "review" is the
+    // word this product reserves for a public listing.
+    expect(message.body).toContain('Based on 50 pieces of feedback we have read.');
     expect(message.blocked).toBe(false);
   });
 

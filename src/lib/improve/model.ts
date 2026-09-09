@@ -164,16 +164,18 @@ export function formatShare(value: number | null): string {
 }
 
 /**
- * "9 of 50 reviews (18%)".
+ * "9 of 50 pieces of feedback (18%)".
  *
  * The house format for a piece of evidence. There is no format that prints the
  * count without the denominator, because a bare count is exactly the mistake
- * this milestone is not allowed to make.
+ * this milestone is not allowed to make. The unit is pieces of feedback, never
+ * reviews: this pile is what customers left privately, and a review is
+ * something posted on a public listing.
  */
 export function evidenceLine(count: number, total: number): string {
   const share = shareOf(count, total);
   if (share === null) return 'No feedback read for this period';
-  return `${count} of ${total} ${total === 1 ? 'review' : 'reviews'} (${formatShare(share)})`;
+  return `${count} of ${total} ${total === 1 ? 'piece' : 'pieces'} of feedback (${formatShare(share)})`;
 }
 
 /**
@@ -294,8 +296,8 @@ export type ActionResult =
 export const RESULT_LABELS: Record<ActionResult, string> = {
   IMPROVED: 'Mentioned less often after the change',
   WORSENED: 'Mentioned more often after the change',
-  NO_CLEAR_CHANGE: 'No clear change after the change',
-  INSUFFICIENT_DATA: 'Not enough feedback after the change to tell',
+  NO_CLEAR_CHANGE: 'No clear difference after the change',
+  INSUFFICIENT_DATA: 'Not enough feedback after the change',
 };
 
 export const RESULT_TONES: Record<ActionResult, 'good' | 'warn' | 'bad' | 'neutral'> = {
@@ -313,7 +315,7 @@ export type MeasurementSide = {
   share: number | null;
   /** The window in words: what was counted, and over what period. */
   label: string;
-  /** "9 of 50 reviews (18%)". */
+  /** "9 of 50 pieces of feedback (18%)". */
   line: string;
   /** The check-in this side sits against, when there was one. */
   snapshotLabel: string | null;

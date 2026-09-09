@@ -119,7 +119,7 @@ export type ThreadStep = {
 export type ResponsibilityEvidence = {
   count: number;
   outOf: number;
-  /** "14 of the 110 pieces of feedback we have read mention it." */
+  /** "14 of the 110 pieces of feedback Headway has read mention it." */
   line: string;
   /** Which pile, always. */
   scope: string;
@@ -215,7 +215,7 @@ export type ResponsibilityInput = {
   /** Newest first, as `listSnapshots` returns them. */
   checkins: SnapshotListRow[];
   feedbackSince: FeedbackSince;
-  /** Reviews the reply engine handed to a person: harm, money back, escalation. */
+  /** Feedback the reply engine handed to a person: harm, money back, escalation. */
   needsYourWords: number;
   /** Null when the client has never had a feedback page created. */
   gateway: GatewayState | null;
@@ -228,9 +228,9 @@ export type ResponsibilityInput = {
 // ---------------------------------------------------------------------------
 
 const CERTAINTY: Record<Insight['confidence'], string> = {
-  STRONG: 'enough feedback to be sure of',
+  STRONG: 'enough feedback to be sure',
   MODERATE: 'a clear pattern, still worth confirming',
-  EARLY: 'an early signal on little feedback',
+  EARLY: 'an early sign from little feedback',
 };
 
 function daysBetween(from: Date, to: Date): number {
@@ -305,7 +305,7 @@ function placeSignal(signal: PortalSignal, progress: ActionProgress | undefined)
     extra.push({
       key: 'returning',
       weight: RESPONSIBILITY_WEIGHTS.returning,
-      reason: 'It came up less often after your change and is starting to come up more again.',
+      reason: 'It came up less often after your change, and now it is coming up more again.',
       source: 'CUSTOMERS',
     });
     return {
@@ -316,15 +316,16 @@ function placeSignal(signal: PortalSignal, progress: ActionProgress | undefined)
     };
   }
 
-  // The owner decided not to act. Asking again would be nagging; RepOS keeps
-  // watching, says so, and says why it is still here.
+  // The owner decided not to act. Asking again would be nagging, so the state
+  // stays Watching, the instruction says the decision stands, and the headline
+  // says why the theme is still on the page.
   if (progress?.action.status === 'DECLINED' && signal.kind === 'ISSUE') {
     return {
       state: 'WATCH',
-      instruction: 'You decided not to act; Headway keeps watching',
+      instruction: 'Not doing this',
       headline: signal.bucket === 'FIRST'
-        ? `${signal.themeLabel} is still the clearest complaint. You decided not to pursue a change.`
-        : `${signal.themeLabel} is still a pattern. You decided not to pursue a change.`,
+        ? `${signal.themeLabel} is still what customers complain about most. You decided not to make this change.`
+        : `${signal.themeLabel} is still a pattern. You decided not to make this change.`,
       extra,
     };
   }
@@ -340,8 +341,8 @@ function placeSignal(signal: PortalSignal, progress: ActionProgress | undefined)
     case 'HOLD':
       return {
         state: 'DO_NOW',
-        instruction: 'Decide: act now, or wait',
-        headline: `${signal.themeLabel} is your clearest weakness, though it came up less at your latest check-in.`,
+        instruction: 'Decide: act now or wait',
+        headline: `${signal.themeLabel} is still what customers complain about most, but it came up less at your last check-in.`,
         extra,
       };
     case 'CONTINUE': {
@@ -356,7 +357,7 @@ function placeSignal(signal: PortalSignal, progress: ActionProgress | undefined)
       });
       return {
         state: 'FOLLOW_UP',
-        instruction: paused ? 'Decide whether to restart the change' : 'Finish the change you agreed',
+        instruction: paused ? 'Decide whether to restart it' : 'Finish the change you agreed',
         headline: paused
           ? `The change you agreed for ${label} is on hold.`
           : `The change you agreed for ${label} has not been made yet.`,
@@ -368,13 +369,13 @@ function placeSignal(signal: PortalSignal, progress: ActionProgress | undefined)
         extra.push({
           key: 'comparison_due',
           weight: RESPONSIBILITY_WEIGHTS.comparison_due,
-          reason: `Enough feedback has come in after your change to compare before and after.`,
+          reason: `Enough new feedback has come in since your change to compare before and after.`,
           source: 'REPOS',
         });
         return {
           state: 'FOLLOW_UP',
-          instruction: 'A comparison is due',
-          headline: `Your change for ${label} can now be compared with the feedback after it.`,
+          instruction: 'Ready to compare',
+          headline: `Enough new feedback has come in to check what happened after your change for ${label}.`,
           extra,
         };
       }
@@ -389,39 +390,42 @@ function placeSignal(signal: PortalSignal, progress: ActionProgress | undefined)
       return {
         state: 'KEEP_DOING',
         instruction: 'Keep the change in place',
-        headline: `${signal.themeLabel} came up less often in the feedback after your change.`,
+        headline: `Customers mentioned ${label} less often after your change.`,
         extra,
       };
     case 'REVIEW_CHANGE':
       extra.push({
         key: 'measured_worsened',
         weight: RESPONSIBILITY_WEIGHTS.measured_worsened,
-        reason: 'It came up more often in the feedback after your change.',
+        reason: 'Customers mentioned it more often after your change.',
         source: 'CUSTOMERS',
       });
       return {
         state: 'DO_NOW',
         instruction: 'Look at this again',
-        headline: `${signal.themeLabel} came up more often in the feedback after your change.`,
+        headline: `Customers mentioned ${label} more often after your change.`,
         extra,
       };
     case 'PROTECT':
       return {
         state: 'KEEP_DOING',
-        instruction: 'Protect this',
+        // Not "Protect this": the badge beside it already says "Keep doing
+        // this", and a synonym in the second slot spends a line saying nothing.
+        // This one says what to actually do about it.
+        instruction: 'Keep it as it is',
         headline: signal.isRecurring
-          ? `Customers consistently praise your ${label}.`
+          ? `Customers keep praising your ${label}.`
           : `Customers praise your ${label}.`,
         extra,
       };
     case 'WAIT':
       return {
         state: 'WAITING_FOR_EVIDENCE',
-        instruction: 'Not enough feedback yet',
+        instruction: 'Nothing to do yet',
         headline:
           signal.kind === 'ISSUE'
             ? `${signal.themeLabel} has come up, but not often enough to act on.`
-            : `${signal.themeLabel} is praised, but not yet often enough to call a strength.`,
+            : `Customers praise ${label}, but not often enough yet to call it a strength.`,
         extra,
       };
     case 'WATCH':
@@ -429,8 +433,8 @@ function placeSignal(signal: PortalSignal, progress: ActionProgress | undefined)
       if (signal.kind === 'PRAISE') {
         return {
           state: 'WATCH',
-          instruction: 'Watching a strength',
-          headline: `Customers praised your ${label} less at your latest check-in.`,
+          instruction: 'Nothing to do yet',
+          headline: `Customers praised your ${label} less at your last check-in.`,
           extra,
         };
       }
@@ -441,7 +445,7 @@ function placeSignal(signal: PortalSignal, progress: ActionProgress | undefined)
         return {
           state: 'WAITING_FOR_EVIDENCE',
           instruction: 'Change made, not enough feedback since',
-          headline: `Not enough feedback after your change for ${label} to compare yet.`,
+          headline: `Not enough new feedback has come in since your change for ${label} to compare yet.`,
           extra,
         };
       }
@@ -449,7 +453,7 @@ function placeSignal(signal: PortalSignal, progress: ActionProgress | undefined)
         return {
           state: 'WATCH',
           instruction: 'Keep collecting feedback',
-          headline: `${signal.themeLabel} reads about the same after your change as before.`,
+          headline: `${signal.themeLabel} is coming up about as often as before your change.`,
           extra,
         };
       }
@@ -458,7 +462,7 @@ function placeSignal(signal: PortalSignal, progress: ActionProgress | undefined)
         instruction: 'Important, not urgent',
         headline:
           signal.movementDirection === 'WORSENING'
-            ? `${signal.themeLabel} came up more at your latest check-in.`
+            ? `${signal.themeLabel} came up more at your last check-in.`
             : `${signal.themeLabel} is a pattern, but not the complaint to act on first.`,
         extra,
       };
@@ -487,8 +491,8 @@ function threadFor(signal: PortalSignal, action: PortalAction | null): ThreadSte
         key: 'decided',
         label: 'You decided',
         text: action.decisionNote
-          ? `Not to pursue this. ${action.decisionNote}`
-          : 'Not to pursue this.',
+          ? `Not to make this change. ${action.decisionNote}`
+          : 'Not to make this change.',
         at: action.decidedAt,
         source: 'YOU',
       });
@@ -524,8 +528,8 @@ function threadFor(signal: PortalSignal, action: PortalAction | null): ThreadSte
         label: 'What the feedback did',
         text:
           action.awaiting.have >= action.awaiting.need
-            ? `Not compared yet — ${action.awaiting.have} pieces of new feedback have come in, which is enough to compare.`
-            : `Not compared yet — ${action.awaiting.have} of the ${action.awaiting.need} pieces of new feedback needed have come in.`,
+            ? `Not compared yet — ${action.awaiting.have} new pieces of feedback have come in, enough to compare before and after.`
+            : `Not compared yet — ${action.awaiting.have} of the ${action.awaiting.need} new pieces of feedback needed have come in.`,
         at: null,
         source: 'REPOS',
       });
@@ -533,7 +537,7 @@ function threadFor(signal: PortalSignal, action: PortalAction | null): ThreadSte
   } else {
     steps.push({
       key: 'observed',
-      label: 'Customers say',
+      label: 'Customers said',
       text: signal.fact,
       at: null,
       source: 'CUSTOMERS',
@@ -544,7 +548,7 @@ function threadFor(signal: PortalSignal, action: PortalAction | null): ThreadSte
   // could read one; otherwise the reading of the whole pile.
   const now =
     signal.returning
-      ? `It came up less often after your earlier change but is starting to come up more again.`
+      ? `It came up less often after your earlier change, and it is coming up more again.`
       : signal.movementLine
         ? `At your last two check-ins: ${signal.movementLine}`
         : action
@@ -595,7 +599,7 @@ function themeItem(
 
   const limitations: string[] = [];
   if (insight?.confidence === 'EARLY') {
-    limitations.push('This rests on little feedback, so it is an early signal rather than a conclusion.');
+    limitations.push('This rests on little feedback, so treat it as an early sign, not a conclusion.');
   }
   if (signal.outcome) {
     limitations.push(signal.outcome.caveat || signal.outcome.note);
@@ -625,7 +629,7 @@ function themeItem(
   };
 }
 
-/** Reviews the reply engine will not answer: they need the owner's own words. */
+/** Feedback the reply engine will not answer: it needs the owner's own words. */
 function needsYourWordsItem(input: ResponsibilityInput): ResponsibilityItem | null {
   const n = input.needsYourWords;
   if (n <= 0) return null;
@@ -646,13 +650,13 @@ function needsYourWordsItem(input: ResponsibilityInput): ResponsibilityItem | nu
     relatedAction: null,
     headline: `${n} ${n === 1 ? 'piece' : 'pieces'} of feedback ${n === 1 ? 'needs' : 'need'} your own words.`,
     whyItMatters:
-      'Headway does not suggest a reply where someone mentions harm, safety, money back or taking things further. A person should read and answer those.',
-    recommendedNextStep: 'Read them on the Reviews page and answer in your own words, or tell your Headway contact how you want them handled.',
+      'Headway does not draft a reply when someone mentions harm, safety, money back or taking things further.',
+    recommendedNextStep: 'Open Feedback and answer them. Or tell your Headway contact how you want them handled.',
     evidence: null,
     contextUsed: [],
     contextNote: null,
     thread: [],
-    watching: 'Headway will flag any new feedback of this kind the moment it is read.',
+    watching: 'Headway will flag any new feedback like this as soon as it reads it.',
     limitations: [],
   };
 }
@@ -669,7 +673,7 @@ function earlyItem(input: ResponsibilityInput): ResponsibilityItem | null {
     id: `${intel.clientId}:WAITING_FOR_EVIDENCE:early`,
     state: 'WAITING_FOR_EVIDENCE',
     stateLabel: STATE_LABELS.WAITING_FOR_EVIDENCE,
-    instruction: 'Not enough feedback yet',
+    instruction: 'Nothing to do yet',
     priority: STATE_WEIGHTS.WAITING_FOR_EVIDENCE,
     reasons: [],
     themeKey: single?.themeKey ?? null,
@@ -680,18 +684,18 @@ function earlyItem(input: ResponsibilityInput): ResponsibilityItem | null {
     headline:
       single
         ? single.kind === 'PRAISE'
-          ? `${single.themeLabel} is praised, but not yet often enough to call a strength.`
+          ? `Customers praise ${spoken(single.themeLabel)}, but not often enough yet to call it a strength.`
           : `${single.themeLabel} has come up, but not often enough to act on.`
         : `${joined} have come up, but not often enough to act on.`,
-    whyItMatters: `Headway names something once ${MIN_MENTIONS_TO_NAME} customers have raised it. Until then it would be guessing.`,
-    recommendedNextStep: 'Nothing to do. Headway will say so when any of these clears the floor.',
+    whyItMatters: `Headway names a topic once it has come up ${MIN_MENTIONS_TO_NAME} or more times. Below that it would be guessing.`,
+    recommendedNextStep: 'Headway will tell you when one of these comes up often enough.',
     evidence: null,
     contextUsed: [],
     contextNote: null,
     thread: [],
     watching:
       single?.watchLine ??
-      'Headway is watching whether more customers raise these before it says anything about them.',
+      'Headway is watching to see whether these come up again.',
     limitations: [],
   };
 }
@@ -738,7 +742,7 @@ function didFor(args: {
       did.push(`Since your check-in on ${formatDate(since)}, read ${pieces(f.read)}${direct}.`);
     } else if (f.unread > 0) {
       did.push(
-        `Since your check-in on ${formatDate(since)}, ${pieces(f.unread)} ${f.unread === 1 ? 'has' : 'have'} come in and ${f.unread === 1 ? 'is' : 'are'} being read now.`,
+        `Since your check-in on ${formatDate(since)}, ${pieces(f.unread)} ${f.unread === 1 ? 'has' : 'have'} come in. Headway is reading ${f.unread === 1 ? 'it' : 'them'} now.`,
       );
     } else {
       did.push(`No new feedback has come in since your check-in on ${formatDate(since)}.`);
@@ -774,10 +778,10 @@ function didFor(args: {
   }
   // Only claim a clear read when the owner is genuinely not being asked for
   // anything. It used to test DO_NOW alone, so an owner with a follow-up
-  // sitting in "Needs you" read "Found no new issue strong enough to
-  // recommend action" directly underneath it (M18).
+  // sitting in "Needs you" read "Found no new problem big enough to act on"
+  // directly underneath it (M18).
   if (!args.hasNeedsYou && intel.evidence.enough && f.read > 0) {
-    did.push('Found no new issue strong enough to recommend action.');
+    did.push('Found no new problem big enough to act on.');
   }
 
   return { did, sinceLabel };
@@ -795,8 +799,8 @@ function nextCheckFor(args: {
 
   if (args.comparisonsDue > 0) {
     return args.comparisonsDue === 1
-      ? 'A comparison is due now: enough feedback has come in after your change to compare before and after.'
-      : `${args.comparisonsDue} comparisons are due now: enough feedback has come in after those changes to compare before and after.`;
+      ? 'Headway can now compare your change before and after.'
+      : `Headway can now compare ${args.comparisonsDue} of your changes before and after.`;
   }
   if (intel.evidence.analysed === 0) {
     return 'Once feedback starts coming in, a first check-in gives Headway something to compare against later.';
@@ -808,7 +812,7 @@ function nextCheckFor(args: {
   if (checkins.length === 1) {
     return f.read >= MIN_FEEDBACK_TO_MEASURE
       ? `A second check-in now would let Headway show what changed — ${pieces(f.read)} ${f.read === 1 ? 'has' : 'have'} come in since the first.`
-      : `A second check-in will show what changed. So far ${f.read} of the ${MIN_FEEDBACK_TO_MEASURE} pieces of new feedback that make a comparison worthwhile ${f.read === 1 ? 'has' : 'have'} come in.`;
+      : `A second check-in will show what changed. ${f.read} of the ${MIN_FEEDBACK_TO_MEASURE} new pieces of feedback needed to compare ${f.read === 1 ? 'has' : 'have'} come in so far.`;
   }
   if (f.read >= MIN_FEEDBACK_TO_MEASURE) {
     return `Worth a check-in now: ${pieces(f.read)} ${f.read === 1 ? 'has' : 'have'} come in since ${formatDate(latest.capturedAt)}, enough to show what changed.`;
@@ -816,7 +820,7 @@ function nextCheckFor(args: {
   if (days >= STALE_SNAPSHOT_DAYS) {
     return `Worth a check-in now: it has been ${days} days since your last one, even though only ${pieces(f.read)} ${f.read === 1 ? 'has' : 'have'} come in since.`;
   }
-  return `Not yet. ${f.read === 0 ? 'No new feedback has' : `${pieces(f.read)} ${f.read === 1 ? 'has' : 'have'}`} come in since your check-in on ${formatDate(latest.capturedAt)}; Headway will say when another check-in would show something new.`;
+  return `Not yet. ${f.read === 0 ? 'No new feedback has' : `${pieces(f.read)} ${f.read === 1 ? 'has' : 'have'}`} come in since your check-in on ${formatDate(latest.capturedAt)}. Headway will say when another check-in would show something new.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -855,11 +859,11 @@ function answerFor(args: {
         needsYou.length === 1
           ? top.state === 'DO_NOW'
             ? 'Yes — one thing needs a decision from you.'
-            : 'One thing to follow through on.'
+            : 'Yes — one thing to follow through on.'
           : `Yes — ${bits.join(', ')}.`,
       detail:
         watching.length > 0
-          ? `Headway is watching ${watching.length} other ${watching.length === 1 ? 'thing' : 'things'} for you; none of them needs you right now.`
+          ? `Headway is watching ${watching.length} other ${watching.length === 1 ? 'thing' : 'things'} for you. None of them needs you right now.`
           : 'Nothing else needs you.',
     };
   }
@@ -868,7 +872,7 @@ function answerFor(args: {
     return {
       state: 'WAITING_FOR_EVIDENCE',
       answer: 'Not enough feedback yet to say.',
-      detail: `Headway has read ${pieces(intel.evidence.analysed)} — enough to start looking, not enough to be sure of anything. Nothing is being recommended until more comes in.`,
+      detail: `Headway has read ${pieces(intel.evidence.analysed)} — enough to start looking, not enough to be sure of anything. It will not suggest anything until more comes in.`,
     };
   }
 

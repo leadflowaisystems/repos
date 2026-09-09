@@ -140,7 +140,7 @@ const PHRASES: Record<LanguageMix, OwnerPhrases> = {
       `mentioned ${n} ${n === 1 ? 'time' : 'times'} across all the feedback so far`,
     changedHeading: 'What changed between your last two check-ins:',
     recommendHeading: 'Recommended next step:',
-    basedOn: (n) => `Based on ${n} ${n === 1 ? 'review' : 'reviews'} we have read.`,
+    basedOn: (n) => `Based on ${n} ${n === 1 ? 'piece' : 'pieces'} of feedback we have read.`,
     nothingYet:
       'We have not read enough customer feedback yet to tell you anything useful. As soon as there is enough, this update will have real numbers in it.',
     tooEarly: (n) =>
@@ -217,7 +217,7 @@ const PHRASES: Record<LanguageMix, OwnerPhrases> = {
     mentions: (n) => `ab tak ki saari feedback mein ${n} baar bataya gaya`,
     changedHeading: 'Aapke pichhle do check-ins ke beech kya badla:',
     recommendHeading: 'Suggested next step:',
-    basedOn: (n) => `Humne padhi hui ${n} reviews ke aadhaar par.`,
+    basedOn: (n) => `Humne padhi hui ${n} feedback ke aadhaar par.`,
     nothingYet:
       'Abhi itni feedback nahi padhi gayi ki kuch useful bata sakein. Jaise hi kaafi ho jayegi, is update mein asli numbers honge.',
     tooEarly: (n) =>
@@ -295,7 +295,7 @@ const PHRASES: Record<LanguageMix, OwnerPhrases> = {
     mentions: (n) => `mentioned ${n} ${n === 1 ? 'time' : 'times'}`,
     changedHeading: 'What changed between your last two check-ins:',
     recommendHeading: 'Recommended next step:',
-    basedOn: (n) => `Based on ${n} ${n === 1 ? 'review' : 'reviews'} we have read.`,
+    basedOn: (n) => `Based on ${n} ${n === 1 ? 'piece' : 'pieces'} of feedback we have read.`,
     nothingYet:
       'We have not read enough customer feedback yet to tell you anything useful.',
     tooEarly: (n) => `So far we have read ${n} reviews — too few to draw conclusions from.`,

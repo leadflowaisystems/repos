@@ -34,7 +34,7 @@ function revalidateFor(clientId: string) {
 // --- the owner's side ---------------------------------------------------------
 
 /**
- * "Extend access" — which means ASK, and says so on the button that follows.
+ * Asking to continue — which means ASK, and says so on the button that follows.
  *
  * Phone required, email optional, and no name field: the person is signed in,
  * so Headway already knows which business is asking and carries the name from
@@ -76,13 +76,18 @@ export async function requestContinuationAction(
   }
 
   revalidateFor(clientId);
-  return success("Request received. Thank you. We'll contact you to arrange continued access.");
+  // "Request received." is the heading the form itself renders, so it is not
+  // repeated here. What is left says who does what next, and does not let the
+  // press read as access granted: asking is not extending.
+  return success(
+    "We'll contact you about continuing your Headway service. Nothing is charged automatically.",
+  );
 }
 
 // --- the platform's decisions -------------------------------------------------
 
 /**
- * Lock, unlock, override, or mark the demonstration business.
+ * Lock, unlock, open by hand, or mark the demo business.
  *
  * `adminGate` first, and the database asks again underneath: `repos_app` holds
  * no UPDATE privilege on any of the three columns, so a bug here cannot become
@@ -102,13 +107,15 @@ export async function setServiceAccessAction(
   if (!result.ok) return failure(result.message, result.errors);
 
   revalidateFor(clientId);
+  // "The trial dates are unchanged." is the fixed clause after anything that
+  // moves access, because that is the question somebody asks three months later.
   const said: Record<ServiceAccessAction, string> = {
     LOCK: 'Workspace locked. The trial dates are unchanged.',
     UNLOCK: 'Workspace unlocked.',
-    OVERRIDE: 'Access override applied. The trial dates are unchanged.',
-    CLEAR_OVERRIDE: 'Access override removed.',
-    EXEMPT_DEMO: 'Marked as the demonstration business.',
-    CLEAR_EXEMPTION: 'Exemption removed.',
+    OVERRIDE: 'Workspace opened by hand. The trial dates are unchanged.',
+    CLEAR_OVERRIDE: 'No longer opened by hand. The trial dates decide again.',
+    EXEMPT_DEMO: 'Marked as the demo business.',
+    CLEAR_EXEMPTION: 'No longer the demo business. It follows its trial dates again.',
   };
   return success(said[action] ?? 'Saved.');
 }

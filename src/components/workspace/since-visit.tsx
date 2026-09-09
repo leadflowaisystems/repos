@@ -15,23 +15,38 @@ import { sinceLabel } from '@/lib/retention/service';
  * cost to not returning, and any count that would still be here tomorrow.
  */
 
+/**
+ * The four readings, in the words the rest of the portal uses for them.
+ *
+ * The tail is the point: "after the change" puts the reading next to the
+ * change in time and stops there. The words this replaced — improved, got
+ * worse — read as a verdict on the change itself, which is more than counting
+ * mentions before and after can carry.
+ */
 const RESULT_WORD: Record<string, string> = {
-  IMPROVED: 'improved',
-  WORSENED: 'got worse',
-  NO_CLEAR_CHANGE: 'showed no clear change',
-  INSUFFICIENT_DATA: 'has not been mentioned enough to tell yet',
+  IMPROVED: 'Mentioned less often after the change.',
+  WORSENED: 'Mentioned more often after the change.',
+  NO_CLEAR_CHANGE: 'No clear difference after the change.',
+  INSUFFICIENT_DATA: 'Not enough feedback after the change.',
 };
 
 function arrivedLine(since: SinceLastVisit): string | null {
   if (since.arrived === 0) return null;
-  const items = since.arrived === 1 ? '1 customer' : `${since.arrived} customers`;
+  // Counted in pieces of feedback, not customers: this counts what arrived,
+  // and one customer can leave several.
+  const one = since.arrived === 1;
+  const items = one ? '1 piece of feedback' : `${since.arrived} pieces of feedback`;
   if (since.read >= since.arrived) {
-    return `${items} left feedback, and Headway has read all of it.`;
+    return one
+      ? `${items} came in, and Headway has read it.`
+      : `${items} came in, and Headway has read them all.`;
   }
   if (since.read === 0) {
-    return `${items} left feedback. Headway is reading it now.`;
+    return one
+      ? `${items} came in. Headway is reading it now.`
+      : `${items} came in. Headway is reading them now.`;
   }
-  return `${items} left feedback. ${since.read} read so far, the rest is being read now.`;
+  return `${items} came in. Headway has read ${since.read} so far and is reading the rest.`;
 }
 
 export function SinceVisit({
@@ -44,7 +59,9 @@ export function SinceVisit({
   const arrived = arrivedLine(since);
   const done =
     since.done > 0
-      ? `${since.done === 1 ? 'One improvement' : `${since.done} improvements`} moved to done.`
+      ? since.done === 1
+        ? 'One improvement is now done.'
+        : `${since.done} improvements are now done.`
       : null;
 
   return (
@@ -60,7 +77,7 @@ export function SinceVisit({
             href={`${basePath}/reviews`}
             className="inline-flex min-h-11 items-center font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
           >
-            Read what they said
+            Read the comments <span aria-hidden>→</span>
           </Link>
         </p>
       ) : null}
@@ -70,13 +87,12 @@ export function SinceVisit({
           {since.measured.map((m) => (
             <li key={m.id} className="text-[15px] leading-relaxed text-ink-900">
               Headway checked <span className="font-medium">{m.title}</span> against the feedback
-              that has come in since, and it{' '}
-              {RESULT_WORD[m.result] ?? 'has been measured'}.{' '}
+              that has come in since. {RESULT_WORD[m.result] ?? 'No result yet.'}{' '}
               <Link
                 href={`${basePath}/improvements`}
                 className="inline-flex min-h-11 items-center font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
               >
-                See the result
+                See the result <span aria-hidden>→</span>
               </Link>
             </li>
           ))}

@@ -128,14 +128,15 @@ describe('what the owner is told', () => {
       trialEndsAt: new Date(NOW.getTime() - DAY),
     });
     expect(state.trialExpired).toBe(true);
-    expect(state.line).toContain('still here');
+    expect(state.line).toBe('Your feedback and your history are safe.');
   });
 
-  it('explains a pause as "kept, not read" rather than as "stopped"', () => {
+  it('explains a pause as "still saved, not read" rather than as "stopped"', () => {
     const state = describeAccount({ ...base, subscriptionStatus: 'PAUSED' });
     expect(state.headline).toBe('Headway is paused');
-    expect(state.line).toContain('kept');
-    expect(state.line).toContain('not actively processing');
+    // Both halves, in that order: what survives, then what has stopped.
+    expect(state.line).toContain('still saved');
+    expect(state.line).toContain('not reading it');
   });
 
   it('never puts a figure, a plan or a currency in the sentence', () => {

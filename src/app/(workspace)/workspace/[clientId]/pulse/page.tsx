@@ -7,10 +7,11 @@ import { getWeeklyPulse } from '@/lib/reporting/service';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = { title: 'Weekly Pulse' };
+// The tab title says what the page says. Weekly Pulse is the code name.
+export const metadata: Metadata = { title: 'This week' };
 
 /**
- * Weekly Pulse.
+ * Weekly Pulse — "This week" to the owner.
  *
  * A period-scoped read of the same intelligence the rest of the workspace
  * uses. It stores nothing and computes nothing new — it counts the feedback

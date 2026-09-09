@@ -414,8 +414,8 @@ describe('missing data is handled without inventing anything', () => {
   });
 
   it('labels an unanalysed sentiment in plain words', () => {
-    expect(sentimentLabel('UNKNOWN')).toBe('Not analysed');
+    expect(sentimentLabel('UNKNOWN')).toBe('Not read yet');
     expect(sentimentLabel('MIXED')).toBe('Mixed');
-    expect(sentimentLabel('nonsense')).toBe('Not analysed');
+    expect(sentimentLabel('nonsense')).toBe('Not read yet');
   });
 });

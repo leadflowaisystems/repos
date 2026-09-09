@@ -23,11 +23,17 @@ import { HeadwayWordmark, HEADWAY_CUSTOMER_LINE } from '@/components/brand';
  * link-based portal is a read-only compatibility surface and never grew a team
  * page, so `extra` marks the sections that appear on one door and not the
  * other rather than being hidden by a role check the header cannot make.
+ *
+ * The `reviews` door is LABELLED "Feedback" on purpose. What it lists is
+ * private customer feedback, which this product promises is never posted
+ * publicly, so calling the door Reviews contradicted the promise on the one
+ * screen every page shows. The slug stays `reviews` because a URL is not copy
+ * and old links must keep working.
  */
 const SECTIONS = [
   { slug: '', label: 'Home', extra: false },
   { slug: 'analysis', label: 'Customers', extra: false },
-  { slug: 'reviews', label: 'Reviews', extra: false },
+  { slug: 'reviews', label: 'Feedback', extra: false },
   { slug: 'improvements', label: 'Improvements', extra: false },
   { slug: 'checkin', label: 'Check-in', extra: false },
   { slug: 'team', label: 'Team', extra: true },

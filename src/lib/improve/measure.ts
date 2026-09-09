@@ -23,18 +23,18 @@ import {
  *
  *  1. NO CAUSAL CLAIM, EVER. RepOS can say complaints fell after a change. It
  *     cannot say the change caused them to fall, because with one business, no
- *     control group and self-selected reviews, nobody could. Every sentence
+ *     control group and self-selected feedback, nobody could. Every sentence
  *     this module writes is "after", never "because".
  *
  *  2. SHARES, NOT RAW COUNTS. "9 mentions then, 2 now" means nothing if the
- *     first period held fifty reviews and the second held twelve. Both sides
- *     are shares of their own pile, and the counts are always printed with
- *     their denominator.
+ *     first window held fifty pieces of feedback and the second held twelve.
+ *     Both sides are shares of their own pile, and the counts are always
+ *     printed with their denominator.
  *
  *  3. INSUFFICIENT DATA IS THE DEFAULT. A verdict requires enough feedback on
  *     BOTH sides, using the same floor the health engine already applies to
- *     share claims. A theme that vanished from four new reviews has not
- *     improved; it has not been measured.
+ *     share claims. A theme that vanished from four new pieces of feedback has
+ *     not improved; it has not been measured.
  *
  * No model is involved in any of it.
  */
@@ -163,7 +163,7 @@ export function measureAction(input: MeasurementInput): Measurement {
     count: baseline.count,
     total: baseline.total,
     share: shareOf(baseline.count, baseline.total),
-    label: `everything read up to ${dateLabel(baseline.capturedAt)}, when the action was agreed`,
+    label: `everything read up to ${dateLabel(baseline.capturedAt)}, when the change was agreed`,
     line: evidenceLine(baseline.count, baseline.total),
     snapshotLabel: baseline.snapshotLabel,
   };
@@ -211,23 +211,23 @@ export function measureAction(input: MeasurementInput): Measurement {
     const why: string[] = [];
     if (thinBefore) {
       why.push(
-        `The baseline rests on ${before.total} read ${before.total === 1 ? 'review' : 'reviews'}, under the ${MIN_FEEDBACK_TO_MEASURE} Headway needs before quoting a share.`,
+        `Only ${before.total} ${before.total === 1 ? 'piece' : 'pieces'} of feedback had been read before the change, under the ${MIN_FEEDBACK_TO_MEASURE} Headway needs before it will give a percentage.`,
       );
     }
     if (thinAfter) {
       why.push(
         after.total === 0
           ? 'No new feedback has been read since the change was made.'
-          : `Only ${after.total} ${after.total === 1 ? 'review has' : 'reviews have'} come in since the change, under the ${MIN_FEEDBACK_TO_MEASURE} needed to compare.`,
+          : `Only ${after.total} ${after.total === 1 ? 'piece of feedback has' : 'pieces of feedback have'} come in since the change, under the ${MIN_FEEDBACK_TO_MEASURE} needed to compare.`,
       );
     }
 
     // The case that would flatter a business most, and is the least justified:
-    // the theme is absent from a handful of new reviews. Absence in a small
-    // sample is not improvement — it is silence.
+    // the theme is absent from a handful of new pieces of feedback. Absence in
+    // a small sample is not improvement — it is silence.
     if (thinAfter && after.count === 0 && after.total > 0) {
       why.push(
-        `${themeLabel} has not come up in those ${after.total}, but that is too little feedback to read as an improvement — it could equally be that nobody has mentioned it yet.`,
+        `${themeLabel} has not come up in those ${after.total}, but that is too little feedback to say it is coming up less — it may simply be that nobody has mentioned it yet.`,
       );
     }
 
@@ -249,15 +249,18 @@ export function measureAction(input: MeasurementInput): Measurement {
   const rose = (shareDelta ?? 0) > 0;
   const good = sentiment === 'ISSUE' ? !rose : rose;
 
+  // The before half must keep `before.line` intact as a substring: the operator
+  // panel hides any reason line that repeats it, because the Before card above
+  // already shows that figure.
   const comparison =
-    `${themeLabel} was ${before.line} ${before.label}. ` +
-    `It is ${after.line} in the ${after.label}.`;
+    `Before the change, customers mentioned ${themeLabel.toLowerCase()} in ${before.line} — everything read up to ${dateLabel(baseline.capturedAt)}. ` +
+    `Since the change on ${dateLabel(doneAt)}, they have mentioned it in ${after.line}.`;
 
   const why = [
     comparison,
     moved
-      ? `The share moved by ${formatShare(Math.abs(shareDelta as number))}, past the ${formatShare(MIN_SHARE_MOVE)} Headway needs before calling a direction.`
-      : `The share moved by ${formatShare(Math.abs(shareDelta ?? 0))}, under the ${formatShare(MIN_SHARE_MOVE)} Headway needs before calling a direction.`,
+      ? `The share moved by ${formatShare(Math.abs(shareDelta as number))}, past the ${formatShare(MIN_SHARE_MOVE)} Headway needs before it will say it went up or down.`
+      : `The share moved by ${formatShare(Math.abs(shareDelta ?? 0))}, under the ${formatShare(MIN_SHARE_MOVE)} Headway needs before it will say it went up or down.`,
   ];
 
   if (!moved) {

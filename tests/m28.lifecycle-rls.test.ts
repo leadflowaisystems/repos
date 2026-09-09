@@ -547,7 +547,14 @@ describe('the lock is on every protected page, mechanically', () => {
     session = { id: AUTH.alpha };
     const locked = await tenantGate(form, 'OWNER');
     expect(locked.ok).toBe(false);
-    if (!locked.ok) expect(locked.state.message).toContain('trial has ended');
+    // The refusal is the owner's own words, and it names no trial: the same
+    // lock covers a lapsed trial and a workspace closed by hand, whose dates
+    // are still good. Account is the page that knows which, so it sends them
+    // there rather than guessing.
+    if (!locked.ok)
+      expect(locked.state.message).toBe(
+        'Your Headway workspace is closed for now. Your feedback and your history are safe. Go to Account and ask to continue.',
+      );
 
     // ...but the one action that must keep working still does.
     const allowed = await tenantGate(form, 'OWNER', 'clientId', { allowLocked: true });
@@ -591,7 +598,7 @@ describe('the Account page answers the seven questions', () => {
     // Labelled rows, each one a separate fact.
     expect(code).toContain("label: 'Trial started'");
     expect(code).toContain("'Trial ended' : 'Trial ends'");
-    expect(code).toContain("label: 'Days remaining'");
+    expect(code).toContain("label: 'Days left'");
     expect(code).toContain("label: 'Status'");
     // From the business's own row, through the shared lifecycle.
     expect(code).toContain('lifecycle.trialStartsAt');
@@ -610,11 +617,11 @@ describe('the Account page answers the seven questions', () => {
 
   it('says the locked words, and offers the one thing that helps', () => {
     const code = page();
-    expect(code).toContain('Your Headway trial has ended.');
+    expect(code).toContain("'Your Headway trial has ended'");
     expect(code).toContain(
-      'Your customer intelligence and improvement workspace is ready when you continue your Headway service.',
+      'Your feedback and your history are safe. Your workspace opens again when you continue your Headway service.',
     );
-    expect(code).toContain('Continue service');
+    expect(code).toContain('Ask to continue');
     expect(code).toContain('Nothing is charged');
   });
 
@@ -622,8 +629,8 @@ describe('the Account page answers the seven questions', () => {
     const code = page();
     expect(code).toContain("lifecycle.state === 'DEMO_EXEMPT'");
     expect(code).toContain("lifecycle.state === 'ACTIVE_SERVICE'");
-    expect(code).toContain("value: 'Demonstration workspace'");
-    expect(code).toContain("value: 'Headway, active'");
+    expect(code).toContain("value: 'Headway demo'");
+    expect(code).toContain("value: 'Headway'");
   });
 
   it('shows how to reach Headway, and builds no deep link to do it', () => {

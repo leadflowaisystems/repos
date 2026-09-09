@@ -179,7 +179,9 @@ describe('customers is a signal board', () => {
     ordered(page, ["key: 'NEEDS_YOU'", "key: 'WATCHING'", "key: 'PROTECT'", "key: 'EARLY'"]);
     expect(board).toContain("NEEDS_YOU: 'Needs you'");
     expect(board).toContain("WATCHING: 'Watching'");
-    expect(board).toContain("PROTECT: 'Protect'");
+    // The key stays PROTECT, but the word an owner reads is the one Home uses
+    // for the same pile: one pile, one name.
+    expect(board).toContain("PROTECT: 'Going well'");
     expect(board).toContain("EARLY: 'Not yet clear'");
   });
 
@@ -191,7 +193,7 @@ describe('customers is a signal board', () => {
       "issue ? 'What to do' : 'What to protect'",
       '<Row label="Why">',
       '<Row label="Headway will check next">',
-      '<Row label="Source">',
+      '<Row label="What Headway based this on">',
     ]);
     // The taps are counted by the view, never by the component.
     expect(board).toContain('{s.tapped ? (');
@@ -217,15 +219,25 @@ describe('reviews reads as evidence, not an inbox', () => {
   const page = code(read('src', 'components', 'workspace', 'reviews.tsx'));
 
   it('opens with the transformation Headway made of the pile', () => {
-    ordered(page, ['function Funnel(', 'pieces read', 'recurring signal', 'isolated mention', 'needs attention']);
+    ordered(page, [
+      'function Funnel(',
+      "funnel.read === 1 ? 'piece of feedback read' : 'pieces of feedback read'",
+      "funnel.signals === 1 ? 'pattern' : 'patterns'",
+      "funnel.isolated === 1 ? 'topic mentioned once or twice' : 'topics mentioned once or twice'",
+      'needs attention',
+    ]);
     expect(page.indexOf('<Funnel funnel={view.funnel} base={base} />')).toBeLessThan(page.indexOf('<StatusStrip'));
   });
 
   it('lets the owner see only the evidence behind one signal', () => {
     expect(page).toContain('function SignalChips(');
     expect(page).toContain('What Headway based this on');
-    expect(page).toContain('Evidence for {activeSignal.label.toLowerCase()}');
-    expect(page).toContain('this is what Headway based it on');
+    expect(page).toContain('Comments about {activeSignal.label.toLowerCase()}');
+    // And it says the ones on top were chosen, not simply the first three — in
+    // both numbers, because one comment is a comment.
+    expect(page).toContain(
+      "items.length === 1 ? 'The clearest one is first.' : 'The clearest ones are first.'",
+    );
   });
 
   it('leads with representative comments and keeps the whole pile one tap away', () => {
@@ -239,7 +251,7 @@ describe('reviews reads as evidence, not an inbox', () => {
   });
 
   it('keeps the raw list, the search and the charts, under the intelligence', () => {
-    ordered(page, ['<SignalChips', '<RatingStrip', 'What Headway found in them', 'Search and filter', '<ReviewRow key={item.id} item={item} />']);
+    ordered(page, ['<SignalChips', '<RatingStrip', 'What Headway found', 'Search and filter', '<ReviewRow key={item.id} item={item} />']);
   });
 });
 
@@ -250,7 +262,7 @@ describe('improvements reads as memory', () => {
   it('tells three moments, then what happened, what it means and what to do now', () => {
     ordered(story, [
       'label="The problem"',
-      "declined ? 'Not pursued' : 'You changed'",
+      "declined ? 'Not doing' : 'You changed'",
       'label="Headway checked again"',
       'What happened',
       'What this means',
@@ -260,8 +272,8 @@ describe('improvements reads as memory', () => {
     expect(story).toMatch(/text-\[34px\][^"]*sm:text-\[40px\]/);
   });
 
-  it('keeps why, the evidence and the original suggestion one tap away', () => {
-    ordered(story, ['summary="Why?"', 'summary="Show evidence"', 'summary="What was recommended?"']);
+  it('keeps the numbers, the evidence and how it started one tap away', () => {
+    ordered(story, ['summary="Show the numbers"', 'summary="Show evidence"', 'summary="How this started"']);
     expect(story).toContain('{outcome.caveat || outcome.note}');
     expect(page).toContain('<ImprovementStory');
     expect(page).not.toContain('<ActionStory');
@@ -292,9 +304,14 @@ describe('the check-in is a pulse', () => {
 });
 
 describe('the utility pages stay quiet', () => {
-  it('sections the account into service, activity and carrying on', () => {
+  it('sections the account into service, activity and continuing with Headway', () => {
     const page = code(read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'account', 'page.tsx'));
-    ordered(page, ['eyebrow="Your Headway service"', 'eyebrow="Your Headway activity"', 'eyebrow="Carrying on"']);
+    ordered(page, ['eyebrow="Your Headway service"', 'eyebrow="Your Headway activity"']);
+    // The same offer is made in two states — locked, above the facts, and
+    // mid-trial, under them — so both sections carry one eyebrow. The one this
+    // page ends on is the one after the activity.
+    const afterActivity = page.slice(page.indexOf('eyebrow="Your Headway activity"'));
+    expect(afterActivity).toContain('eyebrow="Continuing with Headway"');
     expect(page).toContain("import { activityFacts } from '@/lib/portal/focus'");
     expect(page).not.toMatch(/₹|per month|pricing/i);
   });

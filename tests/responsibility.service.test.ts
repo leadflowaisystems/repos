@@ -162,7 +162,7 @@ describe('the loop, end to end', () => {
     // Suggested: still the owner's decision.
     let r = await responsibility(id);
     expect(r.state).toBe('DO_NOW');
-    expect(r.needsYou[0]?.recommendedNextStep).toBe('Headway has suggested a change for this. It is waiting on your decision.');
+    expect(r.needsYou[0]?.recommendedNextStep).toBe('Decide whether to make this change and tell us.');
 
     // Agreed: follow through.
     const agreed = await decideAction(
@@ -205,7 +205,7 @@ describe('the loop, end to end', () => {
     expect(r.state).toBe('CLEAR');
     const item = r.watching.find((i) => i.themeKey === 'wait_time');
     expect(item?.state).toBe('WATCH');
-    expect(item?.thread.find((s) => s.key === 'decided')?.text).toBe('Not to pursue this. Not this quarter.');
+    expect(item?.thread.find((s) => s.key === 'decided')?.text).toBe('Not to make this change. Not this quarter.');
   });
 });
 

@@ -91,7 +91,7 @@ describe('the headline', () => {
   it('names the one thing worth attention, and rests it on the pile', () => {
     const { focus } = build();
     expect(focus.headline).toBe('Long waiting time is the one thing worth your attention.');
-    expect(focus.basis).toBe('Based on 50 pieces of feedback we have read.');
+    expect(focus.basis).toBe('Based on 50 pieces of feedback Headway has read.');
     expect(focus.theme).toEqual({ key: 'wait_time', label: 'Long waiting time', kind: 'ISSUE' });
     expect(focus.state).toBe('DO_NOW');
   });
@@ -109,7 +109,7 @@ describe('the headline', () => {
     );
     expect(quiet.focus.proofs).toEqual([]);
     expect(quiet.focus.cta?.label).toBe('See what is going well');
-    expect(quiet.focus.next?.headline).toMatch(/^Nothing to do\. Keep doing what customers describe/);
+    expect(quiet.focus.next?.headline).toMatch(/^Nothing to do\. Keep doing what customers praise you for/);
   });
 
   it('says so when there is nothing to go on, and manufactures nothing', () => {
@@ -137,18 +137,18 @@ describe('the proofs', () => {
     expect(share?.label).toBe('18% of feedback');
     expect(share?.detail).toBe('9 of the 50 pieces of feedback Headway has read mention it.');
     expect(share?.quotes.map((q) => q.id)).toEqual(['w1', 'w2']);
-    expect(share?.seeAll).toEqual({ label: 'See all 9', href: `${BASE}/reviews?theme=wait_time` });
+    expect(share?.seeAll).toEqual({ label: 'See all 9 mentions', href: `${BASE}/reviews?theme=wait_time` });
     expect(share?.tone).toBe('bad');
   });
 
   it('shows the two piles of a measured change, and their reading, without a cause', () => {
     const { focus } = build({ portal: { actions: [action('MEASURED', 'WORSENED')] } });
     const outcome = focus.proofs.find((p) => p.key === 'outcome');
-    expect(outcome?.label).toBe('More often after your change');
+    expect(outcome?.label).toBe('More often after the change');
     expect(outcome?.tone).toBe('bad');
     expect(outcome?.population?.before).toMatchObject({ count: 9, total: 50, share: '18%' });
     expect(outcome?.population?.after).toMatchObject({ count: 12, total: 30, share: '40%' });
-    expect(outcome?.population?.reading).toBe('More often after the change');
+    expect(outcome?.population?.reading).toBe('Mentioned more often after the change');
     expect(outcome?.population?.caveat).toMatch(/cannot show that the change caused/);
     expect(text(focus)).not.toMatch(CAUSAL);
     expect(text(focus)).not.toMatch(INTERNALS);
@@ -161,9 +161,9 @@ describe('the proofs', () => {
     expect(focus.synthesis).toMatch(/Long waiting time is still mentioned, but it has come up less often since your change\.$/);
     expect(focus.cta).toEqual({ label: 'See what changed', href: `${BASE}/analysis?open=wait_time#signal-wait_time` });
     const outcome = focus.proofs.find((p) => p.key === 'outcome');
-    expect(outcome?.label).toBe('Less often after your change');
+    expect(outcome?.label).toBe('Less often after the change');
     expect(outcome?.tone).toBe('good');
-    expect(outcome?.population?.reading).toBe('Less often after the change');
+    expect(outcome?.population?.reading).toBe('Mentioned less often after the change');
     const direct = proofsFor(view.unhappy.find((s) => s.themeKey === 'wait_time')!, view, EVIDENCE, BASE);
     expect(direct.map((p) => p.key)).toEqual(['share', 'outcome']);
   });
@@ -177,7 +177,7 @@ describe('the proofs', () => {
       checkins: [checkin('s2', new Date(2026, 4, 1)), checkin('s1', new Date(2026, 2, 1))],
     });
     const movement = compared.focus.proofs.find((p) => p.key === 'movement');
-    expect(movement?.label).toBe('More at your latest check-in');
+    expect(movement?.label).toBe('More often at your latest check-in');
     expect(movement?.comparison).toBe('3 → 9 mentions at your last two check-ins');
     expect(movement?.tone).toBe('bad');
   });
@@ -200,7 +200,7 @@ describe('what Headway wants you to know, and the next step', () => {
     // The quotes live on the share chip and nowhere else in the block.
     expect('evidence' in focus).toBe(false);
     const share = focus.proofs.find((p) => p.key === 'share');
-    expect(share?.seeAll).toEqual({ label: 'See all 9', href: `${BASE}/reviews?theme=wait_time` });
+    expect(share?.seeAll).toEqual({ label: 'See all 9 mentions', href: `${BASE}/reviews?theme=wait_time` });
   });
 
   it("recommends the pack's own advice when nothing has been tried", () => {
@@ -227,7 +227,7 @@ describe('what Headway wants you to know, and the next step', () => {
     const { focus, r } = build({ portal: { actions: [action('ACCEPTED')] } });
     expect(r.needsYou[0]?.state).toBe('FOLLOW_UP');
     expect(focus.headline).toBe('The change you agreed for long waiting time has not been made yet.');
-    expect(focus.next?.headline).toMatch(/^Tell us once the change is in place/);
+    expect(focus.next?.headline).toMatch(/^Tell us once the change is made/);
   });
 });
 
@@ -267,9 +267,9 @@ describe('the account activity', () => {
     const { r, view } = build({ portal: { actions: [action('MEASURED', 'WORSENED')] } });
     expect(activityFacts(view, r, BASE)).toEqual([
       { label: 'Pieces of feedback read', value: '50', href: `${BASE}/reviews` },
-      { label: 'Recurring signals', value: '4', href: `${BASE}/analysis` },
-      { label: 'Active issue', value: '1', href: BASE },
-      { label: 'Improvement compared', value: '1', href: `${BASE}/improvements` },
+      { label: 'What keeps coming up', value: '4', href: `${BASE}/analysis` },
+      { label: 'Issue that needs you', value: '1', href: BASE },
+      { label: 'Change compared', value: '1', href: `${BASE}/improvements` },
     ]);
   });
 
@@ -296,7 +296,7 @@ describe('the population behind a before/after', () => {
     const population = populationFrom(outcome!, view.actions[0] ?? null);
     expect(population?.before).toMatchObject({ count: 9, total: 50, share: '18%' });
     expect(population?.after).toMatchObject({ count: 6, total: 30, share: '20%' });
-    expect(population?.reading).toBe('No clear change after the change');
+    expect(population?.reading).toBe('No clear difference after the change');
     expect(population?.tone).toBe('neutral');
     expect(population?.changeDate?.getTime()).toBe(new Date(2026, 3, 1).getTime());
   });

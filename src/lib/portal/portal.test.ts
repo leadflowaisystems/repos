@@ -63,10 +63,10 @@ describe('the picture', () => {
   it('names the comparison when it says the weakness eased since the change', () => {
     const v = buildPortalView(input({ actions: [action('MEASURED', 'IMPROVED')] }));
     expect(v.summary).toMatch(
-      /The clearest weakness is still long waiting time, although it has come up less in the feedback after your change\.$/,
+      /The clearest weakness is still long waiting time, although it has come up less in the feedback after the change\.$/,
     );
     const worse = buildPortalView(input({ actions: [action('MEASURED', 'WORSENED')] }));
-    expect(worse.summary).toMatch(/and it has come up more in the feedback after your change\.$/);
+    expect(worse.summary).toMatch(/and it has come up more in the feedback after the change\.$/);
   });
 
   it('reads a plural pack label naturally in the picture', () => {
@@ -85,7 +85,7 @@ describe('the picture', () => {
     const v = buildPortalView(
       input({ intelligence: intel({ pulse: pulseWith({ waitThen: 9, waitNow: 9, careThen: 4, careNow: 9 }) }) }),
     );
-    expect(v.summary).toMatch(/^Customers are increasingly praising your doctor's care and explanation\./);
+    expect(v.summary).toMatch(/^Customers are praising your doctor's care and explanation more than before\./);
   });
 
   it('is honest when there is almost nothing to go on', () => {
@@ -142,10 +142,10 @@ describe('priorities come from the engine, not from raw counts', () => {
     const v = buildPortalView(input({ intelligence: both }));
     expect(v.first?.counterpart?.themeKey).toBe('short_wait');
     expect(v.first?.meaning).toMatch(
-      /^Little or no waiting is mostly a strength — 8 comments praised it — but 9 comments said the opposite\./,
+      /^Little or no waiting is mostly a strength — 8 comments praised it\. But 9 comments said the opposite\./,
     );
     expect(v.keep?.counterpart?.themeKey).toBe('wait_time');
-    expect(v.keep?.meaning).toMatch(/Not universal: 9 comments said the opposite — long waiting time\./);
+    expect(v.keep?.meaning).toMatch(/Not everyone agrees: 9 comments said the opposite — long waiting time\./);
   });
 
   it('never invents a counterpart the pack did not declare', () => {
@@ -157,7 +157,11 @@ describe('priorities come from the engine, not from raw counts', () => {
   it('holds rather than pushes when the leading complaint is easing on its own', () => {
     const v = buildPortalView(input({ intelligence: intel({ pulse: pulseWith({ waitThen: 9, waitNow: 3 }) }) }));
     expect(v.first?.advice).toBe('HOLD');
-    expect(v.first?.nextStep).toMatch(/^It is coming up less on its own, so decide whether to act now or wait\. If it climbs again, start here:/);
+    // "Coming up less on its own" now sits in the advice label beside the next step,
+    // so the next step gives the decision instead of saying the movement twice. The
+    // reading still has to be on the card, so assert both halves, not just the step.
+    expect(v.first?.adviceLabel).toBe('Coming up less on its own');
+    expect(v.first?.nextStep).toMatch(/^Decide whether to act now or wait\. If it comes up more again, start here:/);
   });
 });
 
@@ -166,7 +170,7 @@ describe('priorities come from the engine, not from raw counts', () => {
 describe('every theme carries its layers, kept apart', () => {
   it('states the fact with its denominator', () => {
     const v = buildPortalView(input());
-    expect(v.first?.fact).toBe('9 of the 50 pieces of feedback we have read mention it.');
+    expect(v.first?.fact).toBe('9 of the 50 pieces of feedback Headway has read mention it.');
     expect(v.first?.share).toBe('18%');
   });
 
@@ -188,7 +192,7 @@ describe('every theme carries its layers, kept apart', () => {
     const v = buildPortalView(input());
     expect(v.watch[0]?.advice).toBe('WATCH');
     expect(v.watch[0]?.brief).toBe('Raised often enough to be a pattern, but not the complaint that needs you first.');
-    expect(v.watch[0]?.nextStep).toMatch(/^No action needed yet\. If you want to get ahead of it, the usual fix is:/);
+    expect(v.watch[0]?.nextStep).toMatch(/^No change needed yet\. If you want to get ahead of it, the usual fix is:/);
   });
 
   it('carries the owner\'s decision and the reading on the theme, naming both piles and the change date', () => {
@@ -199,24 +203,24 @@ describe('every theme carries its layers, kept apart', () => {
     expect(v.first?.outcome?.beforeShare).toBe('18%');
     expect(v.first?.outcome?.afterShare).toBe('7%');
     expect(v.first?.outcome?.beforeScope).toBe(`Feedback read up to ${formatDate(new Date(2026, 2, 1))}`);
-    expect(v.first?.outcome?.afterScope).toBe(`Feedback after the change, recorded ${changed}`);
+    expect(v.first?.outcome?.afterScope).toBe(`Feedback after the change you made on ${changed}`);
     expect(v.first?.outcome?.resultLabel).toBe('Mentioned less often after the change');
     expect(v.first?.outcome?.note).toBe('This does not show the change caused the difference.');
     expect(v.first?.advice).toBe('KEEP_CHANGE');
     expect(v.first?.brief).toBe(
-      `In the feedback after your change on ${changed} it has come up less often (18% of feedback before, 7% after), but it is still the complaint Headway would watch most closely.`,
+      `In the feedback after the change on ${changed}, it has come up less often (18% of feedback before, 7% after), but it is still the complaint Headway would watch most closely.`,
     );
     expect(v.first?.meaning).toMatch(/This does not show the change caused the difference\.$/);
-    expect(v.first?.nextStep).toMatch(/^Nothing in the feedback after the change says to undo it\./);
+    expect(v.first?.nextStep).toMatch(/^Nothing in the feedback after the change says you should undo it\./);
   });
 
   it('asks the owner to look again, not to undo, when a theme came up more after a change', () => {
     const v = buildPortalView(input({ actions: [action('MEASURED', 'WORSENED')] }));
     expect(v.first?.advice).toBe('REVIEW_CHANGE');
-    expect(v.first?.brief).toMatch(/^In the feedback after your change on .* it has come up more often \(18% of feedback before, 40% after\)\.$/);
+    expect(v.first?.brief).toMatch(/^In the feedback after the change on .*, it has come up more often \(18% of feedback before, 40% after\)\.$/);
     expect(v.first?.meaning).toMatch(/This does not show the change caused the difference\. Worth looking at again\.$/);
     expect(v.first?.nextStep).toMatch(
-      /^It came up more often in the feedback after the change\. That does not show the change caused it — before undoing anything, check what else changed\./,
+      /^It came up more often in the feedback after the change\. That does not show the change caused it\. Check what else changed before undoing anything\./,
     );
     expect(v.first?.nextStep).toMatch(/The original suggestion still stands:/);
     expect(v.first?.outcome?.resultLabel).toBe('Mentioned more often after the change');
@@ -249,7 +253,7 @@ describe('every theme carries its layers, kept apart', () => {
   it('keeps a declined suggestion on record without repeating the decision', () => {
     const v = buildPortalView(input({ actions: [action('DECLINED')] }));
     expect(v.first?.actionState).toBe('DECLINED');
-    expect(v.first?.actionLine).toBe('You decided not to pursue this.');
+    expect(v.first?.actionLine).toBe('You decided not to make this change.');
     expect(v.first?.nextStep).toBe('The suggestion stays on record in case it comes up again.');
   });
 
@@ -264,20 +268,20 @@ describe('every theme carries its layers, kept apart', () => {
       input({ intelligence: intel({ pulse: pulseAfterChange({ waitThen: 3, waitNow: 9 }) }), actions: [action('MEASURED', 'IMPROVED')] }),
     );
     expect(after.first?.returning).toBe(true);
-    expect(after.first?.meaning).toMatch(/starting to come up more again/);
-    expect(after.first?.nextStep).toMatch(/earlier conditions have returned/);
+    expect(after.first?.meaning).toMatch(/but it is coming up more again/);
+    expect(after.first?.nextStep).toMatch(/check what else has changed before you make another change/);
     expect(after.actions[0]?.sinceThen).toMatch(/^At check-ins after the change: 3 mentions/);
-    expect(after.watching.find((w) => w.themeKey === 'wait_time')?.state).toBe('coming back');
+    expect(after.watching.find((w) => w.themeKey === 'wait_time')?.state).toBe('coming up again');
   });
 
   it('calls praise early rather than a strength until six comments agree', () => {
     const v = buildPortalView(input());
     expect(v.early[0]?.themeKey).toBe('staff_friendly');
     expect(v.early[0]?.brief).toBe(
-      'Positive, and mentioned by a few customers, but not yet often enough to call it a strength.',
+      'This has been praised a few times, but not often enough yet to call it a strength.',
     );
     expect(v.early[0]?.advice).toBe('WAIT');
-    expect(v.early[0]?.watchLine).toMatch(/calls it one once 6 comments have/);
+    expect(v.early[0]?.watchLine).toMatch(/It needs 6 comments before it says so/);
   });
 
   it('does not call a theme new when it had mentions at the check-in before', () => {
@@ -313,16 +317,16 @@ describe('the invisible work, the watch list and the one question', () => {
   it('watches the first and the keep themes with full sentences, without repeating the watch rows', () => {
     const v = buildPortalView(input());
     expect(v.watching.map((w) => w.themeKey)).toEqual(['wait_time', 'doctor_care', null]);
-    expect(v.watching[0]?.next).toMatch(/^Headway is checking whether long waiting time comes up more or less at your next check-in, and will flag a move of 2 or more mentions\./);
+    expect(v.watching[0]?.next).toMatch(/^Headway is checking whether long waiting time comes up more or less at your next check-in, and will flag it if the count moves by 2 or more mentions\./);
     expect(v.watching[1]?.next).toMatch(/will flag it if the praise drops by 2 or more/);
     expect(v.watching[2]?.label).toBe('Friendly, helpful staff');
-    expect(v.watch[0]?.watchLine).toMatch(/will flag a move of 2 or more mentions/);
+    expect(v.watch[0]?.watchLine).toMatch(/will flag it if the count moves by 2 or more mentions/);
   });
 
   it('keeps watching a change that is waiting for feedback', () => {
     const v = buildPortalView(input({ actions: [action('DONE')] }));
     expect(v.watching[0]?.state).toBe('change in progress');
-    expect(v.watching[0]?.next).toMatch(/^Headway is waiting for feedback that arrives after your change/);
+    expect(v.watching[0]?.next).toMatch(/^Headway is waiting for the feedback that comes in after the change, so it can compare how often long waiting time comes up\./);
   });
 
   it('asks the one question the pack has for the leading complaint, only before anything is tried, without claiming to have read the answer', () => {
@@ -330,7 +334,7 @@ describe('the invisible work, the watch list and the one question', () => {
     expect(v.question?.themeKey).toBe('wait_time');
     expect(v.question?.options).toHaveLength(3);
     expect(v.question?.why).toBe(
-      '9 comments mention long waiting time. Headway cannot tell from the feedback alone which of these fits best, and it shapes what to try first.',
+      '9 comments mention long waiting time. Headway cannot tell from the feedback alone which of these fits. Your answer decides what to try first.',
     );
     expect(buildPortalView(input({ actions: [action('ACCEPTED')] })).question).toBeNull();
     expect(buildPortalView(input({ actions: [action('DECLINED')] })).question).toBeNull();
@@ -339,7 +343,7 @@ describe('the invisible work, the watch list and the one question', () => {
   it('says plainly what is not worth the owner\'s time, once', () => {
     const v = buildPortalView(input());
     expect(v.noAction).toBe(
-      'Nothing else needs your attention first. Friendly, helpful staff has come up, but not often enough to act on yet. 1 other topic was mentioned once or twice. Headway is not recommending action on any of these until more customers raise them.',
+      'Nothing else comes ahead of what is listed above. Friendly, helpful staff has come up, but not often enough to act on yet. 1 other topic was mentioned once or twice. Headway is not suggesting a change for any of these until they come up more often.',
     );
     expect(v.quietNote).toBe('1 other topic was mentioned once or twice — not enough to call a pattern.');
     expect(v.limits.some((l) => /once or twice/.test(l))).toBe(false);
@@ -377,6 +381,6 @@ describe('the improvement loop, told end to end', () => {
   it('is versioned and stable for the same input', () => {
     expect(buildPortalView(input())).toEqual(buildPortalView(input()));
     expect(buildPortalView(input()).version).toBe(PORTAL_VERSION);
-    expect(PORTAL_VERSION).toBe(3);
+    expect(PORTAL_VERSION).toBe(4);
   });
 });

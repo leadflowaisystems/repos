@@ -167,7 +167,7 @@ function composeSentiment(
   rating: Polarity,
 ): { sentiment: Sentiment; reason: string } {
   if (text === 'MIXED') {
-    return { sentiment: 'MIXED', reason: 'Positive and negative in one review.' };
+    return { sentiment: 'MIXED', reason: 'Positive and negative in the same comment.' };
   }
   if (text === 'NONE') {
     if (rating === 'NONE') {
@@ -223,9 +223,9 @@ function gradeConfidence(input: {
     };
   }
   if (themeCount >= 2 || agrees || (method === 'AI' && textLength >= 40)) {
-    return { confidence: 'HIGH', reason: 'Several clear signals point the same way.' };
+    return { confidence: 'HIGH', reason: 'Several things point the same way.' };
   }
-  return { confidence: 'MEDIUM', reason: 'One clear signal.' };
+  return { confidence: 'MEDIUM', reason: 'Only one thing points this way.' };
 }
 
 export type NormalizeInput = {
@@ -291,17 +291,23 @@ export function normalizeFeedback(input: NormalizeInput): NormalizedFeedback {
   };
 }
 
-/** Human labels used across the UI. No model or provider jargon. */
+/**
+ * Human labels used across the UI. No model or provider jargon.
+ *
+ * UNKNOWN is not a tone, it is the absence of one, so it says what actually
+ * happened: Headway has not read this piece of feedback yet. "Analysed" is
+ * the code's word for that work; "read" is the word every screen uses.
+ */
 export const SENTIMENT_LABELS: Record<Sentiment, string> = {
   POSITIVE: 'Positive',
   NEGATIVE: 'Negative',
   MIXED: 'Mixed',
   NEUTRAL: 'Neutral',
-  UNKNOWN: 'Not analysed',
+  UNKNOWN: 'Not read yet',
 };
 
 export function sentimentLabel(value: string): string {
-  return SENTIMENT_LABELS[value as Sentiment] ?? 'Not analysed';
+  return SENTIMENT_LABELS[value as Sentiment] ?? 'Not read yet';
 }
 
 export const LANGUAGE_LABELS_UI: Record<LanguageCode, string> = {

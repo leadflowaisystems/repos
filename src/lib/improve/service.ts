@@ -1,5 +1,6 @@
 import type { ImprovementAction, PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import { formatDate } from '@/lib/format';
 import { getPackOrFallback, type Pack } from '@/lib/packs';
 import { createMinute } from '@/lib/minutes/service';
 import { loadIntelligence } from '@/lib/intelligence/service';
@@ -480,7 +481,9 @@ export async function moveAction(
       new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
 
     if (day(doneAt) < day(current.baseline.capturedAt)) {
-      const agreed = current.baseline.capturedAt.toISOString().slice(0, 10);
+      // House date format, never ISO: this sentence sits beside date fields
+      // that already read "15 Jun 2026".
+      const agreed = formatDate(current.baseline.capturedAt);
       return err('Some fields need attention.', {
         occurredAt: `This action was agreed on ${agreed}, so the change cannot have been made before then.`,
       });

@@ -182,7 +182,7 @@ describe('the team page tells the truth about email', () => {
   it('claims "sent" only on the delivery result, never on the invitation existing', () => {
     expect(action).toContain('delivery.sent');
     expect(action).toMatch(/delivery\.sent\s*\n?\s*\?\s*`Invitation email sent to/);
-    expect(action).toMatch(/but no email was sent\. \$\{delivery\.reason\}/);
+    expect(action).toMatch(/The email did not go out\. \$\{delivery\.reason\}/);
   });
 
   it('no longer says Headway does not send email', () => {

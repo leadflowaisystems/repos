@@ -100,11 +100,12 @@ export function HeadwayWordmark({
 /**
  * The line under the name, used once per surface at most.
  *
- * It is a promise about behaviour, not a slogan about outcomes: Headway reads,
- * decides what matters, and remembers what changed. Kept out of the wordmark
+ * It is a promise about behaviour, not a slogan about outcomes: Headway reads
+ * and says what matters, the owner decides what to change. Naming both jobs is
+ * what keeps it out of promising better ratings. Kept out of the wordmark
  * itself so it never appears twice on one screen.
  */
-export const HEADWAY_TAGLINE = 'Insights. Action. Progress.';
+export const HEADWAY_TAGLINE = 'Headway reads what customers say. You decide what to change.';
 
 /** What the customer-facing surfaces say. The customer is the one leading. */
 export const HEADWAY_CUSTOMER_LINE = 'Customers lead the way.';

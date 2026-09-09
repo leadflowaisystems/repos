@@ -452,7 +452,7 @@ describe('the stored trialEndsAt stays the source of truth for the account', () 
     expect(after?.phase).toBe('TRIAL_ENDED');
     expect(after?.trialExpired).toBe(true);
     expect(after?.headline).toBe('Your trial has ended');
-    expect(after?.line).toBe('Your Headway workspace and history are still here.');
+    expect(after?.line).toBe('Your feedback and your history are safe.');
   });
 
   it('describes the account from the dates it is handed and has no way to read a setting', async () => {

@@ -56,8 +56,12 @@ function NextCheck({
   return (
     <div>
       {since ? <p className="text-[13px] leading-relaxed text-ink-600">{since}</p> : null}
+      {/* No run-in label here. The eyebrow above already says "Your next
+          check-in" and most of these sentences name the check-in again, so a
+          bold "Next check-in." in front of them was the page saying one thing
+          twice. The rule down the left carries the break instead. */}
       <p className="mt-2 border-l-2 border-ink-300 pl-3 text-[13px] leading-relaxed text-ink-700">
-        <span className="font-medium text-ink-900">Next check.</span> {r.nextUsefulCheck}
+        {r.nextUsefulCheck}
       </p>
       <Link
         href={`${basePath}/checkin`}
@@ -111,7 +115,7 @@ export async function PortalHome({
   const alsoNeedsYou = r.needsYou.slice(1);
   const signalByTheme = new Map([...view.loved, ...view.unhappy].map((s) => [s.themeKey, s]));
 
-  // Before anything is a pattern, the current signals ARE the news: what the
+  // Before anything is a pattern, the early mentions ARE the news: what the
   // first customers said, counted, and marked as not-yet-a-pattern. Once
   // patterns exist they take the stage and the full count lives on Customers.
   const named = view.loved.length + view.unhappy.length > 0;
@@ -156,10 +160,7 @@ export async function PortalHome({
           ) : null}
 
           {showSoFar ? (
-            <Section
-              eyebrow="What customers are mentioning so far"
-              note="Current signals, not conclusions"
-            >
+            <Section eyebrow="What customers are mentioning so far" note="Counts, not conclusions">
               <SoFar soFar={view.soFar} basePath={basePath} />
             </Section>
           ) : null}
@@ -171,11 +172,10 @@ export async function PortalHome({
           ) : null}
 
           {view.basedOn === 0 && !reading ? (
-            <Section eyebrow="What customers are telling you">
+            <Section eyebrow="Nothing yet">
               <Quiet>
-                Your first customer signals will appear here. Headway is ready — once feedback
-                starts arriving through your QR code, this page will say what matters and whether
-                anything needs you.
+                Nothing has come in yet. Once customers leave feedback through your QR code, this
+                page will say what matters and whether anything needs you.
               </Quiet>
             </Section>
           ) : null}

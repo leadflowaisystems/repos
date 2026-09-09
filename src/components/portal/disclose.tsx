@@ -16,7 +16,7 @@ import { formatDate } from '@/lib/format';
  *
  * Three pieces:
  *
- *   Reveal      a labelled disclosure — "Show me the evidence", "Why".
+ *   Reveal      a labelled disclosure — "Show evidence", "Why Headway says this".
  *   Quotes      customers in their own words, with the door each came
  *               through and a way to the full list. Never paraphrased.
  *   Population  the two piles behind a before/after, drawn one piece of
@@ -72,7 +72,7 @@ export function Reveal({
 
 function SmallStars({ value }: { value: number }) {
   return (
-    <span className="text-warn-600" aria-label={`${value} out of 5`}>
+    <span className="text-warn-600" aria-label={`${value} out of 5 stars`}>
       {'★'.repeat(value)}
       <span className="text-ink-300" aria-hidden>
         {'☆'.repeat(5 - value)}
@@ -84,9 +84,9 @@ function SmallStars({ value }: { value: number }) {
 /**
  * Customers, in their own words.
  *
- * Quoted, dated, and marked with the door they came through — a table-card
- * submission and a public review are different kinds of evidence and the
- * owner should see which is which. The full list is one link away.
+ * Quoted, dated, and marked with the door they came through — a piece of
+ * feedback from the card and a public review are different kinds of evidence
+ * and the owner should see which is which. The full list is one link away.
  */
 export function Quotes({
   quotes,
@@ -95,13 +95,13 @@ export function Quotes({
 }: {
   quotes: Quote[];
   seeAll?: { label: string; href: string } | null;
-  /** What to say when nobody wrote anything: ratings can carry a theme with no words. */
+  /** What to say when nobody wrote anything: star ratings can carry a topic with no words. */
   empty?: string;
 }) {
   if (quotes.length === 0) {
     return (
       <p className="text-[13px] leading-relaxed text-ink-500">
-        {empty ?? 'Nobody has written about this yet — the ratings carry it.'}
+        {empty ?? 'Nobody has written about this yet. The star ratings are the whole message.'}
       </p>
     );
   }
@@ -235,10 +235,10 @@ const CHIP_TONE: Record<'good' | 'bad' | 'neutral', string> = {
 /**
  * A figure that opens into what it counts.
  *
- * "39% of feedback" is the chip; tapping it shows "34 of 87 pieces mention
- * it", three of those customers, and the way to all thirty-four. The chip
- * row keeps its shape while one is open: the open one takes the full width
- * and the others move under it.
+ * "39% of feedback" is the chip; tapping it shows "34 of 87 pieces of
+ * feedback mention it", three of those comments, and the way to all
+ * thirty-four. The chip row keeps its shape while one is open: the open one
+ * takes the full width and the others move under it.
  */
 export function ProofChips({ proofs, open }: { proofs: FocusProof[]; open?: FocusProof['key'] | null }) {
   if (proofs.length === 0) return null;

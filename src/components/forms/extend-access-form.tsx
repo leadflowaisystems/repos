@@ -6,7 +6,7 @@ import { requestContinuationAction } from '@/lib/actions/continuation';
 import { IDLE, type ActionState } from '@/lib/actions/shared';
 
 /**
- * EXTEND ACCESS (M28) — which means ASK, and never pretends otherwise.
+ * ASKING TO CONTINUE (M28) — which means ASK, and never pretends otherwise.
  *
  * Two fields. A phone number, because that is how a small business actually
  * gets reached, and an email only if they want to give one. No name field: the
@@ -16,8 +16,10 @@ import { IDLE, type ActionState } from '@/lib/actions/shared';
  * NOTHING HERE CHARGES ANYTHING. There is no card field, no amount, no plan and
  * no payment page, because RepOS takes no payments — the operator agrees a
  * number by hand. The button says what happens next and the confirmation says
- * it again, because "extend access" is exactly the phrase a customer would
- * otherwise read as "my trial just got longer".
+ * it again. The label used to read "Extend access", which is exactly what a
+ * customer would take as "my trial just got longer": pressing it sends a
+ * message, and nothing about the account moves until a person has spoken to
+ * them, so the button asks and never promises.
  *
  * The fields sit behind a disclosure so the page leads with the decision rather
  * than the form. `<details>` rather than React state, so it opens without
@@ -50,12 +52,13 @@ export function ExtendAccessForm({
   clientId,
   ownerPhone,
   ownerEmail,
-  label = 'Extend access',
+  label = 'Ask to continue',
 }: {
   clientId: string;
   ownerPhone: string;
   ownerEmail: string;
-  /** "Extend access" while the trial runs; "Continue service" once it has ended. */
+  /** The disclosure's own label. "Ask to continue" in every state, running trial
+   *  or ended, because asking is the same act either way. */
   label?: string;
 }) {
   const [state, action, pending] = useActionState(requestContinuationAction, IDLE);
@@ -66,11 +69,11 @@ export function ExtendAccessForm({
     return (
       <div>
         <p className="text-[17px] leading-snug font-semibold tracking-tight text-ink-900">
-          Request received.
+          Request received
         </p>
         <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink-700">
-          Thank you. We&rsquo;ll contact you to arrange continued access. Nothing has been
-          charged, and your trial dates are unchanged until we&rsquo;ve spoken.
+          Thank you. We&rsquo;ll be in touch soon on the number you gave. Nothing is charged
+          automatically. Your access does not change until we have spoken.
         </p>
       </div>
     );
@@ -144,8 +147,7 @@ export function ExtendAccessForm({
         </button>
 
         <p className="mt-3 text-[13px] leading-relaxed text-ink-500">
-          This sends a request. Nothing is charged automatically, and your access does not
-          change until we&rsquo;ve spoken.
+          Nothing is charged automatically. Your access does not change until we have spoken.
         </p>
 
         <Notice state={state} />

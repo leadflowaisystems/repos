@@ -19,12 +19,15 @@ function one(v: string | string[] | undefined): string {
  * CUSTOMERS — the signal board (M24).
  *
  * What customers are collectively telling the business, by importance:
- * NEEDS YOU, WATCHING, PROTECT, NOT YET CLEAR. Each signal is a card an owner
- * scans in a second — the theme, the count, the share, the direction where
- * two check-ins were compared — and opens in place into the whole reading:
- * three customers in their words, what Headway sees, what to do, why, and
- * where the number came from. Nobody has to leave the page to understand
- * one signal.
+ * NEEDS_YOU, WATCHING, PROTECT, EARLY — which the owner reads as "Needs you",
+ * "Watching", "Going well" and "Not yet clear". The keys keep their code names;
+ * the heading over the PROTECT pile says "Going well" because that is what Home
+ * calls the same pile, and one pile must never carry two names. Each signal is
+ * a card an owner scans in a second — the theme, the count, the share, the
+ * direction where two check-ins were compared — and opens in place into the
+ * whole reading: three customers in their words, what Headway sees, what to do,
+ * why, and where the number came from. Nobody has to leave the page to
+ * understand one signal.
  *
  * The movement between check-ins and the method sit behind two reveals. This
  * is still the one page that explains how Headway read the feedback, so the
@@ -56,13 +59,13 @@ export async function PortalAnalysis({
     {
       key: 'NEEDS_YOU',
       label: 'Needs you',
-      note: 'The one thing worth a decision',
+      note: 'Worth a decision from you',
       signals: view.unhappy.filter((s) => needsYou.has(s.themeKey)),
     },
     {
       key: 'WATCHING',
       label: 'Watching',
-      note: 'Patterns Headway is carrying for you',
+      note: 'Keeps coming up, nothing to decide yet',
       signals: [
         ...view.unhappy.filter((s) => !needsYou.has(s.themeKey) && s.bucket !== 'EARLY'),
         ...view.loved.filter((s) => s.bucket === 'WATCH'),
@@ -70,8 +73,8 @@ export async function PortalAnalysis({
     },
     {
       key: 'PROTECT',
-      label: 'Protect',
-      note: 'Praised by three or more customers',
+      label: 'Going well',
+      note: 'Praised 3 or more times',
       signals: view.loved.filter((s) => s.bucket === 'KEEP' || (s.bucket !== 'WATCH' && s.bucket !== 'EARLY')),
     },
     {
@@ -110,11 +113,14 @@ export async function PortalAnalysis({
       {named ? (
         <SignalBoard groups={groups} evidence={evidence} basePath={basePath} open={open} />
       ) : view.soFar.read > 0 || view.soFar.waiting > 0 ? (
-        <Section eyebrow="Current signals" note="What customers are mentioning, pattern or not">
+        <Section eyebrow="Everything mentioned, pattern or not">
           <SoFar soFar={view.soFar} basePath={basePath} explain />
         </Section>
       ) : (
-        <Quiet>Your first customer signals will appear here. Headway is ready.</Quiet>
+        <Quiet>
+          Nothing has come in yet. Once customers leave feedback through your QR code, this page
+          will say what they keep mentioning and what needs you first.
+        </Quiet>
       )}
 
       {view.early.length > 0 ? (
@@ -146,7 +152,7 @@ export async function PortalAnalysis({
                   ) : null}
                   {view.steady.length > 0 ? (
                     <p className="text-[13px] leading-relaxed text-ink-500">
-                      Holding steady: {view.steady.map((s) => s.themeLabel).join('; ')}.
+                      Holding steady: {view.steady.map((s) => s.themeLabel).join(', ')}.
                     </p>
                   ) : null}
                 </div>

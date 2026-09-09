@@ -7,10 +7,13 @@ import { getMonthlyReview } from '@/lib/reporting/service';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = { title: 'Monthly Review' };
+// The tab title says what the page says. Monthly Review is the code name, and
+// it stays in code: in this product a review is a public listing review, never
+// a Headway report on the private feedback.
+export const metadata: Metadata = { title: 'This month' };
 
 /**
- * Monthly Review.
+ * Monthly Review — "This month" to the owner.
  *
  * A period-scoped read of the same intelligence the rest of the workspace
  * uses. It stores nothing and computes nothing new — it counts the feedback

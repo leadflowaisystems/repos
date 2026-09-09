@@ -94,7 +94,9 @@ export async function saveDraftAction(
   if (!gate.ok) return gate.state;
   const { clientId } = gate;
   const itemId = str(form, 'itemId');
-  if (!clientId || !itemId) return failure('That feedback item could not be found.');
+  if (!clientId || !itemId) {
+    return failure('That piece of feedback could not be found. Reload the page and try again.');
+  }
 
   const result = await saveDraftEdit(prisma, clientId, itemId, text(form, 'draftText'));
 
