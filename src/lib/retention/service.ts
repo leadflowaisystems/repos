@@ -178,7 +178,7 @@ export async function sinceLastVisit(
 
 /** How the gap reads in a heading. Never a countdown, never a nudge. */
 export function sinceLabel(daysAgo: number): string {
-  if (daysAgo <= 0) return 'Since you were last here today';
+  if (daysAgo <= 0) return 'Since your visit earlier today';
   if (daysAgo === 1) return 'Since yesterday';
   if (daysAgo < 7) return `Since your last visit, ${daysAgo} days ago`;
   if (daysAgo < 14) return 'Since your last visit, a week ago';

@@ -371,7 +371,7 @@ export async function decideAction(
 ): Promise<ServiceResult<{ id: string; status: ActionStatus }>> {
   const parsed = decisionSchema.safeParse(raw);
   if (!parsed.success) {
-    return err('Some fields need attention.', zodErrors(parsed.error.issues));
+    return err('Please check the fields marked below.', zodErrors(parsed.error.issues));
   }
   const input = parsed.data;
 
@@ -384,7 +384,7 @@ export async function decideAction(
   }
 
   if (next === 'ACCEPTED' && input.description.trim().length < 3) {
-    return err('Some fields need attention.', {
+    return err('Please check the fields marked below.', {
       description: 'Write what the business actually decided to do.',
     });
   }
@@ -453,7 +453,7 @@ export async function moveAction(
 ): Promise<ServiceResult<{ id: string; status: ActionStatus }>> {
   const parsed = moveSchema.safeParse(raw);
   if (!parsed.success) {
-    return err('Some fields need attention.', zodErrors(parsed.error.issues));
+    return err('Please check the fields marked below.', zodErrors(parsed.error.issues));
   }
   const input = parsed.data;
 
@@ -469,7 +469,7 @@ export async function moveAction(
 
   if (input.to === 'DONE') {
     if (doneAt.getTime() > now.getTime()) {
-      return err('Some fields need attention.', {
+      return err('Please check the fields marked below.', {
         occurredAt: 'A change cannot have been made in the future.',
       });
     }
@@ -484,7 +484,7 @@ export async function moveAction(
       // House date format, never ISO: this sentence sits beside date fields
       // that already read "15 Jun 2026".
       const agreed = formatDate(current.baseline.capturedAt);
-      return err('Some fields need attention.', {
+      return err('Please check the fields marked below.', {
         occurredAt: `This action was agreed on ${agreed}, so the change cannot have been made before then.`,
       });
     }
@@ -698,7 +698,7 @@ export async function recordLearning(
 ): Promise<ServiceResult<{ id: string }>> {
   const parsed = learningSchema.safeParse(raw);
   if (!parsed.success) {
-    return err('Some fields need attention.', zodErrors(parsed.error.issues));
+    return err('Please check the fields marked below.', zodErrors(parsed.error.issues));
   }
 
   const current = await getAction(db, clientId, actionId);

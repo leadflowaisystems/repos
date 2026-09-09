@@ -183,11 +183,11 @@ export function measureAction(input: MeasurementInput): Measurement {
       : null;
 
   const limits: string[] = [
-    'This compares feedback before and after the change. It cannot show that the change caused the difference — nothing Headway can see would prove that.',
+    'This compares feedback from before the change with feedback from after it. It cannot show that the change caused the difference. Nothing Headway can see would prove that.',
   ];
   if (betweenCount > 0) {
     limits.push(
-      `${betweenCount} piece${betweenCount === 1 ? '' : 's'} of feedback arrived between the decision and the change being made, so ${betweenCount === 1 ? 'it is' : 'they are'} in neither figure.`,
+      `${betweenCount} feedback ${betweenCount === 1 ? 'entry' : 'entries'} came in between the decision and the change being made. ${betweenCount === 1 ? 'It is' : 'They are'} in neither number.`,
     );
   }
 
@@ -211,14 +211,14 @@ export function measureAction(input: MeasurementInput): Measurement {
     const why: string[] = [];
     if (thinBefore) {
       why.push(
-        `Only ${before.total} ${before.total === 1 ? 'piece' : 'pieces'} of feedback had been read before the change, under the ${MIN_FEEDBACK_TO_MEASURE} Headway needs before it will give a percentage.`,
+        `Only ${before.total} feedback ${before.total === 1 ? 'entry' : 'entries'} had been read before the change. Headway needs ${MIN_FEEDBACK_TO_MEASURE} before it will give a percentage.`,
       );
     }
     if (thinAfter) {
       why.push(
         after.total === 0
           ? 'No new feedback has been read since the change was made.'
-          : `Only ${after.total} ${after.total === 1 ? 'piece of feedback has' : 'pieces of feedback have'} come in since the change, under the ${MIN_FEEDBACK_TO_MEASURE} needed to compare.`,
+          : `Only ${after.total} feedback ${after.total === 1 ? 'entry has' : 'entries have'} come in since the change. Headway needs ${MIN_FEEDBACK_TO_MEASURE} to compare.`,
       );
     }
 
@@ -227,7 +227,7 @@ export function measureAction(input: MeasurementInput): Measurement {
     // a small sample is not improvement — it is silence.
     if (thinAfter && after.count === 0 && after.total > 0) {
       why.push(
-        `${themeLabel} has not come up in those ${after.total}, but that is too little feedback to say it is coming up less — it may simply be that nobody has mentioned it yet.`,
+        `${themeLabel} has not come up in those ${after.total}. That is too little feedback to say customers mention it less. Maybe nobody has mentioned it yet.`,
       );
     }
 
@@ -253,14 +253,15 @@ export function measureAction(input: MeasurementInput): Measurement {
   // panel hides any reason line that repeats it, because the Before card above
   // already shows that figure.
   const comparison =
-    `Before the change, customers mentioned ${themeLabel.toLowerCase()} in ${before.line} — everything read up to ${dateLabel(baseline.capturedAt)}. ` +
+    `Before the change, customers mentioned ${themeLabel.toLowerCase()} in ${before.line}. ` +
+    `That is everything read up to ${dateLabel(baseline.capturedAt)}. ` +
     `Since the change on ${dateLabel(doneAt)}, they have mentioned it in ${after.line}.`;
 
   const why = [
     comparison,
     moved
-      ? `The share moved by ${formatShare(Math.abs(shareDelta as number))}, past the ${formatShare(MIN_SHARE_MOVE)} Headway needs before it will say it went up or down.`
-      : `The share moved by ${formatShare(Math.abs(shareDelta ?? 0))}, under the ${formatShare(MIN_SHARE_MOVE)} Headway needs before it will say it went up or down.`,
+      ? `The share of feedback mentioning it moved by ${formatShare(Math.abs(shareDelta as number))}. Headway needs a move of ${formatShare(MIN_SHARE_MOVE)} before it will say it went up or down.`
+      : `The share of feedback mentioning it moved by ${formatShare(Math.abs(shareDelta ?? 0))}. That is under the ${formatShare(MIN_SHARE_MOVE)} Headway needs before it will say it went up or down.`,
   ];
 
   if (!moved) {
@@ -268,7 +269,7 @@ export function measureAction(input: MeasurementInput): Measurement {
       ...base,
       result: 'NO_CLEAR_CHANGE',
       resultLabel: RESULT_LABELS.NO_CLEAR_CHANGE,
-      headline: `${themeLabel} is coming up about as often as before the change.`,
+      headline: `Customers mention ${themeLabel.toLowerCase()} about as often as before the change.`,
       why,
       limits,
     };
@@ -280,8 +281,8 @@ export function measureAction(input: MeasurementInput): Measurement {
   const direction = rose ? 'more' : 'less';
   const headline =
     sentiment === 'ISSUE'
-      ? `Customers are mentioning ${themeLabel.toLowerCase()} ${direction} often since the change.`
-      : `Customers are praising ${themeLabel.toLowerCase()} ${direction} often since the change.`;
+      ? `Customers mention ${themeLabel.toLowerCase()} ${direction} often since the change.`
+      : `Customers praise ${themeLabel.toLowerCase()} ${direction} often since the change.`;
 
   return {
     ...base,

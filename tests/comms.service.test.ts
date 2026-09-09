@@ -84,7 +84,7 @@ describe('the owner update is built from real stored data', () => {
     expect(update.body).toContain('Sunrise Clinic');
     expect(update.body).toContain('Long waiting time');
     expect(update.body).toContain(
-      `mentioned ${insight.topIssue?.count} times across all the feedback`,
+      `mentioned ${insight.topIssue?.count} times in all the feedback so far`,
     );
     expect(update.blocked).toBe(false);
   });

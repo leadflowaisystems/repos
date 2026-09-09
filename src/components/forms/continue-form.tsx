@@ -2,6 +2,7 @@
 
 import clsx from 'clsx';
 import { useActionState } from 'react';
+import { useT } from '@/components/portal/locale-provider';
 import { continueWithHeadwayAction, updateOwnerContactAction } from '@/lib/actions/commercial';
 import { IDLE, type ActionState } from '@/lib/actions/shared';
 
@@ -111,6 +112,7 @@ export function ContinueWithHeadwayForm({
   /** `continue` asks to carry on; `update` only keeps the details current. */
   mode: 'continue' | 'update';
 }) {
+  const t = useT();
   const [state, action, pending] = useActionState(
     mode === 'continue' ? continueWithHeadwayAction : updateOwnerContactAction,
     IDLE,
@@ -125,21 +127,23 @@ export function ContinueWithHeadwayForm({
   return (
     <details className="group" open={state.message ? true : undefined}>
       <summary className={mode === 'continue' ? PRIMARY : QUIET}>
-        {mode === 'continue' ? 'Ask to continue' : 'Update my details'}
+        {mode === 'continue'
+          ? t('common.form.continue.ask')
+          : t('common.form.contact.update')}
       </summary>
 
       <form action={action} className="mt-5 max-w-xl">
         <input type="hidden" name="clientId" value={clientId} />
         <p className="mb-4 text-[14px] leading-relaxed text-ink-600">
           {mode === 'continue'
-            ? 'Confirm where to reach you. We will send the payment details and the payment QR straight to you.'
-            : 'These are the details Headway uses to reach you about your account.'}
+            ? t('common.form.contact.continueHelp')
+            : t('common.form.contact.updateHelp')}
         </p>
         <div className="grid grid-cols-1 gap-4">
           <Field
             id="account-owner-name"
             name="ownerName"
-            label="Your name"
+            label={t('common.form.yourName')}
             type="text"
             defaultValue={ownerName}
             error={state.errors.name}
@@ -148,7 +152,7 @@ export function ContinueWithHeadwayForm({
           <Field
             id="account-owner-email"
             name="ownerEmail"
-            label="Email"
+            label={t('common.form.email')}
             type="email"
             inputMode="email"
             defaultValue={ownerEmail}
@@ -158,7 +162,7 @@ export function ContinueWithHeadwayForm({
           <Field
             id="account-owner-phone"
             name="ownerPhone"
-            label="WhatsApp or mobile number"
+            label={t('common.form.contact.phone')}
             type="tel"
             inputMode="tel"
             defaultValue={ownerPhone}
@@ -168,7 +172,11 @@ export function ContinueWithHeadwayForm({
         </div>
 
         <button type="submit" disabled={pending} className={clsx(SUBMIT, 'mt-5')}>
-          {pending ? 'Sending…' : mode === 'continue' ? 'Send my details' : 'Save'}
+          {pending
+            ? t('common.form.sending')
+            : mode === 'continue'
+              ? t('common.form.contact.send')
+              : t('common.form.save')}
         </button>
 
         <Notice state={state} />

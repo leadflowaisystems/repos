@@ -122,7 +122,7 @@ describe('the weekly pulse', () => {
     const report = (await getWeeklyPulse(db, b.clientId, { now: NOW }))!;
     expect(report.enoughEvidence).toBe(true);
     expect(report.comparable).toBe(false);
-    expect(report.headline).toMatch(/not enough in the week before/i);
+    expect(report.headline).toMatch(/the week before does not have enough to compare with/i);
     // Every movement is withheld rather than guessed.
     expect(report.issues.every((t) => t.movement === null)).toBe(true);
     expect(report.improved).toEqual([]);

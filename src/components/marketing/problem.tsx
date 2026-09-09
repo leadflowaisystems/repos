@@ -78,7 +78,7 @@ export function Problem() {
           <figcaption className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <span className={CARD_EYEBROW}>What comes in</span>
             <span className="text-[12px] text-ink-500">
-              Eight of {DEMO_BUSINESS.name}&rsquo;s {DEMO_BUSINESS.total} pieces of feedback, as they arrived
+              Eight of {DEMO_BUSINESS.name}&rsquo;s {DEMO_BUSINESS.total} feedback entries, as they arrived
             </span>
           </figcaption>
           <ul className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2" aria-label="Feedback as it arrived">

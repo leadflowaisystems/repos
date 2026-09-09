@@ -215,7 +215,7 @@ describe('the required human test — Corner Cafe', () => {
 
     // The reviews page counts are identical too.
     const reviewsBefore = await getReviewsView(db, cafe, FILTERS, { now: NOW });
-    expect(reviewsBefore?.found[0]).toMatch(/^Across all/);
+    expect(reviewsBefore?.found[0]).toMatch(/^Headway has read all/);
     expect(reviewsBefore?.sentiments).toEqual((await getReviewsView(db, cafe, FILTERS, { now: NOW }))?.sentiments);
   });
 

@@ -114,7 +114,11 @@ export function recurrenceFor(
   const p = (kind === 'ISSUE' ? presence.issues : presence.praises).get(themeKey);
   if (!p) return NONE;
 
-  const verb = kind === 'ISSUE' ? 'Raised' : 'Praised';
+  // "Raised at 2 of your last 3 check-ins" reads like a meeting minute. An
+  // owner reads it once and understands it when the customers are the subject
+  // of the sentence and the verb is the one they would use themselves.
+  const said = kind === 'ISSUE' ? 'mentioned this' : 'praised this';
+  const notSaid = kind === 'ISSUE' ? 'did not mention it' : 'did not praise it';
   const of = `${p.raisedAt} of your last ${p.checkins} check-ins`;
 
   if (p.raisedAt >= 2) {
@@ -122,15 +126,16 @@ export function recurrenceFor(
       recurring: true,
       isNew: false,
       faded: false,
-      line: `${verb} at ${of}.`,
+      line: `Customers ${said} at ${of}.`,
     };
   }
   if (p.latest && !p.before) {
+    const earlier = p.checkins - 1;
     return {
       recurring: false,
       isNew: true,
       faded: false,
-      line: `${verb} at your latest check-in only — not at the ${p.checkins - 1 === 1 ? 'one' : `${p.checkins - 1}`} before it.`,
+      line: `Customers ${said} at your latest check-in only. They ${notSaid} at the ${earlier === 1 ? 'one' : `${earlier}`} before it.`,
     };
   }
   if (!p.latest && p.before) {
@@ -138,7 +143,7 @@ export function recurrenceFor(
       recurring: false,
       isNew: false,
       faded: true,
-      line: `${verb} at an earlier check-in, but not at your latest.`,
+      line: `Customers ${said} at an earlier check-in. They ${notSaid} at your latest one.`,
     };
   }
   return NONE;

@@ -8,14 +8,19 @@ import { getKitView } from '@/lib/kit/service';
 import { CopyButton } from '@/components/copy-button';
 import { PageIntro, Quiet, Section, StatusStrip } from '@/components/portal/portal-ui';
 import { PRINT_SHEETS } from '@/lib/kit/sheets';
+import { getTranslator } from '@/lib/i18n/request';
+import type { MessageKey } from '@/lib/i18n/strings';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = { title: 'Print kit' };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslator();
+  return { title: t('kit.meta.title') };
+}
 
 /**
  * THE PRINT KIT, IN THE OWNER'S OWN WORKSPACE (M21, trimmed in M23, put onto
- * the approved print masters in M29).
+ * the approved print masters in M29, translated in M31).
  *
  * TWO SHEETS, AND ONLY TWO. Both are the signed-off Headway artwork:
  *
@@ -35,6 +40,43 @@ export const metadata: Metadata = { title: 'Print kit' };
  * than this business's own card — which is what the note under the list says.
  */
 
+/**
+ * The words for each sheet, one set of phrases per sheet in the list.
+ *
+ * `PRINT_SHEETS` describes the two masters — which file, which preview, what
+ * size — and that description is the same in every language. What an owner
+ * READS about each sheet is not, so the sentences live in the dictionary and
+ * the list is joined to them here by the sheet's own key. Nothing about the
+ * files, the paths or the order moves.
+ *
+ * A sheet with no entry falls back to the English already carried on the list,
+ * so adding a third master can never render an empty card.
+ */
+type SheetPhrases = {
+  label: MessageKey;
+  note: MessageKey;
+  what: MessageKey;
+  finish: MessageKey;
+  spec: MessageKey;
+};
+
+const SHEET_PHRASES: Record<string, SheetPhrases> = {
+  'insert-4x6': {
+    label: 'kit.sheets.insert.label',
+    note: 'kit.sheets.insert.note',
+    what: 'kit.sheets.insert.what',
+    finish: 'kit.sheets.insert.finish',
+    spec: 'kit.sheets.insert.spec',
+  },
+  'pair-legal': {
+    label: 'kit.sheets.pair.label',
+    note: 'kit.sheets.pair.note',
+    what: 'kit.sheets.pair.what',
+    finish: 'kit.sheets.pair.finish',
+    spec: 'kit.sheets.pair.spec',
+  },
+};
+
 export default async function WorkspaceKitPage({
   params,
 }: {
@@ -42,6 +84,8 @@ export default async function WorkspaceKitPage({
 }) {
   const { clientId } = await params;
   await requireOpenWorkspace(clientId);
+
+  const t = await getTranslator();
 
   const [view, through] = await Promise.all([
     getKitView(prisma, clientId, { requestOrigin: await requestOrigin() }),
@@ -54,46 +98,67 @@ export default async function WorkspaceKitPage({
   const ready = Boolean(view.content.feedbackUrl);
   const script = view.content.staffScript;
 
+  // The same two masters, with the five sentences an owner reads about each of
+  // them in the owner's language. The list, the files, the previews, the sizes
+  // and the order are `PRINT_SHEETS` untouched; a sheet with no phrases keeps
+  // the English already on the list.
+  const sheets = PRINT_SHEETS.map((sheet) => {
+    const phrases = SHEET_PHRASES[sheet.key];
+    if (!phrases) return sheet;
+    return {
+      ...sheet,
+      label: t(phrases.label),
+      sheetNote: t(phrases.note),
+      what: t(phrases.what),
+      finish: t(phrases.finish),
+      spec: t(phrases.spec),
+    };
+  });
+
   return (
     <div className="max-w-3xl">
       <PageIntro
-        eyebrow="Print kit"
-        title="Your feedback card"
-        description="Put it where customers will see it. Every scan is a customer telling you how it went."
+        eyebrow={t('kit.intro.eyebrow')}
+        title={t('kit.intro.title')}
+        description={t('kit.intro.description')}
       />
 
       {ready ? (
         <>
           {/*
-            THE STRIP PRINTS THE VALUE FIRST AND THE LABEL AFTER IT, so each
-            label has to finish the phrase its value starts: "Live feedback
-            page", "Ready to print". Repeating the state word in the label read
-            back as "Live feedback page, live".
+            THE STRIP PRINTS THE VALUE FIRST AND THE LABEL AFTER IT, and no
+            language can reorder those two. So each half stands on its own —
+            "Live" beside "feedback page" — rather than the label finishing a
+            phrase the value started. The old labels completed an English
+            sentence ("Ready" + "to print"), which is a shape only English
+            has: in Hindi and Marathi the same two halves land in the wrong
+            order and stop being a sentence at all.
           */}
           <StatusStrip
             items={[
               {
-                label: 'feedback page',
-                value: view.gatewayPaused ? 'Paused' : 'Live',
+                label: t('kit.status.page.label'),
+                value: view.gatewayPaused
+                  ? t('kit.status.page.paused')
+                  : t('kit.status.page.live'),
                 tone: view.gatewayPaused ? 'warn' : 'good',
               },
-              { label: 'to print', value: 'Ready' },
+              { label: t('kit.status.print.label'), value: t('kit.status.print.value') },
               {
-                label: through === 1 ? 'piece of feedback through the card' : 'pieces of feedback through the card',
+                label: t.plural('kit.status.through', through),
                 value: through,
                 tone: through > 0 ? 'good' : 'neutral',
               },
             ]}
           />
 
-          <Section eyebrow="Your sheets" note="Two ways to stand it up">
+          <Section eyebrow={t('kit.sheets.eyebrow')} note={t('kit.sheets.note')}>
             <p className="mb-5 text-[14px] leading-relaxed text-ink-600">
-              Both sheets carry the same card. Pick the one that suits where it will stand.
-              Print it at 100%, then check that the ruler bar on the sheet measures 100 mm.
+              {t('kit.sheets.intro')}
             </p>
 
             <ul className="space-y-5">
-              {PRINT_SHEETS.map((sheet) => (
+              {sheets.map((sheet) => (
                 <li
                   key={sheet.key}
                   className="overflow-hidden rounded-xl border border-ink-200 bg-white"
@@ -107,7 +172,7 @@ export default async function WorkspaceKitPage({
                     >
                       <Image
                         src={sheet.preview}
-                        alt={`${sheet.label} — a picture of the sheet`}
+                        alt={t('kit.sheets.previewAlt', { sheet: sheet.label })}
                         width={sheet.previewWidth}
                         height={sheet.previewHeight}
                         className="block h-auto w-full"
@@ -128,7 +193,7 @@ export default async function WorkspaceKitPage({
                           href={`/print/sheet/${clientId}/${sheet.key}?download=1`}
                           className="inline-flex min-h-12 items-center justify-center rounded-xl bg-ink-900 px-5 text-[15px] font-semibold text-white hover:bg-ink-800 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none"
                         >
-                          Download
+                          {t('kit.sheets.download')}
                         </a>
                         <a
                           href={`/print/sheet/${clientId}/${sheet.key}`}
@@ -136,7 +201,7 @@ export default async function WorkspaceKitPage({
                           rel="noreferrer"
                           className="inline-flex min-h-12 items-center justify-center rounded-xl border border-ink-300 bg-white px-5 text-[15px] font-medium text-ink-900 hover:bg-ink-50 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none"
                         >
-                          Open to print
+                          {t('kit.sheets.open')}
                         </a>
                       </div>
                     </div>
@@ -152,35 +217,34 @@ export default async function WorkspaceKitPage({
             once, under the list — an owner who scans the picture instead of the
             print and lands somewhere odd should not have to work out why.
           */}
-          <Section eyebrow="What you get">
-            <p className="text-[15px] leading-relaxed text-ink-900">
-              The pictures above show the layout, not your own card. The file you download
-              carries your business name, and its QR opens your feedback page. Check the QR by
-              scanning a printed card, not the picture on this page.
-            </p>
+          <Section eyebrow={t('kit.file.eyebrow')}>
+            <p className="text-[15px] leading-relaxed text-ink-900">{t('kit.file.body')}</p>
             <div className="mt-4 rounded-xl border border-ink-200 bg-ink-50 p-4">
               <p className="text-[11px] font-semibold tracking-widest text-ink-500 uppercase">
-                Where the QR goes
+                {t('kit.file.qrTarget')}
               </p>
               <p className="mt-1.5 font-mono text-[13px] break-all text-ink-900">
                 {view.content.feedbackUrl}
               </p>
               <div className="mt-3">
-                <CopyButton value={view.content.feedbackUrl ?? ''} label="Copy link" />
+                <CopyButton
+                  value={view.content.feedbackUrl ?? ''}
+                  label={t('kit.file.copyLink')}
+                  copiedLabel={t('kit.file.copied')}
+                />
               </div>
             </div>
           </Section>
 
-          <Section eyebrow="Where to put it">
+          <Section eyebrow={t('kit.placement.eyebrow')}>
             <p className="text-[15px] leading-relaxed text-ink-900">{view.content.placement}</p>
             <p className="mt-2 text-[13px] leading-relaxed text-ink-600">
-              Offer it to everyone, the same way, whatever kind of visit they had. Honest answers
-              are the point.
+              {t('kit.placement.everyone')}
             </p>
 
             <details className="group mt-5 rounded-xl border border-ink-200 bg-white">
               <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 text-[14px] font-medium text-ink-900 hover:text-ink-700">
-                Staff guidance
+                {t('kit.staff.summary')}
                 <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-90">
                   ›
                 </span>
@@ -188,19 +252,27 @@ export default async function WorkspaceKitPage({
               <div className="space-y-4 border-t border-ink-200 px-4 py-4 text-[14px] leading-relaxed text-ink-800">
                 {view.content.moment ? (
                   <div>
-                    <p className="text-[11px] font-semibold tracking-widest text-ink-500 uppercase">When to mention it</p>
+                    <p className="text-[11px] font-semibold tracking-widest text-ink-500 uppercase">{t('kit.staff.when')}</p>
                     <p className="mt-1">{view.content.moment}</p>
                   </div>
                 ) : null}
+                {/*
+                  THE SCRIPT IS NOT TRANSLATED HERE, and must not be. These
+                  three lines are what a person says out loud at the counter,
+                  written for them in the pack in English, Hinglish and
+                  Marathi. Which line a waiter reads is decided by the waiter
+                  and the customer in front of them — not by the language the
+                  owner happens to read the portal in.
+                */}
                 <div>
-                  <p className="text-[11px] font-semibold tracking-widest text-ink-500 uppercase">What to say</p>
+                  <p className="text-[11px] font-semibold tracking-widest text-ink-500 uppercase">{t('kit.staff.say')}</p>
                   <p className="mt-1">&ldquo;{script.english}&rdquo;</p>
                   {script.hinglish ? <p className="mt-1 text-ink-700">&ldquo;{script.hinglish}&rdquo;</p> : null}
                   {script.marathi ? <p className="mt-1 text-ink-700">&ldquo;{script.marathi}&rdquo;</p> : null}
                 </div>
                 {view.content.rules.length > 0 ? (
                   <div>
-                    <p className="text-[11px] font-semibold tracking-widest text-ink-500 uppercase">What never to do</p>
+                    <p className="text-[11px] font-semibold tracking-widest text-ink-500 uppercase">{t('kit.staff.never')}</p>
                     <ul className="mt-1 space-y-1">
                       {view.content.rules.map((rule) => (
                         <li key={rule} className="flex gap-2">
@@ -218,11 +290,8 @@ export default async function WorkspaceKitPage({
           </Section>
         </>
       ) : (
-        <Section eyebrow="Your sheets">
-          <Quiet>
-            {view.addressError ??
-              'Your feedback page does not have a web address yet, so there is no card to print. Headway is setting it up.'}
-          </Quiet>
+        <Section eyebrow={t('kit.sheets.eyebrow')}>
+          <Quiet>{view.addressError ?? t('kit.empty.noAddress')}</Quiet>
         </Section>
       )}
     </div>

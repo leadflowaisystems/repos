@@ -7,6 +7,7 @@ import { parseStructured, ratedCount } from '@/lib/feedback/structured';
 import { prepareIngest } from '@/lib/feedback/ingest';
 import { fingerprintFeedback } from '@/lib/feedback/fingerprint';
 import { MIN_MENTIONS_TO_NAME } from '@/lib/intelligence/engine';
+import { MESSAGES } from '@/lib/i18n/strings';
 import { CORNER_CAFE, storyFeedbackCount, type PublicReview } from '../scripts/demo/corner-cafe';
 
 /**
@@ -20,6 +21,13 @@ import { CORNER_CAFE, storyFeedbackCount, type PublicReview } from '../scripts/d
  * tap; every disclosure is a native <details>; every figure that matters
  * opens into the rows it counts. Source-level, like the launch-pass tests,
  * because these are server components with no renderer in this suite.
+ *
+ * WHERE THE WORDS ARE. Since the plain-English and localization pass the
+ * owner-facing sentences live in the dictionary at src/lib/i18n/strings and
+ * reach the page through t('some.key'), so a source scan pins the KEY the
+ * component reaches for, and MESSAGES[key].en pins the words that key carries.
+ * Both halves are needed: the key alone would let the sentence be rewritten,
+ * and the sentence alone would not notice a component wired to another key.
  *
  * THE DEMO. The Corner Cafe story is the product's own demonstration, so
  * every record in it has to be one the current feedback form or paste box
@@ -58,12 +66,16 @@ describe('home is a command centre, not a briefing', () => {
   it('answers the seven questions in the order an owner asks them', () => {
     ordered(home, [
       '<FocusBlock focus={focus} direction={direction} />', // what is happening, why, do I need to act, what exactly
-      'eyebrow="Headway is watching"', // what is Headway watching
-      'eyebrow="Going well"', // what is going well
+      "eyebrow={t('home.watching.title')}", // what is Headway watching
+      "eyebrow={t('home.goingWell.title')}", // what is going well
       '{since ? <SinceVisit since={since} basePath={basePath} /> : null}', // what changed since I looked
-      'eyebrow="Your next check-in"', // when the next check-in is worth opening
+      "eyebrow={t('home.nextCheck.title')}", // when the next check-in is worth opening
       '<Limits limits={r.limitations} collapsed />',
     ]);
+    // The headings themselves, so a key can be rewired but not quietly reworded.
+    expect(MESSAGES['home.watching.title'].en).toBe('Headway is watching');
+    expect(MESSAGES['home.goingWell.title'].en).toBe('Going well');
+    expect(MESSAGES['home.nextCheck.title'].en).toBe('Your next check-in');
   });
 
   it('reads as a decision: conclusion, why, evidence, what to do, what Headway checks next', () => {
@@ -91,7 +103,8 @@ describe('home is a command centre, not a briefing', () => {
   });
 
   it('keeps what Headway knows and what it cannot say behind a tap', () => {
-    expect(home).toContain('What Headway knows about your business');
+    expect(home).toContain("t('home.knows.title')");
+    expect(MESSAGES['home.knows.title'].en).toBe('What Headway knows about your business');
     expect(home.indexOf('<Reveal')).toBeGreaterThan(home.indexOf('<aside'));
     expect(home).toContain('<Limits limits={r.limitations} collapsed />');
   });
@@ -102,7 +115,9 @@ describe('home is a command centre, not a briefing', () => {
     // was the one part of Home that said things a second time.
     expect(home).not.toContain('<Tallies');
     expect(home).not.toContain('talliesFor');
-    expect(home.split("f.label === 'Public rating'").length - 1).toBe(1);
+    // Picked out by key, not by its label — the label is translated now — but
+    // still picked out exactly once.
+    expect(home.split("f.key === 'publicRating'").length - 1).toBe(1);
     // And the block itself no longer repeats the share chip's quotes under the reading.
     expect(focus).not.toContain('Show me the evidence');
     expect(focus).not.toContain('<Quotes');
@@ -138,10 +153,13 @@ describe('every figure that matters opens into the rows it counts', () => {
 
   it('draws the two piles of a before/after one piece of feedback at a time, and switches motion off on request', () => {
     expect(disclose).toContain('hw-dot');
-    expect(disclose).toContain("label: 'Before'");
-    expect(disclose).toContain("label: 'After'");
+    expect(disclose).toContain("label: 'common.population.before'");
+    expect(disclose).toContain("label: 'common.population.after'");
+    expect(MESSAGES['common.population.before'].en).toBe('Before');
+    expect(MESSAGES['common.population.after'].en).toBe('After');
     expect(disclose).toContain('{p.caveat}');
-    expect(disclose).toContain('Why Headway says this');
+    expect(disclose).toContain("t('common.reveal.why')");
+    expect(MESSAGES['common.reveal.why'].en).toBe('Why Headway says this');
     const css = read('src', 'app', 'globals.css');
     expect(css).toContain('@keyframes hw-pop');
     expect(css).toMatch(/prefers-reduced-motion: reduce[\s\S]*animation: none/);
@@ -177,23 +195,47 @@ describe('customers is a signal board', () => {
 
   it('groups by importance, in this order', () => {
     ordered(page, ["key: 'NEEDS_YOU'", "key: 'WATCHING'", "key: 'PROTECT'", "key: 'EARLY'"]);
-    expect(board).toContain("NEEDS_YOU: 'Needs you'");
-    expect(board).toContain("WATCHING: 'Watching'");
+    expect(board).toContain("NEEDS_YOU: 'customers.group.needsAttention.label'");
+    expect(board).toContain("WATCHING: 'customers.group.watching.label'");
+    expect(board).toContain("PROTECT: 'customers.group.goingWell.label'");
+    expect(board).toContain("EARLY: 'customers.group.notClear.label'");
+    expect(MESSAGES['customers.group.needsAttention.label'].en).toBe('Needs your attention');
+    expect(MESSAGES['customers.group.watching.label'].en).toBe('Watching');
+    expect(MESSAGES['customers.group.notClear.label'].en).toBe('Not yet clear');
     // The key stays PROTECT, but the word an owner reads is the one Home uses
     // for the same pile: one pile, one name.
-    expect(board).toContain("PROTECT: 'Going well'");
-    expect(board).toContain("EARLY: 'Not yet clear'");
+    expect(MESSAGES['customers.group.goingWell.label'].en).toBe(MESSAGES['home.goingWell.title'].en);
   });
 
   it('opens each signal into the whole reading without leaving the page', () => {
     ordered(board, [
+      "<Row label={t('customers.card.saying')}>",
+      "<Row label={t('customers.tapped.label')}>",
+      "<Row label={t('customers.card.sees')} strong>",
+      "issue ? t('customers.card.whatToDo') : t('customers.card.whatToKeep')",
+      "<Row label={t('customers.card.why')}>",
+      "<Row label={t('customers.card.checkNext')}>",
+      "<Row label={t('customers.card.basedOn')}>",
+    ]);
+    // The rows read the same way they always did, in the dictionary now.
+    expect([
+      MESSAGES['customers.card.saying'].en,
+      MESSAGES['customers.tapped.label'].en,
+      MESSAGES['customers.card.sees'].en,
+      MESSAGES['customers.card.whatToDo'].en,
+      MESSAGES['customers.card.whatToKeep'].en,
+      MESSAGES['customers.card.why'].en,
+      MESSAGES['customers.card.checkNext'].en,
+      MESSAGES['customers.card.basedOn'].en,
+    ]).toEqual([
       'What customers are saying',
       'What customers tapped',
       'What Headway sees',
-      "issue ? 'What to do' : 'What to protect'",
-      '<Row label="Why">',
-      '<Row label="Headway will check next">',
-      '<Row label="What Headway based this on">',
+      'What to do',
+      'What to keep doing',
+      'Why',
+      'Headway will check next',
+      'What Headway based this on',
     ]);
     // The taps are counted by the view, never by the component.
     expect(board).toContain('{s.tapped ? (');
@@ -205,11 +247,13 @@ describe('customers is a signal board', () => {
   it('keeps the movement and the method behind a tap, and the method on this page only', () => {
     ordered(page, [
       '<SignalBoard',
-      'Show what changed between your check-ins',
-      'How Headway read this',
+      "t('customers.changed.summary')",
+      "t('customers.method.summary')",
       '<WorkList work={view.work} />',
       '<Limits limits={view.limits} />',
     ]);
+    expect(MESSAGES['customers.changed.summary'].en).toBe('Show what changed between your check-ins');
+    expect(MESSAGES['customers.method.summary'].en).toBe('How Headway read this');
     expect(page).not.toContain('eyebrow="Across your check-ins"');
     expect(page).not.toContain('<ThemeStory');
   });
@@ -221,23 +265,37 @@ describe('reviews reads as evidence, not an inbox', () => {
   it('opens with the transformation Headway made of the pile', () => {
     ordered(page, [
       'function Funnel(',
-      "funnel.read === 1 ? 'piece of feedback read' : 'pieces of feedback read'",
-      "funnel.signals === 1 ? 'pattern' : 'patterns'",
-      "funnel.isolated === 1 ? 'topic mentioned once or twice' : 'topics mentioned once or twice'",
-      'needs attention',
+      "t.plural('feedback.funnel.read', funnel.read)",
+      "t.plural('feedback.funnel.pattern', funnel.signals)",
+      "t.plural('feedback.funnel.isolated', funnel.isolated)",
+      "t('feedback.funnel.attention'",
     ]);
-    expect(page.indexOf('<Funnel funnel={view.funnel} base={base} />')).toBeLessThan(page.indexOf('<StatusStrip'));
+    // Each step still names its own noun in both numbers — one entry is an
+    // entry — and the third step is still the counterweight that says these
+    // topics are NOT being treated as patterns.
+    expect(MESSAGES['feedback.funnel.read.one'].en).toBe('feedback entry read');
+    expect(MESSAGES['feedback.funnel.read.other'].en).toBe('feedback entries read');
+    expect(MESSAGES['feedback.funnel.pattern.one'].en).toBe('pattern');
+    expect(MESSAGES['feedback.funnel.pattern.other'].en).toBe('patterns');
+    expect(MESSAGES['feedback.funnel.isolated.one'].en).toBe('topic mentioned once or twice');
+    expect(MESSAGES['feedback.funnel.isolated.other'].en).toBe('topics mentioned once or twice');
+    expect(MESSAGES['feedback.funnel.attention'].en).toBe('needs attention · {topic}');
+    expect(page.indexOf('<Funnel funnel={view.funnel} base={base} t={t} />')).toBeLessThan(page.indexOf('<StatusStrip'));
   });
 
   it('lets the owner see only the evidence behind one signal', () => {
     expect(page).toContain('function SignalChips(');
-    expect(page).toContain('What Headway based this on');
-    expect(page).toContain('Comments about {activeSignal.label.toLowerCase()}');
-    // And it says the ones on top were chosen, not simply the first three — in
-    // both numbers, because one comment is a comment.
+    expect(page).toContain("t('feedback.evidence.eyebrow')");
+    expect(MESSAGES['feedback.evidence.eyebrow'].en).toBe('What Headway based this on');
     expect(page).toContain(
-      "items.length === 1 ? 'The clearest one is first.' : 'The clearest ones are first.'",
+      "t('feedback.evidence.title', { topic: activeSignal.label.toLowerCase() })",
     );
+    expect(MESSAGES['feedback.evidence.title'].en).toBe('Feedback about {topic}');
+    // And it says the ones on top were chosen, not simply the first three — in
+    // both numbers, because one entry is an entry.
+    expect(page).toContain("t.plural('feedback.evidence.clearest', items.length)");
+    expect(MESSAGES['feedback.evidence.clearest.one'].en).toBe('The clearest one is first.');
+    expect(MESSAGES['feedback.evidence.clearest.other'].en).toBe('The clearest ones are first.');
   });
 
   it('leads with representative comments and keeps the whole pile one tap away', () => {
@@ -246,12 +304,21 @@ describe('reviews reads as evidence, not an inbox', () => {
     expect(page).toContain("import { quotesFor } from '@/lib/portal/evidence'");
     expect(page).toContain('const REPRESENTATIVE = 3;');
     expect(page).toContain("activeSignal !== null && !searching && filters.stars === null && page === 1 && !all");
-    expect(page).toContain('Show all {view.matching}');
+    expect(page).toContain("t('feedback.list.showAll', { count: view.matching })");
+    expect(MESSAGES['feedback.list.showAll'].en).toBe('Show all {count}');
     expect(page).toContain('&all=1');
   });
 
   it('keeps the raw list, the search and the charts, under the intelligence', () => {
-    ordered(page, ['<SignalChips', '<RatingStrip', 'What Headway found', 'Search and filter', '<ReviewRow key={item.id} item={item} />']);
+    ordered(page, [
+      '<SignalChips',
+      '<RatingStrip',
+      "t('feedback.found.summary')",
+      "t('feedback.filter.summary')",
+      '<ReviewRow key={item.id} item={item} />',
+    ]);
+    expect(MESSAGES['feedback.found.summary'].en).toBe('What Headway found');
+    expect(MESSAGES['feedback.filter.summary'].en).toBe('Search and filter');
   });
 });
 
@@ -261,9 +328,26 @@ describe('improvements reads as memory', () => {
 
   it('tells three moments, then what happened, what it means and what to do now', () => {
     ordered(story, [
-      'label="The problem"',
-      "declined ? 'Not doing' : 'You changed'",
-      'label="Headway checked again"',
+      "label={t('improvements.moment.problem')}",
+      "declined ? t('improvements.notDoing') : t('improvements.moment.youChanged')",
+      "label={t('improvements.moment.checkedAgain')}",
+      "t('improvements.row.whatHappened')",
+      "t('improvements.row.whatThisMeans')",
+      "t('improvements.row.whatToDoNow')",
+    ]);
+    expect([
+      MESSAGES['improvements.moment.problem'].en,
+      MESSAGES['improvements.notDoing'].en,
+      MESSAGES['improvements.moment.youChanged'].en,
+      MESSAGES['improvements.moment.checkedAgain'].en,
+      MESSAGES['improvements.row.whatHappened'].en,
+      MESSAGES['improvements.row.whatThisMeans'].en,
+      MESSAGES['improvements.row.whatToDoNow'].en,
+    ]).toEqual([
+      'The problem',
+      'Not doing',
+      'You changed',
+      'Headway checked again',
       'What happened',
       'What this means',
       'What to do now',
@@ -273,7 +357,14 @@ describe('improvements reads as memory', () => {
   });
 
   it('keeps the numbers, the evidence and how it started one tap away', () => {
-    ordered(story, ['summary="Show the numbers"', 'summary="Show evidence"', 'summary="How this started"']);
+    ordered(story, [
+      "summary={t('improvements.reveal.numbers')}",
+      "summary={t('improvements.reveal.evidence')}",
+      "summary={t('improvements.reveal.howStarted')}",
+    ]);
+    expect(MESSAGES['improvements.reveal.numbers'].en).toBe('Show the numbers');
+    expect(MESSAGES['improvements.reveal.evidence'].en).toBe('Show what customers wrote');
+    expect(MESSAGES['improvements.reveal.howStarted'].en).toBe('How this started');
     expect(story).toContain('{outcome.caveat || outcome.note}');
     expect(page).toContain('<ImprovementStory');
     expect(page).not.toContain('<ActionStory');
@@ -288,11 +379,14 @@ describe('the check-in is a pulse', () => {
       '<PeriodSwitch basePath={basePath} current="checkin" />',
       '{pulse.sentence}',
       '<Blocks blocks={pulse.blocks}',
-      'Headway will check next',
+      "t('checkin.nextCheck.title')",
       '{r.nextUsefulCheck}',
-      'summary="Show what changed"',
-      'What Headway did',
+      "summary={t('checkin.reveal.changed')}",
+      "t('checkin.reveal.did'",
     ]);
+    expect(MESSAGES['checkin.nextCheck.title'].en).toBe('What Headway will check next');
+    expect(MESSAGES['checkin.reveal.changed'].en).toBe('Show what changed');
+    expect(MESSAGES['checkin.reveal.did'].en).toBe('What Headway did · {since}');
     expect(page).toContain("import { checkinPulse, type CheckinBlock } from '@/lib/portal/focus'");
     expect(page).not.toContain('<Limits');
   });
@@ -306,27 +400,40 @@ describe('the check-in is a pulse', () => {
 describe('the utility pages stay quiet', () => {
   it('sections the account into service, activity and continuing with Headway', () => {
     const page = code(read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'account', 'page.tsx'));
-    ordered(page, ['eyebrow="Your Headway service"', 'eyebrow="Your Headway activity"']);
+    ordered(page, [
+      "eyebrow={t('account.service.eyebrow')}",
+      "eyebrow={t('account.activity.eyebrow')}",
+    ]);
+    expect(MESSAGES['account.service.eyebrow'].en).toBe('Your Headway service');
+    expect(MESSAGES['account.activity.eyebrow'].en).toBe('What Headway has done so far');
+    expect(MESSAGES['account.continue.eyebrow'].en).toBe('Continuing with Headway');
     // The same offer is made in two states — locked, above the facts, and
     // mid-trial, under them — so both sections carry one eyebrow. The one this
     // page ends on is the one after the activity.
-    const afterActivity = page.slice(page.indexOf('eyebrow="Your Headway activity"'));
-    expect(afterActivity).toContain('eyebrow="Continuing with Headway"');
+    const afterActivity = page.slice(page.indexOf("eyebrow={t('account.activity.eyebrow')}"));
+    expect(afterActivity).toContain("eyebrow={t('account.continue.eyebrow')}");
     expect(page).toContain("import { activityFacts } from '@/lib/portal/focus'");
     expect(page).not.toMatch(/₹|per month|pricing/i);
   });
 
   it('shows the team as who has access and what each can do', () => {
     const page = code(read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'team', 'page.tsx'));
-    expect(page).toContain('title="Who has access"');
-    expect(page).toContain('Cannot change the team or the account');
+    expect(page).toContain("title={t('team.title')}");
+    expect(MESSAGES['team.title'].en).toBe('Who has access');
+    expect(page).toContain("'team.can.staff'");
+    expect(MESSAGES['team.can.staff'].en).toBe(
+      'Can see everything. Cannot change the team or the account.',
+    );
   });
 
   it('shows the print kit as a deployed system, with what came through it', () => {
     const page = code(read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'kit', 'page.tsx'));
     expect(page).toContain("source: 'REP_OS_QR'");
-    expect(page).toContain('through the card');
-    expect(page).toContain('Your feedback card');
+    expect(page).toContain("t.plural('kit.status.through', through)");
+    expect(MESSAGES['kit.status.through.one'].en).toBe('feedback entry from the card');
+    expect(MESSAGES['kit.status.through.other'].en).toBe('feedback entries from the card');
+    expect(page).toContain("title={t('kit.intro.title')}");
+    expect(MESSAGES['kit.intro.title'].en).toBe('Your feedback card');
   });
 });
 

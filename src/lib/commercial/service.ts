@@ -249,12 +249,12 @@ export function describeAccount(input: {
     phase = 'PAUSED';
     headline = 'Headway is paused';
     line =
-      'Your feedback and your history are safe. New feedback is still saved, but Headway is not reading it yet.';
+      'Your feedback and your history are safe. New feedback is still saved. Headway is not reading it yet.';
     note = servicePausedAt ? `Paused since ${formatLongDate(servicePausedAt)}.` : null;
   } else if (state === 'CANCELLED') {
     phase = 'CLOSED';
-    headline = 'This account is closed';
-    line = 'Your feedback and your history are safe. Nothing new is being read.';
+    headline = 'Your account is closed';
+    line = 'Your feedback and your history are safe. Headway is not reading new feedback.';
   } else if (state === 'ACTIVE') {
     phase = 'ACTIVE';
     headline = 'Headway is active';
@@ -268,10 +268,10 @@ export function describeAccount(input: {
     phase = 'TRIAL';
     headline = 'Your Headway trial';
     line = input.trialEndsAt
-      ? `Your trial is active until ${formatLongDate(input.trialEndsAt)}.`
+      ? `Your trial runs until ${formatLongDate(input.trialEndsAt)}.`
       : // Only for a business created before every trial carried a window, and
         // only until the M23 backfill runs. Never "no end date".
-        'Your trial is active. Your Headway contact will confirm the end date.';
+        'Your trial is running. Your Headway contact will confirm the end date.';
     note = resumedRecently ? 'Your account was paused. It is running again.' : null;
   }
 

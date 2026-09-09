@@ -90,8 +90,8 @@ function build(
 describe('the headline', () => {
   it('names the one thing worth attention, and rests it on the pile', () => {
     const { focus } = build();
-    expect(focus.headline).toBe('Long waiting time is the one thing worth your attention.');
-    expect(focus.basis).toBe('Based on 50 pieces of feedback Headway has read.');
+    expect(focus.headline).toBe('Long waiting time is the main thing to fix.');
+    expect(focus.basis).toBe('Based on 50 feedback entries.');
     expect(focus.theme).toEqual({ key: 'wait_time', label: 'Long waiting time', kind: 'ISSUE' });
     expect(focus.state).toBe('DO_NOW');
   });
@@ -103,9 +103,9 @@ describe('the headline', () => {
         themes: themes([theme('doctor_care', "Doctor's care and explanation", 'PRAISE', 12)], [], 50),
       },
     });
-    expect(quiet.focus.headline).toBe('Nothing needs you right now.');
+    expect(quiet.focus.headline).toBe('Nothing needs your attention right now.');
     expect(quiet.focus.synthesis).toBe(
-      "Customers praise your doctor's care and explanation most — 12 of the 50 pieces of feedback read. Nothing is coming up often enough to call a weakness.",
+      "Customers praise your doctor's care and explanation most — 12 of 50 feedback entries. Nothing else comes up often enough to call it a problem.",
     );
     expect(quiet.focus.proofs).toEqual([]);
     expect(quiet.focus.cta?.label).toBe('See what is going well');
@@ -135,7 +135,7 @@ describe('the proofs', () => {
     const { focus } = build();
     const share = focus.proofs.find((p) => p.key === 'share');
     expect(share?.label).toBe('18% of feedback');
-    expect(share?.detail).toBe('9 of the 50 pieces of feedback Headway has read mention it.');
+    expect(share?.detail).toBe('9 of 50 feedback entries mention long waiting time.');
     expect(share?.quotes.map((q) => q.id)).toEqual(['w1', 'w2']);
     expect(share?.seeAll).toEqual({ label: 'See all 9 mentions', href: `${BASE}/reviews?theme=wait_time` });
     expect(share?.tone).toBe('bad');
@@ -157,8 +157,8 @@ describe('the proofs', () => {
   it('reads a helped change as less often, in green, and shows it when nothing needs the owner', () => {
     const { focus, view } = build({ portal: { actions: [action('MEASURED', 'IMPROVED')] } });
     // A change that helped needs nobody; the block says so and still shows the evidence.
-    expect(focus.headline).toBe('Nothing needs you right now.');
-    expect(focus.synthesis).toMatch(/Long waiting time is still mentioned, but it has come up less often since your change\.$/);
+    expect(focus.headline).toBe('Nothing needs your attention right now.');
+    expect(focus.synthesis).toMatch(/Customers still mention long waiting time, but less often since your change\.$/);
     expect(focus.cta).toEqual({ label: 'See what changed', href: `${BASE}/analysis?open=wait_time#signal-wait_time` });
     const outcome = focus.proofs.find((p) => p.key === 'outcome');
     expect(outcome?.label).toBe('Less often after the change');
@@ -195,7 +195,7 @@ describe('what Headway wants you to know, and the next step', () => {
   it('sets the strength against the complaint in one breath', () => {
     const { focus } = build();
     expect(focus.synthesis).toBe(
-      "Customers are not unhappy about your doctor's care and explanation — 12 praised it. What they raise most is long waiting time.",
+      "Customers like your doctor's care and explanation — 12 praised it. The main problem they mention is long waiting time.",
     );
     // The quotes live on the share chip and nowhere else in the block.
     expect('evidence' in focus).toBe(false);
@@ -215,9 +215,9 @@ describe('what Headway wants you to know, and the next step', () => {
 
   it('asks the owner to look again, not to undo, when a change read worse', () => {
     const { focus } = build({ portal: { actions: [action('MEASURED', 'WORSENED')] } });
-    expect(focus.headline).toBe('Long waiting time is the one thing worth your attention.');
-    expect(focus.synthesis).toMatch(/and it has come up more since your change\.$/);
-    expect(focus.next?.headline).toBe('Check what else changed before undoing anything.');
+    expect(focus.headline).toBe('Long waiting time is the main thing to fix.');
+    expect(focus.synthesis).toMatch(/Customers have mentioned it more often since your change\.$/);
+    expect(focus.next?.headline).toBe('Before you undo the change, check what else changed.');
     // The suggestion frozen on the action at the time, not the pack's current wording.
     expect(focus.next?.detail).toBe('The original suggestion still stands: Publish a realistic slot length.');
     expect(focus.next?.why[0]).toBe('Customers are mentioning long waiting time more often since the change.');
@@ -238,7 +238,7 @@ describe('the check-in pulse', () => {
       checkins: [checkin('s2', new Date(2026, 4, 1)), checkin('s1', new Date(2026, 2, 1))],
     });
     const pulse = checkinPulse(r, view, true);
-    expect(pulse.sentence).toBe('One thing needs you. One thing needs watching. Two things are holding steady.');
+    expect(pulse.sentence).toBe('One thing needs your attention. One thing needs watching. Two things are holding steady.');
     expect(pulse.blocks.map((b) => b.kind)).toEqual(['DO', 'PROTECT', 'WATCH']);
     expect(pulse.blocks[0]?.signal?.themeKey).toBe('wait_time');
     expect(pulse.blocks[1]?.signal?.themeKey).toBe('doctor_care');
@@ -248,7 +248,9 @@ describe('the check-in pulse', () => {
   it('does not claim steadiness before two check-ins exist', () => {
     const { r, view } = build();
     const pulse = checkinPulse(r, view, false);
-    expect(pulse.sentence).toBe('One thing needs you. One thing needs watching. A second check-in will show what is holding steady.');
+    expect(pulse.sentence).toBe(
+      'One thing needs your attention. One thing needs watching. A second check-in will show what is holding steady.',
+    );
   });
 
   it('says nothing needs you when nothing does', () => {
@@ -258,7 +260,7 @@ describe('the check-in pulse', () => {
         themes: themes([theme('doctor_care', "Doctor's care and explanation", 'PRAISE', 12)], [], 50),
       },
     });
-    expect(checkinPulse(r, view, false).sentence).toMatch(/^Nothing needs you\./);
+    expect(checkinPulse(r, view, false).sentence).toMatch(/^Nothing needs your attention\./);
   });
 });
 
@@ -266,9 +268,9 @@ describe('the account activity', () => {
   it('counts only what the workspace already states', () => {
     const { r, view } = build({ portal: { actions: [action('MEASURED', 'WORSENED')] } });
     expect(activityFacts(view, r, BASE)).toEqual([
-      { label: 'Pieces of feedback read', value: '50', href: `${BASE}/reviews` },
+      { label: 'Feedback entries read', value: '50', href: `${BASE}/reviews` },
       { label: 'What keeps coming up', value: '4', href: `${BASE}/analysis` },
-      { label: 'Issue that needs you', value: '1', href: BASE },
+      { label: 'Problem that needs your attention', value: '1', href: BASE },
       { label: 'Change compared', value: '1', href: `${BASE}/improvements` },
     ]);
   });

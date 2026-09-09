@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
-import { HeadwayWordmark, HEADWAY_CUSTOMER_LINE } from '@/components/brand';
+import { HeadwayWordmark } from '@/components/brand';
+import { useT } from '@/components/portal/locale-provider';
+import type { MessageKey } from '@/lib/i18n/strings';
 
 /**
  * WORKSPACE CHROME (M12).
@@ -29,17 +31,21 @@ import { HeadwayWordmark, HEADWAY_CUSTOMER_LINE } from '@/components/brand';
  * publicly, so calling the door Reviews contradicted the promise on the one
  * screen every page shows. The slug stays `reviews` because a URL is not copy
  * and old links must keep working.
+ *
+ * `label` holds the dictionary key rather than the word itself (M31), so the
+ * eight doors are named in the owner's language while the eight slugs — which
+ * are addresses people have bookmarked and been sent — do not move.
  */
 const SECTIONS = [
-  { slug: '', label: 'Home', extra: false },
-  { slug: 'analysis', label: 'Customers', extra: false },
-  { slug: 'reviews', label: 'Feedback', extra: false },
-  { slug: 'improvements', label: 'Improvements', extra: false },
-  { slug: 'checkin', label: 'Check-in', extra: false },
-  { slug: 'team', label: 'Team', extra: true },
-  { slug: 'kit', label: 'Print kit', extra: true },
-  { slug: 'account', label: 'Account', extra: true },
-] as const;
+  { slug: '', label: 'nav.section.home', extra: false },
+  { slug: 'analysis', label: 'nav.section.customers', extra: false },
+  { slug: 'reviews', label: 'nav.section.feedback', extra: false },
+  { slug: 'improvements', label: 'nav.section.improvements', extra: false },
+  { slug: 'checkin', label: 'nav.section.checkin', extra: false },
+  { slug: 'team', label: 'nav.section.team', extra: true },
+  { slug: 'kit', label: 'nav.section.kit', extra: true },
+  { slug: 'account', label: 'nav.section.account', extra: true },
+] as const satisfies ReadonlyArray<{ slug: string; label: MessageKey; extra: boolean }>;
 
 /**
  * Five doors on the shared link, eight in the workspace. The weekly Pulse and
@@ -81,6 +87,7 @@ export function WorkspaceHeader({
    */
   signOut?: React.ReactNode;
 }) {
+  const t = useT();
   const pathname = usePathname();
   const base = `${basePath}`;
   const rest = pathname.startsWith(base) ? pathname.slice(base.length) : '';
@@ -107,7 +114,7 @@ export function WorkspaceHeader({
           nobody opens. From tablet width up the row stays put while the page
           scrolls, so "where am I" and "where else can I go" never leave. */}
       <nav
-        aria-label="Sections"
+        aria-label={t('nav.sections.label')}
         className="-mx-4 mt-4 border-b border-ink-200 bg-ink-50/95 px-4 backdrop-blur sm:sticky sm:top-0 sm:z-30 sm:mx-0 sm:px-0"
       >
         <ul className="flex flex-wrap gap-x-1">
@@ -126,7 +133,7 @@ export function WorkspaceHeader({
                       : 'border-transparent text-ink-500 hover:border-ink-300 hover:text-ink-800',
                   )}
                 >
-                  {s.label}
+                  {t(s.label)}
                 </Link>
               </li>
             );
@@ -152,12 +159,13 @@ export function WorkspaceHeader({
  * `view.basis`, so the footer says nothing.
  */
 export function WorkspaceFooter({ businessName }: { businessName: string }) {
+  const t = useT();
   return (
     <footer className="on-navy -mx-4 mt-12 bg-ink-950 px-4 py-4 sm:-mx-6 sm:px-6">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <div className="flex items-center gap-3">
           <HeadwayWordmark tone="dark" markClassName="h-5 w-5" nameClassName="text-[15px]" />
-          <span className="text-[13px] text-ink-300">{HEADWAY_CUSTOMER_LINE}</span>
+          <span className="text-[13px] text-ink-300">{t('nav.footer.tagline')}</span>
         </div>
         <p className="text-[12px] text-ink-300">{businessName}</p>
       </div>

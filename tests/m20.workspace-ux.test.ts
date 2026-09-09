@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { MESSAGES, type MessageKey } from '@/lib/i18n/strings';
 
 /**
  * THE OWNER EXPERIENCE, AS SHIPPED (launch pass).
@@ -11,12 +12,20 @@ import { describe, expect, it } from 'vitest';
  * would notice breaking and nobody would notice in a type check:
  *
  *   - every piece of feedback separates what the CUSTOMER GAVE from what
- *     REPOS UNDERSTOOD;
+ *     HEADWAY UNDERSTOOD;
  *   - the workspace has six doors, and the week and month reports are reached
  *     from Check-in rather than as tabs of their own;
  *   - one word for one idea: Watching, What we know, What we cannot tell you,
  *     What we recommend;
  *   - an empty page is hopeful, never "No data".
+ *
+ * WORDS LIVE IN THE DICTIONARY NOW (M31). The plain-English and localization
+ * pass moved the owner-facing sentences out of these components and into
+ * `src/lib/i18n/strings`, reached with `t('some.key')`. So every rule about
+ * wording is pinned twice: the component still reaches for the right key, and
+ * the key still says the right words in English. Checking only the key would
+ * let the sentence be rewritten into anything; checking only the words would
+ * not notice a screen pointed at the wrong phrase.
  */
 
 const SRC = resolve(__dirname, '..', 'src');
@@ -43,14 +52,23 @@ function between(source: string, from: string, to: string): string {
   return source.slice(start, end);
 }
 
+/** The English a dictionary key says, so a rule can still pin the actual words. */
+function says(key: MessageKey): string {
+  return MESSAGES[key].en;
+}
+
 describe('every piece of feedback', () => {
   const ui = code(read('components', 'portal', 'portal-ui.tsx'));
-  const row = between(ui, 'export function ReviewRow(', 'export function RatingStrip(');
+  const row = between(ui, 'export async function ReviewRow(', 'export async function RatingStrip(');
 
   it('separates what the customer gave from what Headway understood', () => {
-    expect(row).toContain('Customer gave');
-    expect(row).toContain('Headway understood');
-    expect(row.indexOf('Customer gave')).toBeLessThan(row.indexOf('Headway understood'));
+    expect(row).toContain("t('common.review.gave')");
+    expect(row).toContain("t('common.review.understood')");
+    expect(row.indexOf("t('common.review.gave')")).toBeLessThan(
+      row.indexOf("t('common.review.understood')"),
+    );
+    expect(says('common.review.gave')).toBe('Customer gave');
+    expect(says('common.review.understood')).toBe('Headway understood');
   });
 
   it('shows the overall stars, each part rated out of 5, the selected specifics and the words', () => {
@@ -58,31 +76,54 @@ describe('every piece of feedback', () => {
     expect(row).toContain('gave.dimensions.map');
     expect(row).toContain('/5');
     expect(row).toContain('gave.selected.map');
-    expect(row).toContain('Selected');
-    expect(row).toContain('Written');
+    expect(row).toContain("t('common.review.selected')");
+    expect(row).toContain("t('common.review.written')");
+    expect(says('common.review.selected')).toBe('Selected');
+    expect(says('common.review.written')).toBe('Written');
     expect(row).toContain('{item.text}');
   });
 
   it('never dresses up a rating-only submission as words', () => {
-    expect(row).toContain('A rating only — no written comment.');
-    expect(row).toContain('Nothing written — the ratings above are the whole message.');
+    expect(row).toContain("t('common.review.ratingOnly')");
+    expect(row).toContain("t('common.review.noWordsTapped')");
+    expect(says('common.review.ratingOnly')).toBe('A rating only — no written comment.');
+    expect(says('common.review.noWordsTapped')).toBe(
+      'Nothing written — the ratings above are the whole message.',
+    );
   });
 
   it('keeps the themes on the Headway side, joined as a reading', () => {
-    const understood = row.slice(row.indexOf('Headway understood'));
+    const understood = row.slice(row.indexOf("t('common.review.understood')"));
     expect(understood).toContain("{item.state === 'ANALYSED' ? (");
     expect(understood).toContain("item.themes.join(' · ')");
-    expect(understood).toContain('Nothing here matched a topic Headway tracks.');
-    expect(understood).toContain('in tone');
-    expect(understood).toContain('Sorted as');
+    expect(understood).toContain("t('common.review.noTopic')");
+    expect(says('common.review.noTopic')).toBe('Nothing here matched a topic Headway tracks.');
+    expect(understood).toContain("t('common.review.tone'");
+    expect(says('common.review.tone')).toContain('in tone');
+    expect(understood).toContain("t('common.review.sortedAs')");
+    expect(says('common.review.sortedAs')).toBe('Sorted as');
   });
 
   it('tells the four states apart: read, being read, waiting, could not read', () => {
-    const understood = row.slice(row.indexOf('Headway understood'));
-    expect(understood).toContain('Headway is reading this now.');
-    expect(understood).toContain('Waiting for Headway to read it — usually within a minute of arriving.');
-    expect(understood).toContain('Headway could not read this one yet. It will try again on its own.');
+    const understood = row.slice(row.indexOf("t('common.review.understood')"));
+    expect(understood).toContain("t('common.review.reading')");
+    expect(understood).toContain("t('common.review.waiting')");
+    expect(understood).toContain("t('common.review.failed')");
+    expect(says('common.review.reading')).toBe('Headway is reading this now.');
+    expect(says('common.review.waiting')).toBe(
+      'Waiting for Headway to read it — usually within a minute of it arriving.',
+    );
+    expect(says('common.review.failed')).toBe(
+      'Headway could not read this one yet. It will try again on its own.',
+    );
     expect(understood).not.toContain('Not read yet');
+    for (const state of [
+      'common.review.reading',
+      'common.review.waiting',
+      'common.review.failed',
+    ] as const) {
+      expect(says(state)).not.toContain('Not read yet');
+    }
   });
 });
 
@@ -94,7 +135,7 @@ describe('the reviews page', () => {
     expect(page).toContain(
       '<RatingStrip base={base} ratings={view.ratings} active={view.filters.stars} />',
     );
-    const strip = between(ui, 'export function RatingStrip(', 'export function PeriodSwitch(');
+    const strip = between(ui, 'export async function RatingStrip(', 'export async function PeriodSwitch(');
     expect(strip).toContain('.sort((a, b) => b.stars - a.stars)');
     expect(strip).toContain('href={`${base}?stars=${r.stars}`}');
     expect(strip).toContain("aria-current={active === r.stars ? 'page' : undefined}");
@@ -103,19 +144,26 @@ describe('the reviews page', () => {
   it('is hopeful before the first customer, never empty', () => {
     // Empty says what happens next, and how it starts, rather than stopping at
     // the absence.
-    expect(page).toContain(
-      'Nothing has come in yet. Feedback starts arriving once customers scan your QR code.',
+    expect(page).toContain("t('feedback.intro.empty')");
+    expect(says('feedback.intro.empty')).toBe(
+      'No feedback yet. It starts coming in when customers scan your QR code.',
     );
     expect(page).not.toContain('No feedback has been collected yet');
     expect(page).not.toMatch(/No data/i);
+    expect(says('feedback.intro.empty')).not.toMatch(/No data/i);
   });
 
   it('opens with the counts that matter and says when Headway is still reading', () => {
     expect(page).toContain('<StatusStrip');
-    expect(page).toContain("{ label: 'read by Headway', value: view.analysed }");
-    expect(page).toContain("{ label: 'being read now', value: inHand, tone: 'warn' as const }");
+    expect(page).toContain("{ label: t('feedback.status.read'), value: view.analysed }");
     expect(page).toContain(
-      'Feedback has arrived. Headway is reading it now — usually under a minute. Reload to see what it found.',
+      "{ label: t('feedback.status.reading'), value: inHand, tone: 'warn' as const }",
+    );
+    expect(says('feedback.status.read')).toBe('read by Headway');
+    expect(says('feedback.status.reading')).toBe('being read now');
+    expect(page).toContain("t('feedback.intro.reading')");
+    expect(says('feedback.intro.reading')).toBe(
+      'Feedback has come in. Headway is reading it now. This usually takes less than a minute. Reload the page to see what it found.',
     );
   });
 
@@ -135,13 +183,27 @@ describe('the reviews page', () => {
 describe('the workspace navigation', () => {
   const source = code(read('components', 'portal', 'workspace.tsx'));
   const block = between(source, 'const SECTIONS', ']');
-  const labels = [...block.matchAll(/label: '([^']+)'/g)].map((m) => m[1]);
+  // `label` holds the dictionary key now (M31); the door an owner reads is the
+  // English behind it, and the slug — an address people have been sent — has
+  // not moved.
+  const labelKeys = [...block.matchAll(/label: '([^']+)'/g)].map((m) => m[1] as MessageKey);
+  const labels = labelKeys.map((key) => says(key));
   const slugs = [...block.matchAll(/slug: '([^']+)'/g)].map((m) => m[1]);
 
   it('has the doors an owner thinks in, in that order', () => {
     // Five on the shared link; three more once somebody is signed in. M21 added
     // the print kit (the one physical object in the product, which an owner
     // previously had to be sent) and the account.
+    expect(labelKeys).toEqual([
+      'nav.section.home',
+      'nav.section.customers',
+      'nav.section.feedback',
+      'nav.section.improvements',
+      'nav.section.checkin',
+      'nav.section.team',
+      'nav.section.kit',
+      'nav.section.account',
+    ]);
     expect(labels).toEqual([
       'Home',
       'Customers',
@@ -159,8 +221,11 @@ describe('the workspace navigation', () => {
   });
 
   it('keeps the extra doors out of the read-only shared link', () => {
-    const extras = [...block.matchAll(/label: '([^']+)', extra: true/g)].map((m) => m[1]);
-    expect(extras).toEqual(['Team', 'Print kit', 'Account']);
+    const extras = [...block.matchAll(/label: '([^']+)', extra: true/g)].map(
+      (m) => m[1] as MessageKey,
+    );
+    expect(extras).toEqual(['nav.section.team', 'nav.section.kit', 'nav.section.account']);
+    expect(extras.map((key) => says(key))).toEqual(['Team', 'Print kit', 'Account']);
   });
 
   it('keeps every door on screen: wrapping on a phone, pinned from tablet up, finger-sized', () => {
@@ -189,7 +254,8 @@ describe('the workspace navigation', () => {
     expect(report).toContain(
       "<PeriodSwitch basePath={basePath} current={isWeek ? 'pulse' : 'review'} />",
     );
-    expect(report).toContain('eyebrow="Check-in"');
+    expect(report).toContain("eyebrow={t('pulse.report.eyebrow')}");
+    expect(says('pulse.report.eyebrow')).toBe('Check-in');
     const checkin = code(read('components', 'workspace', 'checkin.tsx'));
     expect(checkin).toContain('<PeriodSwitch basePath={basePath} current="checkin" />');
   });
@@ -205,10 +271,10 @@ describe('home, as a command centre', () => {
     // is changing what an owner reads first, which is not a styling decision.
     const order = [
       '<FocusBlock focus={focus} direction={direction} />', // right now, do I need to act, next step
-      'eyebrow="Headway is watching"', // what is being carried
-      'eyebrow="Going well"', // what to protect
+      "eyebrow={t('home.watching.title')}", // what is being carried
+      "eyebrow={t('home.goingWell.title')}", // what to protect
       '<SinceVisit since={since}', // what changed while away
-      'eyebrow="Your next check-in"', // when the next check-in is worth opening
+      "eyebrow={t('home.nextCheck.title')}", // when the next check-in is worth opening
       '<Limits limits={r.limitations} collapsed />', // what we cannot tell you, one tap away
     ];
     const at = order.map((token) => {
@@ -217,6 +283,10 @@ describe('home, as a command centre', () => {
       return i;
     });
     expect(at).toEqual([...at].sort((a, b) => a - b));
+    // The three eyebrows in that order are the words an owner reads.
+    expect(says('home.watching.title')).toBe('Headway is watching');
+    expect(says('home.goingWell.title')).toBe('Going well');
+    expect(says('home.nextCheck.title')).toBe('Your next check-in');
     expect(focus).toContain('Right now');
     expect(focus).toContain('What to do');
   });
@@ -224,7 +294,8 @@ describe('home, as a command centre', () => {
   it('keeps what is going well apart from what is being watched', () => {
     expect(home).toContain("r.watching.filter((i) => i.state === 'KEEP_DOING')");
     expect(home).toContain("r.watching.filter((i) => i.state !== 'KEEP_DOING')");
-    expect(home).toContain('eyebrow="Going well"');
+    expect(home).toContain("eyebrow={t('home.goingWell.title')}");
+    expect(says('home.goingWell.title')).toBe('Going well');
     expect(home).toContain('<WatchingList items={watching} basePath={basePath} />');
   });
 
@@ -247,16 +318,20 @@ describe('home, as a command centre', () => {
 
   it("shows the first customers' signals before anything is a pattern, and never a blank", () => {
     expect(home).toContain('<SoFar soFar={view.soFar} basePath={basePath} />');
-    expect(home).toContain('eyebrow="What customers are mentioning so far"');
+    expect(home).toContain("eyebrow={t('home.soFar.title')}");
+    expect(says('home.soFar.title')).toBe('What customers are mentioning so far');
     // Counted, and said to be counts — never dressed up as a conclusion.
-    expect(home).toContain('note="Counts, not conclusions"');
+    expect(home).toContain("note={t('home.soFar.note')}");
+    expect(says('home.soFar.note')).toBe('Counts only, not conclusions');
     expect(focus).toContain('{focus.cta.label}');
     // Before the first piece of feedback the page still says what will happen
     // and where it comes from, rather than stopping at the absence.
-    expect(home).toMatch(
-      /Nothing has come in yet\. Once customers leave feedback through your QR code, this\s+page will say what matters and whether anything needs you\./,
+    expect(home).toContain("t('home.empty.body')");
+    expect(says('home.empty.body')).toBe(
+      'No feedback has come in yet. Once customers give feedback through your QR code, this page will show what matters and whether anything needs your attention.',
     );
     expect(home).not.toMatch(/No data/i);
+    expect(says('home.empty.body')).not.toMatch(/No data/i);
   });
 
   it('says what is watched, why, and when it will be flagged', () => {
@@ -271,14 +346,20 @@ describe('home, as a command centre', () => {
 
   it('proves a strength with a count rather than a badge', () => {
     const row = between(responsibility, 'function StrengthRow(', 'export function StrengthsList(');
-    expect(row).toContain('{item.evidence.count} of {item.evidence.outOf}');
+    // Still the count out of the whole, both figures passed straight through;
+    // the sentence they are read into is the dictionary's.
+    expect(row).toContain("t('common.evidence.count', {");
+    expect(row).toContain('count: item.evidence.count,');
+    expect(row).toContain('total: item.evidence.outOf,');
+    expect(says('common.evidence.count')).toBe('{count} of {total} feedback entries');
     expect(row).toContain('<StateChip item={item} />');
     expect(row).toContain('{item.recommendedNextStep}');
     expect(row).not.toMatch(/badge|streak|confetti|points|\bxp\b/i);
   });
 
   it('says when the next check-in is worth opening, as a condition', () => {
-    expect(home).toContain('eyebrow="Your next check-in"');
+    expect(home).toContain("eyebrow={t('home.nextCheck.title')}");
+    expect(says('home.nextCheck.title')).toBe('Your next check-in');
     expect(home).toContain('{r.nextUsefulCheck}');
     expect(home).not.toMatch(/countdown|days left|streak/i);
   });
@@ -290,28 +371,45 @@ describe('one word for one idea', () => {
   const disclose = code(read('components', 'portal', 'disclose.tsx'));
 
   it('says Watching wherever a theme is being watched', () => {
-    expect(ui).toContain("watch: 'Watching',");
+    // One key for the idea, so the four places that show it cannot drift apart.
+    expect(ui).toContain("watch: 'common.state.watching',");
+    expect(says('common.state.watching')).toBe('Watching');
     expect(ui).not.toContain('Headway will watch');
     expect(ui).not.toContain("'Watch this'");
   });
 
   it('labels what happened, what it means and what to do now, with the limit beside the finding', () => {
-    expect(story).toContain('What happened');
-    expect(story).toContain('What this means');
-    expect(story).toContain('What to do now');
+    expect(story).toContain("t('improvements.row.whatHappened')");
+    expect(story).toContain("t('improvements.row.whatThisMeans')");
+    expect(story).toContain("t('improvements.row.whatToDoNow')");
+    expect(says('improvements.row.whatHappened')).toBe('What happened');
+    expect(says('improvements.row.whatThisMeans')).toBe('What this means');
+    expect(says('improvements.row.whatToDoNow')).toBe('What to do now');
     // The engine's full sentence where it has one, its short one otherwise —
     // never both, which used to say the same thing twice in two lengths.
     expect(story).toContain('{outcome.caveat || outcome.note}');
     expect(disclose).toContain('{p.caveat}');
-    expect(disclose.indexOf('{p.caveat}')).toBeLessThan(disclose.indexOf('Why Headway says this'));
+    // The limit is beside the finding, above the reasons behind the tap.
+    expect(disclose.indexOf('{p.caveat}')).toBeLessThan(
+      disclose.indexOf("t('common.reveal.why')"),
+    );
+    expect(says('common.reveal.why')).toBe('Why Headway says this');
   });
 
   it('reads the improvement loop as The problem · You changed · Headway checked again', () => {
-    expect(story).toContain('label="The problem"');
-    expect(story).toContain("declined ? 'Not doing' : 'You changed'");
-    expect(story).toContain('label="Headway checked again"');
-    expect(disclose).toContain("label: 'Before'");
-    expect(disclose).toContain("label: 'After'");
+    expect(story).toContain("label={t('improvements.moment.problem')}");
+    expect(story).toContain(
+      "declined ? t('improvements.notDoing') : t('improvements.moment.youChanged')",
+    );
+    expect(story).toContain("label={t('improvements.moment.checkedAgain')}");
+    expect(says('improvements.moment.problem')).toBe('The problem');
+    expect(says('improvements.notDoing')).toBe('Not doing');
+    expect(says('improvements.moment.youChanged')).toBe('You changed');
+    expect(says('improvements.moment.checkedAgain')).toBe('Headway checked again');
+    expect(disclose).toContain("label: 'common.population.before'");
+    expect(disclose).toContain("label: 'common.population.after'");
+    expect(says('common.population.before')).toBe('Before');
+    expect(says('common.population.after')).toBe('After');
   });
 });
 
@@ -380,15 +478,17 @@ describe('the pipeline is wired to the product', () => {
       expect(source, file.join('/')).not.toMatch(/min-h-9|min-h-10|h-10 w-full/);
     }
     const ui = code(read('components', 'portal', 'portal-ui.tsx'));
-    expect(between(ui, 'export function RatingStrip(', 'export function PeriodSwitch(')).toContain('min-w-11');
+    expect(between(ui, 'export async function RatingStrip(', 'export async function PeriodSwitch(')).toContain('min-w-11');
     expect(code(read('components', 'workspace', 'reviews.tsx'))).toContain("'h-11 w-full rounded-md");
   });
 
   it('has a calm error state for the workspace', () => {
     const error = code(read('app', '(workspace)', 'workspace', '[clientId]', 'error.tsx'));
     expect(error).toContain("'use client'");
-    expect(error).toContain('Try again');
-    expect(error).toContain('Back to Home');
+    expect(error).toContain("t('errors.workspace.retry')");
+    expect(error).toContain("t('errors.workspace.home')");
+    expect(says('errors.workspace.retry')).toBe('Try again');
+    expect(says('errors.workspace.home')).toBe('Back to Home');
     expect(error).not.toMatch(/error\.message|error\.digest|\.stack/);
   });
 });

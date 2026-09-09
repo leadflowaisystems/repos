@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MESSAGES } from '@/lib/i18n/strings';
 
 /**
  * THE INVITATION ACTUALLY GOES SOMEWHERE (launch pass).
@@ -193,11 +194,16 @@ describe('the team page tells the truth about email', () => {
     );
   });
 
+  // The form's own sentences moved into the dictionary at
+  // `src/lib/i18n/strings/team.ts`, so the words are pinned where they now
+  // live: the form is checked for the key, and the key for its English.
   it('keeps the copyable link as the fallback, and says it is one', () => {
     expect(form).toContain('CopyButton');
-    expect(form).toContain('Copy invitation link');
+    expect(form).toContain("t('team.form.copyLink')");
+    expect(MESSAGES['team.form.copyLink'].en).toBe('Copy invitation link');
     expect(form).toContain('state.data.link');
-    expect(form).toMatch(/in case it does not arrive|send it yourself/i);
+    expect(form).toContain("t('team.form.help')");
+    expect(MESSAGES['team.form.help'].en).toMatch(/in case it does not arrive|send it yourself/i);
   });
 
   it('does not log the token anywhere', () => {
@@ -251,8 +257,9 @@ describe('the invitation page says what is being joined', () => {
 
   it('says "Accept invitation" on the button itself', () => {
     expect(code(read('src', 'components', 'forms', 'team-forms.tsx'))).toContain(
-      'Accept invitation',
+      "t('team.accept.button')",
     );
+    expect(MESSAGES['team.accept.button'].en).toBe('Accept invitation');
   });
 });
 

@@ -5,6 +5,9 @@ import { prisma } from '@/lib/db';
 import { getEvidenceIndex, getReviewsView } from '@/lib/portal/service';
 import { quotesFor } from '@/lib/portal/evidence';
 import type { ReviewFilters, ReviewsView } from '@/lib/portal/pages';
+import { getTranslator } from '@/lib/i18n/request';
+import type { MessageKey } from '@/lib/i18n/strings';
+import type { Translator } from '@/lib/i18n/t';
 import {
   PageIntro,
   Quiet,
@@ -35,16 +38,29 @@ export const metadata = { title: 'Feedback' };
  * workspace is chosen, and the whole list one tap further. The full inbox,
  * the ratings, the tones and the search are all still here, under the
  * intelligence rather than above it.
+ *
+ * EVERY WORD ON THIS PAGE COMES FROM THE DICTIONARY (M31), under `feedback.*`,
+ * so the same screen reads in English, Hindi or Marathi. Two rules shaped how
+ * the phrases were cut. First, one counted noun: these rows are "feedback
+ * entries" everywhere, never comments on one line and something else on the
+ * next. Second, whole sentences: "Showing {shown} of {total}…" is a single key
+ * with two placeholders, because a sentence glued together from three fragments
+ * can only ever come out in English word order.
+ *
+ * Names are NOT words. `sentiment` stays the query parameter it has always
+ * been, `theme` and `stars` likewise, and the taxonomy labels arrive already
+ * written from the pack — renaming any of those would break links an owner has
+ * already bookmarked to buy nothing.
  */
 
 type Search = Record<string, string | string[] | undefined>;
 
 const SENTIMENTS = ['POSITIVE', 'MIXED', 'NEUTRAL', 'NEGATIVE'] as const;
-const SENTIMENT_LABEL: Record<(typeof SENTIMENTS)[number], string> = {
-  POSITIVE: 'Positive',
-  MIXED: 'Mixed',
-  NEUTRAL: 'Neutral',
-  NEGATIVE: 'Negative',
+const SENTIMENT_LABEL: Record<(typeof SENTIMENTS)[number], MessageKey> = {
+  POSITIVE: 'feedback.tone.positive',
+  MIXED: 'feedback.tone.mixed',
+  NEUTRAL: 'feedback.tone.neutral',
+  NEGATIVE: 'feedback.tone.negative',
 };
 
 /** How many comments stand for a topic before the owner asks for all of them. */
@@ -73,45 +89,56 @@ const label = 'flex flex-col gap-1 text-[11px] tracking-wide text-ink-500 upperc
 const EYEBROW = 'text-[11px] font-medium tracking-widest text-ink-500 uppercase';
 
 /**
- * 87 pieces of feedback read → 7 patterns → 6 topics mentioned once or twice
+ * 87 feedback entries read → 7 patterns → 6 topics mentioned once or twice
  * → 1 needs attention.
  *
  * Four figures and three arrows, each a count of the same rows. The third
  * step buys its length: it is the counterweight that says Headway is NOT
  * treating those topics as patterns. The last step names the theme, because
  * "1" is not a finding and "slow service" is.
+ *
+ * The count is the figure, never part of the label, so the label is a phrase
+ * the dictionary can carry whole in three languages.
  */
-function Funnel({ funnel, base }: { funnel: ReviewsView['funnel']; base: string }) {
+function Funnel({
+  funnel,
+  base,
+  t,
+}: {
+  funnel: ReviewsView['funnel'];
+  base: string;
+  t: Translator<MessageKey>;
+}) {
   const steps: Array<{ value: string; label: string; href: string | null; tone: string }> = [
     {
       value: String(funnel.read),
-      label: funnel.read === 1 ? 'piece of feedback read' : 'pieces of feedback read',
+      label: t.plural('feedback.funnel.read', funnel.read),
       href: base,
       tone: 'text-ink-900',
     },
     {
       value: String(funnel.signals),
-      label: funnel.signals === 1 ? 'pattern' : 'patterns',
+      label: t.plural('feedback.funnel.pattern', funnel.signals),
       href: `${base}#signals`,
       tone: 'text-ink-900',
     },
     {
       value: String(funnel.isolated),
-      label: funnel.isolated === 1 ? 'topic mentioned once or twice' : 'topics mentioned once or twice',
+      label: t.plural('feedback.funnel.isolated', funnel.isolated),
       href: null,
       tone: 'text-ink-500',
     },
     funnel.attention
       ? {
           value: '1',
-          label: `needs attention · ${funnel.attention.label.toLowerCase()}`,
+          label: t('feedback.funnel.attention', { topic: funnel.attention.label.toLowerCase() }),
           href: `${base}?theme=${encodeURIComponent(funnel.attention.key)}`,
           tone: 'text-bad-700',
         }
-      : { value: '0', label: 'need attention', href: null, tone: 'text-good-700' },
+      : { value: '0', label: t('feedback.funnel.attentionNone'), href: null, tone: 'text-good-700' },
   ];
   return (
-    <ol className="mb-8 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-0" aria-label="How Headway read this feedback">
+    <ol className="mb-8 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-0" aria-label={t('feedback.funnel.aria')}>
       {steps.map((step, index) => {
         const body = (
           <>
@@ -194,9 +221,10 @@ export async function PortalReviews({
   const filters = parseFilters(search);
   const page = Math.max(Number.parseInt(one(search.page), 10) || 1, 1);
   const all = one(search.all) === '1';
-  const [view, evidence] = await Promise.all([
+  const [view, evidence, t] = await Promise.all([
     getReviewsView(prisma, client.id, filters, { page }),
     getEvidenceIndex(prisma, client.id),
+    getTranslator(),
   ]);
   if (!view) notFound();
 
@@ -230,32 +258,34 @@ export async function PortalReviews({
   return (
     <>
       <PageIntro
-        eyebrow="Feedback"
-        title="What your customers actually wrote"
+        eyebrow={t('feedback.intro.eyebrow')}
+        title={t('feedback.intro.title')}
         description={
           view.total === 0
-            ? 'Nothing has come in yet. Feedback starts arriving once customers scan your QR code.'
+            ? t('feedback.intro.empty')
             : view.analysed === 0 && inHand > 0
-              ? 'Feedback has arrived. Headway is reading it now — usually under a minute. Reload to see what it found.'
-              : 'What Headway made of each one sits beside it.'
+              ? t('feedback.intro.reading')
+              : t('feedback.intro.ready')
         }
       />
 
-      {view.analysed > 0 ? <Funnel funnel={view.funnel} base={base} /> : null}
+      {view.analysed > 0 ? <Funnel funnel={view.funnel} base={base} t={t} /> : null}
 
       {view.total > 0 ? (
         <StatusStrip
           items={[
-            { label: 'collected', value: view.total },
-            { label: 'read by Headway', value: view.analysed },
-            ...(inHand > 0 ? [{ label: 'being read now', value: inHand, tone: 'warn' as const }] : []),
+            { label: t('feedback.status.collected'), value: view.total },
+            { label: t('feedback.status.read'), value: view.analysed },
+            ...(inHand > 0
+              ? [{ label: t('feedback.status.reading'), value: inHand, tone: 'warn' as const }]
+              : []),
             ...(view.failed > 0
-              ? [{ label: 'could not be read yet', value: view.failed, tone: 'bad' as const }]
+              ? [{ label: t('feedback.status.failed'), value: view.failed, tone: 'bad' as const }]
               : []),
             ...(view.averageRating !== null
               ? [
                   {
-                    label: `average of ${view.withRating} ${view.withRating === 1 ? 'rating' : 'ratings'}`,
+                    label: t.plural('feedback.status.average', view.withRating),
                     value: `${view.averageRating.toFixed(1)}★`,
                   },
                 ]
@@ -267,7 +297,7 @@ export async function PortalReviews({
       {view.signals.length > 0 ? (
         <section className="mb-6">
           <h2 className="mb-2 text-[11px] font-medium tracking-widest text-ink-500 uppercase">
-            What keeps coming up · tap one to read those comments
+            {t('feedback.signals.heading')}
           </h2>
           <SignalChips signals={view.signals} base={base} />
         </section>
@@ -279,7 +309,7 @@ export async function PortalReviews({
 
       {view.found.length > 0 ? (
         <div className="mb-6">
-          <Reveal summary="What Headway found">
+          <Reveal summary={t('feedback.found.summary')}>
             <div className="rounded-xl border border-ink-200 bg-white p-4 sm:p-5">
               <ul className="space-y-1.5">
                 {view.found.map((f) => (
@@ -306,13 +336,13 @@ export async function PortalReviews({
                 <section className="mt-5 grid grid-cols-1 gap-x-10 gap-y-6 border-t border-ink-200 pt-5 sm:grid-cols-2">
                   <div>
                     <h3 className="mb-3 text-[11px] font-medium tracking-widest text-ink-500 uppercase">
-                      By rating · {view.withRating} with stars
+                      {t('feedback.found.byRating', { count: view.withRating })}
                     </h3>
                     <RatingBars ratings={view.ratings} />
                   </div>
                   <div>
                     <h3 className="mb-3 text-[11px] font-medium tracking-widest text-ink-500 uppercase">
-                      By tone · all {view.analysed} read
+                      {t('feedback.found.byTone', { count: view.analysed })}
                     </h3>
                     <SentimentBar sentiments={view.sentiments} />
                   </div>
@@ -325,29 +355,29 @@ export async function PortalReviews({
 
       {view.total > 0 ? (
         <div className="mb-6">
-          <Reveal summary="Search and filter" open={searching}>
+          <Reveal summary={t('feedback.filter.summary')} open={searching}>
             <form method="get" action={base} className="border-y border-ink-200 py-4">
               {/* One grid that reads the same on every width: search full width,
                   then the pickers two to a row on a phone and in one row from
                   tablet up. Nothing here scrolls sideways. */}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr]">
                 <label className={`${label} col-span-2 sm:col-span-4 lg:col-span-1`}>
-                  Search
-                  <input type="search" name="q" defaultValue={view.filters.q} placeholder="A word customers used" className={control} />
+                  {t('feedback.filter.search')}
+                  <input type="search" name="q" defaultValue={view.filters.q} placeholder={t('feedback.filter.searchPlaceholder')} className={control} />
                 </label>
                 <label className={label}>
-                  About
+                  {t('feedback.filter.about')}
                   <select name="theme" defaultValue={view.filters.theme ?? ''} className={control}>
-                    <option value="">Anything</option>
+                    <option value="">{t('feedback.filter.anything')}</option>
                     {issues.length > 0 ? (
-                      <optgroup label="Complaints">
+                      <optgroup label={t('feedback.filter.complaints')}>
                         {issues.map((t) => (
                           <option key={t.key} value={t.key}>{t.label}</option>
                         ))}
                       </optgroup>
                     ) : null}
                     {praise.length > 0 ? (
-                      <optgroup label="Praise">
+                      <optgroup label={t('feedback.filter.praise')}>
                         {praise.map((t) => (
                           <option key={t.key} value={t.key}>{t.label}</option>
                         ))}
@@ -356,28 +386,28 @@ export async function PortalReviews({
                   </select>
                 </label>
                 <label className={label}>
-                  Rating
+                  {t('feedback.filter.rating')}
                   <select name="stars" defaultValue={view.filters.stars ? String(view.filters.stars) : ''} className={control}>
-                    <option value="">Any</option>
+                    <option value="">{t('feedback.filter.any')}</option>
                     {[5, 4, 3, 2, 1].map((s) => (
-                      <option key={s} value={s}>{s} star{s === 1 ? '' : 's'}</option>
+                      <option key={s} value={s}>{t.plural('feedback.filter.stars', s)}</option>
                     ))}
                   </select>
                 </label>
                 <label className={label}>
-                  Tone
+                  {t('feedback.filter.tone')}
                   <select name="sentiment" defaultValue={view.filters.sentiment ?? ''} className={control}>
-                    <option value="">Any</option>
+                    <option value="">{t('feedback.filter.any')}</option>
                     {SENTIMENTS.map((s) => (
-                      <option key={s} value={s}>{SENTIMENT_LABEL[s]}</option>
+                      <option key={s} value={s}>{t(SENTIMENT_LABEL[s])}</option>
                     ))}
                   </select>
                 </label>
                 {view.sourceOptions.length > 1 ? (
                   <label className={label}>
-                    From
+                    {t('feedback.filter.from')}
                     <select name="source" defaultValue={view.filters.source ?? ''} className={control}>
-                      <option value="">Anywhere</option>
+                      <option value="">{t('feedback.filter.anywhere')}</option>
                       {view.sourceOptions.map((s) => (
                         <option key={s.key} value={s.key}>{s.label}</option>
                       ))}
@@ -388,13 +418,13 @@ export async function PortalReviews({
               <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
                 <label className="flex min-h-11 items-center gap-2 text-[13px] text-ink-700">
                   <input type="checkbox" name="needs" value="reply" defaultChecked={view.filters.needs === 'reply'} className="h-4 w-4 rounded border-ink-300 accent-ink-900" />
-                  Only ones that need your answer
+                  {t('feedback.filter.needsReply')}
                 </label>
                 <button type="submit" className="inline-flex min-h-11 items-center rounded-md bg-ink-900 px-3.5 text-[13px] font-medium text-white hover:bg-ink-800 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:ring-offset-2 focus-visible:outline-none">
-                  Show
+                  {t('feedback.filter.show')}
                 </button>
                 {filtered ? (
-                  <Link href={base} className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[13px] text-ink-500 hover:text-ink-900">Clear</Link>
+                  <Link href={base} className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[13px] text-ink-500 hover:text-ink-900">{t('feedback.filter.clear')}</Link>
                 ) : null}
               </div>
             </form>
@@ -403,31 +433,28 @@ export async function PortalReviews({
       ) : null}
 
       {view.total === 0 ? (
-        <Quiet>
-          Each piece of feedback appears here as the customer left it, next to what Headway made
-          of it.
-        </Quiet>
+        <Quiet>{t('feedback.empty.body')}</Quiet>
       ) : (
         <>
           {activeSignal ? (
             <div className="mb-1 border-l-2 border-ink-900 pl-4">
-              <p className={EYEBROW}>What Headway based this on</p>
+              <p className={EYEBROW}>{t('feedback.evidence.eyebrow')}</p>
               <p className="mt-1 text-[17px] leading-snug font-semibold tracking-tight text-ink-900">
-                Comments about {activeSignal.label.toLowerCase()}
+                {t('feedback.evidence.title', { topic: activeSignal.label.toLowerCase() })}
               </p>
               <p className="mt-0.5 text-[13px] text-ink-600">
-                {view.matching} {view.matching === 1 ? 'comment' : 'comments'}.
+                {t.plural('feedback.evidence.count', view.matching)}
                 {representative && view.matching > items.length
-                  ? ` ${items.length === 1 ? 'The clearest one is first.' : 'The clearest ones are first.'}`
+                  ? ` ${t.plural('feedback.evidence.clearest', items.length)}`
                   : ''}{' '}
                 <Link href={base} className="inline-flex min-h-11 items-center font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900">
-                  Clear filter
+                  {t('feedback.filter.clear')}
                 </Link>
               </p>
             </div>
           ) : (
             <p className="text-[14px] font-medium text-ink-900">
-              {view.shown} {view.shown === 1 ? 'comment' : 'comments'}
+              {t.plural('feedback.list.count', view.shown)}
               {filtered ? <span className="font-normal text-ink-600"> {view.filterSummary}</span> : null}
             </p>
           )}
@@ -440,28 +467,29 @@ export async function PortalReviews({
           ) : (
             <div className="mt-4">
               <Quiet>
-                Nothing matches.{' '}
-                <Link href={base} className="text-ink-900 underline underline-offset-2">Clear the filters</Link>{' '}
-                to see everything.
+                {t('feedback.list.noMatch')}{' '}
+                <Link href={base} className="text-ink-900 underline underline-offset-2">
+                  {t('feedback.list.clearAll')}
+                </Link>
               </Quiet>
             </div>
           )}
           {representative && view.matching > items.length ? (
             <div className="mt-6 border-t border-ink-200 pt-5">
               <p className="text-[13px] text-ink-600">
-                Showing {items.length} of {view.matching} comments about this.
+                {t('feedback.list.showingAbout', { shown: items.length, total: view.matching })}
               </p>
               <Link
                 href={showAllHref}
                 className="mt-2 inline-flex min-h-11 items-center gap-1 rounded-lg border border-ink-300 px-4 text-[13px] font-medium text-ink-900 hover:border-ink-900"
               >
-                Show all {view.matching} <span aria-hidden>→</span>
+                {t('feedback.list.showAll', { count: view.matching })} <span aria-hidden>→</span>
               </Link>
             </div>
           ) : view.hasMore ? (
             <div className="mt-6 border-t border-ink-200 pt-5">
               <p className="text-[13px] text-ink-600">
-                Showing {view.shown} of {view.matching} comments.
+                {t('feedback.list.showing', { shown: view.shown, total: view.matching })}
               </p>
               <Link
                 href={`${base}?${new URLSearchParams({
@@ -474,14 +502,12 @@ export async function PortalReviews({
                 }).toString()}`}
                 className="mt-2 inline-flex min-h-11 items-center rounded-lg border border-ink-300 px-4 text-[13px] font-medium text-ink-900 hover:border-ink-900"
               >
-                Show more
+                {t('feedback.list.showMore')}
               </Link>
             </div>
           ) : view.matching > 0 ? (
             <p className="mt-4 text-[12px] text-ink-500">
-              {view.matching === 1
-                ? 'That is the only comment.'
-                : `That is all ${view.matching} comments.`}
+              {t.plural('feedback.list.end', view.matching)}
             </p>
           ) : null}
         </>

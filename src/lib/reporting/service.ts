@@ -251,16 +251,16 @@ export async function buildPeriodReport(
 
   if (volume.current === 0) {
     headline = `No new feedback this ${period}.`;
-    limits.push('Nothing arrived in this period, so there is nothing to compare.');
+    limits.push('No feedback arrived, so there is nothing to compare.');
   } else if (!enoughEvidence) {
-    headline = `Not enough new feedback this ${period} to identify a reliable trend yet.`;
+    headline = `Not enough new feedback this ${period} to see a pattern yet.`;
     limits.push(
-      `${plural(volume.current, 'piece', 'pieces')} of feedback arrived. Headway names a theme once at least ${MIN_MENTIONS_TO_NAME} customers have raised it.`,
+      `${plural(volume.current, 'feedback entry', 'feedback entries')} arrived. Headway names a problem once at least ${MIN_MENTIONS_TO_NAME} customers have mentioned it.`,
     );
   } else if (!comparable) {
-    headline = `${plural(volume.current, 'piece', 'pieces')} of feedback this ${period}. Not enough in the ${period} before to compare against.`;
+    headline = `${plural(volume.current, 'feedback entry', 'feedback entries')} this ${period}. The ${period} before does not have enough to compare with.`;
     limits.push(
-      `The previous ${period} holds ${plural(volume.previous, 'piece', 'pieces')}, below the ${MIN_PERIOD_FEEDBACK_TO_COMPARE} needed for a fair comparison.`,
+      `The ${period} before has ${plural(volume.previous, 'feedback entry', 'feedback entries')}. Headway needs at least ${MIN_PERIOD_FEEDBACK_TO_COMPARE} to compare fairly.`,
     );
   } else if (worsened.length === 0 && improved.length === 0) {
     headline = `No major change this ${period}.`;
@@ -272,7 +272,7 @@ export async function buildPeriodReport(
 
   if (comparable && Math.abs(volume.current - volume.previous) > volume.previous) {
     limits.push(
-      'Feedback volume changed a lot between the two periods, so some of the movement is volume rather than sentiment.',
+      'Much more or much less feedback arrived than last time. So part of this change is the amount of feedback, not what customers said.',
     );
   }
 

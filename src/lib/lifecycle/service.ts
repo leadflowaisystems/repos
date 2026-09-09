@@ -272,19 +272,22 @@ export function describeLifecycle(input: LifecycleInput): Lifecycle {
  * MANUALLY_LOCKED says "Paused", the same word the workspace banner uses, and
  * for the same reason: what an owner needs to know is that new feedback is
  * still saved and simply is not being read yet. "On hold" said neither half.
+ *
+ * A paying account just says "Active". The row above it already says the
+ * service is Headway, so "Active service" only repeated the word.
  */
 export function statusLabel(lifecycle: Lifecycle): string {
   switch (lifecycle.state) {
     case 'ACTIVE_TRIAL':
       return 'Active trial';
     case 'ACTIVE_SERVICE':
-      return 'Active service';
+      return 'Active';
     case 'TRIAL_EXPIRED':
       return 'Trial ended';
     case 'MANUALLY_LOCKED':
       return 'Paused';
     case 'ADMIN_OVERRIDE':
-      return 'Active service';
+      return 'Active';
     case 'FOUNDER_EXEMPT':
       return 'Headway staff access';
     case 'DEMO_EXEMPT':

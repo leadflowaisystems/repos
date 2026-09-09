@@ -1,4 +1,7 @@
 import Link from 'next/link';
+import { getTranslator } from '@/lib/i18n/request';
+import type { MessageKey } from '@/lib/i18n/strings';
+import type { Translator } from '@/lib/i18n/t';
 import type { SinceLastVisit } from '@/lib/retention/service';
 import { sinceLabel } from '@/lib/retention/service';
 
@@ -13,56 +16,55 @@ import { sinceLabel } from '@/lib/retention/service';
  *
  * Deliberately absent: any number that decays, any language that implies a
  * cost to not returning, and any count that would still be here tomorrow.
+ *
+ * THE WORDS LIVE IN THE DICTIONARY (M31), under `pulse.since.*`, in English,
+ * Hindi and Marathi. Each line is one whole sentence with the numbers as holes
+ * in it, so a translation can put the number where its own grammar wants it.
  */
 
 /**
- * The four readings, in the words the rest of the portal uses for them.
+ * The four readings, as dictionary keys.
  *
  * The tail is the point: "after the change" puts the reading next to the
  * change in time and stops there. The words this replaced — improved, got
  * worse — read as a verdict on the change itself, which is more than counting
  * mentions before and after can carry.
  */
-const RESULT_WORD: Record<string, string> = {
-  IMPROVED: 'Mentioned less often after the change.',
-  WORSENED: 'Mentioned more often after the change.',
-  NO_CLEAR_CHANGE: 'No clear difference after the change.',
-  INSUFFICIENT_DATA: 'Not enough feedback after the change.',
+const RESULT_WORD: Record<string, MessageKey> = {
+  IMPROVED: 'pulse.since.result.improved',
+  WORSENED: 'pulse.since.result.worsened',
+  NO_CLEAR_CHANGE: 'pulse.since.result.noChange',
+  INSUFFICIENT_DATA: 'pulse.since.result.notEnough',
 };
 
-function arrivedLine(since: SinceLastVisit): string | null {
+function arrivedLine(since: SinceLastVisit, t: Translator<MessageKey>): string | null {
   if (since.arrived === 0) return null;
-  // Counted in pieces of feedback, not customers: this counts what arrived,
+  // Counted in feedback entries, not customers: this counts what arrived,
   // and one customer can leave several.
-  const one = since.arrived === 1;
-  const items = one ? '1 piece of feedback' : `${since.arrived} pieces of feedback`;
   if (since.read >= since.arrived) {
-    return one
-      ? `${items} came in, and Headway has read it.`
-      : `${items} came in, and Headway has read them all.`;
+    return t.plural('pulse.since.arrived.read', since.arrived);
   }
   if (since.read === 0) {
-    return one
-      ? `${items} came in. Headway is reading it now.`
-      : `${items} came in. Headway is reading them now.`;
+    return t.plural('pulse.since.arrived.reading', since.arrived);
   }
-  return `${items} came in. Headway has read ${since.read} so far and is reading the rest.`;
+  return t('pulse.since.arrived.partial', { count: since.arrived, read: since.read });
 }
 
-export function SinceVisit({
+export async function SinceVisit({
   since,
   basePath,
 }: {
   since: SinceLastVisit;
   basePath: string;
 }) {
-  const arrived = arrivedLine(since);
-  const done =
-    since.done > 0
-      ? since.done === 1
-        ? 'One improvement is now done.'
-        : `${since.done} improvements are now done.`
-      : null;
+  const t = await getTranslator();
+  const arrived = arrivedLine(since, t);
+  const done = since.done > 0 ? t.plural('pulse.since.done', since.done) : null;
+  // One key holds the whole sentence, so Hindi and Marathi can put the name of
+  // the change where their own grammar wants it. The component splits the
+  // finished sentence at that one hole to keep the name emphasised; it never
+  // assembles the sentence out of parts.
+  const measured = t('pulse.since.measured').split('{title}');
 
   return (
     <section className="mb-8 max-w-3xl border-l-2 border-brand-400 pl-4">
@@ -77,7 +79,7 @@ export function SinceVisit({
             href={`${basePath}/reviews`}
             className="inline-flex min-h-11 items-center font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
           >
-            Read the comments <span aria-hidden>→</span>
+            {t('pulse.since.link.feedback')} <span aria-hidden>→</span>
           </Link>
         </p>
       ) : null}
@@ -86,13 +88,14 @@ export function SinceVisit({
         <ul className="mt-2 space-y-1.5">
           {since.measured.map((m) => (
             <li key={m.id} className="text-[15px] leading-relaxed text-ink-900">
-              Headway checked <span className="font-medium">{m.title}</span> against the feedback
-              that has come in since. {RESULT_WORD[m.result] ?? 'No result yet.'}{' '}
+              {measured[0]}
+              <span className="font-medium">{m.title}</span>
+              {measured[1]} {t(RESULT_WORD[m.result] ?? 'pulse.since.result.none')}{' '}
               <Link
                 href={`${basePath}/improvements`}
                 className="inline-flex min-h-11 items-center font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
               >
-                See the result <span aria-hidden>→</span>
+                {t('pulse.since.link.result')} <span aria-hidden>→</span>
               </Link>
             </li>
           ))}

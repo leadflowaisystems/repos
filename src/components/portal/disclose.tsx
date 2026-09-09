@@ -3,6 +3,8 @@ import clsx from 'clsx';
 import type { Quote } from '@/lib/portal/evidence';
 import type { FocusProof, ProofPopulation } from '@/lib/portal/focus';
 import { formatDate } from '@/lib/format';
+import { getTranslator } from '@/lib/i18n/request';
+import type { MessageKey } from '@/lib/i18n/strings';
 
 /**
  * PROGRESSIVE DISCLOSURE (M24).
@@ -19,8 +21,8 @@ import { formatDate } from '@/lib/format';
  *   Reveal      a labelled disclosure — "Show evidence", "Why Headway says this".
  *   Quotes      customers in their own words, with the door each came
  *               through and a way to the full list. Never paraphrased.
- *   Population  the two piles behind a before/after, drawn one piece of
- *               feedback at a time so the owner SEES 14 of 44 become 20 of
+ *   Population  the two piles behind a before/after, drawn one feedback
+ *               entry at a time so the owner SEES 14 of 44 become 20 of
  *               43 rather than reading a percentage.
  *
  * Movement is brief and only ever reveals; nothing counts down, nothing
@@ -70,9 +72,10 @@ export function Reveal({
   );
 }
 
-function SmallStars({ value }: { value: number }) {
+async function SmallStars({ value }: { value: number }) {
+  const t = await getTranslator();
   return (
-    <span className="text-warn-600" aria-label={`${value} out of 5 stars`}>
+    <span className="text-warn-600" aria-label={t('common.stars.aria', { value })}>
       {'★'.repeat(value)}
       <span className="text-ink-300" aria-hidden>
         {'☆'.repeat(5 - value)}
@@ -84,11 +87,11 @@ function SmallStars({ value }: { value: number }) {
 /**
  * Customers, in their own words.
  *
- * Quoted, dated, and marked with the door they came through — a piece of
- * feedback from the card and a public review are different kinds of evidence
+ * Quoted, dated, and marked with the door they came through — a feedback
+ * entry from the card and a public review are different kinds of evidence
  * and the owner should see which is which. The full list is one link away.
  */
-export function Quotes({
+export async function Quotes({
   quotes,
   seeAll,
   empty,
@@ -98,11 +101,10 @@ export function Quotes({
   /** What to say when nobody wrote anything: star ratings can carry a topic with no words. */
   empty?: string;
 }) {
+  const t = await getTranslator();
   if (quotes.length === 0) {
     return (
-      <p className="text-[13px] leading-relaxed text-ink-500">
-        {empty ?? 'Nobody has written about this yet. The star ratings are the whole message.'}
-      </p>
+      <p className="text-[13px] leading-relaxed text-ink-500">{empty ?? t('common.quotes.empty')}</p>
     );
   }
   return (
@@ -112,7 +114,11 @@ export function Quotes({
           <li key={q.id} className="border-l-2 border-ink-200 pl-3">
             <p className="text-[14px] leading-relaxed text-ink-900">“{q.text}”</p>
             <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-ink-500">
-              {q.stars !== null ? <SmallStars value={q.stars} /> : <span className="italic">No overall rating</span>}
+              {q.stars !== null ? (
+                <SmallStars value={q.stars} />
+              ) : (
+                <span className="italic">{t('common.review.noRating')}</span>
+              )}
               <span>{formatDate(q.at)}</span>
               <span>· {q.sourceLabel}</span>
             </p>
@@ -143,7 +149,7 @@ const TONE_TEXT: Record<'good' | 'bad' | 'neutral', string> = {
   neutral: 'text-ink-600',
 };
 
-/** Above this many pieces the dots stop being countable, and a bar says it better. */
+/** Above this many entries the dots stop being countable, and a bar says it better. */
 const MAX_DOTS = 120;
 
 function Dots({
@@ -184,17 +190,27 @@ function Dots({
  * boundary, so the two can never be read as one series, and the reading is
  * followed by the one sentence that says what the comparison cannot show.
  */
-export function Population({ population: p, why = true }: { population: ProofPopulation; why?: boolean }) {
+export async function Population({
+  population: p,
+  why = true,
+}: {
+  population: ProofPopulation;
+  why?: boolean;
+}) {
+  const t = await getTranslator();
+  // `label` holds the dictionary key rather than the word itself.
   const sides = [
-    { key: 'before', label: 'Before', ...p.before, tone: 'neutral' as const, delay: 0 },
-    { key: 'after', label: 'After', ...p.after, tone: p.tone, delay: 220 },
+    { key: 'before', label: 'common.population.before' as MessageKey, ...p.before, tone: 'neutral' as const, delay: 0 },
+    { key: 'after', label: 'common.population.after' as MessageKey, ...p.after, tone: p.tone, delay: 220 },
   ];
   return (
     <div>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-8">
         {sides.map((side) => (
           <div key={side.key}>
-            <p className="text-[11px] font-semibold tracking-widest text-ink-500 uppercase">{side.label}</p>
+            <p className="text-[11px] font-semibold tracking-widest text-ink-500 uppercase">
+              {t(side.label)}
+            </p>
             <p
               className={clsx(
                 'mt-1 font-mono text-[30px] leading-none font-semibold tabular-nums sm:text-[36px]',
@@ -203,8 +219,11 @@ export function Population({ population: p, why = true }: { population: ProofPop
             >
               {side.share}
             </p>
-            <p className="mt-1.5 text-[13px] text-ink-700 tabular-nums">
-              <span className="font-medium text-ink-900">{side.count}</span> of {side.total} pieces of feedback
+            {/* One key, not three fragments: Hindi and Marathi put the total
+                first ("44 में से 14"), so the count cannot be a separate span
+                glued in front of the word "of". */}
+            <p className="mt-1.5 text-[13px] font-medium text-ink-900 tabular-nums">
+              {t('common.evidence.count', { count: side.count, total: side.total })}
             </p>
             <Dots count={side.count} total={side.total} tone={side.tone} startDelay={side.delay} />
             <p className="mt-2 text-[11px] leading-relaxed text-ink-500">{side.scope}</p>
@@ -214,7 +233,7 @@ export function Population({ population: p, why = true }: { population: ProofPop
       <p className={clsx('mt-4 text-[12px] font-semibold tracking-wide uppercase', TONE_TEXT[p.tone])}>{p.reading}</p>
       <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-ink-700">{p.caveat}</p>
       {why && p.why.length > 0 ? (
-        <Reveal summary="Why Headway says this" className="mt-1">
+        <Reveal summary={t('common.reveal.why')} className="mt-1">
           <ul className="space-y-1 border-l-2 border-ink-200 pl-3 text-[13px] leading-relaxed text-ink-600">
             {p.why.map((w) => (
               <li key={w}>{w}</li>
@@ -235,8 +254,8 @@ const CHIP_TONE: Record<'good' | 'bad' | 'neutral', string> = {
 /**
  * A figure that opens into what it counts.
  *
- * "39% of feedback" is the chip; tapping it shows "34 of 87 pieces of
- * feedback mention it", three of those comments, and the way to all
+ * "39% of feedback" is the chip; tapping it shows "34 of 87 feedback
+ * entries mention it", three of those comments, and the way to all
  * thirty-four. The chip row keeps its shape while one is open: the open one
  * takes the full width and the others move under it.
  */

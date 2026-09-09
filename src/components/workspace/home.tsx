@@ -11,6 +11,7 @@ import { Reveal } from '@/components/portal/disclose';
 import { FocusBlock } from '@/components/workspace/focus';
 import { SinceVisit } from '@/components/workspace/since-visit';
 import type { SinceLastVisit } from '@/lib/retention/service';
+import { getTranslator } from '@/lib/i18n/request';
 
 /**
  * HOME — the command centre (M24, tightened in the final experience pass).
@@ -42,7 +43,7 @@ import type { SinceLastVisit } from '@/lib/retention/service';
  * Headway did since the last check-in, and what would make the next one worth
  * opening. The full list of work lives on Check-in.
  */
-function NextCheck({
+async function NextCheck({
   r,
   basePath,
   rating,
@@ -52,6 +53,7 @@ function NextCheck({
   /** The public listing's rating, when it has been observed. Stated here and nowhere else. */
   rating: { value: string; scope: string } | null;
 }) {
+  const t = await getTranslator();
   const since = r.did[0] ?? null;
   return (
     <div>
@@ -67,11 +69,13 @@ function NextCheck({
         href={`${basePath}/checkin`}
         className="mt-1 inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-ink-700 hover:text-ink-900"
       >
-        Open your check-in <span aria-hidden>→</span>
+        {t('home.nextCheck.open')} <span aria-hidden>→</span>
       </Link>
       {rating ? (
         <p className="mt-4 border-t border-ink-200 pt-3 text-[13px] leading-relaxed text-ink-600">
-          <span className="font-medium text-ink-900 tabular-nums">Public rating {rating.value}.</span>{' '}
+          <span className="font-medium text-ink-900 tabular-nums">
+            {t('home.nextCheck.publicRating', { value: rating.value })}
+          </span>{' '}
           {rating.scope}.
         </p>
       ) : null}
@@ -94,6 +98,7 @@ export async function PortalHome({
    */
   since?: SinceLastVisit | null;
 }) {
+  const t = await getTranslator();
   const client = { id: clientId };
   const [bundle, evidence] = await Promise.all([
     getResponsibility(prisma, client.id),
@@ -122,15 +127,17 @@ export async function PortalHome({
   const reading = view.basedOn === 0 && view.soFar.waiting > 0;
   const showSoFar = !named && (view.basedOn > 0 || reading);
 
-  const direction = view.facts.find((f) => f.label === 'Overall direction') ?? null;
-  const rating = view.facts.find((f) => f.label === 'Public rating') ?? null;
+  // By key, never by label: the labels are reworded and translated, and a
+  // lookup that matches on display text disappears the row instead of failing.
+  const direction = view.facts.find((f) => f.key === 'direction') ?? null;
+  const rating = view.facts.find((f) => f.key === 'publicRating') ?? null;
 
   return (
     <>
       <FocusBlock focus={focus} direction={direction} />
 
       {alsoNeedsYou.length > 0 ? (
-        <Section eyebrow="Also needs you">
+        <Section eyebrow={t('home.alsoNeeds.title')}>
           <div className="max-w-3xl">
             {alsoNeedsYou.map((item) => (
               <NeedsYouItem
@@ -148,35 +155,32 @@ export async function PortalHome({
       <div className="mt-8 grid grid-cols-1 items-start gap-x-10 gap-y-2 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="min-w-0">
           {watching.length > 0 ? (
-            <Section eyebrow="Headway is watching" note="Nothing here needs you today">
+            <Section eyebrow={t('home.watching.title')} note={t('home.watching.note')}>
               <WatchingList items={watching} basePath={basePath} />
             </Section>
           ) : null}
 
           {strengths.length > 0 ? (
-            <Section eyebrow="Going well" note="Worth protecting">
+            <Section eyebrow={t('home.goingWell.title')} note={t('home.goingWell.note')}>
               <StrengthsList items={strengths} basePath={basePath} />
             </Section>
           ) : null}
 
           {showSoFar ? (
-            <Section eyebrow="What customers are mentioning so far" note="Counts, not conclusions">
+            <Section eyebrow={t('home.soFar.title')} note={t('home.soFar.note')}>
               <SoFar soFar={view.soFar} basePath={basePath} />
             </Section>
           ) : null}
 
           {view.question ? (
-            <Section eyebrow="What Headway needs from you">
+            <Section eyebrow={t('home.question.title')}>
               <Question q={view.question} />
             </Section>
           ) : null}
 
           {view.basedOn === 0 && !reading ? (
-            <Section eyebrow="Nothing yet">
-              <Quiet>
-                Nothing has come in yet. Once customers leave feedback through your QR code, this
-                page will say what matters and whether anything needs you.
-              </Quiet>
+            <Section eyebrow={t('home.empty.title')}>
+              <Quiet>{t('home.empty.body')}</Quiet>
             </Section>
           ) : null}
         </div>
@@ -185,7 +189,7 @@ export async function PortalHome({
           {since ? <SinceVisit since={since} basePath={basePath} /> : null}
 
           {r.did.length > 0 || view.basedOn > 0 ? (
-            <Section eyebrow="Your next check-in">
+            <Section eyebrow={t('home.nextCheck.title')}>
               <NextCheck r={r} basePath={basePath} rating={rating} />
             </Section>
           ) : null}
@@ -194,7 +198,7 @@ export async function PortalHome({
 
       {view.knows.length > 0 ? (
         <Reveal
-          summary={<span className="tracking-widest uppercase">What Headway knows about your business</span>}
+          summary={<span className="tracking-widest uppercase">{t('home.knows.title')}</span>}
           className="mt-10 border-t border-ink-200 pt-4"
         >
           <Knows items={view.knows} basePath={basePath} />

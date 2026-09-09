@@ -33,26 +33,22 @@ const MOOD_DOT: Record<PortalMood, string> = {
   TOO_EARLY: 'bg-ink-300',
 };
 
-// The direction words themselves are written in view.ts, so the colour is
-// chosen by matching them here. The older wordings are kept beside the current
-// ones on purpose: a pill that stops matching does not break, it silently goes
-// grey, and grey is what "Not enough to say" is supposed to look like.
-const DIRECTION_PILL: Array<[RegExp, string]> = [
-  [/getting better|improving/i, 'border-good-200 bg-good-50 text-good-700'],
-  [/getting worse|worsening|needs attention/i, 'border-bad-200 bg-bad-50 text-bad-700'],
-  [/steady/i, 'border-ink-200 bg-ink-100 text-ink-700'],
-];
-
-function pillFor(value: string): string {
-  for (const [pattern, cls] of DIRECTION_PILL) if (pattern.test(value)) return cls;
-  return 'border-ink-200 bg-ink-100 text-ink-600';
-}
+// The colour comes from the fact's own `tone`, not from the words it is
+// displayed with. It used to regex-test the value for /getting better/, which
+// worked only for as long as nobody reworded the sentence — and would have
+// turned every pill grey the moment an owner read the page in Marathi.
+const DIRECTION_PILL: Record<PortalFact['tone'], string> = {
+  good: 'border-good-200 bg-good-50 text-good-700',
+  bad: 'border-bad-200 bg-bad-50 text-bad-700',
+  neutral: 'border-ink-200 bg-ink-100 text-ink-700',
+  unknown: 'border-ink-200 bg-ink-100 text-ink-600',
+};
 
 /** The direction, once, on one rule, as a pill beside the eyebrow. */
 function Direction({ fact }: { fact: PortalFact }) {
   return (
     <span className="inline-flex flex-wrap items-baseline gap-x-2">
-      <span className={clsx('rounded-full border px-2 py-0.5 text-[12px] font-semibold', pillFor(fact.value))}>
+      <span className={clsx('rounded-full border px-2 py-0.5 text-[12px] font-semibold', DIRECTION_PILL[fact.tone])}>
         {fact.value}
       </span>
       <span className="text-[12px] text-ink-500">{fact.scope}</span>

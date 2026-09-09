@@ -97,7 +97,7 @@ export async function createClient(
 ): Promise<ServiceResult<{ id: string }>> {
   const parsed = clientInputSchema.safeParse(raw);
   if (!parsed.success) {
-    return err('Some fields need attention.', zodErrors(parsed.error.issues));
+    return err('Please check the fields marked below.', zodErrors(parsed.error.issues));
   }
 
   const input: ClientInput = parsed.data;
@@ -229,7 +229,7 @@ export async function updateClient(
 
   const parsed = clientInputSchema.safeParse(raw);
   if (!parsed.success) {
-    return err('Some fields need attention.', zodErrors(parsed.error.issues));
+    return err('Please check the fields marked below.', zodErrors(parsed.error.issues));
   }
 
   const input: ClientInput = parsed.data;

@@ -694,8 +694,8 @@ describe('the rest of Headway knows about the loop', () => {
     if (!comms.ok) throw new Error('comms failed');
     const update = comms.data.messages.find((m) => m.type === 'OWNER_UPDATE');
 
-    expect(update?.body).toContain('9 of 30 pieces of feedback (30%)');
-    expect(update?.body).toContain('2 of 30 pieces of feedback (7%)');
+    expect(update?.body).toContain('9 of 30 feedback entries (30%)');
+    expect(update?.body).toContain('2 of 30 feedback entries (7%)');
     expect(update?.body).toMatch(/since the change/i);
     // Never a causal claim, and never blocked by the numeric guard.
     expect(update?.body).not.toMatch(/\bcaused\b|\bproved\b|thanks to/i);

@@ -2,6 +2,7 @@
 
 import clsx from 'clsx';
 import { useActionState } from 'react';
+import { useT } from '@/components/portal/locale-provider';
 import {
   completeOnboardingAction,
   requestPasswordResetAction,
@@ -84,36 +85,52 @@ function Notice({ state }: { state: ActionState }) {
 }
 
 export function SignUpForm() {
+  const t = useT();
   const [state, action, pending] = useActionState(signUpAction, IDLE);
   return (
     <form action={action} className="mt-8 space-y-5">
-      <Field name="email" label="Email" type="email" state={state} required autoComplete="email" />
+      <Field
+        name="email"
+        label={t('common.form.email')}
+        type="email"
+        state={state}
+        required
+        autoComplete="email"
+      />
       <Field
         name="password"
-        label="Password"
+        label={t('common.form.password')}
         type="password"
         state={state}
         required
         autoComplete="new-password"
-        placeholder="At least 8 characters"
+        placeholder={t('common.form.auth.passwordHint')}
       />
       <Notice state={state} />
       <button type="submit" disabled={pending} className={BUTTON}>
-        {pending ? 'Creating…' : 'Create account'}
+        {pending ? t('common.form.auth.creating') : t('common.form.auth.createAccount')}
       </button>
     </form>
   );
 }
 
 export function SignInForm({ next }: { next: string }) {
+  const t = useT();
   const [state, action, pending] = useActionState(signInAction, IDLE);
   return (
     <form action={action} className="mt-8 space-y-5">
       <input type="hidden" name="next" value={next} />
-      <Field name="email" label="Email" type="email" state={state} required autoComplete="email" />
+      <Field
+        name="email"
+        label={t('common.form.email')}
+        type="email"
+        state={state}
+        required
+        autoComplete="email"
+      />
       <Field
         name="password"
-        label="Password"
+        label={t('common.form.password')}
         type="password"
         state={state}
         required
@@ -121,43 +138,52 @@ export function SignInForm({ next }: { next: string }) {
       />
       <Notice state={state} />
       <button type="submit" disabled={pending} className={BUTTON}>
-        {pending ? 'Signing in…' : 'Sign in'}
+        {pending ? t('common.form.auth.signingIn') : t('common.form.auth.signIn')}
       </button>
     </form>
   );
 }
 
 export function ForgotPasswordForm() {
+  const t = useT();
   const [state, action, pending] = useActionState(requestPasswordResetAction, IDLE);
   return (
     <form action={action} className="mt-8 space-y-5">
       {/* No origin field: where the email points is resolved on the server
           from the deployment's own configuration, never from the browser. */}
-      <Field name="email" label="Email" type="email" state={state} required autoComplete="email" />
+      <Field
+        name="email"
+        label={t('common.form.email')}
+        type="email"
+        state={state}
+        required
+        autoComplete="email"
+      />
       <Notice state={state} />
       <button type="submit" disabled={pending} className={BUTTON}>
-        {pending ? 'Sending…' : 'Send reset link'}
+        {pending ? t('common.form.sending') : t('common.form.auth.sendResetLink')}
       </button>
     </form>
   );
 }
 
 export function ResetPasswordForm() {
+  const t = useT();
   const [state, action, pending] = useActionState(updatePasswordAction, IDLE);
   return (
     <form action={action} className="mt-8 space-y-5">
       <Field
         name="password"
-        label="New password"
+        label={t('common.form.auth.newPassword')}
         type="password"
         state={state}
         required
         autoComplete="new-password"
-        placeholder="At least 8 characters"
+        placeholder={t('common.form.auth.passwordHint')}
       />
       <Notice state={state} />
       <button type="submit" disabled={pending} className={BUTTON}>
-        {pending ? 'Saving…' : 'Set password'}
+        {pending ? t('common.form.saving') : t('common.form.auth.setPassword')}
       </button>
     </form>
   );
@@ -172,20 +198,21 @@ export function OnboardingForm({
 }: {
   verticals: Array<{ value: string; label: string }>;
 }) {
+  const t = useT();
   const [state, action, pending] = useActionState(completeOnboardingAction, IDLE);
   return (
     <form action={action} className="mt-8 space-y-5">
       <Field
         name="businessName"
-        label="Business name"
+        label={t('common.form.setup.businessName')}
         state={state}
         required
-        placeholder="The name customers know you by"
+        placeholder={t('common.form.setup.businessNameHint')}
       />
 
       <div>
         <label htmlFor="vertical" className={LABEL}>
-          What kind of business is it?
+          {t('common.form.setup.kind')}
         </label>
         <select
           id="vertical"
@@ -196,7 +223,7 @@ export function OnboardingForm({
           className={clsx(FIELD, state.errors.vertical ? 'border-bad-600' : 'border-ink-300')}
         >
           <option value="" disabled>
-            Choose one
+            {t('common.form.setup.chooseOne')}
           </option>
           {verticals.map((v) => (
             <option key={v.value} value={v.value}>
@@ -204,9 +231,7 @@ export function OnboardingForm({
             </option>
           ))}
         </select>
-        <p className="mt-1 text-[12px] text-ink-500">
-          This sets what your customers are asked about, so it is worth getting right.
-        </p>
+        <p className="mt-1 text-[12px] text-ink-500">{t('common.form.setup.kindHint')}</p>
         {state.errors.vertical ? (
           <p className="mt-1 text-[13px] text-bad-700">{state.errors.vertical}</p>
         ) : null}
@@ -214,30 +239,35 @@ export function OnboardingForm({
 
       <Field
         name="areaLabel"
-        label="Area"
+        label={t('common.form.setup.area')}
         state={state}
-        placeholder="Neighbourhood or city"
+        placeholder={t('common.form.setup.areaHint')}
       />
-      <Field name="ownerName" label="Your name" state={state} />
-      <Field name="ownerPhone" label="Your phone" state={state} placeholder="Optional" />
+      <Field name="ownerName" label={t('common.form.yourName')} state={state} />
+      <Field
+        name="ownerPhone"
+        label={t('common.form.setup.ownerPhone')}
+        state={state}
+        placeholder={t('common.form.setup.optional')}
+      />
 
       <div>
         <label htmlFor="context" className={LABEL}>
-          Anything we should keep in mind?
+          {t('common.form.setup.context')}
         </label>
         <textarea
           id="context"
           name="context"
           rows={3}
           maxLength={500}
-          placeholder="One line is plenty — what you are trying to fix, or what matters most right now."
+          placeholder={t('common.form.setup.contextHint')}
           className={clsx(FIELD, 'resize-y leading-relaxed', 'border-ink-300')}
         />
       </div>
 
       <Notice state={state} />
       <button type="submit" disabled={pending} className={BUTTON}>
-        {pending ? 'Setting up…' : 'Finish setup'}
+        {pending ? t('common.form.setup.settingUp') : t('common.form.setup.finish')}
       </button>
     </form>
   );

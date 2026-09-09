@@ -99,7 +99,7 @@ export async function startTrialAction(
   const clientId = str(form, 'clientId');
   const days = optInt(form, 'days');
   if (days !== null && Number.isNaN(days)) {
-    return failure('Some fields need attention.', { days: 'Enter a whole number of days.' });
+    return failure('Please check the fields marked below.', { days: 'Enter a whole number of days.' });
   }
   // Blank means the configured default, which is what the button offers.
   const result = await startTrial(prisma, clientId, days);
@@ -119,7 +119,7 @@ export async function extendTrialAction(
   const clientId = str(form, 'clientId');
   const days = optInt(form, 'days');
   if (days === null || Number.isNaN(days)) {
-    return failure('Some fields need attention.', { days: 'Enter a whole number of days.' });
+    return failure('Please check the fields marked below.', { days: 'Enter a whole number of days.' });
   }
   const result = await extendTrial(prisma, clientId, days);
   if (!result.ok) return failure(result.message, result.errors);
@@ -189,7 +189,7 @@ export async function saveCommercialAction(
   const clientId = str(form, 'clientId');
   const amountInr = optInt(form, 'amountInr');
   if (Number.isNaN(amountInr)) {
-    return failure('Some fields need attention.', {
+    return failure('Please check the fields marked below.', {
       amountInr: 'Use whole rupees, or leave it blank.',
     });
   }

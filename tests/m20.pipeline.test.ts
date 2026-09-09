@@ -218,13 +218,13 @@ describe('what the owner sees', () => {
 
     const home = await getPortalView(db, clientId);
     expect(home?.view.basedOn).toBe(0);
-    expect(home?.view.summary).toBe('2 pieces of feedback have arrived and Headway is reading them now.');
+    expect(home?.view.summary).toBe('2 feedback entries have arrived. Headway is reading them now.');
     expect(home?.view.basis).toMatch(/Feedback is usually read within a minute of arriving/);
     expect(home?.view.soFar.waiting).toBe(2);
 
     const bundle = await getResponsibility(db, clientId);
-    expect(bundle?.responsibility.answerDetail).toMatch(/2 pieces of feedback have arrived and Headway is reading them now/);
-    expect(bundle?.responsibility.did).toEqual(['2 pieces of feedback are being read now.']);
+    expect(bundle?.responsibility.answerDetail).toMatch(/2 feedback entries have arrived\. Headway is reading them now/);
+    expect(bundle?.responsibility.did).toEqual(['Reading 2 feedback entries now.']);
 
     const reviews = await getReviewsView(db, clientId, filters());
     expect(reviews?.total).toBe(2);
@@ -234,7 +234,7 @@ describe('what the owner sees', () => {
 
     const analysis = await getAnalysisView(db, clientId);
     expect(analysis?.soFar.waiting).toBe(2);
-    expect(analysis?.limits.join(' ')).toMatch(/being read now/);
+    expect(analysis?.limits.join(' ')).toMatch(/Headway is reading 2 feedback entries now/);
   });
 
   it('two pieces of feedback already give current signals, and no historical conclusions', async () => {
@@ -278,12 +278,12 @@ describe('what the owner sees', () => {
     const analysis = await getAnalysisView(db, clientId);
     expect(analysis?.better).toEqual([]);
     expect(analysis?.worse).toEqual([]);
-    expect(analysis?.recurrenceNote).toMatch(/No check-in/);
+    expect(analysis?.recurrenceNote).toMatch(/have not recorded a check-in yet/);
     expect(analysis?.soFar.mentions.length).toBeGreaterThan(0);
 
     const improvements = await getImprovementsView(db, clientId);
     expect(improvements?.checked).toEqual([]);
-    expect(improvements?.record).toBe('No change has been agreed yet.');
+    expect(improvements?.record).toBe('You have not agreed to any change yet.');
 
     const checkin = await getCheckinView(db, clientId);
     expect(checkin?.movementLine).toMatch(/two check-ins/);

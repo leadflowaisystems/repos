@@ -122,12 +122,12 @@ export const POPULATION: ProofPopulation = {
  * checks next — exactly as `buildFocus` produced it for Corner Cafe.
  */
 export const RIGHT_NOW = {
-  basis: 'Based on 87 pieces of feedback we have read.',
+  basis: 'Based on 87 feedback entries.',
   direction: { value: 'Needs attention', scope: 'Compared with your previous check-in' },
-  headline: 'Slow service is the one thing worth your attention.',
-  why: 'Customers are not unhappy about your food taste and quality — 32 praised it. What they keep raising is slow service, and it has come up more since your change.',
+  headline: 'Slow service is the main thing to fix.',
+  why: 'Customers like your food — 32 praised the taste and quality. The main problem they mention is slow service. Customers have mentioned it more often since your change.',
   next: {
-    headline: 'Check what else changed before undoing anything.',
+    headline: 'Before you undo the change, check what else changed.',
     detail:
       'The original suggestion still stands: Set a target ticket time per course and post it in the kitchen; assign one person to track tables waiting over that time.',
     cta: 'See everything on slow service',
@@ -149,7 +149,7 @@ export const PROOFS: FocusProof[] = [
   {
     key: 'share',
     label: '39% of feedback',
-    detail: '34 of the 87 pieces of feedback Headway has read mention it.',
+    detail: '34 of 87 feedback entries mention slow service.',
     tone: 'bad',
     quotes: SLOW_SERVICE_QUOTES,
     seeAll: null,
@@ -203,13 +203,13 @@ export const SLOW_SERVICE = {
   trend: 'increasing',
   outcome: 'more often after your change',
   meaning:
-    'In the feedback after your change on 01 Aug 2026 it has come up more often (32% of feedback before, 47% after). This does not show the change caused the difference. Worth looking at again.',
+    'Customers have mentioned it more often since your change on 01 Aug 2026 (32% of feedback before, 47% after). This does not show that your change caused the difference. Worth looking at again.',
   suggestion:
     'Set a target ticket time per course and post it in the kitchen; assign one person to track tables waiting over that time.',
   whatToDo:
-    'It came up more often in the feedback after the change. That does not show the change caused it — before undoing anything, check what else changed.',
+    'Customers mentioned it more often after the change. This does not show that your change caused it. Before you undo the change, check what else changed.',
   why: 'This is a serious complaint for a restaurant.',
-  source: '34 of the 87 pieces of feedback Headway has read',
+  source: '34 of 87 feedback entries',
   recurrence: 'Raised at 2 of your last 2 check-ins.',
   checkins: { june: 9, august: 24 },
 } as const;
@@ -217,18 +217,18 @@ export const SLOW_SERVICE = {
 /** The four kinds of signal, each with the Corner Cafe example the board shows. */
 export const SIGNALS = {
   loved: { label: 'Food taste and quality', count: 32, share: '37%', movement: 'growing', chip: 'Protect' },
-  unhappy: { label: 'Slow service', count: 34, share: '39%', movement: 'increasing', chip: 'Needs you' },
+  unhappy: { label: 'Slow service', count: 34, share: '39%', movement: 'increasing', chip: 'Needs attention' },
   changing: {
     label: 'Wrong or missing items',
     count: 12,
     share: '14%',
     checkins: { june: 2, august: 9 },
-    line: 'Customers raised it more at your latest check-in than at the one before, so it is becoming more prominent.',
+    line: 'Customers mentioned it more at your latest check-in than at the one before, so it is growing.',
     chip: 'Watching',
   },
   attention: {
-    headline: 'Slow service is the one thing worth your attention.',
-    chip: 'Needs you',
+    headline: 'Slow service is the main thing to fix.',
+    chip: 'Needs attention',
   },
 } as const;
 
@@ -250,7 +250,7 @@ export const IMPROVEMENT = {
 } as const;
 
 /**
- * What the pile looks like before anyone reads it: eight pieces of feedback
+ * What the pile looks like before anyone reads it: eight feedback entries
  * as they arrived, in three languages, one of them a rating with no words at
  * all. Every line is a record from the dataset.
  */

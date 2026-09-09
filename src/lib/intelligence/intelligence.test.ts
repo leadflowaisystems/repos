@@ -206,7 +206,7 @@ describe('nothing is named without enough evidence behind it', () => {
     const insight = themeIn(intel.unhappy, 'wait_time');
     expect(insight.evidence.outOf).toBe(40);
     expect(insight.detail).toContain('7 mentions');
-    expect(insight.detail).toContain('40 pieces of feedback');
+    expect(insight.detail).toContain('40 feedback entries');
     expect(insight.confidenceReason).toContain('40');
   });
 
@@ -471,7 +471,9 @@ describe('a trend is never manufactured', () => {
     expect(intel.overallTrendNote).not.toMatch(/improv|better/i);
     // The movement is still reported — with the caveat attached, never silently.
     expect(intel.window.volumeCaveat).toBeTruthy();
-    expect(intel.limits.join(' ')).toMatch(/simply more feedback/);
+    expect(intel.limits.join(' ')).toMatch(
+      /just more feedback, not a change in what customers think/,
+    );
   });
 });
 
@@ -609,7 +611,9 @@ describe('the empty and low-data states are honest', () => {
       totalFeedback: 25,
     });
     expect(intel.evidence.unread).toBe(15);
-    expect(intel.limits.join(' ')).toMatch(/15 more pieces of feedback are being read now and are not counted above yet/);
+    expect(intel.limits.join(' ')).toMatch(
+      /Headway is reading 15 more feedback entries now\. They are not counted above yet/,
+    );
   });
 
   it('warns that a small pile is an early signal, not a conclusion', () => {
@@ -652,7 +656,7 @@ describe('operator notes are context, never customer evidence', () => {
   it('labels them as operator memory, not something a customer said', () => {
     const note = build({ notes }).contextNotes[0];
     expect(note?.source).toBe('OPERATOR_NOTE');
-    expect(note?.label).toMatch(/not something a customer said/i);
+    expect(note?.label).toMatch(/a customer did not say it/i);
   });
 
   it('never claims a recorded step worked', () => {

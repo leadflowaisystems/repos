@@ -324,11 +324,11 @@ function customers(n: number): string {
  * Never "reviews": a review is something published on a public listing, and
  * almost everything counted here is private feedback a customer left after
  * scanning the card. Calling it a review would break the one promise the
- * product makes about where feedback goes. Counts count pieces of feedback,
+ * product makes about where feedback goes. Counts count feedback entries,
  * not people — one customer can leave several.
  */
 function pieces(n: number): string {
-  return `${n} ${n === 1 ? 'piece' : 'pieces'} of feedback`;
+  return `${n} feedback ${n === 1 ? 'entry' : 'entries'}`;
 }
 
 /** Insight ids are stable so the action loop can key off them later. */
@@ -339,13 +339,13 @@ export function insightId(clientId: string, kind: InsightKind, themeKey: string)
 function evidenceNote(tier: EvidenceTier, analysed: number): string {
   switch (tier) {
     case 'STANDARD':
-      return `Based on ${pieces(analysed)} — enough to be confident about what keeps coming up.`;
+      return `Based on ${pieces(analysed)}. That is enough to be confident about what keeps coming up.`;
     case 'LIMITED':
-      return `Based on ${pieces(analysed)}. Enough to spot patterns, not enough to be sure of them yet.`;
+      return `Based on ${pieces(analysed)}. That is enough to spot patterns, but not enough to be sure of them yet.`;
     default:
       return analysed === 0
         ? 'No feedback has been read yet, so there is nothing to report.'
-        : `Only ${pieces(analysed)} so far — too few to draw conclusions from.`;
+        : `Only ${pieces(analysed)} so far. That is too few to draw any conclusion.`;
   }
 }
 
@@ -353,16 +353,16 @@ function confidenceFor(
   count: number,
   analysed: number,
 ): { level: Confidence; reason: string } {
-  const basis = `${count} of the ${pieces(analysed)} read so far mention this`;
+  const basis = `${count} of ${pieces(analysed)} read so far ${count === 1 ? 'mentions' : 'mention'} this`;
   if (count >= MIN_MENTIONS_TO_NAME * 2 && analysed >= TIER_STANDARD_MIN) {
-    return { level: 'STRONG', reason: `${basis} — repeated often enough to act on.` };
+    return { level: 'STRONG', reason: `${basis}. That is often enough to act on.` };
   }
   if (count >= MIN_MENTIONS_TO_NAME && analysed >= TIER_LIMITED_MIN) {
-    return { level: 'MODERATE', reason: `${basis} — a real pattern, still worth watching.` };
+    return { level: 'MODERATE', reason: `${basis}. That is a real pattern, but keep watching it.` };
   }
   return {
     level: 'EARLY',
-    reason: `${basis} — an early sign, on too little feedback to be sure of.`,
+    reason: `${basis}. That is an early sign, on too little feedback to be sure of.`,
   };
 }
 
@@ -427,8 +427,8 @@ export function comparisonWindowFrom(pulse: Pulse): ComparisonWindow {
     // arrived since — and the fix is another check-in, not more feedback (M18).
     const bothEmpty = previous.feedbackCount === 0 && current.feedbackCount === 0;
     const reason = bothEmpty
-      ? `Your check-ins of ${previous.label} and ${current.label} have no feedback between them to compare. Everything read so far arrived after them, and your next check-in will include it.`
-      : `Not enough feedback between your check-ins to compare topic by topic: ${previous.feedbackCount} at ` +
+      ? `Your check-ins of ${previous.label} and ${current.label} have no feedback between them to compare. Everything read so far came in after them. Your next check-in will include it.`
+      : `There is not enough feedback between your check-ins to compare topic by topic: ${previous.feedbackCount} at ` +
         `${previous.label} and ${current.feedbackCount} at ${current.label}. ` +
         `Headway needs ${MIN_PERIOD_FEEDBACK_TO_COMPARE} on each side.`;
     return { ...NO_WINDOW(reason), ...base, available: false, reason, note: reason };
@@ -446,8 +446,8 @@ export function comparisonWindowFrom(pulse: Pulse): ComparisonWindow {
       `Comparing your check-in of ${previous.label} (${pieces(previous.feedbackCount)}) ` +
       `with ${current.label} (${current.feedbackCount}).`,
     volumeCaveat: lopsided
-      ? `One check-in holds far more feedback than the other (${previous.feedbackCount} then, ` +
-        `${current.feedbackCount} now). Some of this movement is simply more feedback, ` +
+      ? `One check-in has far more feedback than the other (${previous.feedbackCount} then, ` +
+        `${current.feedbackCount} now). Some of this movement is just more feedback, ` +
         `not a change in what customers think.`
       : null,
   };
@@ -614,7 +614,7 @@ export function signalsFor(
         signal('severity_medium', `This matters to ${verticalLabel.toLowerCase()} customers.`),
       );
     } else {
-      out.push(signal('severity_low', 'A minor complaint, but customers did raise it.'));
+      out.push(signal('severity_low', 'A small complaint, but customers did mention it.'));
     }
   }
 
@@ -627,7 +627,7 @@ export function signalsFor(
       signal(
         'mention',
         sentiment === 'ISSUE'
-          ? `Raised ${theme.count} time${theme.count === 1 ? '' : 's'}.`
+          ? `Mentioned ${theme.count} time${theme.count === 1 ? '' : 's'}.`
           : `Praised ${theme.count} time${theme.count === 1 ? '' : 's'}.`,
         mentionWeight,
       ),
@@ -638,7 +638,7 @@ export function signalsFor(
     out.push(
       signal(
         'pattern',
-        `Mentioned at least ${MIN_MENTIONS_TO_NAME} times, so it is a pattern, not a one-off.`,
+        `Mentioned at least ${MIN_MENTIONS_TO_NAME} times. That makes it a pattern, not a one-off.`,
       ),
     );
   }
@@ -648,7 +648,7 @@ export function signalsFor(
     theme.count >= MIN_MENTIONS_TO_NAME * 2
   ) {
     out.push(
-      signal('strength', 'Praised often enough to be a strength worth protecting.'),
+      signal('strength', 'Praised often enough to be a strength. Protect it.'),
     );
   }
 
@@ -667,7 +667,10 @@ export function signalsFor(
   if (movement.available && movement.state === 'WORSENING' && movement.delta !== null) {
     if (sentiment === 'ISSUE') {
       out.push(
-        signal('worsening', `It is coming up more than last time: ${movement.countNote}.`),
+        signal(
+          'worsening',
+          `Customers mention it more than last time: ${movement.countNote}.`,
+        ),
       );
     }
   }
@@ -678,7 +681,9 @@ export function signalsFor(
     movement.state === 'IMPROVING' &&
     movement.delta !== null
   ) {
-    out.push(signal('growing', `Praised more than last time: ${movement.countNote}.`));
+    out.push(
+      signal('growing', `Customers praise it more than last time: ${movement.countNote}.`),
+    );
   }
 
   return out;
@@ -713,15 +718,15 @@ function headlineFor(
     case 'LOVED':
       return `Customers keep praising ${label.toLowerCase()}.`;
     case 'UNHAPPY':
-      return `Customers are unhappy about ${label.toLowerCase()}.`;
+      return `Customers complain about ${label.toLowerCase()}.`;
     case 'ATTENTION':
-      return `${label} needs attention.`;
+      return `${label} needs your attention.`;
     case 'CHANGING': {
       const better = movement.state === 'IMPROVING';
       if (sentiment === 'ISSUE') {
         return better
-          ? `Fewer customers are raising ${label.toLowerCase()}.`
-          : `More customers are raising ${label.toLowerCase()}.`;
+          ? `Fewer customers are mentioning ${label.toLowerCase()}.`
+          : `More customers are mentioning ${label.toLowerCase()}.`;
       }
       return better
         ? `More customers are praising ${label.toLowerCase()}.`
@@ -763,7 +768,7 @@ function buildInsightFor(args: {
     count: theme.count,
     outOf: analysed,
     itemIds: args.itemIds,
-    scope: `across the ${pieces(analysed)} read so far`,
+    scope: `across ${pieces(analysed)} read so far`,
   };
   const signals = signalsFor(sentiment, theme, movement, args.verticalLabel, args.rated ?? null);
   const confidence = confidenceFor(theme.count, analysed);
@@ -994,17 +999,17 @@ export function buildIntelligence(input: IntelligenceInput): ClientIntelligence 
   if (analysed === 0) {
     limits.push(
       unread > 0
-        ? `${unread} piece${unread === 1 ? '' : 's'} of feedback ${unread === 1 ? 'is' : 'are'} being read now. Nothing is counted until Headway has read it.`
+        ? `Headway is reading ${pieces(unread)} now. Nothing is counted until Headway has read it.`
         : 'No feedback has been read yet, so there is nothing for Headway to tell you.',
     );
   } else if (tier === 'INSUFFICIENT') {
     limits.push(
-      `Only ${pieces(analysed)} have been read. Everything above is an early sign, not a conclusion.`,
+      `Only ${pieces(analysed)} ${analysed === 1 ? 'has' : 'have'} been read. Everything above is an early sign, not a conclusion.`,
     );
   }
   if (unread > 0 && analysed > 0) {
     limits.push(
-      `${unread} more piece${unread === 1 ? '' : 's'} of feedback ${unread === 1 ? 'is' : 'are'} being read now and ${unread === 1 ? 'is' : 'are'} not counted above yet.`,
+      `Headway is reading ${unread} more feedback ${unread === 1 ? 'entry' : 'entries'} now. ${unread === 1 ? 'It is' : 'They are'} not counted above yet.`,
     );
   }
   if (!window.available && analysed > 0) {
@@ -1013,7 +1018,7 @@ export function buildIntelligence(input: IntelligenceInput): ClientIntelligence 
   const quiet = [...belowFloor(input.themes.praises), ...belowFloor(input.themes.issues)];
   if (quiet.length > 0) {
     limits.push(
-      `${quiet.length} other topic${quiet.length === 1 ? ' was' : 's were'} mentioned once or twice — not enough to call a pattern yet.`,
+      `${quiet.length} other topic${quiet.length === 1 ? ' was' : 's were'} mentioned once or twice. That is not enough to call a pattern yet.`,
     );
   }
   if (window.volumeCaveat) {
@@ -1053,7 +1058,7 @@ export function buildIntelligence(input: IntelligenceInput): ClientIntelligence 
       title: note.title,
       category: note.category,
       source: 'OPERATOR_NOTE' as const,
-      label: 'You recorded this — not something a customer said.',
+      label: 'You recorded this. A customer did not say it.',
     })),
 
     limits,

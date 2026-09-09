@@ -52,9 +52,9 @@ describe('what keeps coming back', () => {
     );
     const wait = recurrenceFor(two, 'ISSUE', 'wait_time');
     expect(wait.recurring).toBe(true);
-    expect(wait.line).toBe('Raised at 2 of your last 2 check-ins.');
+    expect(wait.line).toBe('Customers mentioned this at 2 of your last 2 check-ins.');
     const praise = recurrenceFor(two, 'PRAISE', 'doctor_care');
-    expect(praise.line).toBe('Praised at 2 of your last 2 check-ins.');
+    expect(praise.line).toBe('Customers praised this at 2 of your last 2 check-ins.');
   });
 
   it('calls a theme new only when it was absent from every earlier check-in', () => {
@@ -82,7 +82,7 @@ describe('what keeps coming back', () => {
     );
     expect(map.checkins).toBe(2);
     expect(map.skipped).toBe(1);
-    expect(recurrenceFor(map, 'ISSUE', 'wait_time').line).toBe('Raised at 2 of your last 2 check-ins.');
+    expect(recurrenceFor(map, 'ISSUE', 'wait_time').line).toBe('Customers mentioned this at 2 of your last 2 check-ins.');
   });
 
   it('reports a theme that faded from the latest check-in without calling it a trend', () => {
@@ -92,7 +92,7 @@ describe('what keeps coming back', () => {
     );
     const wait = recurrenceFor(two, 'ISSUE', 'wait_time');
     expect(wait.faded).toBe(true);
-    expect(wait.line).toMatch(/not at your latest/);
+    expect(wait.line).toMatch(/They did not mention it at your latest one\./);
   });
 
   it('never invents presence for a theme below the floor', () => {

@@ -23,6 +23,7 @@ import { createClient } from '@/lib/clients/service';
 import { getBoard } from '@/lib/command/board';
 import { nextActionFor, prioritySignals } from '@/lib/command/priority';
 import { toActionRecord } from '@/lib/improve/service';
+import { MESSAGES } from '@/lib/i18n/strings';
 import { createTestDb, resetDb, validClientInput } from './helpers/test-db';
 
 /**
@@ -184,7 +185,7 @@ describe('a trial has an end date, always', () => {
     });
     expect(running.phase).toBe('TRIAL');
     expect(running.headline).toBe('Your Headway trial');
-    expect(running.line).toBe('Your trial is active until 21 September 2026.');
+    expect(running.line).toBe('Your trial runs until 21 September 2026.');
     expect(running.trialDaysLeft).toBe(14);
 
     // A pre-M23 row, before the backfill: still not "no end date".
@@ -367,7 +368,7 @@ describe('a paused account', () => {
     expect(paused?.phase).toBe('PAUSED');
     expect(paused?.headline).toBe('Headway is paused');
     expect(paused?.line).toBe(
-      'Your feedback and your history are safe. New feedback is still saved, but Headway is not reading it yet.',
+      'Your feedback and your history are safe. New feedback is still saved. Headway is not reading it yet.',
     );
     expect(paused?.servicePausedAt?.toISOString()).toBe(NOW.toISOString());
     expect(paused?.note).toBe('Paused since 7 September 2026.');
@@ -465,26 +466,38 @@ describe('the words an owner reads', () => {
     // it only ever sends a message. What has NOT changed is the thing this test
     // was written for — there is no amount, no price and no plan anywhere an
     // owner can see.
+    //
+    // The localization pass moved the sentences themselves into the dictionary,
+    // so the page is checked for the key it now renders and the words are
+    // pinned where they now live. "Nothing is charged automatically." is said
+    // as "No money is taken automatically." on this page.
     const page = stripComments(
       read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'account', 'page.tsx'),
     );
     expect(page).toContain('ExtendAccessForm');
     expect(page).toContain('account.headline');
-    expect(page).toContain('Want to continue with Headway?');
-    expect(page).toContain('Nothing is charged automatically.');
+    expect(page).toContain("t('account.continue.question')");
+    expect(MESSAGES['account.continue.question'].en).toBe('Want to continue with Headway?');
+    expect(page).toContain("t('account.continue.trialBody')");
+    expect(MESSAGES['account.continue.trialBody'].en).toContain(
+      'No money is taken automatically.',
+    );
     // Nothing on the page knows the amount.
     expect(page).not.toContain('getCommercial');
     expect(page).not.toContain('amountInr');
     expect(page).not.toMatch(/paymentInstructions|note\s*[:=]/);
 
     const form = stripComments(read('src', 'components', 'forms', 'extend-access-form.tsx'));
-    expect(form).toContain("label = 'Ask to continue'");
+    expect(form).toContain("t('common.form.continue.ask')");
+    expect(MESSAGES['common.form.continue.ask'].en).toBe('Ask to continue');
     expect(form).toContain('name="phone"');
     expect(form).toContain('name="email"');
     expect(form).toContain('type="tel"');
     // Required phone, optional email, and no name asked for.
-    expect(form).toContain('(required)');
-    expect(form).toContain('(optional)');
+    expect(form).toContain("t('common.form.required')");
+    expect(MESSAGES['common.form.required'].en).toBe('(required)');
+    expect(form).toContain("t('common.form.optional')");
+    expect(MESSAGES['common.form.optional'].en).toBe('(optional)');
     expect(form).not.toContain('name="ownerName"');
     expect(form).not.toMatch(/amount|₹|price|plan/i);
 
@@ -499,14 +512,17 @@ describe('the words an owner reads', () => {
   it('says paused and resumed in the words the owner is promised', () => {
     const service = stripComments(read('src', 'lib', 'commercial', 'service.ts'));
     expect(service).toContain("headline = 'Headway is paused'");
-    expect(service).toContain('Your feedback and your history are safe. New feedback is still saved, but Headway is not reading it yet.');
+    expect(service).toContain('Your feedback and your history are safe. New feedback is still saved. Headway is not reading it yet.');
     expect(service).toContain("headline = 'Headway is active'");
     expect(service).toContain("line = 'Headway is reading new feedback as it arrives.'");
     expect(service).toContain('Your account was paused. It is running again.');
+    // The banner across the workspace shell now reads from the dictionary, so
+    // the key is what the layout carries and the sentence is pinned there.
     const layout = stripComments(
       read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'layout.tsx'),
     );
-    expect(layout).toContain('Headway is paused.');
+    expect(layout).toContain("t('errors.paused.banner')");
+    expect(MESSAGES['errors.paused.banner'].en).toContain('Headway is paused.');
   });
 
   it('shows the operator the request, with the contact details and the status', () => {
@@ -523,13 +539,17 @@ describe('the words an owner reads', () => {
   it('keeps current signals on Home and the full method on Customers, once', () => {
     const home = stripComments(read('src', 'components', 'workspace', 'home.tsx'));
     expect(home).toContain('<SoFar soFar={view.soFar} basePath={basePath} />');
-    expect(home).toContain('note="Counts, not conclusions"');
+    // The counts-not-conclusions qualifier over the early mentions, now read
+    // from the dictionary and said as "Counts only, not conclusions".
+    expect(home).toContain("note={t('home.soFar.note')}");
+    expect(MESSAGES['home.soFar.note'].en).toBe('Counts only, not conclusions');
     expect(home).toContain('<Limits limits={r.limitations} collapsed />');
     expect(home).not.toContain('Not worth your time right now');
     // The reason to come back is still on Home. The bold "Next check." run-in
     // went with the copy pass — the eyebrow above it already names the
     // check-in — so the section itself is what this holds in place.
-    expect(home).toContain('eyebrow="Your next check-in"');
+    expect(home).toContain("eyebrow={t('home.nextCheck.title')}");
+    expect(MESSAGES['home.nextCheck.title'].en).toBe('Your next check-in');
     expect(home).toContain('{r.nextUsefulCheck}');
 
     const customers = stripComments(read('src', 'components', 'workspace', 'analysis.tsx'));
@@ -551,16 +571,31 @@ describe('the words an owner reads', () => {
     // finishing line in the list. What the M23 trim decided is unchanged — the
     // page is the card, where to put it, and everything the staff need behind
     // one disclosure. See tests/m29.print-kit-masters.test.ts for the sheets.
+    // The localization pass moved every one of these sentences into the
+    // dictionary, so the page is checked for the keys it now renders and the
+    // words are pinned where they now live: the placement line is "Put the card
+    // where customers can see it." and the disclosure is labelled "Guidance for
+    // your team".
     const kit = stripComments(read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'kit', 'page.tsx'));
-    expect(kit).toContain('Your feedback card');
-    expect(kit).toContain('Put it where customers will see it.');
+    expect(kit).toContain("t('kit.intro.title')");
+    expect(MESSAGES['kit.intro.title'].en).toBe('Your feedback card');
+    expect(kit).toContain("t('kit.intro.description')");
+    expect(MESSAGES['kit.intro.description'].en).toContain(
+      'Put the card where customers can see it.',
+    );
     expect(kit).toContain('PRINT_SHEETS.map');
-    expect(kit).toContain('Open to print');
-    expect(kit).toContain('Staff guidance');
+    expect(kit).toContain("t('kit.sheets.open')");
+    expect(MESSAGES['kit.sheets.open'].en).toBe('Open to print');
+    expect(kit).toContain("t('kit.staff.summary')");
+    expect(MESSAGES['kit.staff.summary'].en).toBe('Guidance for your team');
     expect(kit.indexOf('<details')).toBeGreaterThan(0);
-    expect(kit.indexOf('Staff guidance')).toBeGreaterThan(kit.indexOf('<details'));
-    // The neutral rule, said once.
-    expect(kit.match(/Offer it to everyone/g)?.length ?? 0).toBe(1);
+    expect(kit.indexOf("t('kit.staff.summary')")).toBeGreaterThan(kit.indexOf('<details'));
+    // The neutral rule, said once. It is offered the same way whatever kind of
+    // visit the customer had, which is the promise this counts.
+    expect(kit.match(/t\('kit\.placement\.everyone'\)/g)?.length ?? 0).toBe(1);
+    expect(MESSAGES['kit.placement.everyone'].en).toContain(
+      'Offer the card to every customer, the same way, whatever kind of visit they had.',
+    );
   });
 
   it('no longer tells a business owner that they do not sign in here', () => {

@@ -8,6 +8,8 @@ import type {
 } from '@/lib/responsibility/engine';
 import type { PortalSignal } from '@/lib/portal/view';
 import { formatDate } from '@/lib/format';
+import { getTranslator } from '@/lib/i18n/request';
+import type { MessageKey } from '@/lib/i18n/strings';
 import { Chevron } from './disclose';
 import { EvidenceLink, ThemeStory } from './portal-ui';
 
@@ -44,10 +46,10 @@ const STATE_TONE: Record<ResponsibilityState, string> = {
   CLEAR: 'bg-ink-100 text-ink-600',
 };
 
-const SOURCE_LABELS: Record<ThreadStep['source'], string> = {
-  CUSTOMERS: 'Customers',
-  YOU: 'You',
-  REPOS: 'Headway',
+const SOURCE_LABELS: Record<ThreadStep['source'], MessageKey> = {
+  CUSTOMERS: 'common.source.customers',
+  YOU: 'common.source.you',
+  REPOS: 'common.source.headway',
 };
 
 function StateChip({ item }: { item: ResponsibilityItem }) {
@@ -67,8 +69,9 @@ function StateChip({ item }: { item: ResponsibilityItem }) {
 }
 
 /** The continuity thread: what customers said → what you decided → what happened → now → next. */
-function Thread({ steps }: { steps: ThreadStep[] }) {
+async function Thread({ steps }: { steps: ThreadStep[] }) {
   if (steps.length === 0) return null;
+  const t = await getTranslator();
   return (
     <ol className="mt-3 space-y-1.5 border-l border-ink-200 pl-4">
       {steps.map((s) => (
@@ -76,7 +79,7 @@ function Thread({ steps }: { steps: ThreadStep[] }) {
           <p className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
             {s.label}
             <span className="ml-1 font-normal normal-case tracking-normal text-ink-400">
-              · {SOURCE_LABELS[s.source]}
+              · {t(SOURCE_LABELS[s.source])}
             </span>
           </p>
           <p className={clsx('text-[13px] leading-relaxed', s.source === 'YOU' ? 'text-ink-700 italic' : 'text-ink-700')}>
@@ -95,7 +98,7 @@ function Thread({ steps }: { steps: ThreadStep[] }) {
  * the thread and the watch line are what this layer adds. Items with no
  * theme — feedback that needs the owner's words — get a compact block instead.
  */
-export function NeedsYouItem({
+export async function NeedsYouItem({
   item,
   signal,
   basePath,
@@ -107,6 +110,7 @@ export function NeedsYouItem({
   basePath: string;
   lead: boolean;
 }) {
+  const t = await getTranslator();
   return (
     <article
       className={clsx(
@@ -127,13 +131,14 @@ export function NeedsYouItem({
         <div className="mt-2 space-y-2">
           <p className="text-[14px] leading-relaxed text-ink-700">{item.whyItMatters}</p>
           <p className="text-[14px] leading-relaxed text-ink-900">
-            <span className="font-medium">Next.</span> {item.recommendedNextStep}
+            <span className="font-medium">{t('common.next.prefix')}</span>{' '}
+            {item.recommendedNextStep}
           </p>
           <Link
             href={`${basePath}/reviews?needs=reply`}
             className="inline-flex min-h-11 items-center gap-1.5 text-[13px] font-medium text-ink-700 hover:text-ink-900"
           >
-            Read what needs a reply <span aria-hidden>→</span>
+            {t('common.link.needsReply')} <span aria-hidden>→</span>
           </Link>
         </div>
       )}
@@ -141,7 +146,7 @@ export function NeedsYouItem({
       {item.thread.length > 1 ? (
         <details className="mt-3 group">
           <summary className="inline-flex min-h-11 cursor-pointer items-center list-none text-[12px] font-medium text-ink-600 hover:text-ink-900">
-            How we got here <span aria-hidden>›</span>
+            {t('common.reveal.howWeGotHere')} <span aria-hidden>›</span>
           </summary>
           <Thread steps={item.thread} />
         </details>
@@ -153,7 +158,7 @@ export function NeedsYouItem({
             href={`${basePath}/improvements`}
             className="inline-flex min-h-11 items-center text-[13px] font-medium text-ink-700 hover:text-ink-900"
           >
-            See the improvement →
+            {t('common.link.seeImprovement')} <span aria-hidden>→</span>
           </Link>
         </div>
       ) : null}
@@ -174,7 +179,8 @@ const SUMMARY =
  * this; Headway will" is only true if the owner can see the condition that
  * brings it back.
  */
-function WatchingRow({ item, basePath }: { item: ResponsibilityItem; basePath: string }) {
+async function WatchingRow({ item, basePath }: { item: ResponsibilityItem; basePath: string }) {
+  const t = await getTranslator();
   return (
     <li className="py-3">
       <details className="group">
@@ -183,7 +189,10 @@ function WatchingRow({ item, basePath }: { item: ResponsibilityItem; basePath: s
             <StateChip item={item} />
             {item.evidence ? (
               <span className="text-[12px] text-ink-500 tabular-nums">
-                {item.evidence.count} of {item.evidence.outOf} pieces of feedback
+                {t('common.evidence.count', {
+                  count: item.evidence.count,
+                  total: item.evidence.outOf,
+                })}
               </span>
             ) : null}
           </div>
@@ -197,13 +206,15 @@ function WatchingRow({ item, basePath }: { item: ResponsibilityItem; basePath: s
         </summary>
         <dl className="hw-reveal mt-2 space-y-1.5 border-l-2 border-ink-200 pl-3">
           <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-[5.5rem_1fr]">
-            <dt className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">Why</dt>
+            <dt className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
+              {t('common.watching.why')}
+            </dt>
             <dd className="text-[13px] leading-relaxed text-ink-700">{item.whyItMatters}</dd>
           </div>
           {item.contextUsed.length > 0 ? (
             <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-[5.5rem_1fr]">
               <dt className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
-                You told us
+                {t('common.layer.owner')}
               </dt>
               <dd className="text-[13px] leading-relaxed text-ink-700 italic">{item.contextUsed[0]}</dd>
             </div>
@@ -214,7 +225,7 @@ function WatchingRow({ item, basePath }: { item: ResponsibilityItem; basePath: s
                 basePath={basePath}
                 themeKey={item.themeKey}
                 count={item.evidence?.count}
-                label={item.evidence ? undefined : 'Read the comments'}
+                label={item.evidence ? undefined : t('common.evidence.readCommentsAll')}
               />
             </div>
           ) : null}
@@ -225,11 +236,12 @@ function WatchingRow({ item, basePath }: { item: ResponsibilityItem; basePath: s
 }
 
 /**
- * A strength, with the proof. Not a badge and not a score: how many pieces of
- * feedback said it, Headway's reading of why it matters, and one tap to the
+ * A strength, with the proof. Not a badge and not a score: how many feedback
+ * entries said it, Headway's reading of why it matters, and one tap to the
  * words.
  */
-function StrengthRow({ item, basePath }: { item: ResponsibilityItem; basePath: string }) {
+async function StrengthRow({ item, basePath }: { item: ResponsibilityItem; basePath: string }) {
+  const t = await getTranslator();
   return (
     <li className="py-3">
       <details className="group">
@@ -238,7 +250,10 @@ function StrengthRow({ item, basePath }: { item: ResponsibilityItem; basePath: s
             <StateChip item={item} />
             {item.evidence ? (
               <span className="text-[12px] text-ink-500 tabular-nums">
-                {item.evidence.count} of {item.evidence.outOf} pieces of feedback
+                {t('common.evidence.count', {
+                  count: item.evidence.count,
+                  total: item.evidence.outOf,
+                })}
               </span>
             ) : null}
           </div>
@@ -283,7 +298,8 @@ export function WatchingList({ items, basePath }: { items: ResponsibilityItem[];
 }
 
 /** What Headway did since the last check-in, and when the next check would show something. */
-export function SinceThen({ r }: { r: Responsibility }) {
+export async function SinceThen({ r }: { r: Responsibility }) {
+  const t = await getTranslator();
   return (
     <div>
       {r.did.length > 0 ? (
@@ -299,7 +315,8 @@ export function SinceThen({ r }: { r: Responsibility }) {
         </ul>
       ) : null}
       <p className="mt-3 border-l-2 border-ink-300 pl-3 text-[13px] leading-relaxed text-ink-700">
-        <span className="font-medium text-ink-900">Next check.</span> {r.nextUsefulCheck}
+        <span className="font-medium text-ink-900">{t('common.sinceThen.nextCheck')}</span>{' '}
+        {r.nextUsefulCheck}
       </p>
     </div>
   );

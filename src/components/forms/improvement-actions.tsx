@@ -482,8 +482,8 @@ function ActionControls({ clientId, action }: { clientId: string; action: Action
             {hidden}
             <p className="text-[13px] leading-relaxed text-ink-700">
               {action.status === 'MEASURED'
-                ? `${action.newFeedbackSinceMeasured} more ${action.newFeedbackSinceMeasured === 1 ? 'piece' : 'pieces'} of feedback have been read since this was last measured.`
-                : `${action.newFeedbackSinceDone} pieces of feedback have been read since the change. Headway will compare them with the baseline.`}
+                ? `${action.newFeedbackSinceMeasured} more ${action.newFeedbackSinceMeasured === 1 ? 'feedback entry has' : 'feedback entries have'} been read since this was last measured.`
+                : `${action.newFeedbackSinceDone} feedback entries have been read since the change. Headway will compare them with the baseline.`}
             </p>
           </ActionForm>
         ) : (
@@ -493,7 +493,7 @@ function ActionControls({ clientId, action }: { clientId: string; action: Action
                 ? 'Nothing new has been read since this was measured.'
                 : action.newFeedbackSinceDone === 0
                   ? 'No new feedback since the change.'
-                  : `Only ${action.newFeedbackSinceDone} new pieces of feedback since the change.`}
+                  : `Only ${action.newFeedbackSinceDone} new feedback entries since the change.`}
             </p>
             <p className="mt-0.5 text-[12px] leading-relaxed text-ink-600">
               {action.status === 'MEASURED'
@@ -570,7 +570,7 @@ export function ImprovementActionsPanel({
               No improvement actions yet.
             </p>
             <p className="mt-1 text-[13px] leading-relaxed text-ink-600">
-              When Headway names something customers keep raising, turn it into an
+              When Headway names a problem customers mention often, turn it into an
               action from the panel above. Then record what the business decided,
               mark it done, and Headway will show you what the feedback did next.
             </p>

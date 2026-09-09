@@ -19,6 +19,7 @@ import { Chevron, Reveal } from '@/components/portal/disclose';
 import { SinceThen } from '@/components/portal/responsibility';
 import { SignalCard, type SignalGroupKey } from '@/components/workspace/signal-board';
 import type { EvidenceIndex } from '@/lib/portal/evidence';
+import { getTranslator } from '@/lib/i18n/request';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Check-in' };
@@ -47,14 +48,28 @@ const BLOCK_TONE: Record<CheckinBlock['kind'], string> = {
   WATCH: 'text-brand-700',
 };
 
+/**
+ * The label an owner reads on each block, in their own language.
+ *
+ * The block already knows its own kind, and the kind is what the label says —
+ * so the phrase is looked up from the dictionary here rather than carried
+ * across from the engine as an English string that no translation can reach.
+ */
+const BLOCK_LABEL = {
+  DO: 'checkin.block.do',
+  PROTECT: 'checkin.block.protect',
+  WATCH: 'checkin.block.watch',
+} as const satisfies Record<CheckinBlock['kind'], string>;
+
 /** A block whose item has no theme card to open: the words are the whole of it. */
-function PlainBlock({ block, basePath }: { block: { kind: CheckinBlock['kind']; label: string; item: ResponsibilityItem }; basePath: string }) {
+async function PlainBlock({ block, basePath }: { block: { kind: CheckinBlock['kind']; label: string; item: ResponsibilityItem }; basePath: string }) {
   const { item } = block;
+  const t = await getTranslator();
   return (
     <details className="group rounded-xl border border-ink-200 bg-white">
       <summary className="flex min-h-11 cursor-pointer list-none flex-col gap-2 p-4 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none sm:p-5">
         <span className={clsx('text-[11px] font-semibold tracking-widest uppercase', BLOCK_TONE[block.kind])}>
-          {block.label}
+          {t(BLOCK_LABEL[block.kind])}
         </span>
         <p className="text-[18px] leading-snug font-semibold tracking-tight text-ink-900">
           {item.headline} <Chevron />
@@ -63,7 +78,7 @@ function PlainBlock({ block, basePath }: { block: { kind: CheckinBlock['kind']; 
       <div className="hw-reveal border-t border-ink-200 px-4 py-4 text-[14px] leading-relaxed text-ink-700 sm:px-5">
         <p>{item.whyItMatters}</p>
         <p className="mt-2 text-ink-900">
-          <span className="font-medium">Next.</span> {item.recommendedNextStep}
+          <span className="font-medium">{t('checkin.block.next')}</span> {item.recommendedNextStep}
         </p>
         <p className="mt-2 text-[13px] text-ink-500">{item.watching}</p>
         {item.themeKey ? null : (
@@ -71,7 +86,7 @@ function PlainBlock({ block, basePath }: { block: { kind: CheckinBlock['kind']; 
             href={`${basePath}/reviews?needs=reply`}
             className="mt-2 inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-ink-900 underline decoration-ink-300 underline-offset-4"
           >
-            Read what needs a reply <span aria-hidden>→</span>
+            {t('checkin.block.needsReply')} <span aria-hidden>→</span>
           </Link>
         )}
       </div>
@@ -79,14 +94,15 @@ function PlainBlock({ block, basePath }: { block: { kind: CheckinBlock['kind']; 
   );
 }
 
-function Blocks({ blocks, evidence, basePath }: { blocks: CheckinBlock[]; evidence: EvidenceIndex; basePath: string }) {
+async function Blocks({ blocks, evidence, basePath }: { blocks: CheckinBlock[]; evidence: EvidenceIndex; basePath: string }) {
   if (blocks.length === 0) return null;
+  const t = await getTranslator();
   return (
     <div className={clsx('grid grid-cols-1 items-start gap-3', blocks.length > 1 && 'lg:grid-cols-3')}>
       {blocks.map((block) => (
         <div key={block.kind}>
           <p className={clsx('mb-2 text-[13px] font-semibold tracking-widest uppercase', BLOCK_TONE[block.kind])}>
-            {block.label}
+            {t(BLOCK_LABEL[block.kind])}
           </p>
           {block.signal ? (
             <SignalCard signal={block.signal} group={BLOCK_GROUP[block.kind]} evidence={evidence} basePath={basePath} />
@@ -108,6 +124,7 @@ export async function PortalCheckin({
   basePath: string;
 }) {
   const client = { id: clientId };
+  const t = await getTranslator();
   const [view, bundle, evidence] = await Promise.all([
     getCheckinView(prisma, client.id),
     getResponsibility(prisma, client.id),
@@ -117,7 +134,9 @@ export async function PortalCheckin({
   const r = bundle.responsibility;
 
   const moved = view.better.length + view.worse.length + view.returning.length + view.checked.length > 0;
-  const compared = /^Since your check-in|^Nothing moved enough/.test(view.movementLine);
+  // Was: a regex over the English of `movementLine`. The view now says so with
+  // a flag, so rewording the sentence cannot silently switch the pulse off.
+  const compared = view.compared;
   const pulse = checkinPulse(r, bundle.view, compared);
   // The page's own intro already names the two check-ins compared.
   const since = {
@@ -130,7 +149,7 @@ export async function PortalCheckin({
   return (
     <div>
       <div className="max-w-3xl">
-        <PageIntro eyebrow="Check-in" title={view.title} description={view.periodNote} />
+        <PageIntro eyebrow={t('checkin.title')} title={view.title} description={view.periodNote} />
         <PeriodSwitch basePath={basePath} current="checkin" />
       </div>
 
@@ -140,21 +159,21 @@ export async function PortalCheckin({
         </p>
       ) : (
         <div className="mb-6 max-w-3xl">
-          <Quiet>Headway has not read any feedback yet. Once it has, each check-in will show what needs you, what to keep doing and what Headway is watching.</Quiet>
+          <Quiet>{t('checkin.empty')}</Quiet>
         </div>
       )}
 
       <Blocks blocks={pulse.blocks} evidence={evidence} basePath={basePath} />
 
       {r.basedOn > 0 ? (
-        <section aria-label="Headway will check next" className="mt-8 max-w-3xl border-l-2 border-ink-300 pl-4">
-          <p className="text-[11px] font-medium tracking-widest text-ink-500 uppercase">Headway will check next</p>
+        <section aria-label={t('checkin.nextCheck.title')} className="mt-8 max-w-3xl border-l-2 border-ink-300 pl-4">
+          <p className="text-[11px] font-medium tracking-widest text-ink-500 uppercase">{t('checkin.nextCheck.title')}</p>
           <p className="mt-1.5 text-[14px] leading-relaxed text-ink-800">{r.nextUsefulCheck}</p>
         </section>
       ) : null}
 
       <div className="mt-10 max-w-3xl space-y-6">
-        <Reveal summary="Show what changed" tone="strong">
+        <Reveal summary={t('checkin.reveal.changed')} tone="strong">
           <div className="rounded-xl border border-ink-200 bg-white p-4 sm:p-5">
             <Callout tone={view.worse.length > 0 || view.returning.length > 0 ? 'bad' : moved ? 'good' : 'neutral'}>
               {view.movementLine}
@@ -165,26 +184,26 @@ export async function PortalCheckin({
 
             {view.returning.length > 0 ? (
               <div className="mt-6">
-                <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-bad-700 uppercase">Coming back</p>
+                <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-bad-700 uppercase">{t('checkin.moved.returning')}</p>
                 <ThemeRows signals={view.returning} basePath={basePath} line="movement" showWatch />
               </div>
             ) : null}
             {view.worse.length > 0 ? (
               <div className="mt-6">
-                <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-bad-700 uppercase">Got worse</p>
+                <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-bad-700 uppercase">{t('checkin.moved.worse')}</p>
                 <ThemeRows signals={view.worse} basePath={basePath} line="movement" />
               </div>
             ) : null}
             {view.better.length > 0 ? (
               <div className="mt-6">
-                <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-good-700 uppercase">Improved</p>
+                <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-good-700 uppercase">{t('checkin.moved.better')}</p>
                 <ThemeRows signals={view.better} basePath={basePath} line="movement" />
               </div>
             ) : null}
 
             {view.checked.length > 0 || view.made.length > 0 ? (
               <div className="mt-6">
-                <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-ink-700 uppercase">Changes you made</p>
+                <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-ink-700 uppercase">{t('checkin.changes.yours')}</p>
                 <ul className="divide-y divide-ink-200 border-y border-ink-200">
                   {view.checked.map((a) => (
                     <OutcomeRow key={a.id} action={a} basePath={basePath} />
@@ -199,7 +218,7 @@ export async function PortalCheckin({
             {view.sinceCheckin.length > 0 ? (
               <div className="mt-6">
                 <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-ink-700 uppercase">
-                  Changes compared since this check-in
+                  {t('checkin.changes.comparedSince')}
                 </p>
                 <ul className="divide-y divide-ink-200 border-y border-ink-200">
                   {view.sinceCheckin.map((a) => (
@@ -211,19 +230,19 @@ export async function PortalCheckin({
 
             {view.next.length > 1 ? (
               <div className="mt-6">
-                <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-ink-700 uppercase">Headway is also watching</p>
+                <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-ink-700 uppercase">{t('checkin.alsoWatching')}</p>
                 <WatchList items={view.next.slice(1)} basePath={basePath} />
               </div>
             ) : null}
 
             {!hasDetail ? (
-              <p className="mt-3 text-[13px] leading-relaxed text-ink-500">Nothing from this check-in needs a decision.</p>
+              <p className="mt-3 text-[13px] leading-relaxed text-ink-500">{t('checkin.nothingToDecide')}</p>
             ) : null}
           </div>
         </Reveal>
 
         {since.did.length > 0 || r.basedOn > 0 ? (
-          <Reveal summary={`What Headway did · ${since.sinceLabel.replace(/^Since /, 'since ')}`}>
+          <Reveal summary={t('checkin.reveal.did', { since: since.sinceLabel.replace(/^Since /, 'since ') })}>
             <div className="rounded-xl border border-ink-200 bg-white p-4 sm:p-5">
               <SinceThen r={since} />
             </div>

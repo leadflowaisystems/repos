@@ -10,13 +10,23 @@ import {
 } from '@/lib/actions/team';
 import { IDLE, type ActionState } from '@/lib/actions/shared';
 import { CopyButton } from '@/components/copy-button';
+import { useT } from '@/components/portal/locale-provider';
 
 /**
- * TEAM FORMS (M20 Stage 4).
+ * TEAM FORMS (M20 Stage 4, put into three languages in M31).
  *
  * Owner-only controls. Staff never see this page, but the forms do not rely on
  * that: every action re-checks the role on the server, because a hidden button
  * is a design decision and not a security boundary.
+ *
+ * These run in the browser, so they cannot read the language cookie for
+ * themselves — `useT` reads the finished strings the workspace shell handed
+ * down. Outside that shell (the invitation page has its own root) it answers in
+ * English, which is right: that page has not asked anybody for a language yet.
+ *
+ * The messages that come back from a server action are NOT translated here.
+ * They are written by `@/lib/actions/team` and belong to it; putting a second
+ * copy of them in this file is how the two would drift apart.
  */
 
 const BUTTON =
@@ -43,13 +53,14 @@ function Notice({ state }: { state: ActionState }) {
 
 export function InviteForm({ clientId }: { clientId: string }) {
   const [state, action, pending] = useActionState(inviteMemberAction, IDLE);
+  const t = useT();
   return (
     <form action={action} className="mt-4">
       <input type="hidden" name="clientId" value={clientId} />
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[220px] flex-1">
           <label htmlFor="invite-email" className="block text-[14px] font-medium text-ink-800">
-            Email
+            {t('team.form.emailLabel')}
           </label>
           <input
             id="invite-email"
@@ -66,7 +77,7 @@ export function InviteForm({ clientId }: { clientId: string }) {
         </div>
         <div>
           <label htmlFor="invite-role" className="block text-[14px] font-medium text-ink-800">
-            Role
+            {t('team.form.roleLabel')}
           </label>
           <select
             id="invite-role"
@@ -74,32 +85,36 @@ export function InviteForm({ clientId }: { clientId: string }) {
             defaultValue="BUSINESS_STAFF"
             className="mt-1.5 rounded-xl border border-ink-300 bg-white px-4 py-2.5 text-[16px] text-ink-900"
           >
-            <option value="BUSINESS_STAFF">Staff</option>
-            <option value="BUSINESS_OWNER">Owner</option>
+            <option value="BUSINESS_STAFF">{t('team.role.staff')}</option>
+            <option value="BUSINESS_OWNER">{t('team.role.owner')}</option>
           </select>
         </div>
         <button type="submit" disabled={pending} className={BUTTON}>
-          {pending ? 'Creating…' : 'Create invitation'}
+          {pending ? t('team.form.creating') : t('team.form.create')}
         </button>
       </div>
       {state.errors.email ? (
         <p className="mt-1 text-[13px] text-bad-700">{state.errors.email}</p>
       ) : null}
-      <p className="mt-2 text-[12px] leading-relaxed text-ink-500">
-        They get an email with a sign-in link. You can also copy the link and send it yourself.
-      </p>
+      <p className="mt-2 text-[12px] leading-relaxed text-ink-500">{t('team.form.help')}</p>
       <Notice state={state} />
       {state.data?.link ? (
         <div className="mt-3 rounded-xl border border-ink-200 bg-ink-50 p-3">
           <p className="text-[12px] font-medium tracking-wide text-ink-500 uppercase">
-            {state.data.sent === 'yes' ? 'Invitation link, in case the email does not arrive' : 'Send them this link'}
+            {state.data.sent === 'yes'
+              ? t('team.form.linkBackup')
+              : t('team.form.linkSend')}
           </p>
           <p className="mt-1.5 font-mono text-[12px] break-all text-ink-700">{state.data.link}</p>
           <div className="mt-2.5">
-            <CopyButton value={state.data.link} label="Copy invitation link" copiedLabel="Copied" />
+            <CopyButton
+              value={state.data.link}
+              label={t('team.form.copyLink')}
+              copiedLabel={t('team.form.copied')}
+            />
           </div>
           <p className="mt-2 text-[12px] leading-relaxed text-ink-500">
-            It works once, only for {state.data.email}, and expires in 7 days.
+            {t('team.form.linkNote', { email: state.data.email ?? '' })}
           </p>
         </div>
       ) : null}
@@ -121,12 +136,13 @@ export function RevokeInviteButton({
   inviteId: string;
 }) {
   const [state, action, pending] = useActionState(revokeInviteAction, IDLE);
+  const t = useT();
   return (
     <form action={action}>
       <input type="hidden" name="clientId" value={clientId} />
       <input type="hidden" name="inviteId" value={inviteId} />
       <button type="submit" disabled={pending} className={QUIET}>
-        {pending ? 'Cancelling…' : 'Cancel'}
+        {pending ? t('team.invite.cancelling') : t('team.invite.cancel')}
       </button>
       {state.message && !state.ok ? (
         <p className="mt-1 text-[13px] text-bad-700">{state.message}</p>
@@ -150,14 +166,11 @@ export function MembershipControls({
   isLastOwner: boolean;
 }) {
   const [state, action, pending] = useActionState(setMembershipAction, IDLE);
+  const t = useT();
   const suspended = status !== 'ACTIVE';
 
   if (isLastOwner) {
-    return (
-      <p className="text-[13px] text-ink-500">
-        The only owner. Make someone else an owner before changing this.
-      </p>
-    );
+    return <p className="text-[13px] text-ink-500">{t('team.member.lastOwner')}</p>;
   }
 
   return (
@@ -171,7 +184,11 @@ export function MembershipControls({
         disabled={pending}
         className={QUIET}
       >
-        Make {role === 'BUSINESS_OWNER' ? 'staff' : 'owner'}
+        {/* One whole label per direction. "Make " + a word was English word
+            order shipped as if it were universal. */}
+        {role === 'BUSINESS_OWNER'
+          ? t('team.member.makeStaff')
+          : t('team.member.makeOwner')}
       </button>
       <button
         type="submit"
@@ -180,7 +197,7 @@ export function MembershipControls({
         disabled={pending}
         className={QUIET}
       >
-        {suspended ? 'Restore access' : 'Suspend access'}
+        {suspended ? t('team.member.giveAccessBack') : t('team.member.stopAccess')}
       </button>
       {state.message && !state.ok ? (
         <p className="w-full text-[13px] text-bad-700">{state.message}</p>
@@ -192,11 +209,12 @@ export function MembershipControls({
 /** The one control on the invitation page. */
 export function AcceptInviteForm({ token }: { token: string }) {
   const [state, action, pending] = useActionState(acceptInviteAction, IDLE);
+  const t = useT();
   return (
     <form action={action} className="mt-8">
       <input type="hidden" name="token" value={token} />
       <button type="submit" disabled={pending} className={clsx(BUTTON, 'w-full')}>
-        {pending ? 'Joining…' : 'Accept invitation'}
+        {pending ? t('team.accept.joining') : t('team.accept.button')}
       </button>
       <Notice state={state} />
     </form>

@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { extname, join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { MESSAGES } from '@/lib/i18n/strings';
 
 /**
  * HEADWAY — the identity, as rules rather than as intentions.
@@ -321,11 +322,32 @@ describe('colour carries meaning, and only its own meaning', () => {
     // words now say how often a theme was mentioned rather than up and down,
     // so the sr-only run-in carries "Mentioned" and the direction rides on
     // "more often" / "less often" — still text, never the glyph or the colour.
+    //
+    // M31 moved the words into the dictionary so they can be read in Hindi and
+    // Marathi. The guarantee is unchanged and the shape is unchanged — the
+    // glyph is still hidden, the run-in is still sr-only, the direction still
+    // rides on a word — but the words now arrive through t().
     const board = read('src', 'components', 'workspace', 'signal-board.tsx');
     expect(board).toContain('<span className="sr-only">');
     expect(board).toContain("<span aria-hidden>{rose ? '↑' : '↓'}</span>");
-    expect(board).toMatch(/sr-only">Mentioned<\/span> \{word\}/);
-    expect(board).toContain("const word = rose ? 'more often' : 'less often';");
+    expect(board).toMatch(/sr-only">\{t\('customers\.trend\.mentioned'\)\}<\/span> \{word\}/);
+    expect(board).toContain(
+      "const word = rose ? t('customers.trend.moreOften') : t('customers.trend.lessOften');",
+    );
+
+    // And the guarantee has to survive translation: a screen-reader run-in that
+    // exists only in English would leave the glyph as the only carrier for
+    // every other reader, which is the exact thing this test forbids.
+    for (const key of [
+      'customers.trend.mentioned',
+      'customers.trend.moreOften',
+      'customers.trend.lessOften',
+    ] as const) {
+      const phrase = MESSAGES[key];
+      expect(phrase, key).toBeTruthy();
+      expect(phrase.hi, `${key} has no Hindi`).toBeTruthy();
+      expect(phrase.mr, `${key} has no Marathi`).toBeTruthy();
+    }
   });
 });
 

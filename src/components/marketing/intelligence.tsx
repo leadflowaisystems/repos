@@ -13,14 +13,14 @@ import { CARD_EYEBROW, Chip, Heading, Section } from './primitives';
  */
 
 const FUNNEL = [
-  { figure: String(DEMO_BUSINESS.total), label: 'pieces of feedback read', width: '100%', tone: 'bg-ink-900' },
+  { figure: String(DEMO_BUSINESS.total), label: 'feedback entries read', width: '100%', tone: 'bg-ink-900' },
   {
     figure: String(SLOW_SERVICE.count),
     label: `mention ${SLOW_SERVICE.label.toLowerCase()}`,
     width: SLOW_SERVICE.share,
     tone: 'bg-bad-600',
   },
-  { figure: '1', label: 'thing worth your attention', width: '4%', tone: 'bg-brand-700' },
+  { figure: '1', label: 'main thing to fix', width: '4%', tone: 'bg-brand-700' },
 ] as const;
 
 export function Intelligence() {
@@ -31,7 +31,7 @@ export function Intelligence() {
         eyebrow="Product intelligence"
         title={
           <>
-            From {DEMO_BUSINESS.total} pieces of feedback to one thing worth your attention.
+            From {DEMO_BUSINESS.total} feedback entries to the one main thing to fix.
           </>
         }
         lead="Headway reads every piece — the words, the ratings, the taps — groups what keeps coming up, and decides what deserves a decision. The evidence stays attached to the conclusion, so you can check it in a tap."

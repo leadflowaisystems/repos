@@ -2,6 +2,7 @@
 
 import clsx from 'clsx';
 import { useActionState } from 'react';
+import { useT } from '@/components/portal/locale-provider';
 import { requestContinuationAction } from '@/lib/actions/continuation';
 import { IDLE, type ActionState } from '@/lib/actions/shared';
 
@@ -52,15 +53,17 @@ export function ExtendAccessForm({
   clientId,
   ownerPhone,
   ownerEmail,
-  label = 'Ask to continue',
+  label,
 }: {
   clientId: string;
   ownerPhone: string;
   ownerEmail: string;
   /** The disclosure's own label. "Ask to continue" in every state, running trial
-   *  or ended, because asking is the same act either way. */
+   *  or ended, because asking is the same act either way. Left unset it reads
+   *  that phrase in the owner's own language. */
   label?: string;
 }) {
+  const t = useT();
   const [state, action, pending] = useActionState(requestContinuationAction, IDLE);
 
   // Once it has gone through, the form is no longer the point: the confirmation
@@ -69,11 +72,10 @@ export function ExtendAccessForm({
     return (
       <div>
         <p className="text-[17px] leading-snug font-semibold tracking-tight text-ink-900">
-          Request received
+          {t('common.form.continue.received')}
         </p>
         <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink-700">
-          Thank you. We&rsquo;ll be in touch soon on the number you gave. Nothing is charged
-          automatically. Your access does not change until we have spoken.
+          {t('common.form.continue.receivedBody')}
         </p>
       </div>
     );
@@ -81,18 +83,19 @@ export function ExtendAccessForm({
 
   return (
     <details className="group" open={state.message ? true : undefined}>
-      <summary className={PRIMARY}>{label}</summary>
+      <summary className={PRIMARY}>{label ?? t('common.form.continue.ask')}</summary>
 
       <form action={action} className="mt-5 max-w-xl">
         <input type="hidden" name="clientId" value={clientId} />
         <p className="mb-4 text-[14px] leading-relaxed text-ink-600">
-          We&rsquo;ll use this to contact you about continuing your Headway service.
+          {t('common.form.continue.help')}
         </p>
 
         <div className="grid grid-cols-1 gap-4">
           <div>
             <label htmlFor="continuation-phone" className="block text-[14px] font-medium text-ink-800">
-              Phone number <span className="font-normal text-ink-500">(required)</span>
+              {t('common.form.continue.phone')}{' '}
+              <span className="font-normal text-ink-500">{t('common.form.required')}</span>
             </label>
             <input
               id="continuation-phone"
@@ -118,7 +121,8 @@ export function ExtendAccessForm({
 
           <div>
             <label htmlFor="continuation-email" className="block text-[14px] font-medium text-ink-800">
-              Email <span className="font-normal text-ink-500">(optional)</span>
+              {t('common.form.email')}{' '}
+              <span className="font-normal text-ink-500">{t('common.form.optional')}</span>
             </label>
             <input
               id="continuation-email"
@@ -143,11 +147,11 @@ export function ExtendAccessForm({
         </div>
 
         <button type="submit" disabled={pending} className={clsx(SUBMIT, 'mt-5')}>
-          {pending ? 'Sending…' : 'Send my request'}
+          {pending ? t('common.form.sending') : t('common.form.continue.submit')}
         </button>
 
         <p className="mt-3 text-[13px] leading-relaxed text-ink-500">
-          Nothing is charged automatically. Your access does not change until we have spoken.
+          {t('common.form.continue.noCharge')}
         </p>
 
         <Notice state={state} />

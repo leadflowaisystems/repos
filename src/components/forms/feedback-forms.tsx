@@ -147,7 +147,7 @@ export function AddFeedbackPanel({
   return (
     <Card className="text-left">
       <CardHeader
-        title={mode === 'paste' ? 'Paste your reviews' : 'Add one piece of feedback'}
+        title={mode === 'paste' ? 'Paste your reviews' : 'Add one feedback entry'}
         description={
           mode === 'paste'
             ? 'Paste as many as you like in one go. Headway will read them and analyse them for you.'

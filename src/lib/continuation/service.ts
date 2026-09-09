@@ -150,7 +150,7 @@ export async function requestContinuation(
     errors.phone = 'Add a phone number we can reach you on.';
   }
   if (!email.ok) {
-    errors.email = 'That email address does not look right. You can also leave it blank.';
+    errors.email = 'That email address does not look right. You can leave it blank instead.';
   }
   if (Object.keys(errors).length > 0) return err('Some fields need attention.', errors);
 

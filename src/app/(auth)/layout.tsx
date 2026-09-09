@@ -1,4 +1,9 @@
 import type { Metadata, Viewport } from 'next';
+import { LocaleProvider } from '@/components/portal/locale-provider';
+import { LOCALE_HTML_LANG } from '@/lib/i18n/locale';
+import { getLocale } from '@/lib/i18n/request';
+import { MESSAGES } from '@/lib/i18n/strings';
+import { flattenFor } from '@/lib/i18n/t';
 import '../globals.css';
 
 export const metadata: Metadata = {
@@ -16,16 +21,27 @@ export const viewport: Viewport = {
  * and the customer feedback page do — so the operator's navigation is absent
  * from the tree rather than hidden by CSS. A signed-out visitor cannot see the
  * shape of the tool, let alone its client list.
+ *
+ * IT ALSO SPEAKS THE OWNER'S LANGUAGE (M31). Signing in and setting the
+ * business up are the first two screens a business owner ever reads, and they
+ * sit outside the workspace tree — so the language cookie is read here as well,
+ * and the forms below are handed their words the same way the portal's are. An
+ * owner who chose Marathi and then signed out would otherwise be met in English
+ * at the one screen they cannot skip.
  */
-export default function AuthRootLayout({
+export default async function AuthRootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const locale = await getLocale();
+
   return (
-    <html lang="en">
+    <html lang={LOCALE_HTML_LANG[locale]}>
       <body className="min-h-dvh bg-ink-50">
-        <div className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center px-5 py-12">
-          {children}
-        </div>
+        <LocaleProvider locale={locale} strings={flattenFor(MESSAGES, locale)}>
+          <div className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center px-5 py-12">
+            {children}
+          </div>
+        </LocaleProvider>
       </body>
     </html>
   );

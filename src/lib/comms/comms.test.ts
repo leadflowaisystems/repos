@@ -268,13 +268,13 @@ describe('the owner update is useful and honest', () => {
     expect(message.body).toContain('Sunrise Dental Clinic');
     expect(message.body).toContain("Doctor's care and explanation");
     expect(message.body).toContain('Long waiting time');
-    expect(message.body).toContain('mentioned 9 times across all the feedback');
-    expect(message.body).toContain('Recommended next step:');
-    // One pile, one unit. The line above this one says "across all the
-    // feedback", so naming the same private pile "reviews" in the very next
+    expect(message.body).toContain('mentioned 9 times in all the feedback so far');
+    expect(message.body).toContain('What to do next:');
+    // One pile, one unit. The line above this one says "in all the feedback
+    // so far", so naming the same private pile "reviews" in the very next
     // sentence gave the owner two words for one thing — and "review" is the
     // word this product reserves for a public listing.
-    expect(message.body).toContain('Based on 50 pieces of feedback we have read.');
+    expect(message.body).toContain('Based on 50 feedback entries we have read.');
     expect(message.blocked).toBe(false);
   });
 
@@ -299,7 +299,7 @@ describe('the owner update is useful and honest', () => {
   it('leaves out the comparison when there is nothing to compare', () => {
     const message = composeOwnerUpdate(clinicInsight(), voiceFor());
     expect(message.body).not.toContain('What changed between');
-    expect(message.notes.join(' ')).toMatch(/no period comparison/i);
+    expect(message.notes.join(' ')).toMatch(/no comparison between check-ins/i);
   });
 
   it('includes the comparison when the pulse has one, and says what moved', () => {
@@ -332,7 +332,7 @@ describe('the owner update is useful and honest', () => {
     const message = composeOwnerUpdate(insight, voiceFor());
 
     expect(message.body).toMatch(/not read enough/i);
-    expect(message.body).not.toMatch(/Recommended next step/i);
+    expect(message.body).not.toMatch(/What to do next/i);
     expect(message.body).not.toMatch(/\bmentioned\b/i);
     expect(message.blocked).toBe(false);
   });
@@ -348,7 +348,7 @@ describe('the owner update is useful and honest', () => {
     });
     const message = composeOwnerUpdate(insight, voiceFor());
 
-    expect(message.body).toMatch(/too few to draw conclusions/i);
+    expect(message.body).toMatch(/too few to be sure of anything yet/i);
     expect(message.notes.join(' ')).toMatch(/early days/i);
   });
 
@@ -362,7 +362,7 @@ describe('the owner update is useful and honest', () => {
     });
     const body = composeOwnerUpdate(insight, voiceFor()).body;
     expect(body).toMatch(/Nothing is coming up often enough/i);
-    expect(body).not.toContain('The main issue is:');
+    expect(body).not.toContain('The main problem:');
   });
 
   it('reads as plain text a person can paste anywhere', () => {
@@ -379,7 +379,7 @@ describe('an owner update is not a review reply', () => {
   it('carries counts and a recommendation, which a public reply never would', () => {
     const update = composeOwnerUpdate(clinicInsight(), voiceFor());
     expect(update.body).toMatch(/mentioned \d+ times/);
-    expect(update.body).toContain('Recommended next step:');
+    expect(update.body).toContain('What to do next:');
   });
 
   it('never addresses the customer or apologises to them', () => {
@@ -398,8 +398,8 @@ describe('an owner update is not a review reply', () => {
 describe('the action message and the follow-up', () => {
   it('states the step and what it is based on', () => {
     const message = composeActionMessage(clinicInsight(), voiceFor());
-    expect(message.body).toContain('Recommended next step for Sunrise Dental Clinic');
-    expect(message.body).toContain('This is based on 9 customers');
+    expect(message.body).toContain('What to do next for Sunrise Dental Clinic');
+    expect(message.body).toContain('We suggest this because 9 customers');
     expect(message.blocked).toBe(false);
   });
 
@@ -474,7 +474,7 @@ describe('the owner is written to in their own language', () => {
 
   it('does not force an owner into English', () => {
     const marathi = composeOwnerUpdate(clinicInsight(), inLanguage(voiceFor(), 'MARATHI'));
-    expect(marathi.body).not.toContain('Recommended next step:');
+    expect(marathi.body).not.toContain('What to do next:');
     expect(marathi.body).toContain('सुचवलेले पुढचे पाऊल:');
   });
 

@@ -88,33 +88,39 @@ export function buildAnalysisView(input: PortalInput): AnalysisView {
     const others = v.loved
       .filter((s) => s.themeKey !== v.keep?.themeKey && s.bucket !== 'EARLY')
       .map((s) => spoken(s.themeLabel));
-    const othersLine = others.length
-      ? ` ${joinNames(others).replace(/^./, (c) => c.toUpperCase())} ${others.length === 1 ? 'is' : 'are'} praised often too.`
+    const othersLine = others.length ? ` Customers also praise your ${joinNames(others)} often.` : '';
+    // The disagreement was glued on with ", though ...". It is its own fact,
+    // so it gets its own short sentence.
+    const opposite = v.keep.counterpart
+      ? ` But ${v.keep.counterpart.count} ${v.keep.counterpart.count === 1 ? 'comment' : 'comments'} said the opposite.`
       : '';
     telling.push(
       `${v.keep.isRecurring ? 'Customers keep praising' : 'Customers praise'} your ${spoken(v.keep.themeLabel)}${
         v.keep.isRecurring ? '' : ' most'
-      }${v.keep.counterpart ? `, though ${v.keep.counterpart.count} said the opposite` : ''}.${othersLine}`,
+      }.${opposite}${othersLine}`,
     );
   } else if (v.loved.length > 0) {
+    const one = v.loved.length === 1;
     telling.push(
-      `${joinNames(v.loved.map((s) => s.themeLabel))} ${v.loved.length === 1 ? 'is' : 'are'} praised, but not yet often enough to call a strength.`,
+      `Customers praise your ${joinNames(v.loved.map((s) => spoken(s.themeLabel)))}. ${
+        one ? 'It has' : 'They have'
+      } not come up often enough yet to call ${one ? 'it' : 'them'} a strength.`,
     );
   }
   // The count and the other complaints live on the cards directly beneath;
   // saying them here as well made the page open by repeating itself.
   if (v.first) {
-    telling.push(`${v.first.themeLabel} is the complaint Headway would deal with first.`);
+    telling.push(`Headway would deal with ${spoken(v.first.themeLabel)} first.`);
   } else if (intel.evidence.analysed > 0) {
-    telling.push('No complaint has come up often enough to call a weakness.');
+    telling.push('No complaint has come up often enough to call it a weakness.');
   }
 
   const readable = input.snapshots.length;
   const recurrenceNote =
     readable < 2
       ? readable === 0
-        ? 'No check-in has been recorded yet, so Headway cannot tell what keeps coming back.'
-        : 'Only one check-in so far. From the next one, Headway can tell you what keeps coming back and what is new.'
+        ? 'You have not recorded a check-in yet. Headway cannot tell you what keeps coming back until you do.'
+        : 'You have only one check-in so far. After your next one, Headway can tell you what keeps coming back and what is new.'
       : null;
 
   const better = v.changed.filter((s) => s.movementDirection === 'IMPROVING');
@@ -122,9 +128,9 @@ export function buildAnalysisView(input: PortalInput): AnalysisView {
   const steadyLine =
     intel.window.available && better.length + worse.length === 0
       ? v.steady.length > 0
-        ? `Nothing moved by 2 or more mentions between these check-ins. ${joinNames(
+        ? `Nothing moved by 2 or more mentions between these check-ins. Your ${joinNames(
             v.steady.map((s) => `${spoken(s.themeLabel)} (${s.movementCounts ?? 'steady'})`),
-          ).replace(/^./, (c) => c.toUpperCase())} held steady.`
+          )} held steady.`
         : 'Nothing moved by 2 or more mentions between these check-ins.'
       : null;
 
@@ -180,16 +186,20 @@ export function buildImprovementsView(input: PortalInput): ImprovementsView {
   const worse = v.actions.filter((a) => a.outcome?.result === 'WORSENED').length;
 
   const bits = [`${compared} ${compared === 1 ? 'change' : 'changes'} compared`];
-  if (improved > 0) bits.push(`mentioned less often after ${compared === 1 ? 'it' : `${improved} of them`}`);
-  if (worse > 0) bits.push(`mentioned more often after ${compared === 1 ? 'it' : `${worse} of them`}`);
+  if (improved > 0) {
+    bits.push(`mentioned less often after ${compared === 1 ? 'the change' : `${improved} of them`}`);
+  }
+  if (worse > 0) {
+    bits.push(`mentioned more often after ${compared === 1 ? 'the change' : `${worse} of them`}`);
+  }
 
   return {
     businessName: v.businessName,
     record:
       compared === 0
         ? v.actions.length === 0
-          ? 'No change has been agreed yet.'
-          : 'No change has been compared with later feedback yet.'
+          ? 'You have not agreed to any change yet.'
+          : 'Headway has not compared any change with later feedback yet.'
         : bits.join(' · '),
     suggested: v.suggestedNow,
     open,
@@ -381,7 +391,7 @@ export function buildReviewsView(input: {
   const neutral = sentiments.find((s) => s.key === 'NEUTRAL')?.count ?? 0;
   if (intel && intel.evidence.analysed > 0) {
     found.push(
-      `Across all ${pieces(analysed)} read: ${positive} positive, ${mixed} mixed, ${neutral} neutral, ${negative} negative.`,
+      `Headway has read all ${pieces(analysed)}: ${positive} positive, ${mixed} mixed, ${neutral} neutral, ${negative} negative.`,
     );
     const topPraise = [...intel.loved]
       .sort((a, b) => b.evidence.count - a.evidence.count)
@@ -390,13 +400,16 @@ export function buildReviewsView(input: {
     if (topPraise.length) {
       found.push(
         topPraise.length === 2
-          ? `The two things praised most are ${topPraise[0]} and ${topPraise[1]}.`
-          : `The thing praised most is ${topPraise[0]}.`,
+          ? // A pack label can itself contain "and" ("doctor's care and
+            // explanation"), so the two are kept apart with a colon and a
+            // comma rather than run together on a bare "and".
+            `Customers praise two things most: your ${topPraise[0]}, and your ${topPraise[1]}.`
+          : `Customers praise your ${topPraise[0]} most.`,
       );
     }
     if (intel.attention) {
       found.push(
-        `The complaint Headway would deal with first is ${spoken(intel.attention.themeLabel)}. It appears in ${intel.attention.evidence.count} of the ${intel.attention.evidence.outOf} comments.`,
+        `Headway would deal with ${spoken(intel.attention.themeLabel)} first. ${intel.attention.evidence.count} of ${intel.attention.evidence.outOf} comments mention it.`,
       );
       quick.push({
         label: `${intel.attention.themeLabel} (${intel.attention.evidence.count} comments)`,
@@ -404,12 +417,12 @@ export function buildReviewsView(input: {
       });
     } else {
       found.push(
-        `No complaint is a pattern yet — none has come up ${MIN_MENTIONS_TO_NAME} or more times.`,
+        `No complaint is a pattern yet. None has come up ${MIN_MENTIONS_TO_NAME} or more times.`,
       );
     }
     if (input.replyWorth > 0) {
       found.push(
-        `${input.replyWorth} of the ${pieces(analysed)} ${input.replyWorth === 1 ? 'needs' : 'need'} an answer from you. Headway has written a draft where it safely could. Anything without one needs your own words.`,
+        `${input.replyWorth} of ${pieces(analysed)} ${input.replyWorth === 1 ? 'needs' : 'need'} an answer from you. Headway has written a draft reply where it could do so safely. The ones without a draft need your own words.`,
       );
     }
   }
@@ -503,6 +516,14 @@ export type CheckinView = {
   /** "Your March check-in" */
   title: string;
   periodNote: string;
+  /**
+   * Whether two check-ins were actually compared.
+   *
+   * The page used to work this out by testing `movementLine` for the English
+   * it happened to start with. Words are for reading; this flag is for
+   * matching, and it survives every rewording.
+   */
+  compared: boolean;
   /** The movement in one line. Not the picture — Home has that. */
   movementLine: string;
   better: PortalSignal[];
@@ -566,14 +587,14 @@ export function buildCheckinView(
   const moved = better.length + worse.length > 0;
   const comparedNote =
     v.notComparable.length > 0
-      ? ` ${v.notComparable.length} ${v.notComparable.length === 1 ? 'topic' : 'topics'} had too few mentions at one of the two check-ins to compare.`
+      ? ` Headway could not compare ${v.notComparable.length} ${v.notComparable.length === 1 ? 'topic' : 'topics'}. ${v.notComparable.length === 1 ? 'It' : 'They'} had too few mentions at one of the two check-ins.`
       : '';
   const unchangedNote = !intel.window.available
     ? ''
     : !moved
       ? comparedNote.trim()
       : v.steady.length > 0
-        ? `Everything else Headway could compare held steady, including ${joinNames(v.steady.slice(0, 3).map((s) => spoken(s.themeLabel)))}.${comparedNote}`
+        ? `Everything else Headway could compare held steady. This includes your ${joinNames(v.steady.slice(0, 3).map((s) => spoken(s.themeLabel)))}.${comparedNote}`
         : `Everything else Headway could compare held steady.${comparedNote}`;
 
   const movedKeys = new Set([...better, ...worse, ...returning].map((s) => s.themeKey));
@@ -584,9 +605,10 @@ export function buildCheckinView(
     title: month ? `${month} check-in` : 'No check-in yet',
     periodNote: latest
       ? previous
-        ? `Compares your check-in on ${on(latest)} with the one on ${on(previous)}.`
-        : `Prepared from your check-in on ${on(latest)}. A second check-in will show what changed.`
+        ? `This compares your check-in on ${on(latest)} with your check-in on ${on(previous)}.`
+        : `This uses your check-in on ${on(latest)}. A second check-in will show what changed.`
       : 'This covers everything Headway has read so far.',
+    compared: intel.window.available,
     movementLine,
     better,
     worse,

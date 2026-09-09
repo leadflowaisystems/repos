@@ -132,7 +132,7 @@ export async function inviteMember(
 ): Promise<ServiceResult<{ inviteId: string; token: string; email: string; role: string; expiresAt: Date }>> {
   const email = (input.email ?? '').trim().toLowerCase();
   if (!email.includes('@') || email.length < 3) {
-    return err('Some fields need attention.', { email: 'Add a valid email address.' });
+    return err('Please check the fields marked below.', { email: 'Add a valid email address.' });
   }
   // Only the two business roles exist here. Anything else — including a
   // browser inventing "REP_OS_ADMIN" — becomes staff.
@@ -147,7 +147,7 @@ export async function inviteMember(
     select: { id: true },
   });
   if (already) {
-    return err('Some fields need attention.', { email: 'They are already on this team.' });
+    return err('Please check the fields marked below.', { email: 'They are already on this team.' });
   }
 
   // One live invitation per address per business. Re-inviting replaces the

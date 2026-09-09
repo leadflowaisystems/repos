@@ -148,7 +148,7 @@ export function RightNow() {
         </div>
       </div>
       <figcaption className="mt-3 text-[12px] leading-relaxed text-ink-500">
-        Corner Cafe is Headway&rsquo;s demonstration business: {DEMO_BUSINESS.total} pieces of feedback, one
+        Corner Cafe is Headway&rsquo;s demonstration business: {DEMO_BUSINESS.total} feedback entries, one
         change, one measurement. Every figure on this page comes from it. Tap a figure to see what it
         counts.
       </figcaption>

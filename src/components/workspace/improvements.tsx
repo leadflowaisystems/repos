@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
+import { getTranslator } from '@/lib/i18n/request';
 import { getEvidenceIndex, getImprovementsView } from '@/lib/portal/service';
 import { PageIntro, Quiet, Section } from '@/components/portal/portal-ui';
 import { ImprovementStory } from '@/components/workspace/improvement-story';
@@ -31,6 +32,7 @@ export async function PortalImprovements({
   basePath: string;
 }) {
   const client = { id: clientId };
+  const t = await getTranslator();
   const [view, evidence] = await Promise.all([
     getImprovementsView(prisma, client.id),
     getEvidenceIndex(prisma, client.id),
@@ -44,21 +46,19 @@ export async function PortalImprovements({
     <div>
       <div className="max-w-3xl">
         <PageIntro
-          eyebrow="Improvements"
-          title="What you changed, and what happened next"
+          eyebrow={t('improvements.page.eyebrow')}
+          title={t('improvements.page.title')}
           description={view.record}
         />
       </div>
 
-      {empty ? (
-        <Quiet>
-          Nothing here yet. When you make a change Headway suggested, this page will compare
-          the feedback from before and after it.
-        </Quiet>
-      ) : null}
+      {empty ? <Quiet>{t('improvements.page.empty')}</Quiet> : null}
 
       {view.checked.length > 0 ? (
-        <Section eyebrow="Changes compared" note="How often the topic came up before and after">
+        <Section
+          eyebrow={t('improvements.section.compared')}
+          note={t('improvements.section.comparedNote')}
+        >
           <div className="space-y-5">
             {view.checked.map((a) => (
               <ImprovementStory key={a.id} action={a} evidence={evidence} basePath={basePath} />
@@ -68,7 +68,7 @@ export async function PortalImprovements({
       ) : null}
 
       {view.open.length > 0 ? (
-        <Section eyebrow="In progress">
+        <Section eyebrow={t('improvements.section.inProgress')}>
           <div className="space-y-5">
             {view.open.map((a) => (
               <ImprovementStory key={a.id} action={a} evidence={evidence} basePath={basePath} />
@@ -78,7 +78,10 @@ export async function PortalImprovements({
       ) : null}
 
       {view.suggested ? (
-        <Section eyebrow="Waiting on your decision" note="Headway has suggested a change">
+        <Section
+          eyebrow={t('improvements.section.waiting')}
+          note={t('improvements.section.waitingNote')}
+        >
           <div className="max-w-3xl">
             <SignalCard signal={view.suggested} group="NEEDS_YOU" evidence={evidence} basePath={basePath} />
           </div>
@@ -86,7 +89,7 @@ export async function PortalImprovements({
       ) : null}
 
       {view.notPursued.length > 0 ? (
-        <Section eyebrow="Not doing">
+        <Section eyebrow={t('improvements.notDoing')}>
           <div className="space-y-5">
             {view.notPursued.map((a) => (
               <ImprovementStory key={a.id} action={a} evidence={evidence} basePath={basePath} />

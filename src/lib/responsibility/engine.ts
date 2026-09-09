@@ -119,7 +119,7 @@ export type ThreadStep = {
 export type ResponsibilityEvidence = {
   count: number;
   outOf: number;
-  /** "14 of the 110 pieces of feedback Headway has read mention it." */
+  /** "14 of 110 feedback entries mention it." */
   line: string;
   /** Which pile, always. */
   scope: string;
@@ -229,8 +229,8 @@ export type ResponsibilityInput = {
 
 const CERTAINTY: Record<Insight['confidence'], string> = {
   STRONG: 'enough feedback to be sure',
-  MODERATE: 'a clear pattern, still worth confirming',
-  EARLY: 'an early sign from little feedback',
+  MODERATE: 'a clear pattern, but still worth confirming',
+  EARLY: 'an early sign, based on little feedback',
 };
 
 function daysBetween(from: Date, to: Date): number {
@@ -305,7 +305,7 @@ function placeSignal(signal: PortalSignal, progress: ActionProgress | undefined)
     extra.push({
       key: 'returning',
       weight: RESPONSIBILITY_WEIGHTS.returning,
-      reason: 'It came up less often after your change, and now it is coming up more again.',
+      reason: 'It came up less often after your change. Now it is coming up more again.',
       source: 'CUSTOMERS',
     });
     return {
@@ -335,14 +335,14 @@ function placeSignal(signal: PortalSignal, progress: ActionProgress | undefined)
       return {
         state: 'DO_NOW',
         instruction: 'Decide what to change',
-        headline: `${signal.themeLabel} is the clearest thing customers are unhappy about.`,
+        headline: `${signal.themeLabel} is the main problem customers are unhappy about.`,
         extra,
       };
     case 'HOLD':
       return {
         state: 'DO_NOW',
         instruction: 'Decide: act now or wait',
-        headline: `${signal.themeLabel} is still what customers complain about most, but it came up less at your last check-in.`,
+        headline: `${signal.themeLabel} is still what customers complain about most. But it came up less at your last check-in.`,
         extra,
       };
     case 'CONTINUE': {
@@ -375,7 +375,7 @@ function placeSignal(signal: PortalSignal, progress: ActionProgress | undefined)
         return {
           state: 'FOLLOW_UP',
           instruction: 'Ready to compare',
-          headline: `Enough new feedback has come in to check what happened after your change for ${label}.`,
+          headline: `Enough new feedback has come in. Headway can now check what happened after your change for ${label}.`,
           extra,
         };
       }
@@ -445,7 +445,7 @@ function placeSignal(signal: PortalSignal, progress: ActionProgress | undefined)
         return {
           state: 'WAITING_FOR_EVIDENCE',
           instruction: 'Change made, not enough feedback since',
-          headline: `Not enough new feedback has come in since your change for ${label} to compare yet.`,
+          headline: `Headway cannot compare yet. Not enough new feedback has come in since your change for ${label}.`,
           extra,
         };
       }
@@ -463,7 +463,7 @@ function placeSignal(signal: PortalSignal, progress: ActionProgress | undefined)
         headline:
           signal.movementDirection === 'WORSENING'
             ? `${signal.themeLabel} came up more at your last check-in.`
-            : `${signal.themeLabel} is a pattern, but not the complaint to act on first.`,
+            : `${signal.themeLabel} is a pattern, but not the main problem to fix first.`,
         extra,
       };
     }
@@ -528,8 +528,8 @@ function threadFor(signal: PortalSignal, action: PortalAction | null): ThreadSte
         label: 'What the feedback did',
         text:
           action.awaiting.have >= action.awaiting.need
-            ? `Not compared yet — ${action.awaiting.have} new pieces of feedback have come in, enough to compare before and after.`
-            : `Not compared yet — ${action.awaiting.have} of the ${action.awaiting.need} new pieces of feedback needed have come in.`,
+            ? `Not compared yet. ${action.awaiting.have} new feedback entries have come in. That is enough to compare before and after.`
+            : `Not compared yet. ${action.awaiting.have} of the ${action.awaiting.need} new feedback entries needed have come in.`,
         at: null,
         source: 'REPOS',
       });
@@ -548,7 +548,7 @@ function threadFor(signal: PortalSignal, action: PortalAction | null): ThreadSte
   // could read one; otherwise the reading of the whole pile.
   const now =
     signal.returning
-      ? `It came up less often after your earlier change, and it is coming up more again.`
+      ? `It came up less often after your earlier change. Now it is coming up more again.`
       : signal.movementLine
         ? `At your last two check-ins: ${signal.movementLine}`
         : action
@@ -599,7 +599,7 @@ function themeItem(
 
   const limitations: string[] = [];
   if (insight?.confidence === 'EARLY') {
-    limitations.push('This rests on little feedback, so treat it as an early sign, not a conclusion.');
+    limitations.push('This is based on little feedback. Treat it as an early sign, not a conclusion.');
   }
   if (signal.outcome) {
     limitations.push(signal.outcome.caveat || signal.outcome.note);
@@ -634,7 +634,7 @@ function needsYourWordsItem(input: ResponsibilityInput): ResponsibilityItem | nu
   const n = input.needsYourWords;
   if (n <= 0) return null;
   const intel = input.intelligence;
-  const reason = `${n} ${n === 1 ? 'piece' : 'pieces'} of feedback ${n === 1 ? 'mentions' : 'mention'} harm, money back or taking things further.`;
+  const reason = `${pieces(n)} ${n === 1 ? 'mentions' : 'mention'} harm, money back or taking things further.`;
   return {
     id: `${intel.clientId}:FOLLOW_UP:needs-your-words`,
     state: 'FOLLOW_UP',
@@ -648,9 +648,9 @@ function needsYourWordsItem(input: ResponsibilityInput): ResponsibilityItem | nu
     kind: null,
     relatedInsight: null,
     relatedAction: null,
-    headline: `${n} ${n === 1 ? 'piece' : 'pieces'} of feedback ${n === 1 ? 'needs' : 'need'} your own words.`,
+    headline: `${pieces(n)} ${n === 1 ? 'needs' : 'need'} your own words.`,
     whyItMatters:
-      'Headway does not draft a reply when someone mentions harm, safety, money back or taking things further.',
+      'Headway does not write a reply when someone mentions harm, safety, money back or taking things further.',
     recommendedNextStep: 'Open Feedback and answer them. Or tell your Headway contact how you want them handled.',
     evidence: null,
     contextUsed: [],
@@ -736,10 +736,10 @@ function didFor(args: {
   }
 
   // The read count. "Since" is said only when there is a check-in to be since.
-  const direct = f.direct > 0 ? ` — ${f.direct} of them sent through your feedback page` : '';
+  const direct = f.direct > 0 ? ` ${f.direct} of them came through your feedback page.` : '';
   if (since) {
     if (f.read > 0) {
-      did.push(`Since your check-in on ${formatDate(since)}, read ${pieces(f.read)}${direct}.`);
+      did.push(`Since your check-in on ${formatDate(since)}, read ${pieces(f.read)}.${direct}`);
     } else if (f.unread > 0) {
       did.push(
         `Since your check-in on ${formatDate(since)}, ${pieces(f.unread)} ${f.unread === 1 ? 'has' : 'have'} come in. Headway is reading ${f.unread === 1 ? 'it' : 'them'} now.`,
@@ -748,14 +748,14 @@ function didFor(args: {
       did.push(`No new feedback has come in since your check-in on ${formatDate(since)}.`);
     }
     if (f.read > 0 && f.unread > 0) {
-      did.push(`${f.unread} more ${f.unread === 1 ? 'is' : 'are'} being read now.`);
+      did.push(`Reading ${f.unread} more now.`);
     }
   } else if (intel.evidence.analysed > 0) {
     did.push(
-      `Read ${pieces(intel.evidence.analysed)}${f.direct > 0 ? ` — ${f.direct} of them sent through your feedback page` : ''}${intel.evidence.unread > 0 ? ` (${intel.evidence.unread} more being read now)` : ''}.`,
+      `Read ${pieces(intel.evidence.analysed)}.${f.direct > 0 ? ` ${f.direct} of them came through your feedback page.` : ''}${intel.evidence.unread > 0 ? ` Reading ${intel.evidence.unread} more now.` : ''}`,
     );
   } else if (intel.evidence.unread > 0) {
-    did.push(`${pieces(intel.evidence.unread)} ${intel.evidence.unread === 1 ? 'is' : 'are'} being read now.`);
+    did.push(`Reading ${pieces(intel.evidence.unread)} now.`);
   }
 
   // The comparisons and the grouping, in M12's own words: what RepOS read,
@@ -803,7 +803,7 @@ function nextCheckFor(args: {
       : `Headway can now compare ${args.comparisonsDue} of your changes before and after.`;
   }
   if (intel.evidence.analysed === 0) {
-    return 'Once feedback starts coming in, a first check-in gives Headway something to compare against later.';
+    return 'Once feedback starts coming in, do a first check-in. It gives Headway something to compare against later.';
   }
   if (!latest) {
     return 'A first check-in now would give Headway something to compare your next one against.';
@@ -811,16 +811,16 @@ function nextCheckFor(args: {
   const days = daysBetween(latest.capturedAt, input.now);
   if (checkins.length === 1) {
     return f.read >= MIN_FEEDBACK_TO_MEASURE
-      ? `A second check-in now would let Headway show what changed — ${pieces(f.read)} ${f.read === 1 ? 'has' : 'have'} come in since the first.`
-      : `A second check-in will show what changed. ${f.read} of the ${MIN_FEEDBACK_TO_MEASURE} new pieces of feedback needed to compare ${f.read === 1 ? 'has' : 'have'} come in so far.`;
+      ? `A second check-in now would show what changed. ${pieces(f.read)} ${f.read === 1 ? 'has' : 'have'} come in since the first.`
+      : `A second check-in will show what changed. Headway needs ${MIN_FEEDBACK_TO_MEASURE} new feedback entries to compare. ${f.read} ${f.read === 1 ? 'has' : 'have'} come in so far.`;
   }
   if (f.read >= MIN_FEEDBACK_TO_MEASURE) {
-    return `Worth a check-in now: ${pieces(f.read)} ${f.read === 1 ? 'has' : 'have'} come in since ${formatDate(latest.capturedAt)}, enough to show what changed.`;
+    return `Worth a check-in now. ${pieces(f.read)} ${f.read === 1 ? 'has' : 'have'} come in since ${formatDate(latest.capturedAt)}. That is enough to show what changed.`;
   }
   if (days >= STALE_SNAPSHOT_DAYS) {
-    return `Worth a check-in now: it has been ${days} days since your last one, even though only ${pieces(f.read)} ${f.read === 1 ? 'has' : 'have'} come in since.`;
+    return `Worth a check-in now. It has been ${days} days since your last one. Only ${pieces(f.read)} ${f.read === 1 ? 'has' : 'have'} come in since then.`;
   }
-  return `Not yet. ${f.read === 0 ? 'No new feedback has' : `${pieces(f.read)} ${f.read === 1 ? 'has' : 'have'}`} come in since your check-in on ${formatDate(latest.capturedAt)}. Headway will say when another check-in would show something new.`;
+  return `Not yet. ${f.read === 0 ? 'No new feedback has' : `${pieces(f.read)} ${f.read === 1 ? 'has' : 'have'}`} come in since your check-in on ${formatDate(latest.capturedAt)}. Headway will tell you when another check-in would show something new.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -841,8 +841,8 @@ function answerFor(args: {
       answer: 'Nothing to decide yet.',
       detail:
         intel.evidence.unread > 0
-          ? `${pieces(intel.evidence.unread)} ${intel.evidence.unread === 1 ? 'has' : 'have'} arrived and Headway is reading ${intel.evidence.unread === 1 ? 'it' : 'them'} now — usually done within a minute. Reload to see what it found.`
-          : 'Headway has no customer feedback to work from yet. Once it starts coming in, this page will say what needs you.',
+          ? `${pieces(intel.evidence.unread)} ${intel.evidence.unread === 1 ? 'has' : 'have'} arrived. Headway is reading ${intel.evidence.unread === 1 ? 'it' : 'them'} now. This usually takes less than a minute. Reload the page to see what it found.`
+          : 'Headway has no customer feedback yet. Once it starts coming in, this page will tell you what needs your attention.',
     };
   }
 
@@ -863,8 +863,8 @@ function answerFor(args: {
           : `Yes — ${bits.join(', ')}.`,
       detail:
         watching.length > 0
-          ? `Headway is watching ${watching.length} other ${watching.length === 1 ? 'thing' : 'things'} for you. None of them needs you right now.`
-          : 'Nothing else needs you.',
+          ? `Headway is watching ${watching.length} other ${watching.length === 1 ? 'thing' : 'things'} for you. None of them needs your attention right now.`
+          : 'Nothing else needs your attention.',
     };
   }
 
@@ -872,17 +872,17 @@ function answerFor(args: {
     return {
       state: 'WAITING_FOR_EVIDENCE',
       answer: 'Not enough feedback yet to say.',
-      detail: `Headway has read ${pieces(intel.evidence.analysed)} — enough to start looking, not enough to be sure of anything. It will not suggest anything until more comes in.`,
+      detail: `Headway has read ${pieces(intel.evidence.analysed)}. That is enough to start looking, but not enough to be sure of anything. Headway will not suggest anything until more feedback comes in.`,
     };
   }
 
   return {
     state: 'CLEAR',
-    answer: 'Nothing needs you right now.',
+    answer: 'Nothing needs your attention right now.',
     detail:
       watching.length > 0
-        ? `Headway is watching ${watching.length} ${watching.length === 1 ? 'thing' : 'things'} for you and will say when one of them needs a decision.`
-        : 'Nothing is coming up often enough to act on. Headway will say when that changes.',
+        ? `Headway is watching ${watching.length} ${watching.length === 1 ? 'thing' : 'things'} for you. It will tell you when one of them needs a decision.`
+        : 'Nothing is coming up often enough to act on. Headway will tell you when that changes.',
   };
 }
 
@@ -957,11 +957,11 @@ export function buildResponsibility(input: ResponsibilityInput): Responsibility 
   const limitations = [...view.limits];
   if (input.gateway && !input.gateway.enabled) {
     limitations.push(
-      'Your feedback page is paused, so nothing new is arriving through the QR until it is switched back on.',
+      'Your feedback page is paused. Nothing new will come in through the QR code until you switch it back on.',
     );
   }
   if (input.archived) {
-    limitations.push('This account is no longer active, so Headway is not collecting anything new for it.');
+    limitations.push('This account is no longer active. Headway is not collecting anything new for it.');
   }
   if (!intel.window.available && input.checkins.length >= 2 && intel.evidence.analysed > 0) {
     // The engine already says why the two check-ins could not be compared;

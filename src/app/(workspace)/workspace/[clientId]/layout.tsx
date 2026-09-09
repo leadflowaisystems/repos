@@ -5,6 +5,7 @@ import { SignOutButton } from '@/components/sign-out';
 import { currentActor } from '@/lib/auth/authorize';
 import { tenantGateFor } from '@/lib/auth/guard';
 import { prisma } from '@/lib/db';
+import { getTranslator } from '@/lib/i18n/request';
 import { verticalLabel } from '@/lib/packs';
 import { triggerFeedbackProcessing } from '@/lib/pipeline/trigger';
 import { recordVisit } from '@/lib/retention/service';
@@ -30,6 +31,7 @@ export default async function WorkspaceLayout({
   params: Promise<{ clientId: string }>;
 }) {
   const { clientId } = await params;
+  const t = await getTranslator();
   const gate = await tenantGateFor(clientId, 'MEMBER');
   if (!gate.ok) {
     if (!(await currentActor(prisma))) redirect('/login');
@@ -80,12 +82,12 @@ export default async function WorkspaceLayout({
       />
       {paused ? (
         <p className="mb-6 border-l-2 border-warn-600 bg-warn-50 px-4 py-3 text-[14px] leading-relaxed text-ink-800">
-          Headway is paused. New feedback is still saved, but nobody is reading it yet.{' '}
+          {t('errors.paused.banner')}{' '}
           <Link
             href={`/workspace/${clientId}/account`}
             className="inline-flex min-h-11 items-center font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
           >
-            Go to Account <span aria-hidden>→</span>
+            {t('errors.paused.account')} <span aria-hidden>→</span>
           </Link>
         </p>
       ) : null}

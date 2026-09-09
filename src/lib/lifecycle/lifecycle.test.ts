@@ -245,7 +245,9 @@ describe('the states, and which of them open the door', () => {
       const state = describeLifecycle(base({ ...expired, subscriptionStatus: status }));
       expect(state.state, status).toBe('ACTIVE_SERVICE');
       expect(state.workspaceLocked, status).toBe(false);
-      expect(statusLabel(state), status).toBe('Active service');
+      // "Active", not "Active service": the row above this one on Account
+      // already says the service is Headway, so the word was repeated.
+      expect(statusLabel(state), status).toBe('Active');
     }
   });
 

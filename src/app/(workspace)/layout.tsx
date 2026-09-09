@@ -1,4 +1,9 @@
 import type { Metadata, Viewport } from 'next';
+import { LocaleProvider } from '@/components/portal/locale-provider';
+import { LOCALE_HTML_LANG } from '@/lib/i18n/locale';
+import { getLocale } from '@/lib/i18n/request';
+import { MESSAGES } from '@/lib/i18n/strings';
+import { flattenFor } from '@/lib/i18n/t';
 import '../globals.css';
 
 export const metadata: Metadata = {
@@ -32,14 +37,25 @@ export const viewport: Viewport = {
  * The operator's navigation is absent from this tree entirely rather than
  * hidden with CSS, the same way the portal and the customer pages have always
  * worked. A business owner cannot see the shape of the agency's tool.
+ *
+ * IT IS ALSO WHERE THE PORTAL'S LANGUAGE IS DECIDED (M31). The owner's choice
+ * is read once here, for the whole tree: `lang` on the document so browsers and
+ * screen readers pronounce the page correctly, and the finished strings handed
+ * to the interactive parts, which cannot read a cookie for themselves. Only the
+ * chosen language crosses to the browser — an owner reading English never
+ * downloads Hindi and Marathi.
  */
-export default function WorkspaceRootLayout({
+export default async function WorkspaceRootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const locale = await getLocale();
+
   return (
-    <html lang="en">
+    <html lang={LOCALE_HTML_LANG[locale]}>
       <body className="min-h-dvh bg-ink-50">
-        <div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 sm:py-8">{children}</div>
+        <LocaleProvider locale={locale} strings={flattenFor(MESSAGES, locale)}>
+          <div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 sm:py-8">{children}</div>
+        </LocaleProvider>
       </body>
     </html>
   );

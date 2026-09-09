@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join as joinPath, resolve as resolvePath } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { MESSAGES } from '@/lib/i18n/strings';
 import { PRINT_SHEETS } from '@/lib/kit/sheets';
 
 /**
@@ -162,12 +163,22 @@ describe('each sheet is the paper size its design was cut for', () => {
 // The page itself
 // ---------------------------------------------------------------------------
 
+/**
+ * The page's own sentences now live in the dictionary at
+ * `src/lib/i18n/strings/kit.ts` and reach the page through `t('kit.…')`, so
+ * every owner reads them in their own language. The wording is still pinned
+ * word for word — the page is checked for the key it uses, and the key is
+ * checked for the English it carries. Nothing about the masters, the files or
+ * the routes moved.
+ */
 describe('the owner’s print kit page', () => {
   const page = read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'kit', 'page.tsx');
 
   it('gives every sheet a preview, a download and a way to open it', () => {
-    expect(page).toMatch(/>\s*Download\s*</);
-    expect(page).toContain('Open to print');
+    expect(page).toContain("t('kit.sheets.download')");
+    expect(MESSAGES['kit.sheets.download'].en).toBe('Download');
+    expect(page).toContain("t('kit.sheets.open')");
+    expect(MESSAGES['kit.sheets.open'].en).toBe('Open to print');
     expect(page).toContain('src={sheet.preview}');
   });
 
@@ -192,8 +203,11 @@ describe('the owner’s print kit page', () => {
     // The previews are stills of the masters, so the picture still shows the
     // placeholder name and code while the file does not. An owner who scans the
     // picture and lands on an example address should not have to work out why.
-    expect(page).toContain('The pictures above show the layout, not your own card.');
-    expect(page).toMatch(/scanning a\s+printed card, not the picture/);
+    expect(page).toContain("t('kit.file.body')");
+    expect(MESSAGES['kit.file.body'].en).toContain(
+      'The pictures above show the layout, not your own card.',
+    );
+    expect(MESSAGES['kit.file.body'].en).toMatch(/scan a\s+printed card, not the picture/);
     expect(page).toContain('view.content.feedbackUrl');
     expect(page).toContain('CopyButton');
   });
@@ -205,11 +219,21 @@ describe('the owner’s print kit page', () => {
 
   it('keeps what already worked: the figures, the placement and the staff guidance', () => {
     expect(page).toContain("source: 'REP_OS_QR'");
-    expect(page).toContain('through the card');
-    expect(page).toContain('Your feedback card');
-    expect(page).toContain('Put it where customers will see it.');
-    expect(page).toContain('Staff guidance');
-    expect(page.match(/Offer it to everyone/g)?.length ?? 0).toBe(1);
+    expect(page).toContain("t.plural('kit.status.through', through)");
+    expect(MESSAGES['kit.status.through.other'].en).toBe('feedback entries from the card');
+    expect(page).toContain("t('kit.intro.title')");
+    expect(MESSAGES['kit.intro.title'].en).toBe('Your feedback card');
+    expect(page).toContain("t('kit.intro.description')");
+    expect(MESSAGES['kit.intro.description'].en).toContain(
+      'Put the card where customers can see it.',
+    );
+    expect(page).toContain("t('kit.staff.summary')");
+    expect(MESSAGES['kit.staff.summary'].en).toBe('Guidance for your team');
+    // Said once, under the placement line, and nowhere else on the page.
+    expect(page.match(/t\('kit\.placement\.everyone'\)/g)?.length ?? 0).toBe(1);
+    expect(MESSAGES['kit.placement.everyone'].en).toMatch(
+      /^Offer the card to every customer, the same way/,
+    );
     expect(page).toContain('await requireOpenWorkspace(clientId)');
   });
 });

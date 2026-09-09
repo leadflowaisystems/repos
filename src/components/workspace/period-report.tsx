@@ -1,5 +1,7 @@
 import { PageIntro, PeriodSwitch, Quiet, Section } from '@/components/portal/portal-ui';
-import { pieces } from '@/lib/portal/view';
+import { getTranslator } from '@/lib/i18n/request';
+import type { MessageKey } from '@/lib/i18n/strings';
+import type { Translator } from '@/lib/i18n/t';
 import type { PeriodReport, PeriodTheme } from '@/lib/reporting/service';
 
 /**
@@ -13,25 +15,38 @@ import type { PeriodReport, PeriodTheme } from '@/lib/reporting/service';
  * What it will not do: fill space. When there is not enough feedback, the page
  * says so and stops. An owner who opens this every Monday needs to be able to
  * trust that a short page means a quiet week, not a broken report.
+ *
+ * EVERY SENTENCE COMES FROM THE DICTIONARY (M31), in English, Hindi or Marathi.
+ * The two pages share the keys under `pulse.report.*`; the handful of sentences
+ * that actually say "this week" or "this month" exist once per period, and
+ * `ns` below picks the pair. Nothing on this page is stitched together from
+ * fragments, because the pieces land in a different order in each language.
  */
 
 function dateLabel(d: Date): string {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
-/** One mention is one piece of feedback that names the topic, never one customer. */
-function mentions(n: number): string {
-  return `${n} ${n === 1 ? 'mention' : 'mentions'}`;
-}
-
-function MovementNote({ theme }: { theme: PeriodTheme }) {
+/**
+ * The counting line beside a topic.
+ *
+ * One mention is one feedback entry that names the topic, never one customer —
+ * one customer can leave several. Three whole sentences rather than an arrow
+ * between two numbers: an arrow cannot be read out loud, and where it used to
+ * sit Hindi and Marathi need a verb.
+ */
+function MovementNote({ theme, t }: { theme: PeriodTheme; t: Translator<MessageKey> }) {
   if (theme.movement === null) {
-    return <span className="text-[13px] text-ink-500">{mentions(theme.count)}</span>;
+    return (
+      <span className="text-[13px] text-ink-500">
+        {t.plural('pulse.report.mentions', theme.count)}
+      </span>
+    );
   }
   if (theme.movement === 'STEADY') {
     return (
       <span className="text-[13px] text-ink-500">
-        {theme.before} → {mentions(theme.count)}, about the same
+        {t.plural('pulse.report.mentions.same', theme.count, { before: theme.before })}
       </span>
     );
   }
@@ -45,28 +60,28 @@ function MovementNote({ theme }: { theme: PeriodTheme }) {
             : 'text-[13px] text-ink-600'
       }
     >
-      {theme.before} → {mentions(theme.count)}
+      {t.plural('pulse.report.mentions.changed', theme.count, { before: theme.before })}
     </span>
   );
 }
 
-function ThemeList({ themes }: { themes: PeriodTheme[] }) {
+function ThemeList({ themes, t }: { themes: PeriodTheme[]; t: Translator<MessageKey> }) {
   return (
     <ul className="divide-y divide-ink-100 border-y border-ink-100">
-      {themes.map((t) => (
+      {themes.map((theme) => (
         <li
-          key={t.key}
+          key={theme.key}
           className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5"
         >
-          <span className="text-[14px] text-ink-900">{t.label}</span>
-          <MovementNote theme={t} />
+          <span className="text-[14px] text-ink-900">{theme.label}</span>
+          <MovementNote theme={theme} t={t} />
         </li>
       ))}
     </ul>
   );
 }
 
-export function PeriodReportView({
+export async function PeriodReportView({
   report,
   basePath,
 }: {
@@ -74,21 +89,26 @@ export function PeriodReportView({
   /** Where this door lives, so the period switch stays inside it. */
   basePath: string;
 }) {
+  const t = await getTranslator();
   const isWeek = report.kind === 'WEEK';
-  const title = isWeek ? 'This week' : 'This month';
-  // This page knows exactly which window it is reading, so it names it. Only
-  // shared code that genuinely cannot tell is allowed to say "period".
-  const thisWindow = isWeek ? 'this week' : 'this month';
-  const lastWindow = isWeek ? 'the week before' : 'the month before';
+  // This page knows exactly which window it is reading, so it names it. `ns`
+  // picks the week's wording or the month's, one whole sentence at a time.
+  // Only shared code that genuinely cannot tell is allowed to say "period".
+  const ns = isWeek ? 'pulse' : 'review';
+  const title = t(`${ns}.title`);
 
   return (
     <div className="max-w-3xl">
       {/* The header above already names the business; this page reads as one
           of the check-in family, with the same intro the others use. */}
       <PageIntro
-        eyebrow="Check-in"
+        eyebrow={t('pulse.report.eyebrow')}
         title={title}
-        description={`${dateLabel(report.window.from)} – ${dateLabel(report.window.to)}, compared with the ${report.window.days} days before`}
+        description={t('pulse.report.window', {
+          from: dateLabel(report.window.from),
+          to: dateLabel(report.window.to),
+          days: report.window.days,
+        })}
       />
       <PeriodSwitch basePath={basePath} current={isWeek ? 'pulse' : 'review'} />
 
@@ -96,55 +116,54 @@ export function PeriodReportView({
         {report.headline}
       </p>
       <p className="mt-1.5 text-[13px] text-ink-600">
-        {pieces(report.volume.current)} {thisWindow} · {report.volume.previous} {lastWindow}
+        {t.plural(`${ns}.volume`, report.volume.current, { previous: report.volume.previous })}
       </p>
 
       {report.enoughEvidence ? (
         <>
           {report.worsened.length > 0 ? (
-            <Section eyebrow="Coming up more often">
-              <ThemeList themes={report.worsened} />
+            <Section eyebrow={t('pulse.report.section.worsened')}>
+              <ThemeList themes={report.worsened} t={t} />
             </Section>
           ) : null}
 
           {report.improved.length > 0 ? (
-            <Section eyebrow="Coming up less often">
-              <ThemeList themes={report.improved} />
+            <Section eyebrow={t('pulse.report.section.improved')}>
+              <ThemeList themes={report.improved} t={t} />
             </Section>
           ) : null}
 
           {report.praise.length > 0 ? (
-            <Section eyebrow="What customers praised">
-              <ThemeList themes={report.praise} />
+            <Section eyebrow={t('pulse.report.section.praise')}>
+              <ThemeList themes={report.praise} t={t} />
             </Section>
           ) : null}
 
           {!isWeek && report.unresolved.length > 0 ? (
-            <Section eyebrow="Still coming up">
+            <Section eyebrow={t('pulse.report.section.unresolved')}>
               {/* The list is "raised in both windows and not less often". It
                   does not know whether the owner fixed anything, so the words
-                  cover steady as well as rising and judge neither. */}
+                  cover steady as well as rising and judge neither. The key is
+                  the month's outright: this block never runs for a week. */}
               <p className="mb-3 text-[13px] leading-relaxed text-ink-600">
-                {`Customers mentioned these ${thisWindow} and ${lastWindow}, just as often or more often.`}
+                {t('review.unresolved.note')}
               </p>
-              <ThemeList themes={report.unresolved} />
+              <ThemeList themes={report.unresolved} t={t} />
             </Section>
           ) : null}
 
           {report.issues.length === 0 && report.praise.length === 0 ? (
-            <Section eyebrow="Topics">
+            <Section eyebrow={t('pulse.report.section.topics')}>
               {/* Thin evidence, not a quiet week. Naming the bar is what keeps
                   the two apart, so the number stays in the sentence. */}
-              <Quiet>
-                {`Nothing came up 3 or more times ${thisWindow}. Once something does, Headway will name it here.`}
-              </Quiet>
+              <Quiet>{t(`${ns}.topics.none`)}</Quiet>
             </Section>
           ) : null}
         </>
       ) : null}
 
       {report.actions.length > 0 ? (
-        <Section eyebrow={isWeek ? 'Changes in progress' : 'Changes you made'}>
+        <Section eyebrow={t(`${ns}.actions.eyebrow`)}>
           <ul className="divide-y divide-ink-100 border-y border-ink-100">
             {report.actions.map((a) => (
               <li key={a.id} className="py-3">
@@ -153,7 +172,9 @@ export function PeriodReportView({
                 {a.outcome ? (
                   <p className="mt-1 text-[13px] text-ink-700">{a.outcome}</p>
                 ) : (
-                  <p className="mt-1 text-[13px] text-ink-500">Being checked.</p>
+                  <p className="mt-1 text-[13px] text-ink-500">
+                    {t('pulse.report.action.checking')}
+                  </p>
                 )}
               </li>
             ))}
@@ -162,13 +183,13 @@ export function PeriodReportView({
       ) : null}
 
       {report.focus ? (
-        <Section eyebrow="Worth a look next">
+        <Section eyebrow={t('pulse.report.section.focus')}>
           <p className="text-[15px] leading-relaxed text-ink-900">{report.focus}</p>
         </Section>
       ) : null}
 
       {report.limits.length > 0 ? (
-        <Section eyebrow="What Headway cannot tell you yet">
+        <Section eyebrow={t('pulse.report.section.limits')}>
           <ul className="space-y-1.5">
             {report.limits.map((l) => (
               <li key={l} className="text-[13px] leading-relaxed text-ink-600">

@@ -39,16 +39,16 @@ export type CommsType = (typeof COMMS_TYPES)[number];
 
 export const COMMS_LABELS: Record<CommsType, string> = {
   OWNER_UPDATE: 'Owner update',
-  ACTION_MESSAGE: 'Recommended next step',
-  FOLLOW_UP: 'Follow-up nudge',
+  ACTION_MESSAGE: 'What to do next',
+  FOLLOW_UP: 'Follow-up message',
   REVIEW_REPLY: 'Reply to a review',
 };
 
 export const COMMS_DESCRIPTIONS: Record<CommsType, string> = {
   OWNER_UPDATE: 'What their customers are saying, and what to do about it.',
-  ACTION_MESSAGE: 'The one change worth making, on its own.',
-  FOLLOW_UP: 'A short nudge asking whether they got to it.',
-  REVIEW_REPLY: 'Written per review, on the Feedback page.',
+  ACTION_MESSAGE: 'The one change to make, on its own.',
+  FOLLOW_UP: 'A short message asking whether they have done it.',
+  REVIEW_REPLY: 'Written for each review, on the Feedback page.',
 };
 
 export type ComposedMessage = {
@@ -133,42 +133,42 @@ type OwnerPhrases = {
 const PHRASES: Record<LanguageMix, OwnerPhrases> = {
   ENGLISH: {
     updateOpening: (b) => `Quick customer update for ${b}:`,
-    lovesHeading: 'Customers are happiest with:',
-    dislikesHeading: 'Customers are unhappy about:',
-    mainIssueHeading: 'The main issue is:',
+    lovesHeading: 'What customers like most:',
+    dislikesHeading: 'What customers complain about:',
+    mainIssueHeading: 'The main problem:',
     mentions: (n) =>
-      `mentioned ${n} ${n === 1 ? 'time' : 'times'} across all the feedback so far`,
+      `mentioned ${n} ${n === 1 ? 'time' : 'times'} in all the feedback so far`,
     changedHeading: 'What changed between your last two check-ins:',
-    recommendHeading: 'Recommended next step:',
-    basedOn: (n) => `Based on ${n} ${n === 1 ? 'piece' : 'pieces'} of feedback we have read.`,
+    recommendHeading: 'What to do next:',
+    basedOn: (n) => `Based on ${n} feedback ${n === 1 ? 'entry' : 'entries'} we have read.`,
     nothingYet:
-      'We have not read enough customer feedback yet to tell you anything useful. As soon as there is enough, this update will have real numbers in it.',
+      'We have not read enough customer feedback yet to tell you anything useful. When there is enough, this update will have real numbers in it.',
     tooEarly: (n) =>
-      `So far we have read ${n} ${n === 1 ? 'review' : 'reviews'} — too few to draw conclusions from yet. Here is what we are seeing anyway, with that caveat.`,
+      `So far we have read ${n} ${n === 1 ? 'review' : 'reviews'}. That is too few to be sure of anything yet. Here is what we can see anyway.`,
     noIssuesYet: 'Nothing is coming up often enough to call it a problem yet.',
-    noPraiseYet: 'Nothing specific has been praised often enough to name yet.',
+    noPraiseYet: 'Nothing has been praised often enough to name yet.',
     willCheck: (t) =>
-      `We will check the next batch of feedback to see whether ${t.toLowerCase()} comes up less often.`,
-    actionOpening: (b) => `Recommended next step for ${b}:`,
+      `In the next feedback, we will check whether customers mention ${t.toLowerCase()} less often.`,
+    actionOpening: (b) => `What to do next for ${b}:`,
     actionBecause: (t, n) =>
-      `This is based on ${n} ${n === 1 ? 'customer' : 'customers'} mentioning ${t.toLowerCase()}.`,
+      `We suggest this because ${n} ${n === 1 ? 'customer' : 'customers'} mentioned ${t.toLowerCase()}.`,
     followUpOpening: (b) => `Quick follow-up on ${b}:`,
     followUpAsk: 'Have you had a chance to look at this?',
-    alreadyRecorded: (w) => `Last recorded on your side: ${w}`,
+    alreadyRecorded: (w) => `The last thing you recorded: ${w}`,
     agreedHeading: 'What you agreed to do:',
-    changeMadeHeading: 'The change you have made:',
-    sinceChangeHeading: 'What the feedback has done since:',
+    changeMadeHeading: 'The change you made:',
+    sinceChangeHeading: 'What customers have said since the change:',
     beforeAfter: (b, a) => `Before: ${b}. Since the change: ${a}.`,
     awaitingEvidence: (t) =>
-      `We do not have enough new feedback yet to say whether ${t.toLowerCase()} has changed. We will check again as more comes in.`,
+      `We do not have enough new feedback yet to say whether ${t.toLowerCase()} has changed. We will check again as more feedback comes in.`,
     emailSubject: (b, kind) =>
       kind === 'OWNER_UPDATE'
         ? `${b} — what your customers said`
         : kind === 'ACTION_MESSAGE'
-          ? `${b} — one thing worth trying`
+          ? `${b} — one thing to try`
           : `${b} — following up`,
     emailGreeting: 'Hello,',
-    emailSignOff: 'Happy to talk it through whenever suits you.',
+    emailSignOff: 'Happy to talk about it whenever you like.',
   },
 
   HINDI: {
@@ -289,28 +289,28 @@ const PHRASES: Record<LanguageMix, OwnerPhrases> = {
   // resolves to English before composing. This entry keeps the record total.
   MIXED: {
     updateOpening: (b) => `Quick customer update for ${b}:`,
-    lovesHeading: 'Customers are happiest with:',
-    dislikesHeading: 'Customers are unhappy about:',
-    mainIssueHeading: 'The main issue is:',
+    lovesHeading: 'What customers like most:',
+    dislikesHeading: 'What customers complain about:',
+    mainIssueHeading: 'The main problem:',
     mentions: (n) => `mentioned ${n} ${n === 1 ? 'time' : 'times'}`,
     changedHeading: 'What changed between your last two check-ins:',
-    recommendHeading: 'Recommended next step:',
-    basedOn: (n) => `Based on ${n} ${n === 1 ? 'piece' : 'pieces'} of feedback we have read.`,
+    recommendHeading: 'What to do next:',
+    basedOn: (n) => `Based on ${n} feedback ${n === 1 ? 'entry' : 'entries'} we have read.`,
     nothingYet:
       'We have not read enough customer feedback yet to tell you anything useful.',
-    tooEarly: (n) => `So far we have read ${n} reviews — too few to draw conclusions from.`,
+    tooEarly: (n) => `So far we have read ${n} reviews. That is too few to be sure of anything.`,
     noIssuesYet: 'Nothing is coming up often enough to call it a problem yet.',
-    noPraiseYet: 'Nothing specific has been praised often enough to name yet.',
+    noPraiseYet: 'Nothing has been praised often enough to name yet.',
     willCheck: (t) =>
-      `We will check the next batch of feedback to see whether ${t.toLowerCase()} comes up less often.`,
-    actionOpening: (b) => `Recommended next step for ${b}:`,
-    actionBecause: (t, n) => `This is based on ${n} customers mentioning ${t.toLowerCase()}.`,
+      `In the next feedback, we will check whether customers mention ${t.toLowerCase()} less often.`,
+    actionOpening: (b) => `What to do next for ${b}:`,
+    actionBecause: (t, n) => `We suggest this because ${n} customers mentioned ${t.toLowerCase()}.`,
     followUpOpening: (b) => `Quick follow-up on ${b}:`,
     followUpAsk: 'Have you had a chance to look at this?',
-    alreadyRecorded: (w) => `Last recorded on your side: ${w}`,
+    alreadyRecorded: (w) => `The last thing you recorded: ${w}`,
     agreedHeading: 'What you agreed to do:',
-    changeMadeHeading: 'The change you have made:',
-    sinceChangeHeading: 'What the feedback has done since:',
+    changeMadeHeading: 'The change you made:',
+    sinceChangeHeading: 'What customers have said since the change:',
     beforeAfter: (b, a) => `Before: ${b}. Since the change: ${a}.`,
     awaitingEvidence: (t) =>
       `We do not have enough new feedback yet to say whether ${t.toLowerCase()} has changed.`,
@@ -318,10 +318,10 @@ const PHRASES: Record<LanguageMix, OwnerPhrases> = {
       kind === 'OWNER_UPDATE'
         ? `${b} — what your customers said`
         : kind === 'ACTION_MESSAGE'
-          ? `${b} — one thing worth trying`
+          ? `${b} — one thing to try`
           : `${b} — following up`,
     emailGreeting: 'Hello,',
-    emailSignOff: 'Happy to talk it through whenever suits you.',
+    emailSignOff: 'Happy to talk about it whenever you like.',
   },
 };
 
@@ -447,7 +447,7 @@ function actionBlock(
   if (action.status === 'ACCEPTED') {
     return {
       block: [p.agreedHeading, bulletLine(action.decision)].join('\n'),
-      note: 'The agreed change is mentioned. Nothing claims it has happened yet.',
+      note: 'The message mentions the agreed change. Nothing says it has happened yet.',
     };
   }
 
@@ -459,7 +459,7 @@ function actionBlock(
         '',
         p.awaitingEvidence(action.themeLabel),
       ].join('\n'),
-      note: 'The change is mentioned as made. No result is claimed, because none has been measured.',
+      note: 'The message says the change was made. It claims no result, because nothing has been measured yet.',
     };
   }
 
@@ -470,7 +470,7 @@ function actionBlock(
       bulletLine(action.result.headline),
       bulletLine(p.beforeAfter(action.result.beforeLine, action.result.afterLine)),
     ].join('\n'),
-    note: 'The measured before and after is included, with no claim about what caused it.',
+    note: 'The before and after numbers are included. Nothing says the change caused the difference.',
   };
 }
 
@@ -502,7 +502,7 @@ export function composeOwnerUpdate(
 
   const caveat = insight.evidence.enough ? null : p.tooEarly(insight.evidence.analysed);
   if (!insight.evidence.enough) {
-    notes.push('Marked as early days — there is not enough feedback to be sure yet.');
+    notes.push('Marked as early days. There is not enough feedback to be sure yet.');
   }
 
   const lovesBlock =
@@ -526,7 +526,7 @@ export function composeOwnerUpdate(
     : [p.dislikesHeading, bulletLine(p.noIssuesYet)].join('\n');
 
   if (!mainIssue) {
-    notes.push('No issue has been mentioned often enough to name as the main one.');
+    notes.push('No problem has been mentioned often enough to name as the main one.');
   }
 
   // The pulse engine writes the movement ("6 → 2 mentions") but not what
@@ -543,7 +543,7 @@ export function composeOwnerUpdate(
       : null;
 
   if (insight.changes.length === 0) {
-    notes.push(`No period comparison yet — ${insight.comparisonNote}`);
+    notes.push(`No comparison between check-ins yet. ${insight.comparisonNote}`);
   }
 
   // What the business already agreed to or did comes before the next
@@ -557,7 +557,7 @@ export function composeOwnerUpdate(
     : null;
 
   if (!insight.recommendation) {
-    notes.push('No next step suggested, because nothing is coming up often enough.');
+    notes.push('No next step suggested. Nothing is coming up often enough yet.');
   }
 
   // A forward-looking promise, never a claim that anything has improved. What
@@ -650,11 +650,11 @@ export function composeFollowUp(
   const recorded = insight.recentlyDone[0];
   const recordedLine = recorded ? p.alreadyRecorded(recorded.title) : null;
   if (recorded) {
-    notes.push('Mentions what you recorded, without claiming it worked — that comes later.');
+    notes.push('Mentions what you recorded. It does not say the change worked — that comes later.');
   }
 
   if (!insight.recommendation) {
-    notes.push('No open recommendation, so this is a plain check-in.');
+    notes.push('There is no open next step, so this is a simple check-in.');
     return finish(
       'FOLLOW_UP',
       COMMS_LABELS.FOLLOW_UP,

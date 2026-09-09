@@ -12,9 +12,11 @@ import type {
   PortalSoFar,
   PortalWatch,
 } from '@/lib/portal/view';
-import { pieces } from '@/lib/portal/view';
 import type { ReviewItem } from '@/lib/portal/pages';
 import { formatDate } from '@/lib/format';
+import { getTranslator } from '@/lib/i18n/request';
+import type { MessageKey } from '@/lib/i18n/strings';
+import type { Translator } from '@/lib/i18n/t';
 
 /**
  * PORTAL PRESENTATION (M12).
@@ -137,8 +139,9 @@ export function Callout({
   );
 }
 
-export function Limits({ limits, collapsed = false }: { limits: string[]; collapsed?: boolean }) {
+export async function Limits({ limits, collapsed = false }: { limits: string[]; collapsed?: boolean }) {
   if (limits.length === 0) return null;
+  const t = await getTranslator();
   const list = (
     <ul className="mt-3 space-y-1.5">
       {limits.map((l) => (
@@ -154,7 +157,7 @@ export function Limits({ limits, collapsed = false }: { limits: string[]; collap
     return (
       <details className="group mt-10 border-t border-ink-200 pt-4">
         <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-[11px] font-medium tracking-widest text-ink-500 uppercase hover:text-ink-900">
-          What Headway cannot tell you yet <span aria-hidden>›</span>
+          {t('common.limits.title')} <span aria-hidden>›</span>
         </summary>
         {list}
       </details>
@@ -163,7 +166,7 @@ export function Limits({ limits, collapsed = false }: { limits: string[]; collap
   return (
     <section className="mt-12 border-t border-ink-200 pt-5">
       <h2 className="text-[11px] font-medium tracking-widest text-ink-500 uppercase">
-        What Headway cannot tell you yet
+        {t('common.limits.title')}
       </h2>
       {list}
     </section>
@@ -176,18 +179,18 @@ export function Limits({ limits, collapsed = false }: { limits: string[]; collap
 
 export type LayerKind = 'fact' | 'meaning' | 'why' | 'recommend' | 'owner' | 'next' | 'watch';
 
-const LAYER_LABELS: Record<LayerKind, string> = {
-  fact: 'Customers say',
-  meaning: 'What it means',
-  why: 'Why it matters',
-  recommend: 'Headway recommends',
-  owner: 'You told us',
-  next: 'Next',
-  watch: 'Watching',
+const LAYER_LABELS: Record<LayerKind, MessageKey> = {
+  fact: 'common.layer.fact',
+  meaning: 'common.layer.meaning',
+  why: 'common.layer.why',
+  recommend: 'common.layer.recommend',
+  owner: 'common.layer.owner',
+  next: 'common.layer.next',
+  watch: 'common.state.watching',
 };
 
 /** A labelled row. The label is the reader's guarantee of what kind of statement follows. */
-export function Layer({
+export async function Layer({
   kind,
   children,
   strong,
@@ -196,10 +199,11 @@ export function Layer({
   children: React.ReactNode;
   strong?: boolean;
 }) {
+  const t = await getTranslator();
   return (
     <div className="grid grid-cols-1 gap-x-4 gap-y-0.5 py-1.5 sm:grid-cols-[7.5rem_1fr]">
       <p className="pt-0.5 text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
-        {LAYER_LABELS[kind]}
+        {t(LAYER_LABELS[kind])}
       </p>
       <div
         className={clsx(
@@ -233,7 +237,8 @@ const ADVICE_TONE: Record<PortalAdvice, string> = {
   WAIT: 'text-ink-500',
 };
 
-export function Tag({ bucket }: { bucket: PortalBucket }) {
+export async function Tag({ bucket }: { bucket: PortalBucket }) {
+  const t = await getTranslator();
   return (
     <span
       className={clsx(
@@ -242,17 +247,17 @@ export function Tag({ bucket }: { bucket: PortalBucket }) {
       )}
     >
       {bucket === 'FIRST'
-        ? 'Do this first'
+        ? t('common.tag.first')
         : bucket === 'KEEP'
-          ? 'Keep doing this'
+          ? t('common.tag.keep')
           : bucket === 'WATCH'
-            ? 'Watching'
-            : 'Waiting for more feedback'}
+            ? t('common.state.watching')
+            : t('common.tag.early')}
     </span>
   );
 }
 
-export function EvidenceLink({
+export async function EvidenceLink({
   basePath,
   themeKey,
   count,
@@ -264,6 +269,7 @@ export function EvidenceLink({
   count?: number;
   label?: string;
 }) {
+  const t = await getTranslator();
   return (
     <Link
       href={`${basePath}/reviews?theme=${encodeURIComponent(themeKey)}`}
@@ -271,10 +277,8 @@ export function EvidenceLink({
     >
       {label ??
         (count === undefined
-          ? 'Read the comments'
-          : count === 1
-            ? 'Read the comment'
-            : `Read the ${count} comments`)}
+          ? t('common.evidence.readCommentsAll')
+          : t.plural('common.evidence.readComments', count))}
       <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
         →
       </span>
@@ -299,14 +303,17 @@ function Arrow({ signal }: { signal: PortalSignal }) {
 }
 
 /** "14 of 110 · 13% · ↓ 6 → 2 mentions at your last two check-ins" */
-export function FactLine({ signal }: { signal: PortalSignal }) {
+export async function FactLine({ signal }: { signal: PortalSignal }) {
+  const t = await getTranslator();
   return (
     <p className="text-[12px] text-ink-500 tabular-nums">
-      {signal.evidenceCount} of {signal.evidenceTotal} · {signal.share}
+      {t('common.fact.ofTotal', { count: signal.evidenceCount, total: signal.evidenceTotal })} ·{' '}
+      {signal.share}
       {signal.movementCounts ? (
         <>
           {' '}
-          · <Arrow signal={signal} /> {signal.movementCounts} at your last two check-ins
+          · <Arrow signal={signal} />{' '}
+          {t('common.fact.movement', { counts: signal.movementCounts })}
         </>
       ) : null}
       {signal.recurrence ? <> · {signal.recurrence}</> : null}
@@ -328,28 +335,33 @@ export function ShareBar({ signal }: { signal: PortalSignal }) {
 }
 
 /** Observational wording for a reading, and a restrained tone for it. */
-function readingOf(outcome: PortalOutcome): { label: string; tone: string } {
+function readingOf(
+  outcome: PortalOutcome,
+  t: Translator<MessageKey>,
+): { label: string; tone: string } {
   switch (outcome.result) {
     case 'IMPROVED':
-      return { label: 'Mentioned less often after the change', tone: 'text-good-700' };
+      return { label: t('common.outcome.improved'), tone: 'text-good-700' };
     case 'WORSENED':
       // Red, not gold. A theme that came up MORE after a change is the
       // definition of something getting worse, and gold means Headway is
       // watching — a different thing entirely. This read as gold for exactly
       // as long as it took to re-check every use of the token.
-      return { label: 'Mentioned more often after the change', tone: 'text-bad-700' };
+      return { label: t('common.outcome.worsened'), tone: 'text-bad-700' };
     case 'NO_CLEAR_CHANGE':
       // "No clear difference", not "no difference": Headway failed to see one,
-      // which is not the same as having measured its absence.
-      return { label: 'No clear difference after the change', tone: 'text-ink-500' };
+      // which is not the same as having measured its absence. All three
+      // languages keep that distinction.
+      return { label: t('common.outcome.noChange'), tone: 'text-ink-500' };
     default:
-      return { label: 'Not enough feedback after the change', tone: 'text-ink-500' };
+      return { label: t('common.outcome.tooEarly'), tone: 'text-ink-500' };
   }
 }
 
 /** "15% → 7% · mentioned less often after the change" in one line. The bars live on Improvements. */
-function OutcomeLine({ outcome }: { outcome: PortalOutcome }) {
-  const reading = readingOf(outcome);
+async function OutcomeLine({ outcome }: { outcome: PortalOutcome }) {
+  const t = await getTranslator();
+  const reading = readingOf(outcome, t);
   return (
     <span className="tabular-nums">
       {outcome.beforeShare && outcome.afterShare ? (
@@ -380,7 +392,7 @@ function OutcomeNote({ outcome }: { outcome: PortalOutcome }) {
  * move. `full` (Customers) adds the complete reading, the engine's reasons,
  * the recommendation and the counterpart. Same theme, different job.
  */
-export function ThemeStory({
+export async function ThemeStory({
   signal,
   basePath,
   depth,
@@ -395,6 +407,7 @@ export function ThemeStory({
   /** When the heading above already names the theme (M15), the story starts at the fact. */
   untitled?: boolean;
 }) {
+  const t = await getTranslator();
   const s = signal;
   return (
     <article
@@ -463,7 +476,7 @@ export function ThemeStory({
                   href={`${basePath}/improvements`}
                   className="inline-flex min-h-11 items-center text-[13px] font-medium text-ink-700 hover:text-ink-900"
                 >
-                  See what happened after the change →
+                  {t('common.link.afterChange')} <span aria-hidden>→</span>
                 </Link>
               </span>
             ) : null}
@@ -481,7 +494,13 @@ export function ThemeStory({
         {/* When nothing has been tried, the next step IS the recommendation,
             and is labelled as one. */}
         <Layer kind={s.kind === 'ISSUE' && s.actionState === 'NONE' && s.suggestion ? 'recommend' : 'next'}>
-          <span className={clsx('font-medium', ADVICE_TONE[s.advice])}>{s.adviceLabel}.</span>{' '}
+          {/* The advice label comes from the view model, so the full stop that
+              closes it is printed here — and Hindi closes a sentence with the
+              danda, not with a Latin dot. */}
+          <span className={clsx('font-medium', ADVICE_TONE[s.advice])}>
+            {s.adviceLabel}
+            {t('common.punct.stop')}
+          </span>{' '}
           {s.nextStep}
           {s.suggestionNote ? (
             <span className="mt-1 block text-[12px] leading-relaxed text-ink-500">{s.suggestionNote}</span>
@@ -626,7 +645,8 @@ export function WatchList({ items, basePath }: { items: PortalWatch[]; basePath:
 }
 
 /** What the owner told Headway, shown back to them. Their words, their label. */
-export function Knows({ items, basePath }: { items: PortalKnown[]; basePath: string }) {
+export async function Knows({ items, basePath }: { items: PortalKnown[]; basePath: string }) {
+  const t = await getTranslator();
   return (
     <div>
       <ul className="divide-y divide-ink-200 border-y border-ink-200">
@@ -639,7 +659,7 @@ export function Knows({ items, basePath }: { items: PortalKnown[]; basePath: str
                   href={`${basePath}/reviews?theme=${encodeURIComponent(k.themeKey)}`}
                   className="inline-flex min-h-11 items-center text-ink-700 hover:text-ink-900"
                 >
-                  Read the comments →
+                  {t('common.evidence.readCommentsAll')} <span aria-hidden>→</span>
                 </Link>
               ) : (
                 formatDate(k.recordedAt)
@@ -648,14 +668,13 @@ export function Knows({ items, basePath }: { items: PortalKnown[]; basePath: str
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-[12px] leading-relaxed text-ink-500">
-        Tell your Headway contact if any of this changes.
-      </p>
+      <p className="mt-3 text-[12px] leading-relaxed text-ink-500">{t('common.knows.note')}</p>
     </div>
   );
 }
 
-export function Question({ q }: { q: PortalQuestion }) {
+export async function Question({ q }: { q: PortalQuestion }) {
+  const t = await getTranslator();
   return (
     <div className="border-l-2 border-warn-600 pl-4">
       <p className="text-[15px] leading-relaxed font-medium text-ink-900">{q.question}</p>
@@ -670,9 +689,7 @@ export function Question({ q }: { q: PortalQuestion }) {
           </li>
         ))}
       </ul>
-      <p className="mt-2.5 text-[12px] leading-relaxed text-ink-500">
-        Tell your Headway contact which one fits.
-      </p>
+      <p className="mt-2.5 text-[12px] leading-relaxed text-ink-500">{t('common.question.note')}</p>
     </div>
   );
 }
@@ -682,7 +699,8 @@ export function Question({ q }: { q: PortalQuestion }) {
 // ---------------------------------------------------------------------------
 
 /** A compact recap of a checked change, for the check-in. */
-export function OutcomeRow({ action, basePath }: { action: PortalAction; basePath: string }) {
+export async function OutcomeRow({ action, basePath }: { action: PortalAction; basePath: string }) {
+  const t = await getTranslator();
   const a = action;
   return (
     <li className="py-3">
@@ -699,14 +717,19 @@ export function OutcomeRow({ action, basePath }: { action: PortalAction; basePat
           </span>
         ) : a.awaiting ? (
           <span className="text-[12px] text-ink-500 tabular-nums">
-            Waiting for more feedback · {a.awaiting.have} of the {a.awaiting.need} needed
+            {t('common.outcome.awaiting', { have: a.awaiting.have, need: a.awaiting.need })}
           </span>
         ) : null}
       </div>
       {a.decision ? (
         <p className="mt-0.5 text-[13px] text-ink-600 italic">
-          You changed: {a.decision}
-          {a.doneAt ? <span className="not-italic text-ink-500"> · recorded {formatDate(a.doneAt)}</span> : null}
+          {t('common.outcome.youChanged', { decision: a.decision })}
+          {a.doneAt ? (
+            <span className="not-italic text-ink-500">
+              {' · '}
+              {t('common.outcome.recorded', { date: formatDate(a.doneAt) })}
+            </span>
+          ) : null}
         </p>
       ) : null}
       {a.outcome ? (
@@ -750,13 +773,14 @@ export function RatingBars({ ratings }: { ratings: Array<{ stars: number; count:
   );
 }
 
-export function SentimentBar({
+export async function SentimentBar({
   sentiments,
 }: {
   sentiments: Array<{ key: string; label: string; count: number }>;
 }) {
+  const t = await getTranslator();
   const total = sentiments.reduce((s, x) => s + x.count, 0);
-  if (total === 0) return <Quiet>Nothing read yet.</Quiet>;
+  if (total === 0) return <Quiet>{t('common.sofar.nothingRead')}</Quiet>;
   const tone: Record<string, string> = {
     POSITIVE: 'bg-good-600',
     MIXED: 'bg-warn-600',
@@ -794,9 +818,10 @@ const SENTIMENT_DOT: Record<string, string> = {
   NEGATIVE: 'bg-bad-600',
 };
 
-function Stars({ value }: { value: number }) {
+async function Stars({ value }: { value: number }) {
+  const t = await getTranslator();
   return (
-    <span className="font-medium text-warn-600" aria-label={`${value} out of 5 stars`}>
+    <span className="font-medium text-warn-600" aria-label={t('common.stars.aria', { value })}>
       {'★'.repeat(value)}
       <span className="text-ink-300" aria-hidden>
         {'☆'.repeat(5 - value)}
@@ -806,7 +831,7 @@ function Stars({ value }: { value: number }) {
 }
 
 /**
- * One piece of feedback, in two columns that must never blur into each other.
+ * One feedback entry, in two columns that must never blur into each other.
  *
  * CUSTOMER GAVE is exactly what the person tapped and typed: the overall
  * rating, a rating for each part of the visit the vertical asks about, the
@@ -820,7 +845,8 @@ function Stars({ value }: { value: number }) {
  * the one against the other — and can never mistake "Slow service" for
  * something the customer literally said.
  */
-export function ReviewRow({ item }: { item: ReviewItem }) {
+export async function ReviewRow({ item }: { item: ReviewItem }) {
+  const t = await getTranslator();
   const { gave } = item;
   const tapped = gave.dimensions.length > 0 || gave.selected.length > 0;
 
@@ -829,13 +855,13 @@ export function ReviewRow({ item }: { item: ReviewItem }) {
       <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div>
           <p className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
-            Customer gave
+            {t('common.review.gave')}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-500">
             {item.stars !== null ? (
               <Stars value={item.stars} />
             ) : (
-              <span className="italic">No overall rating</span>
+              <span className="italic">{t('common.review.noRating')}</span>
             )}
             {item.at ? <span>{formatDate(item.at)}</span> : null}
             <span>{item.sourceLabel}</span>
@@ -865,7 +891,9 @@ export function ReviewRow({ item }: { item: ReviewItem }) {
 
           {gave.selected.length > 0 ? (
             <div className="mt-3">
-              <p className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">Selected</p>
+              <p className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
+                {t('common.review.selected')}
+              </p>
               <ul className="mt-1.5 flex flex-wrap gap-1.5">
                 {gave.selected.map((label) => (
                   <li
@@ -880,14 +908,16 @@ export function ReviewRow({ item }: { item: ReviewItem }) {
           ) : null}
 
           <div className="mt-3">
-            <p className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">Written</p>
+            <p className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
+              {t('common.review.written')}
+            </p>
             {item.text.length > 0 ? (
               <p className="mt-1 text-[14px] leading-relaxed text-ink-900">“{item.text}”</p>
             ) : (
               <p className="mt-1 text-[13px] leading-relaxed text-ink-500 italic">
                 {tapped
-                  ? 'Nothing written — the ratings above are the whole message.'
-                  : 'A rating only — no written comment.'}
+                  ? t('common.review.noWordsTapped')
+                  : t('common.review.ratingOnly')}
               </p>
             )}
           </div>
@@ -895,40 +925,41 @@ export function ReviewRow({ item }: { item: ReviewItem }) {
 
         <div className="border-t border-dashed border-ink-200 pt-3 md:border-t-0 md:border-l md:pt-0 md:pl-6">
           <p className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
-            Headway understood
+            {t('common.review.understood')}
           </p>
           {item.state === 'ANALYSED' ? (
             <div className="mt-1.5 space-y-1.5 text-[13px] leading-relaxed text-ink-700">
               {item.themes.length > 0 ? (
                 <p className="text-ink-900">{item.themes.join(' · ')}</p>
               ) : (
-                <p className="text-ink-500">Nothing here matched a topic Headway tracks.</p>
+                <p className="text-ink-500">{t('common.review.noTopic')}</p>
               )}
               <p className="flex items-center gap-1.5">
                 <span
                   aria-hidden
                   className={clsx('h-1.5 w-1.5 rounded-full', SENTIMENT_DOT[item.sentiment] ?? 'bg-ink-300')}
                 />
-                {item.sentimentLabel} in tone
+                {t('common.review.tone', { label: item.sentimentLabel })}
               </p>
               {item.classLabel ? (
                 <p>
-                  <span className="text-ink-500">Sorted as</span> {item.classLabel}
+                  <span className="text-ink-500">{t('common.review.sortedAs')}</span>{' '}
+                  {item.classLabel}
                 </p>
               ) : null}
               {item.replyState === 'SUGGESTED' ? (
-                <p className="font-medium text-warn-700">Needs your answer · draft ready</p>
+                <p className="font-medium text-warn-700">{t('common.review.needsAnswerDraft')}</p>
               ) : item.replyState === 'YOURS' ? (
-                <p className="font-medium text-warn-700">Needs your answer · no draft</p>
+                <p className="font-medium text-warn-700">{t('common.review.needsAnswerNoDraft')}</p>
               ) : item.replyState === 'DRAFT' ? (
-                <p className="text-ink-500">Answer optional · draft ready</p>
+                <p className="text-ink-500">{t('common.review.answerOptionalDraft')}</p>
               ) : item.replyState === 'ANSWERED' ? (
-                <p className="text-good-700">Answered</p>
+                <p className="text-good-700">{t('common.review.answered')}</p>
               ) : null}
               {item.suggestedReply ? (
                 <details className="group pt-1">
                   <summary className="inline-flex min-h-11 cursor-pointer items-center list-none text-[12px] font-medium text-ink-600 hover:text-ink-900 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none">
-                    Suggested reply <span aria-hidden>›</span>
+                    {t('common.review.suggestedReply')} <span aria-hidden>›</span>
                   </summary>
                   <p className="mt-1.5 border-l-2 border-ink-200 pl-3 whitespace-pre-line text-ink-800">
                     {item.suggestedReply}
@@ -939,10 +970,10 @@ export function ReviewRow({ item }: { item: ReviewItem }) {
           ) : (
             <p className="mt-1.5 text-[13px] leading-relaxed text-ink-500 italic">
               {item.state === 'PROCESSING'
-                ? 'Headway is reading this now.'
+                ? t('common.review.reading')
                 : item.state === 'FAILED'
-                  ? 'Headway could not read this one yet. It will try again on its own.'
-                  : 'Waiting for Headway to read it — usually within a minute of arriving.'}
+                  ? t('common.review.failed')
+                  : t('common.review.waiting')}
             </p>
           )}
         </div>
@@ -955,7 +986,7 @@ export function ReviewRow({ item }: { item: ReviewItem }) {
  * The five ratings as one-tap filters. An owner asking "what did the unhappy
  * people say?" should not have to operate a form to find out.
  */
-export function RatingStrip({
+export async function RatingStrip({
   base,
   ratings,
   active,
@@ -964,8 +995,9 @@ export function RatingStrip({
   ratings: Array<{ stars: number; count: number }>;
   active: number | null;
 }) {
+  const t = await getTranslator();
   return (
-    <nav aria-label="By rating" className="mb-5 flex flex-wrap items-center gap-1.5">
+    <nav aria-label={t('common.rating.label')} className="mb-5 flex flex-wrap items-center gap-1.5">
       <Link
         href={base}
         aria-current={active === null ? 'page' : undefined}
@@ -976,7 +1008,7 @@ export function RatingStrip({
             : 'border-ink-300 text-ink-700 hover:border-ink-900 hover:text-ink-900',
         )}
       >
-        All
+        {t('common.rating.all')}
       </Link>
       {[...ratings]
         .sort((a, b) => b.stars - a.stars)
@@ -985,7 +1017,7 @@ export function RatingStrip({
           key={r.stars}
           href={`${base}?stars=${r.stars}`}
           aria-current={active === r.stars ? 'page' : undefined}
-          aria-label={`${r.stars} star${r.stars === 1 ? '' : 's'}, ${r.count} ${r.count === 1 ? 'piece' : 'pieces'} of feedback`}
+          aria-label={t.plural('common.rating.filter', r.count, { stars: r.stars })}
           className={clsx(
             'inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border px-3 text-[13px] tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
             active === r.stars
@@ -1006,20 +1038,23 @@ export function RatingStrip({
  * Check-in, This week and This month are three windows on one question, so
  * they are one control rather than three tabs.
  */
-export function PeriodSwitch({
+export async function PeriodSwitch({
   basePath,
   current,
 }: {
   basePath: string;
   current: 'checkin' | 'pulse' | 'review';
 }) {
+  const t = await getTranslator();
+  // `label` holds the dictionary key, not the word: the three windows are
+  // named in the owner's language while the three slugs stay put.
   const options = [
-    { slug: 'checkin', label: 'Since last check-in' },
-    { slug: 'pulse', label: 'This week' },
-    { slug: 'review', label: 'This month' },
-  ] as const;
+    { slug: 'checkin', label: 'nav.period.checkin' },
+    { slug: 'pulse', label: 'nav.period.pulse' },
+    { slug: 'review', label: 'nav.period.review' },
+  ] as const satisfies ReadonlyArray<{ slug: string; label: MessageKey }>;
   return (
-    <nav aria-label="Time range" className="mb-8 -mt-3 flex flex-wrap gap-1.5">
+    <nav aria-label={t('nav.period.label')} className="mb-8 -mt-3 flex flex-wrap gap-1.5">
       {options.map((o) => (
         <Link
           key={o.slug}
@@ -1032,7 +1067,7 @@ export function PeriodSwitch({
               : 'border-ink-300 text-ink-700 hover:border-ink-900 hover:text-ink-900',
           )}
         >
-          {o.label}
+          {t(o.label)}
         </Link>
       ))}
     </nav>
@@ -1076,7 +1111,7 @@ export function StatusStrip({
  * Headway is keeping an eye on. The note underneath says exactly that, so a
  * first week reads as a first week and never as a verdict.
  */
-export function SoFar({
+export async function SoFar({
   soFar,
   basePath,
   explain = false,
@@ -1086,13 +1121,14 @@ export function SoFar({
   /** Customers explains what a pattern is; Home only shows the chips. */
   explain?: boolean;
 }) {
+  const t = await getTranslator();
   return (
     <div>
       <p className="text-[13px] leading-relaxed text-ink-600">
-        {soFar.read > 0 ? `Headway has read ${pieces(soFar.read)}.` : 'Nothing read yet.'}
-        {soFar.waiting > 0
-          ? ` ${soFar.waiting} more ${soFar.waiting === 1 ? 'is' : 'are'} being read now.`
-          : ''}
+        {soFar.read > 0
+          ? t.plural('common.sofar.read', soFar.read)
+          : t('common.sofar.nothingRead')}
+        {soFar.waiting > 0 ? ` ${t.plural('common.sofar.beingRead', soFar.waiting)}` : ''}
       </p>
 
       {soFar.mentions.length > 0 ? (
@@ -1108,7 +1144,11 @@ export function SoFar({
                     : 'border-good-200 bg-good-50 text-good-700 hover:border-good-600',
                   m.pattern && 'font-semibold',
                 )}
-                aria-label={`${m.label}, ${m.count} ${m.count === 1 ? 'mention' : 'mentions'}${m.pattern ? '. Raised enough times to be a pattern.' : ''}`}
+                aria-label={t.plural(
+                  m.pattern ? 'common.sofar.chipPattern' : 'common.sofar.chip',
+                  m.count,
+                  { label: m.label },
+                )}
               >
                 {m.pattern ? <span aria-hidden>●</span> : null}
                 {m.label}
@@ -1132,7 +1172,7 @@ export function SoFar({
                   {d.average.toFixed(1)}
                 </span>
                 <span className="text-ink-400">
-                  /5 · {d.rated} {d.rated === 1 ? 'rating' : 'ratings'}
+                  /5 · {t.plural('common.sofar.ratings', d.rated)}
                 </span>
               </dd>
             </div>

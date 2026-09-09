@@ -13,6 +13,7 @@ import {
   saveReviewLinkAction,
   setKitInstalledAction,
 } from '@/lib/actions/kit';
+import { useT } from '@/components/portal/locale-provider';
 
 /**
  * The one-field fast path.
@@ -29,16 +30,17 @@ export function ReviewLinkForm({
   defaultValue: string;
   hint: string;
 }) {
+  const t = useT();
   return (
     <ActionForm
       action={saveReviewLinkAction}
-      submitLabel="Save link"
-      submittingLabel="Saving…"
+      submitLabel={t('kit.form.saveLink')}
+      submittingLabel={t('kit.form.saving')}
     >
       <input type="hidden" name="clientId" value={clientId} />
       <TextField
         name="qrTargetUrl"
-        label="Public review link"
+        label={t('kit.form.reviewLink.label')}
         type="url"
         defaultValue={defaultValue}
         placeholder="https://…"
@@ -52,6 +54,13 @@ export function ReviewLinkForm({
 /**
  * Everything else, behind progressive disclosure. An operator never has to open
  * this: every field falls back to the client's vertical wording when left blank.
+ *
+ * THE BLANK-FIELD SENTENCE IS ONE PHRASE, NOT THREE. It used to be built on
+ * screen out of an English fragment, the vertical's name, and a second English
+ * fragment, which is a shape that only ever reads correctly in English —
+ * Hindi and Marathi put the name somewhere else in the sentence entirely. The
+ * whole sentence is one dictionary entry with the name as `{type}`, so each
+ * language decides for itself where the name goes.
  */
 export function KitSettingsForm({
   clientId,
@@ -71,28 +80,26 @@ export function KitSettingsForm({
   verticalLabel: string;
 }) {
   const [open, setOpen] = useState(false);
+  const t = useT();
 
   if (!open) {
     return (
       <Button type="button" variant="ghost" onClick={() => setOpen(true)}>
-        Customise wording and colours
+        {t('kit.form.customise')}
       </Button>
     );
   }
 
   return (
     <div className="space-y-4">
-      <Notice tone="neutral">
-        Leave anything blank to use the {verticalLabel} wording. Headway only
-        overrides a line when you actually type one.
-      </Notice>
+      <Notice tone="neutral">{t('kit.form.defaults', { type: verticalLabel })}</Notice>
 
       <ActionForm
         action={saveKitConfigAction}
-        submitLabel="Save changes"
+        submitLabel={t('kit.form.saveChanges')}
         secondaryAction={
           <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-            Close
+            {t('kit.form.close')}
           </Button>
         }
       >
@@ -100,48 +107,48 @@ export function KitSettingsForm({
 
         <TextField
           name="qrTargetUrl"
-          label="Public review link"
+          label={t('kit.form.reviewLink.label')}
           type="url"
           defaultValue={values.qrTargetUrl}
           placeholder="https://…"
-          hint="Pasted in by you. Headway never looks this up."
+          hint={t('kit.form.reviewLink.hint')}
         />
 
         <FormGrid>
           <TextField
             name="displayName"
-            label="Name on the card"
+            label={t('kit.form.displayName.label')}
             defaultValue={values.displayName}
-            placeholder="Leave blank to use the business name"
+            placeholder={t('kit.form.displayName.placeholder')}
           />
           <TextField
             name="footerNote"
-            label="Footer line"
+            label={t('kit.form.footerNote.label')}
             defaultValue={values.footerNote}
-            placeholder="Leave blank for the default"
+            placeholder={t('kit.form.blankDefault')}
           />
           <TextField
             name="headline"
-            label="Headline"
+            label={t('kit.form.headline.label')}
             defaultValue={values.headline}
-            placeholder="Leave blank for the default"
+            placeholder={t('kit.form.blankDefault')}
           />
           <TextField
             name="subhead"
-            label="Sub-line"
+            label={t('kit.form.subhead.label')}
             defaultValue={values.subhead}
-            placeholder="Leave blank for the default"
+            placeholder={t('kit.form.blankDefault')}
           />
           <TextField
             name="brandPrimary"
-            label="Brand colour"
+            label={t('kit.form.brandPrimary.label')}
             type="color"
             defaultValue={values.brandPrimary}
             className="h-10 p-1"
           />
           <TextField
             name="brandSecondary"
-            label="Accent colour"
+            label={t('kit.form.brandSecondary.label')}
             type="color"
             defaultValue={values.brandSecondary}
             className="h-10 p-1"
@@ -160,12 +167,13 @@ export function KitInstalledToggle({
   clientId: string;
   installed: boolean;
 }) {
+  const t = useT();
   return (
     <form action={setKitInstalledAction}>
       <input type="hidden" name="clientId" value={clientId} />
       <input type="hidden" name="installed" value={installed ? '' : 'on'} />
       <SubmitButton variant={installed ? 'ghost' : 'secondary'}>
-        {installed ? 'Mark as not installed' : 'Mark as installed on site'}
+        {installed ? t('kit.form.installed.unmark') : t('kit.form.installed.mark')}
       </SubmitButton>
     </form>
   );

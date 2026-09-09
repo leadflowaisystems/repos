@@ -2,6 +2,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { extname, join, resolve } from 'node:path';
 import type { PrismaClient } from '@prisma/client';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MESSAGES } from '@/lib/i18n/strings';
 import { createRlsTestDb, type RlsTestDb } from './helpers/rls-db';
 import { resetDb } from './helpers/test-db';
 
@@ -593,13 +594,28 @@ describe('the Account page answers the seven questions', () => {
   const page = () =>
     stripComments(read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'account', 'page.tsx'));
 
+  /**
+   * M31 moved every word on this page into the dictionary, so the page holds
+   * `t('account.…')` keys and the English lives in `MESSAGES`. Each check below
+   * therefore pins BOTH halves — the key the page reaches for, and the sentence
+   * that key resolves to in English. Asserting only one half would let the
+   * other be changed silently, which is exactly what this block exists to stop.
+   */
+
   it('shows the stored dates and a server-computed remainder, not a length', () => {
     const code = page();
     // Labelled rows, each one a separate fact.
-    expect(code).toContain("label: 'Trial started'");
-    expect(code).toContain("'Trial ended' : 'Trial ends'");
-    expect(code).toContain("label: 'Days left'");
-    expect(code).toContain("label: 'Status'");
+    expect(code).toContain("label: t('account.service.trialStarted')");
+    expect(MESSAGES['account.service.trialStarted'].en).toBe('Trial started');
+    expect(code).toMatch(
+      /lifecycle\.expired\s*\?\s*t\('account\.service\.trialEnded'\)\s*:\s*t\('account\.service\.trialEnds'\)/,
+    );
+    expect(MESSAGES['account.service.trialEnded'].en).toBe('Trial ended');
+    expect(MESSAGES['account.service.trialEnds'].en).toBe('Trial ends');
+    expect(code).toContain("label: t('account.service.daysLeftLabel')");
+    expect(MESSAGES['account.service.daysLeftLabel'].en).toBe('Days left');
+    expect(code).toContain("label: t('account.service.status')");
+    expect(MESSAGES['account.service.status'].en).toBe('Status');
     // From the business's own row, through the shared lifecycle.
     expect(code).toContain('lifecycle.trialStartsAt');
     expect(code).toContain('lifecycle.trialEndsAt');
@@ -617,25 +633,35 @@ describe('the Account page answers the seven questions', () => {
 
   it('says the locked words, and offers the one thing that helps', () => {
     const code = page();
-    expect(code).toContain("'Your Headway trial has ended'");
-    expect(code).toContain(
+    expect(code).toContain("t('account.headline.trialEndedTitle')");
+    expect(MESSAGES['account.headline.trialEndedTitle'].en).toBe('Your Headway trial has ended');
+    expect(code).toContain("t('account.locked.body')");
+    expect(MESSAGES['account.locked.body'].en).toBe(
       'Your feedback and your history are safe. Your workspace opens again when you continue your Headway service.',
     );
-    expect(code).toContain('Ask to continue');
-    expect(code).toContain('Nothing is charged');
+    expect(code).toContain("t('account.continue.ask')");
+    expect(MESSAGES['account.continue.ask'].en).toBe('Ask to continue');
+    // The promise that pressing the button costs nothing. M31 says it as
+    // "No money is taken automatically" instead of "Nothing is charged
+    // automatically"; the guarantee is the same one.
+    expect(code).toContain("t('account.continue.lockedAsk')");
+    expect(MESSAGES['account.continue.lockedAsk'].en).toContain('No money is taken automatically');
   });
 
   it('does not describe a paying or exempt business as being on a trial', () => {
     const code = page();
     expect(code).toContain("lifecycle.state === 'DEMO_EXEMPT'");
     expect(code).toContain("lifecycle.state === 'ACTIVE_SERVICE'");
-    expect(code).toContain("value: 'Headway demo'");
-    expect(code).toContain("value: 'Headway'");
+    expect(code).toContain("value: t('account.service.demo')");
+    expect(MESSAGES['account.service.demo'].en).toBe('Headway demo');
+    expect(code).toContain("value: t('account.service.headway')");
+    expect(MESSAGES['account.service.headway'].en).toBe('Headway');
   });
 
   it('shows how to reach Headway, and builds no deep link to do it', () => {
     const code = page();
-    expect(code).toContain('Reaching Headway');
+    expect(code).toContain("t('account.contact.eyebrow')");
+    expect(MESSAGES['account.contact.eyebrow'].en).toBe('Reaching Headway');
     expect(code).toContain('siteContact()');
     expect(code).toContain('contact.email');
     expect(code).toContain('contact.phone');

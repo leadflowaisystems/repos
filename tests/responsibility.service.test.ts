@@ -109,7 +109,7 @@ describe('from nothing to something', () => {
     expect(r.state).toBe('WAITING_FOR_EVIDENCE');
     expect(r.answer).toBe('Not enough feedback yet to say.');
     expect(r.needsYou).toEqual([]);
-    expect(r.did[0]).toBe('Read 1 piece of feedback.');
+    expect(r.did[0]).toBe('Read 1 feedback entry.');
   });
 
   it('unread feedback is reported as being read, never counted as read', async () => {
@@ -117,8 +117,8 @@ describe('from nothing to something', () => {
     await paste(id, waits(4));
     const r = await responsibility(id);
     expect(r.state).toBe('WAITING_FOR_EVIDENCE');
-    expect(r.answerDetail).toMatch(/^4 pieces of feedback have arrived and Headway is reading them now/);
-    expect(r.did).toEqual(['4 pieces of feedback are being read now.']);
+    expect(r.answerDetail).toMatch(/^4 feedback entries have arrived\. Headway is reading them now/);
+    expect(r.did).toEqual(['Reading 4 feedback entries now.']);
   });
 
   it('a clear complaint on enough feedback becomes the one thing to decide', async () => {
@@ -134,7 +134,7 @@ describe('from nothing to something', () => {
     // reason the owner is paying rather than reading fourteen comments
     // themselves, and until M17 it was computed and never shown (M17).
     expect(r.did).toEqual([
-      'Read 14 pieces of feedback.',
+      'Read 14 feedback entries.',
       'Grouped them into 2 things customers keep raising.',
       'Checked whether long waiting time keeps coming up across everything read.',
     ]);
@@ -227,7 +227,7 @@ describe('the feedback page feeds it', () => {
     let r = await responsibility(id);
     expect(r.state).toBe('CLEAR');
     expect(r.needsYou).toEqual([]);
-    expect(r.did[0]).toBe('Read 10 pieces of feedback — 2 of them sent through your feedback page.');
+    expect(r.did[0]).toBe('Read 10 feedback entries. 2 of them came through your feedback page.');
 
     // The third clears the floor: now it is the thing to decide.
     const third = await submitCustomerFeedback(db, token, { stars: 1, text: 'Waited over an hour past my appointment time (q2)' }, { now: new Date(NOW.getTime() + 180_000) });
@@ -237,7 +237,7 @@ describe('the feedback page feeds it', () => {
     expect(r.state).toBe('DO_NOW');
     expect(r.needsYou[0]?.themeKey).toBe('wait_time');
     expect(r.needsYou[0]?.evidence).toMatchObject({ count: 3, outOf: 11 });
-    expect(r.did[0]).toBe('Read 11 pieces of feedback — 3 of them sent through your feedback page.');
+    expect(r.did[0]).toBe('Read 11 feedback entries. 3 of them came through your feedback page.');
   });
 
   it('a paused page is a stated limitation, and nothing else changes', async () => {
@@ -248,8 +248,8 @@ describe('the feedback page feeds it', () => {
     const before = await responsibility(id);
     await setGatewayEnabled(db, id, false);
     const after = await responsibility(id);
-    expect(after.limitations).toContain('Your feedback page is paused, so nothing new is arriving through the QR until it is switched back on.');
-    expect(before.limitations).not.toContain('Your feedback page is paused, so nothing new is arriving through the QR until it is switched back on.');
+    expect(after.limitations).toContain('Your feedback page is paused. Nothing new will come in through the QR code until you switch it back on.');
+    expect(before.limitations).not.toContain('Your feedback page is paused. Nothing new will come in through the QR code until you switch it back on.');
     expect(after.state).toBe(before.state);
     expect(after.needsYou.map((i) => i.id)).toEqual(before.needsYou.map((i) => i.id));
   });
@@ -313,7 +313,7 @@ describe('check-ins', () => {
     await paste(id, praise(3, 'c'), new Date('2026-05-20T00:00:00.000Z'));
     await read(id);
     const r = await responsibility(id);
-    expect(r.did[0]).toBe('Since your check-in on 01 Apr 2026, read 3 pieces of feedback.');
+    expect(r.did[0]).toBe('Since your check-in on 01 Apr 2026, read 3 feedback entries.');
     expect(r.did).toContain('Checked whether long waiting time is still coming up in the new feedback.');
   });
 });
@@ -363,7 +363,7 @@ describe('isolation and honesty', () => {
     await archiveClient(db, id, NOW);
     const r = await responsibility(id);
     expect(r.state).toBe('DO_NOW');
-    expect(r.limitations).toContain('This account is no longer active, so Headway is not collecting anything new for it.');
+    expect(r.limitations).toContain('This account is no longer active. Headway is not collecting anything new for it.');
   });
 
   it('returns nothing for a business that does not exist', async () => {

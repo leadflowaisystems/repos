@@ -1248,7 +1248,19 @@ describe('V1 hard rules — nothing acts without an operator behind it (M16)', (
 
         // Accepting an invitation is authorized by the token and the matching
         // email, not by a membership: the person is not on the team yet.
-        if (name === 'completeOnboardingAction' || name === 'acceptInviteAction') {
+        //
+        // Choosing the portal's language (M31) is the third of these, for a
+        // different reason: it is not scoped to a business at all. It sets a
+        // cookie deciding which words this reader sees, writes no row, reads no
+        // client id, and touches no tenant data — so there is no tenant to gate
+        // it against. It still may not be public: an endpoint that sets cookies
+        // for anyone who posts to it is a loose end, so it must resolve a
+        // signed-in actor, and that is what is checked here.
+        if (
+          name === 'completeOnboardingAction' ||
+          name === 'acceptInviteAction' ||
+          name === 'setLocaleAction'
+        ) {
           if (!/await\s+currentActor\(/.test(first)) wrong.push(`${file}:${name} should resolve the actor`);
           continue;
         }

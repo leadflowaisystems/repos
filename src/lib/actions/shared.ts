@@ -38,7 +38,7 @@ export function fromZod(error: z.ZodError): ActionState {
   }
   return {
     ok: false,
-    message: 'Some fields need attention.',
+    message: 'Please check the fields marked below.',
     errors,
   };
 }

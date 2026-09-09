@@ -18,13 +18,13 @@ import { formatDate } from '@/lib/format';
  * that mattered. This module decides that one thing, and the three proofs
  * that let the owner check it without leaving the page:
  *
- *   RIGHT NOW    "Slow service is the one thing worth your attention."
- *   WHY          "Customers are not unhappy about the food. What they keep
- *                 raising is slow service."
+ *   RIGHT NOW    "Slow service is the main thing to fix."
+ *   WHY          "Customers like your food — 32 praised it. The main problem
+ *                 they mention is slow service."
  *   EVIDENCE     39% of feedback → 34 of 87, three customers in their words
  *                More often after the change → 32% before, 47% after
  *                At both recent check-ins → raised at 2 of your last 2
- *   WHAT TO DO   "Check what else changed before undoing anything."
+ *   WHAT TO DO   "Before you undo the change, check what else changed."
  *   CHECK NEXT   "Headway is checking whether slow service comes up more or
  *                 less at your next check-in …"
  *
@@ -55,7 +55,7 @@ export type FocusProof = {
   key: 'share' | 'outcome' | 'movement' | 'recurrence' | 'rated';
   /** The chip. Short: "39% of feedback". */
   label: string;
-  /** The line that opens under it: "34 of 87 pieces of feedback mention it." */
+  /** The line that opens under it: "34 of 87 feedback entries mention slow service." */
   detail: string;
   tone: 'good' | 'bad' | 'neutral';
   /** For the share chip: three customers, in their words. */
@@ -191,7 +191,7 @@ function movementChip(signal: PortalSignal): { label: string; tone: 'good' | 'ba
   const d = signal.movementDirection;
   if (!d) return null;
   const issue = signal.kind === 'ISSUE';
-  if (d === 'STABLE') return { label: 'Holding steady across your check-ins', tone: 'neutral' };
+  if (d === 'STABLE') return { label: 'About the same at your check-ins', tone: 'neutral' };
   const rose = issue ? d === 'WORSENING' : d === 'IMPROVING';
   const good = d === 'IMPROVING';
   return {
@@ -217,7 +217,7 @@ export function proofsFor(
   out.push({
     key: 'share',
     label: `${signal.share} of feedback`,
-    detail: `${signal.evidenceCount} of the ${pieces(signal.evidenceTotal)} Headway has read mention it.`,
+    detail: `${signal.evidenceCount} of ${pieces(signal.evidenceTotal)} mention ${spoken(signal.themeLabel)}.`,
     tone,
     quotes: quotesFor(evidence, signal.themeKey, { limit: 3 }),
     seeAll: {
@@ -279,7 +279,7 @@ export function proofsFor(
       out.push({
         key: 'rated',
         label: `Rated ${rated.average.toFixed(1)}/5 by ${rated.rated} ${rated.rated === 1 ? 'customer' : 'customers'}`,
-        detail: `${rated.low} of the ${rated.rated} ${rated.rated === 1 ? 'customer' : 'customers'} who rated ${spoken(rated.label)} on your feedback page gave it 3 or below.`,
+        detail: `${rated.low} of the ${rated.rated} ${rated.rated === 1 ? 'customer' : 'customers'} who rated ${spoken(rated.label)} gave it 3 stars or less.`,
         tone: rated.low >= 3 ? 'bad' : 'neutral',
         quotes: [],
         seeAll: null,
@@ -307,15 +307,19 @@ function headlineFor(
       : 'No customer feedback yet.';
   }
   if (r.state === 'WAITING_FOR_EVIDENCE' && !top) {
-    return 'Too early to say what needs you.';
+    return 'Too early to say what needs your attention.';
   }
   if (top) {
     if (top.themeLabel && top.state === 'DO_NOW') {
-      return `${top.themeLabel} is the one thing worth your attention.`;
+      // "worth your attention" is a phrase from a report, not from a person.
+      // An owner wants to be told what to fix.
+      return top.kind === 'ISSUE'
+        ? `${top.themeLabel} is the main thing to fix.`
+        : `${top.themeLabel} is the main thing to look at.`;
     }
     return top.headline;
   }
-  return 'Nothing needs you right now.';
+  return 'Nothing needs your attention right now.';
 }
 
 function synthesisFor(top: ResponsibilityItem | null, view: PortalView): string | null {
@@ -325,21 +329,30 @@ function synthesisFor(top: ResponsibilityItem | null, view: PortalView): string 
   if (view.basedOn === 0) return null;
 
   if (issue) {
+    // Its own sentence, not a clause hung off the end of the previous one.
+    // ", and it has come up more since your change" asked the reader to hold
+    // two thoughts at once; two short sentences ask nothing.
     const why =
       issue.outcome?.result === 'WORSENED'
-        ? ', and it has come up more since your change'
+        ? ' Customers have mentioned it more often since your change.'
         : issue.outcome?.result === 'IMPROVED'
-          ? ', though less often since your change'
+          ? ' Customers have mentioned it less often since your change.'
           : issue.movementDirection === 'WORSENING'
-            ? ', and it came up more at your latest check-in'
+            ? ' Customers mentioned it more often at your latest check-in.'
             : issue.movementDirection === 'IMPROVING'
-              ? ', though it came up less at your latest check-in'
+              ? ' Customers mentioned it less often at your latest check-in.'
               : '';
-    const verb = issue.isRecurring || issue.movementDirection === 'WORSENING' ? 'keep raising' : 'raise most';
+    const verb =
+      issue.isRecurring || issue.movementDirection === 'WORSENING'
+        ? 'keep mentioning'
+        : 'mention';
     if (keep && keep.themeKey !== issue.themeKey) {
-      return `Customers are not unhappy about your ${spoken(keep.themeLabel)} — ${keep.evidenceCount} praised it. What they ${verb} is ${spoken(issue.themeLabel)}${why}.`;
+      // Was: "Customers are not unhappy about your food taste and quality."
+      // Saying a good thing with two negatives is the worst habit this pass
+      // exists to remove.
+      return `Customers like your ${spoken(keep.themeLabel)} — ${keep.evidenceCount} praised it. The main problem they ${verb} is ${spoken(issue.themeLabel)}.${why}`;
     }
-    return `Nothing is praised often enough yet to call a strength. What customers ${verb} is ${spoken(issue.themeLabel)}${why}.`;
+    return `No single thing is praised often enough yet to call it a strength. The main problem customers ${verb} is ${spoken(issue.themeLabel)}.${why}`;
   }
 
   if (top && !top.themeKey) {
@@ -358,16 +371,16 @@ function synthesisFor(top: ResponsibilityItem | null, view: PortalView): string 
 
   const eased = view.first && view.first.outcome?.result === 'IMPROVED' ? view.first : null;
   if (keep && eased) {
-    return `Customers praise your ${spoken(keep.themeLabel)} most — ${keep.evidenceCount} of the ${pieces(keep.evidenceTotal)} read. ${eased.themeLabel} is still mentioned, but it has come up less often since your change.`;
+    return `Customers praise your ${spoken(keep.themeLabel)} most — ${keep.evidenceCount} of ${pieces(keep.evidenceTotal)}. Customers still mention ${spoken(eased.themeLabel)}, but less often since your change.`;
   }
   if (keep && view.first) {
-    return `Customers praise your ${spoken(keep.themeLabel)} most — ${keep.evidenceCount} of the ${pieces(keep.evidenceTotal)} read. ${view.first.themeLabel} is still mentioned. Headway is watching it and will tell you if it needs you.`;
+    return `Customers praise your ${spoken(keep.themeLabel)} most — ${keep.evidenceCount} of ${pieces(keep.evidenceTotal)}. Customers still mention ${spoken(view.first.themeLabel)}. Headway is watching it and will tell you if it needs your attention.`;
   }
   if (keep) {
-    return `Customers praise your ${spoken(keep.themeLabel)} most — ${keep.evidenceCount} of the ${pieces(keep.evidenceTotal)} read. Nothing is coming up often enough to call a weakness.`;
+    return `Customers praise your ${spoken(keep.themeLabel)} most — ${keep.evidenceCount} of ${pieces(keep.evidenceTotal)}. Nothing else comes up often enough to call it a problem.`;
   }
   if (view.basedOn > 0 && view.unhappy.length === 0 && view.loved.length === 0) {
-    return 'Nothing has been said often enough yet for Headway to call it a pattern.';
+    return 'Nothing has come up often enough yet for Headway to call it a pattern.';
   }
   return null;
 }
@@ -386,7 +399,7 @@ function nextFor(top: ResponsibilityItem | null, view: PortalView): FocusNext | 
     const outcome = signal.outcome;
     if (top.state === 'DO_NOW' && outcome?.result === 'WORSENED') {
       return {
-        headline: 'Check what else changed before undoing anything.',
+        headline: 'Before you undo the change, check what else changed.',
         detail: suggestion ? `The original suggestion still stands: ${suggestion}` : null,
         why: [outcome.headline, outcome.caveat || outcome.note],
         watching: signal.watchLine,
@@ -394,7 +407,7 @@ function nextFor(top: ResponsibilityItem | null, view: PortalView): FocusNext | 
     }
     if (top.state === 'DO_NOW' && signal.returning) {
       return {
-        headline: 'Check whether the old problem is back before making another change.',
+        headline: 'Before you make another change, check whether the old problem is back.',
         detail: suggestion ? `The original suggestion: ${suggestion}` : null,
         why: [signal.brief],
         watching: signal.watchLine,
@@ -402,7 +415,7 @@ function nextFor(top: ResponsibilityItem | null, view: PortalView): FocusNext | 
     }
     if (top.state === 'DO_NOW' && signal.advice === 'HOLD') {
       return {
-        headline: 'Decide whether to act now or wait. It is coming up less on its own.',
+        headline: 'Decide whether to act now or wait. Customers are mentioning it less on their own.',
         detail: signal.suggestion ? `If it comes up more often again, start here: ${signal.suggestion}` : null,
         why: [signal.brief, ...signal.why.slice(0, 1)],
         watching: signal.watchLine,
@@ -513,7 +526,7 @@ export type CheckinBlock = {
 };
 
 export type CheckinPulse = {
-  /** "One thing needs you. Two things need watching. Four things are holding steady." */
+  /** "One thing needs your attention. Two things need watching. Four things are about the same." */
   sentence: string;
   blocks: CheckinBlock[];
 };
@@ -528,7 +541,11 @@ export function checkinPulse(r: Responsibility, view: PortalView, compared: bool
   const steady = compared ? view.steady.length : 0;
 
   const parts: string[] = [];
-  parts.push(needs === 0 ? 'Nothing needs you.' : `${things(needs, 'thing needs', 'things need')} you.`);
+  parts.push(
+    needs === 0
+      ? 'Nothing needs your attention.'
+      : `${things(needs, 'thing needs', 'things need')} your attention.`,
+  );
   if (watching > 0) parts.push(`${things(watching, 'thing needs', 'things need')} watching.`);
   if (compared) {
     parts.push(
@@ -573,14 +590,14 @@ export function activityFacts(view: PortalView, r: Responsibility, basePath: str
   const inProgress = view.actions.filter((a) => a.stage === 'AGREED' || a.stage === 'DONE').length;
 
   const facts: ActivityFact[] = [
-    { label: 'Pieces of feedback read', value: String(view.basedOn), href: `${basePath}/reviews` },
+    { label: 'Feedback entries read', value: String(view.basedOn), href: `${basePath}/reviews` },
     {
       label: 'What keeps coming up',
       value: String(signals),
       href: signals > 0 ? `${basePath}/analysis` : null,
     },
     {
-      label: issues === 1 ? 'Issue that needs you' : 'Issues that need you',
+      label: issues === 1 ? 'Problem that needs your attention' : 'Problems that need your attention',
       value: String(issues),
       href: issues > 0 ? basePath : null,
     },

@@ -248,9 +248,9 @@ describe('an action freezes what Headway said at the time', () => {
   });
 
   it('never prints a count without its denominator', () => {
-    expect(evidenceLine(9, 50)).toBe('9 of 50 pieces of feedback (18%)');
-    expect(evidenceLine(0, 12)).toBe('0 of 12 pieces of feedback (0%)');
-    expect(evidenceLine(1, 1)).toBe('1 of 1 piece of feedback (100%)');
+    expect(evidenceLine(9, 50)).toBe('9 of 50 feedback entries (18%)');
+    expect(evidenceLine(0, 12)).toBe('0 of 12 feedback entries (0%)');
+    expect(evidenceLine(1, 1)).toBe('1 of 1 feedback entry (100%)');
     expect(evidenceLine(3, 0)).toBe('No feedback read for this period');
   });
 
@@ -372,8 +372,8 @@ describe('measurement compares shares, never bare counts', () => {
     const result = measure(batch('after', '2026-05-01T00:00:00.000Z', 30, 2));
 
     expect(result.result).toBe('IMPROVED');
-    expect(result.before.line).toBe('9 of 50 pieces of feedback (18%)');
-    expect(result.after.line).toBe('2 of 30 pieces of feedback (7%)');
+    expect(result.before.line).toBe('9 of 50 feedback entries (18%)');
+    expect(result.after.line).toBe('2 of 30 feedback entries (7%)');
     expect(result.shareDelta).toBeLessThan(0);
   });
 
@@ -404,7 +404,7 @@ describe('measurement compares shares, never bare counts', () => {
       now: NOW,
     });
     expect(result.result).toBe('IMPROVED');
-    expect(result.headline).toMatch(/praising/i);
+    expect(result.headline).toMatch(/customers praise .+ more often since the change/i);
   });
 
   it('is not fooled by different sample sizes', () => {
@@ -412,8 +412,8 @@ describe('measurement compares shares, never bare counts', () => {
     const result = measure(batch('after', '2026-05-01T00:00:00.000Z', 10, 5));
     expect(result.after.count).toBeLessThan(result.before.count);
     expect(result.result).toBe('WORSENED');
-    expect(result.why.join(' ')).toContain('9 of 50 pieces of feedback (18%)');
-    expect(result.why.join(' ')).toContain('5 of 10 pieces of feedback (50%)');
+    expect(result.why.join(' ')).toContain('9 of 50 feedback entries (18%)');
+    expect(result.why.join(' ')).toContain('5 of 10 feedback entries (50%)');
   });
 
   it('only counts feedback from after the change', () => {
@@ -470,7 +470,7 @@ describe('measurement compares shares, never bare counts', () => {
     ];
     const result = measure(rows);
     expect(result.betweenCount).toBe(4);
-    expect(result.limits.join(' ')).toMatch(/arrived between the decision and the change/i);
+    expect(result.limits.join(' ')).toMatch(/came in between the decision and the change/i);
     // ...and it is in neither figure.
     expect(result.before.total).toBe(50);
     expect(result.after.total).toBe(20);
@@ -497,7 +497,7 @@ describe('measurement refuses to guess', () => {
     // The most flattering reading, and the least justified.
     const result = measure(batch('after', '2026-05-01T00:00:00.000Z', 4, 0));
     expect(result.result).not.toBe('IMPROVED');
-    expect(result.why.join(' ')).toMatch(/too little feedback to say it is coming up less/i);
+    expect(result.why.join(' ')).toMatch(/too little feedback to say customers mention it less/i);
     expect(result.why.join(' ')).toMatch(/nobody has mentioned it yet/i);
   });
 
@@ -507,7 +507,7 @@ describe('measurement refuses to guess', () => {
     });
     expect(result.result).toBe('INSUFFICIENT_DATA');
     expect(result.why.join(' ')).toMatch(
-      /only 6 pieces of feedback had been read before the change/i,
+      /only 6 feedback entries had been read before the change/i,
     );
   });
 

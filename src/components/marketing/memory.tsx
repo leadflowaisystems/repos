@@ -39,7 +39,7 @@ const CHAIN: Moment[] = [
     who: 'Customer',
     when: IMPROVEMENT.suggestedAt,
     figure: MEASUREMENT.before.share,
-    text: `${MEASUREMENT.before.count} of the ${MEASUREMENT.before.total} pieces of feedback read by then mentioned slow service.`,
+    text: `${MEASUREMENT.before.count} of the ${MEASUREMENT.before.total} feedback entries read by then mentioned slow service.`,
     note: `Headway suggested: ${IMPROVEMENT.suggested}`,
   },
   {
@@ -60,7 +60,7 @@ const CHAIN: Moment[] = [
     when: IMPROVEMENT.measuredAt,
     figure: MEASUREMENT.after.share,
     figureTone: 'text-bad-700',
-    text: `${MEASUREMENT.after.count} of the ${MEASUREMENT.after.total} pieces of feedback since the change mention it. ${IMPROVEMENT.whatHappened}.`,
+    text: `${MEASUREMENT.after.count} of the ${MEASUREMENT.after.total} feedback entries since the change mention it. ${IMPROVEMENT.whatHappened}.`,
     note: CAVEAT,
   },
   {

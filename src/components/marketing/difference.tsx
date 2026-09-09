@@ -89,7 +89,7 @@ export function Difference() {
                   <span className="text-bad-700">{MEASUREMENT.after.share}</span>
                 </p>
                 <p className="mt-2 text-[13px] leading-relaxed text-ink-600 tabular-nums">
-                  {MEASUREMENT.before.count} of {MEASUREMENT.before.total} pieces of feedback before the change,{' '}
+                  {MEASUREMENT.before.count} of {MEASUREMENT.before.total} feedback entries before the change,{' '}
                   {MEASUREMENT.after.count} of {MEASUREMENT.after.total} after.
                 </p>
               </div>

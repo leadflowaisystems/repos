@@ -4,7 +4,12 @@ import type { PortalAction } from '@/lib/portal/view';
 import { populationFrom } from '@/lib/portal/focus';
 import { quotesFor, type EvidenceIndex } from '@/lib/portal/evidence';
 import { Population, Quotes, Reveal } from '@/components/portal/disclose';
+import { getTranslator } from '@/lib/i18n/request';
+import type { MessageKey } from '@/lib/i18n/strings';
+import type { Translator } from '@/lib/i18n/t';
 import { formatDate } from '@/lib/format';
+
+type T = Translator<MessageKey>;
 
 /**
  * ONE IMPROVEMENT, AS MEMORY (M24).
@@ -19,7 +24,7 @@ import { formatDate } from '@/lib/format';
  *   YOU CHANGED        "Added a second server on Friday and Saturday evenings"  1 Aug
  *   HEADWAY CHECKED    47%     20 of 43, on 1 Sep
  *
- *   WHAT HAPPENED      Mentioned more often after the change
+ *   WHAT HAPPENED      Customers mentioned it more often after the change.
  *   WHAT THIS MEANS    …and the one sentence about what that cannot prove
  *   WHAT TO DO NOW     one line
  *
@@ -44,16 +49,16 @@ const READING_TONE: Record<string, string> = {
  * claims nothing about the cause, so the tail is not optional and the wording
  * matches every other surface that shows the same four readings.
  */
-function readingOf(result: string | undefined): string {
+function readingOf(t: T, result: string | undefined): string {
   switch (result) {
     case 'IMPROVED':
-      return 'Mentioned less often after the change';
+      return t('improvements.reading.improved');
     case 'WORSENED':
-      return 'Mentioned more often after the change';
+      return t('improvements.reading.worsened');
     case 'NO_CLEAR_CHANGE':
-      return 'No clear difference after the change';
+      return t('improvements.reading.noClearChange');
     default:
-      return 'Not enough feedback after the change';
+      return t('improvements.reading.notEnough');
   }
 }
 
@@ -107,18 +112,18 @@ function Moment({
  * do and keeps the rest small. Nothing here is a new judgement: every
  * sentence is the view's, reordered.
  */
-function whatToDoNow(a: PortalAction): { lead: string; rest: string[] } {
+function whatToDoNow(t: T, a: PortalAction): { lead: string; rest: string[] } {
   const sentences = a.nextStep.split(/(?<=\.)\s+/).filter((s) => s.length > 0);
   switch (a.outcome?.result) {
     case 'WORSENED':
       return {
-        lead: 'Check what else changed before undoing anything.',
+        lead: t('improvements.next.worsened'),
         rest: sentences.filter((s) => /^The original suggestion/.test(s)),
       };
     case 'IMPROVED':
-      return { lead: 'Keep the change in place.', rest: sentences };
+      return { lead: t('improvements.next.improved'), rest: sentences };
     case 'NO_CLEAR_CHANGE':
-      return { lead: 'Keep collecting feedback.', rest: sentences };
+      return { lead: t('improvements.next.noClearChange'), rest: sentences };
     default:
       return { lead: sentences[0] ?? a.nextStep, rest: sentences.slice(1) };
   }
@@ -132,7 +137,7 @@ function Arrow() {
   );
 }
 
-export function ImprovementStory({
+export async function ImprovementStory({
   action: a,
   evidence,
   basePath,
@@ -142,6 +147,7 @@ export function ImprovementStory({
   /** Where this door lives, so links stay inside it. */
   basePath: string;
 }) {
+  const t = await getTranslator();
   const declined = a.stage === 'NOT_DOING';
   const outcome = a.outcome;
   const population = outcome ? populationFrom(outcome, a) : null;
@@ -149,9 +155,9 @@ export function ImprovementStory({
   const reviews = `${basePath}/reviews?theme=${encodeURIComponent(a.themeKey)}`;
   const afterQuotes = quotesFor(evidence, a.themeKey, { limit: 3, since: a.doneAt });
   const beforeQuotes = quotesFor(evidence, a.themeKey, { limit: 3, until: a.doneAt ?? undefined });
-  const reading = outcome ? readingOf(outcome.result) : null;
+  const reading = outcome ? readingOf(t, outcome.result) : null;
   const tone = outcome ? READING_TONE[outcome.result] ?? 'text-ink-600' : 'text-ink-600';
-  const { lead: nextLead, rest: nextRest } = whatToDoNow(a);
+  const { lead: nextLead, rest: nextRest } = whatToDoNow(t, a);
 
   return (
     <article className="rounded-2xl border border-ink-200 bg-white p-5 sm:p-7">
@@ -164,42 +170,59 @@ export function ImprovementStory({
 
       <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:gap-5">
         <Moment
-          label="The problem"
+          label={t('improvements.moment.problem')}
           when={a.suggestedAt}
           figure={problem?.share ?? undefined}
-          line={problem ? `${problem.count} of ${problem.total} pieces of feedback` : a.problem}
+          line={
+            problem
+              ? t.plural('improvements.entries', Number(problem.total), {
+                  count: problem.count,
+                  total: problem.total,
+                })
+              : a.problem
+          }
         />
         <Arrow />
         <Moment
-          label={declined ? 'Not doing' : 'You changed'}
+          label={declined ? t('improvements.notDoing') : t('improvements.moment.youChanged')}
           when={declined ? a.decidedAt : (a.doneAt ?? a.decidedAt)}
-          quote={declined ? undefined : a.decision || (a.doneAt ? 'You told us the change was made, but not what it was.' : undefined)}
+          quote={declined ? undefined : a.decision || (a.doneAt ? t('improvements.moment.changeNotDescribed') : undefined)}
           pending={
             declined
               ? a.decisionNote
-                ? `Your reason: ${a.decisionNote}`
-                : 'You decided not to make this change.'
+                ? t('improvements.moment.declinedReason', { reason: a.decisionNote })
+                : t('improvements.moment.declined')
               : !a.doneAt
                 ? a.decidedAt
-                  ? 'You agreed to this. Not made yet.'
-                  : 'Waiting on your decision.'
+                  ? t('improvements.moment.agreedNotMade')
+                  : t('improvements.moment.waitingDecision')
                 : undefined
           }
         />
         <Arrow />
         <Moment
-          label="Headway checked again"
+          label={t('improvements.moment.checkedAgain')}
           when={a.measuredAt}
           figure={population?.after.share ?? undefined}
           figureTone={tone}
-          line={population ? `${population.after.count} of ${population.after.total} pieces of feedback` : undefined}
+          line={
+            population
+              ? t.plural('improvements.entries', population.after.total, {
+                  count: population.after.count,
+                  total: population.after.total,
+                })
+              : undefined
+          }
           pending={
             !outcome
               ? declined
-                ? 'Nothing to compare: no change was made.'
+                ? t('improvements.moment.nothingToCompare')
                 : a.awaiting
-                  ? `Not yet. Waiting for enough new feedback to compare — ${a.awaiting.have} of ${a.awaiting.need} so far.`
-                  : 'Not yet. Waiting for the change to be made.'
+                  ? t.plural('improvements.moment.awaiting', a.awaiting.need, {
+                      have: a.awaiting.have,
+                      need: a.awaiting.need,
+                    })
+                  : t('improvements.moment.notMadeYet')
               : undefined
           }
         />
@@ -208,18 +231,18 @@ export function ImprovementStory({
       {outcome ? (
         <dl className="mt-7 divide-y divide-ink-200 border-y border-ink-200">
           <div className="grid grid-cols-1 gap-x-6 gap-y-0.5 py-3 sm:grid-cols-[11rem_1fr]">
-            <dt className={EYEBROW}>What happened</dt>
+            <dt className={EYEBROW}>{t('improvements.row.whatHappened')}</dt>
             <dd className={clsx('text-[17px] leading-snug font-semibold tracking-tight', tone)}>{reading}</dd>
           </div>
           <div className="grid grid-cols-1 gap-x-6 gap-y-0.5 py-3 sm:grid-cols-[11rem_1fr]">
-            <dt className={EYEBROW}>What this means</dt>
+            <dt className={EYEBROW}>{t('improvements.row.whatThisMeans')}</dt>
             <dd className="text-[15px] leading-relaxed text-ink-900">
               {outcome.headline}{' '}
               <span className="text-ink-700">{outcome.caveat || outcome.note}</span>
             </dd>
           </div>
           <div className="grid grid-cols-1 gap-x-6 gap-y-0.5 py-3 sm:grid-cols-[11rem_1fr]">
-            <dt className={EYEBROW}>What to do now</dt>
+            <dt className={EYEBROW}>{t('improvements.row.whatToDoNow')}</dt>
             <dd className="text-[15px] leading-relaxed font-medium text-ink-900">
               {nextLead}
               {nextRest.length > 0 ? (
@@ -233,11 +256,11 @@ export function ImprovementStory({
       ) : (
         <dl className="mt-7 divide-y divide-ink-200 border-y border-ink-200">
           <div className="grid grid-cols-1 gap-x-6 gap-y-0.5 py-3 sm:grid-cols-[11rem_1fr]">
-            <dt className={EYEBROW}>Where this stands</dt>
+            <dt className={EYEBROW}>{t('improvements.row.whereThisStands')}</dt>
             <dd className="text-[15px] leading-relaxed text-ink-900">{a.stageMeaning}</dd>
           </div>
           <div className="grid grid-cols-1 gap-x-6 gap-y-0.5 py-3 sm:grid-cols-[11rem_1fr]">
-            <dt className={EYEBROW}>What to do now</dt>
+            <dt className={EYEBROW}>{t('improvements.row.whatToDoNow')}</dt>
             <dd className="text-[15px] leading-relaxed font-medium text-ink-900">{a.nextStep}</dd>
           </div>
         </dl>
@@ -251,30 +274,29 @@ export function ImprovementStory({
       */}
       {a.returning ? (
         <p className="mt-4 border-l-2 border-bad-600 pl-4 text-[14px] leading-relaxed font-medium text-ink-900">
-          It is coming up more often again. Check what is different now before you make another
-          change.
+          {t('improvements.returning')}
         </p>
       ) : null}
 
       <div className="mt-5 flex flex-wrap gap-x-6 gap-y-1">
         {population ? (
-          <Reveal summary="Show the numbers">
+          <Reveal summary={t('improvements.reveal.numbers')}>
             <div className="rounded-xl border border-ink-200 bg-ink-50 p-4 sm:p-5">
               <Population population={population} />
             </div>
           </Reveal>
         ) : null}
-        <Reveal summary="Show evidence">
+        <Reveal summary={t('improvements.reveal.evidence')}>
           <div className="rounded-xl border border-ink-200 bg-ink-50 p-4 sm:p-5">
             {a.doneAt && outcome ? (
               <>
-                <p className={EYEBROW}>After the change</p>
+                <p className={EYEBROW}>{t('improvements.evidence.after')}</p>
                 <div className="mt-2">
-                  <Quotes quotes={afterQuotes} seeAll={{ label: 'See the mentions', href: reviews }} />
+                  <Quotes quotes={afterQuotes} seeAll={{ label: t('improvements.evidence.seeMentions'), href: reviews }} />
                 </div>
                 {beforeQuotes.length > 0 ? (
                   <>
-                    <p className={clsx(EYEBROW, 'mt-5')}>Before the change</p>
+                    <p className={clsx(EYEBROW, 'mt-5')}>{t('improvements.evidence.before')}</p>
                     <div className="mt-2">
                       <Quotes quotes={beforeQuotes} />
                     </div>
@@ -282,19 +304,19 @@ export function ImprovementStory({
                 ) : null}
               </>
             ) : (
-              <Quotes quotes={beforeQuotes.length > 0 ? beforeQuotes : afterQuotes} seeAll={{ label: 'See the mentions', href: reviews }} />
+              <Quotes quotes={beforeQuotes.length > 0 ? beforeQuotes : afterQuotes} seeAll={{ label: t('improvements.evidence.seeMentions'), href: reviews }} />
             )}
           </div>
         </Reveal>
-        <Reveal summary="How this started">
+        <Reveal summary={t('improvements.reveal.howStarted')}>
           <dl className="space-y-3 rounded-xl border border-ink-200 bg-ink-50 p-4 sm:p-5">
             <div>
-              <dt className={EYEBROW}>Headway suggested</dt>
+              <dt className={EYEBROW}>{t('improvements.started.suggested')}</dt>
               <dd className="mt-1 text-[14px] leading-relaxed text-ink-900">{a.suggested}</dd>
             </div>
             {a.decision ? (
               <div>
-                <dt className={EYEBROW}>You decided</dt>
+                <dt className={EYEBROW}>{t('improvements.started.decided')}</dt>
                 <dd className="mt-1 text-[14px] leading-relaxed text-ink-800 italic">
                   {a.decision}
                   {a.decidedAt ? <span className="not-italic text-ink-500"> · {formatDate(a.decidedAt)}</span> : null}
@@ -303,19 +325,19 @@ export function ImprovementStory({
             ) : null}
             {a.learning ? (
               <div>
-                <dt className={EYEBROW}>You told us afterwards</dt>
+                <dt className={EYEBROW}>{t('improvements.started.learning')}</dt>
                 <dd className="mt-1 text-[14px] leading-relaxed text-ink-800 italic">{a.learning}</dd>
               </div>
             ) : null}
             <div>
-              <dt className={EYEBROW}>The problem, in numbers</dt>
+              <dt className={EYEBROW}>{t('improvements.started.problemNumbers')}</dt>
               <dd className="mt-1 text-[13px] leading-relaxed text-ink-700">
                 {a.problem}{' '}
                 <Link
                   href={reviews}
                   className="inline-flex min-h-11 items-center font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
                 >
-                  See the mentions →
+                  {t('improvements.evidence.seeMentions')} →
                 </Link>
               </dd>
             </div>
