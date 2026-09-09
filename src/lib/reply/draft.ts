@@ -1,4 +1,5 @@
 import type { Pack } from '@/lib/packs';
+import type { AiUsage } from '@/lib/ai/types';
 import type { NormalizedTheme } from '@/lib/analysis/normalize';
 import { checkDraft, type SafetyProblem } from './safety';
 import {
@@ -63,6 +64,14 @@ export type DraftOutcome = {
    * needs. Callers must not store the text; the operator writes this one.
    */
   blocked: boolean;
+  /**
+   * What the model call cost, when one was made and the provider reported it.
+   * Null on the template path, which costs nothing. The caller puts it on the
+   * daily tally.
+   */
+  usage?: AiUsage | null;
+  /** The model that was asked, for the tally. */
+  usageModel?: string | null;
   version: number;
 };
 
@@ -418,8 +427,8 @@ function finish(
 // ---------------------------------------------------------------------------
 
 export type AiDrafter = (context: DraftContext) => Promise<
-  | { ok: true; text: string; model: string | null }
-  | { ok: false; reason: string }
+  | { ok: true; text: string; model: string | null; usage: AiUsage | null }
+  | { ok: false; reason: string; usage: AiUsage | null }
 >;
 
 /**
@@ -461,6 +470,8 @@ export async function draftReply(
         ...template.notes,
         `The writing assistant was unavailable, so this is Headway’s own wording. (${attempt.reason})`,
       ],
+      usage: attempt.usage,
+      usageModel: null,
     };
   }
 
@@ -482,6 +493,11 @@ export async function draftReply(
           .map((p) => p.message.replace(/^The reply /, '').replace(/\.$/, ''))
           .join('; ')}.`,
       ],
+      // The call still happened and still cost tokens, even though its answer
+      // was thrown away. A budget that only counted accepted answers would
+      // undercount exactly the runs that went wrong.
+      usage: attempt.usage,
+      usageModel: attempt.model,
     };
   }
 
@@ -493,5 +509,7 @@ export async function draftReply(
     problems: [],
     blocked: false,
     version: DRAFT_VERSION,
+    usage: attempt.usage,
+    usageModel: attempt.model,
   };
 }

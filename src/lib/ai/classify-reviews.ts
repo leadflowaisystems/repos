@@ -7,6 +7,7 @@ import {
   type Classification,
 } from '@/lib/analysis/classify';
 import { runCompletion } from './index';
+import { estimateTokens } from './budget';
 import { extractJson } from './types';
 
 /**
@@ -23,6 +24,8 @@ import { extractJson } from './types';
 
 const BATCH_SIZE = 20;
 
+const ZERO_USAGE = { inputTokens: 0, outputTokens: 0 };
+
 export type ReviewToClassify = {
   text: string;
   stars: number | null;
@@ -34,6 +37,14 @@ export type ClassificationOutcome = {
   source: 'KEYWORD' | `AI:${string}`;
   model: string | null;
   notes: string[];
+  /**
+   * What the provider says the whole call cost, summed across batches, so the
+   * caller can put it on the daily tally. Zeroes when nothing was sent.
+   */
+  usage: { inputTokens: number; outputTokens: number };
+  /** Requests that actually left the process, and how many of those failed. */
+  requests: number;
+  failures: number;
 };
 
 const SYSTEM_PROMPT = `You are a classification engine inside Headway, a customer-feedback tool for local Indian small businesses.
@@ -86,7 +97,13 @@ type RawEntry = { i?: unknown; issues?: unknown; praises?: unknown; sentiment?: 
 async function classifyBatch(
   batch: ReviewToClassify[],
   pack: Pack,
-): Promise<{ results: Classification[] | null; note: string; providerId?: string; model?: string }> {
+): Promise<{
+  results: Classification[] | null;
+  note: string;
+  providerId?: string;
+  model?: string;
+  usage: { inputTokens: number; outputTokens: number };
+}> {
   const run = await runCompletion({
     system: SYSTEM_PROMPT,
     user: buildUserPrompt(pack, batch),
@@ -96,8 +113,17 @@ async function classifyBatch(
   });
 
   if (!run.ok) {
-    return { results: null, note: [run.reason, ...run.attempts].join(' ') };
+    // Nothing was billed if nothing was answered, but a refused or timed-out
+    // request still happened; the caller counts it as a failure.
+    return { results: null, note: [run.reason, ...run.attempts].join(' '), usage: ZERO_USAGE };
   }
+
+  // Reported counts where the provider gave them, estimated from the exact
+  // strings that were sent where it did not. Never guessed from nothing.
+  const usage = run.usage ?? {
+    inputTokens: estimateTokens(SYSTEM_PROMPT) + estimateTokens(buildUserPrompt(pack, batch)),
+    outputTokens: estimateTokens(run.text),
+  };
 
   const parsed = extractJson(run.text);
   const rows =
@@ -106,7 +132,7 @@ async function classifyBatch(
       : parsed;
 
   if (!Array.isArray(rows)) {
-    return { results: null, note: 'AI classification response was not a JSON array.' };
+    return { results: null, note: 'AI classification response was not a JSON array.', usage };
   }
 
   const byIndex = new Map<number, RawEntry>();
@@ -119,7 +145,7 @@ async function classifyBatch(
   });
 
   if (byIndex.size === 0) {
-    return { results: null, note: 'AI classification response had no usable rows.' };
+    return { results: null, note: 'AI classification response had no usable rows.', usage };
   }
 
   const results = batch.map((review, index) => {
@@ -146,6 +172,7 @@ async function classifyBatch(
     note: '',
     providerId: run.providerId,
     model: run.model,
+    usage,
   };
 }
 
@@ -159,7 +186,7 @@ export async function classifyReviews(
   options: { useAi: boolean },
 ): Promise<ClassificationOutcome> {
   if (reviews.length === 0) {
-    return { results: [], source: 'KEYWORD', model: null, notes: [] };
+    return { results: [], source: 'KEYWORD', model: null, notes: [], usage: ZERO_USAGE, requests: 0, failures: 0 };
   }
 
   const keywordAll = () => reviews.map((r) => classifyByKeywords(r.text, r.stars, pack));
@@ -170,6 +197,9 @@ export async function classifyReviews(
       source: 'KEYWORD',
       model: null,
       notes: ['Classified locally with the keyword taxonomy (AI not used).'],
+      usage: ZERO_USAGE,
+      requests: 0,
+      failures: 0,
     };
   }
 
@@ -179,10 +209,17 @@ export async function classifyReviews(
   let model: string | null = null;
   let aiBatches = 0;
   let keywordBatches = 0;
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let requests = 0;
+  let failures = 0;
 
   for (let start = 0; start < reviews.length; start += BATCH_SIZE) {
     const batch = reviews.slice(start, start + BATCH_SIZE);
     const outcome = await classifyBatch(batch, pack);
+    requests += 1;
+    inputTokens += outcome.usage.inputTokens;
+    outputTokens += outcome.usage.outputTokens;
 
     if (outcome.results) {
       results.push(...outcome.results);
@@ -192,6 +229,7 @@ export async function classifyReviews(
     } else {
       results.push(...batch.map((r) => classifyByKeywords(r.text, r.stars, pack)));
       keywordBatches += 1;
+      failures += 1;
       if (outcome.note) notes.push(outcome.note);
     }
   }
@@ -211,6 +249,9 @@ export async function classifyReviews(
         'AI classification unavailable; used the local keyword taxonomy for every review.',
         ...notes,
       ],
+      usage: { inputTokens, outputTokens },
+      requests,
+      failures,
     };
   }
 
@@ -219,5 +260,8 @@ export async function classifyReviews(
     source: providerId ? (`AI:${providerId}` as const) : 'KEYWORD',
     model,
     notes,
+    usage: { inputTokens, outputTokens },
+    requests,
+    failures,
   };
 }

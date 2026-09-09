@@ -177,6 +177,19 @@ CREATE POLICY settings_admin_only ON public."AppSetting"
   USING (app.is_platform_admin())
   WITH CHECK (app.is_platform_admin());
 
+-- The daily AI tally (M30). Not tenant-scoped, because it holds no customer
+-- data at all: only which model was asked, how many tokens it cost and whether
+-- it worked. The budget it backs is one allowance for the installation,
+-- because the provider limit it stands in for is per key, not per business.
+-- RLS is enabled and forced anyway so that every table in this schema answers
+-- the same way to an audit, with a policy that is permissive on purpose.
+ALTER TABLE public."AiUsageDay" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public."AiUsageDay" FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS ai_usage_app ON public."AiUsageDay";
+CREATE POLICY ai_usage_app ON public."AiUsageDay"
+  USING (true)
+  WITH CHECK (true);
+
 -- ---------------------------------------------------------------------------
 -- Hardening applied after the first attack run found a privilege-escalation
 -- path: a user could update their own User row, and isPlatformAdmin is a

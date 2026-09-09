@@ -132,20 +132,20 @@ model Client {
   accessOverrideAt DateTime?
   serviceExemption String?
 
-  voiceProfile VoiceProfile?
-  policy       BusinessPolicy?
-  kitConfig    KitConfig?
-  competitors  Competitor[]
-  snapshots    Snapshot[]
-  timeEntries  TimeEntry[]
-  minutes      Minute[]
-  feedback     ReviewItem[]
-  improvements ImprovementAction[]
-  context      BusinessContext[]
-  gateway      FeedbackGateway?
-  memberships  Membership[]
-  invitations  Invitation[]
-  commercial   Commercial?
+  voiceProfile         VoiceProfile?
+  policy               BusinessPolicy?
+  kitConfig            KitConfig?
+  competitors          Competitor[]
+  snapshots            Snapshot[]
+  timeEntries          TimeEntry[]
+  minutes              Minute[]
+  feedback             ReviewItem[]
+  improvements         ImprovementAction[]
+  context              BusinessContext[]
+  gateway              FeedbackGateway?
+  memberships          Membership[]
+  invitations          Invitation[]
+  commercial           Commercial?
   continuationRequests ServiceContinuationRequest[]
 
   @@index([status])
@@ -859,4 +859,44 @@ model ImprovementAction {
   @@index([clientId, status])
   @@index([clientId, createdAt])
   @@index([insightId])
+}
+
+/// ---------------------------------------------------------------------------
+/// M30 — THE DAILY AI TALLY
+/// ---------------------------------------------------------------------------
+///
+/// One row per day, per provider, per model. It exists so the application can
+/// enforce its own AI budget rather than discovering the provider's limit by
+/// being refused, and so somebody can answer "how much did we actually use?"
+/// without asking a vendor dashboard.
+///
+/// THIS TABLE HOLDS NO CUSTOMER DATA. Not the text, not a client id, not an
+/// item id — only which model was asked, how many tokens it cost and whether
+/// it worked. That is deliberate: a counter should never become a second,
+/// quieter copy of what customers wrote.
+model AiUsageDay {
+  id String @id @default(cuid())
+
+  /// UTC calendar day, `YYYY-MM-DD`. A string rather than a date because it is
+  /// a bucket key, and comparing buckets should never depend on a timezone.
+  day      String
+  provider String
+  model    String
+
+  requests     Int @default(0)
+  inputTokens  Int @default(0)
+  outputTokens Int @default(0)
+  /// Prompt plus completion — the number the budget is spent in.
+  totalTokens  Int @default(0)
+
+  /// Calls the provider refused, timed out or answered unusably.
+  failures  Int @default(0)
+  /// Calls where the caller used its deterministic result instead.
+  fallbacks Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([day, provider, model])
+  @@index([day])
 }

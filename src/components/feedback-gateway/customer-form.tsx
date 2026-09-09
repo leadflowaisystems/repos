@@ -276,10 +276,19 @@ function StepCount({ step, total }: { step: number; total: number }) {
 /**
  * One of the vertical's questions.
  *
- * The follow-up appears only once the customer has said something that asks
- * for one, and it is worded by the pack rather than here — "What would have
+ * The follow-up is worded by the pack rather than here — "What would have
  * made it better?" for a kitchen, "What did not turn out as you wanted?" for
- * a salon. A good rating gets an invitation too, just not a list of faults.
+ * a salon.
+ *
+ * IT APPEARS AT EVERY RATING, and that is a deliberate correction. The
+ * specifics used to be shown only at three stars or below, so a customer who
+ * tapped four or five was given a sentence and nothing to tap. That threw
+ * away the most valuable thing this product collects — "the food was
+ * excellent, but we waited forty minutes" — and it quietly taught the
+ * business that happy customers have nothing to say, which is false. A high
+ * rating now gets the pack's good line first, acknowledging what went well,
+ * and then the same optional list. Nothing about it is leading: the note says
+ * "or none", and tapping nothing is a complete answer.
  */
 function DimensionRow({
   dimension,
@@ -292,8 +301,8 @@ function DimensionRow({
   signalsNote: string;
   onChange: (value: number) => void;
 }) {
-  const low = rating !== null && rating <= NEEDS_DETAIL_AT;
-  const high = rating !== null && rating > NEEDS_DETAIL_AT;
+  const rated = rating !== null;
+  const high = rated && rating > NEEDS_DETAIL_AT;
 
   return (
     <fieldset className="py-4">
@@ -306,7 +315,23 @@ function DimensionRow({
         size="small"
       />
 
-      {low && dimension.signals.length > 0 ? (
+      {/* The good news first, in the vertical's own words. Only a high rating
+          earns this line — it acknowledges what went well before anything
+          asks what did not. */}
+      {high && dimension.goodPrompt ? (
+        <p className="mt-3 text-[13px] text-ink-700">{dimension.goodPrompt}</p>
+      ) : null}
+
+      {/* THE SPECIFICS, OFFERED AT EVERY RATING.
+          These used to appear only at 3 stars or below, which meant a customer
+          who tapped 4 or 5 was shown a sentence and given nothing to tap. That
+          quietly threw away the most useful thing this product collects: "the
+          food was excellent, but we waited forty minutes". A happy customer
+          has specifics too, and they are the same specifics — so this is the
+          pack's own signal list either way, never a new taxonomy.
+          It stays optional and non-leading: the note says "or none", and
+          tapping nothing is a complete answer. */}
+      {rated && dimension.signals.length > 0 ? (
         <div className="mt-3">
           <p className="text-[13px] text-ink-600">{dimension.improvePrompt}</p>
           <p className="mt-0.5 text-[12px] text-ink-500">{signalsNote}</p>
@@ -316,10 +341,6 @@ function DimensionRow({
             ))}
           </div>
         </div>
-      ) : null}
-
-      {high && dimension.goodPrompt ? (
-        <p className="mt-3 text-[13px] text-ink-500">{dimension.goodPrompt}</p>
       ) : null}
     </fieldset>
   );

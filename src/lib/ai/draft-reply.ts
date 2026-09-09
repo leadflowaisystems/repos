@@ -6,6 +6,7 @@ import {
   draftLanguageFor,
 } from '@/lib/reply/voice';
 import { runCompletion } from './index';
+import type { AiUsage } from './types';
 import { extractJson } from './types';
 
 /**
@@ -134,8 +135,8 @@ function buildUserPrompt(context: DraftContext): string {
 }
 
 export type DraftAttempt =
-  | { ok: true; text: string; model: string | null }
-  | { ok: false; reason: string };
+  | { ok: true; text: string; model: string | null; usage: AiUsage | null }
+  | { ok: false; reason: string; usage: AiUsage | null };
 
 /** One reply. Returns a reason rather than throwing, so callers can fall back. */
 export async function draftReplyWithAi(context: DraftContext): Promise<DraftAttempt> {
@@ -149,18 +150,18 @@ export async function draftReplyWithAi(context: DraftContext): Promise<DraftAtte
   });
 
   if (!run.ok) {
-    return { ok: false, reason: [run.reason, ...run.attempts].join(' ').trim() };
+    return { ok: false, reason: [run.reason, ...run.attempts].join(' ').trim(), usage: null };
   }
 
   const parsed = extractJson(run.text);
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    return { ok: false, reason: 'the response was not in the expected form' };
+    return { ok: false, reason: 'the response was not in the expected form', usage: run.usage };
   }
 
   const value = (parsed as { reply?: unknown }).reply;
   if (typeof value !== 'string' || value.trim().length === 0) {
-    return { ok: false, reason: 'the response contained no reply' };
+    return { ok: false, reason: 'the response contained no reply', usage: run.usage };
   }
 
-  return { ok: true, text: value.trim(), model: run.model };
+  return { ok: true, text: value.trim(), model: run.model, usage: run.usage };
 }

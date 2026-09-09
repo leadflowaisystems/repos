@@ -4,6 +4,7 @@ import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
 import { createClient } from '@/lib/clients/service';
 import { PROCESSING_STALE_MS, analysisStateOf } from '@/lib/feedback/state';
 import { _resetGatewayThrottles, ensureGateway, submitCustomerFeedback } from '@/lib/gateway/service';
+import { FAILED_RETRY_COOLDOWN_MS } from '@/lib/feedback/state';
 import { hasUnprocessedFeedback, processClientFeedback } from '@/lib/pipeline/feedback';
 import type { ReviewFilters } from '@/lib/portal/pages';
 import {
@@ -135,9 +136,14 @@ describe('processing newly submitted feedback', () => {
       where: { id: first },
       data: { analysisStatus: 'FAILED', analysisError: 'provider exploded' },
     });
-    expect(await hasUnprocessedFeedback(db, clientId)).toBe(true);
+    // Not immediately: a failed reading waits out its cooldown, so one stuck
+    // row cannot wake a run on every single page view (M30).
+    expect(await hasUnprocessedFeedback(db, clientId)).toBe(false);
 
-    const run = await processClientFeedback(db, clientId, { useAi: false });
+    const later = new Date(Date.now() + FAILED_RETRY_COOLDOWN_MS + 1_000);
+    expect(await hasUnprocessedFeedback(db, clientId, later)).toBe(true);
+
+    const run = await processClientFeedback(db, clientId, { useAi: false, now: later });
     expect(run.analysed).toBe(1);
     const row = await db.reviewItem.findUniqueOrThrow({ where: { id: first } });
     expect(row.analysisStatus).toBe('ANALYSED');

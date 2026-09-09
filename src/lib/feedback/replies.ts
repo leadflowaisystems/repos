@@ -3,6 +3,7 @@ import { getPackOrFallback, type Pack } from '@/lib/packs';
 import { parseJson } from '@/lib/format';
 import { hasReplyChannel } from '@/lib/feedback/service';
 import { aiStatus } from '@/lib/ai';
+import { aiBudget, recordAiUsage } from '@/lib/ai/budget';
 import { draftReplyWithAi } from '@/lib/ai/draft-reply';
 import type { NormalizedTheme } from '@/lib/analysis/normalize';
 import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
@@ -323,13 +324,32 @@ export async function draftClientReplies(
   let failed = 0;
   let usedAi = false;
 
+  // One budget check for the whole run rather than one per item: the operator
+  // clicked once, and a run that drafts half its queue with the assistant and
+  // half without would be confusing to read afterwards. When the allowance is
+  // gone every draft in this run is Headway's own wording, which is a complete
+  // answer and is labelled as such.
+  const budget = useAi ? await aiBudget(db) : null;
+  const assistAllowed = useAi && budget?.allowed === true;
+
   for (const row of queue) {
     try {
       const context = buildContext(bundle, row);
       const outcome = await draftReply(context, {
-        useAi,
-        drafter: useAi ? draftReplyWithAi : undefined,
+        useAi: assistAllowed,
+        drafter: assistAllowed ? draftReplyWithAi : undefined,
       });
+
+      if (outcome.usage) {
+        await recordAiUsage(db, {
+          provider: 'groq',
+          model: outcome.usageModel ?? 'unknown',
+          inputTokens: outcome.usage.inputTokens,
+          outputTokens: outcome.usage.outputTokens,
+          ok: outcome.source === 'AI',
+          fellBack: outcome.source !== 'AI',
+        });
+      }
 
       if (outcome.source === 'AI') usedAi = true;
 
@@ -439,12 +459,29 @@ export async function regenerateDraft(
 
   const now = options.now ?? new Date();
   const useAi = options.useAi ?? aiStatus().enabled;
+  const budget = useAi ? await aiBudget(db, now) : null;
+  const assistAllowed = useAi && budget?.allowed === true;
 
   try {
     const outcome = await draftReply(buildContext(bundle, row), {
-      useAi,
-      drafter: useAi ? draftReplyWithAi : undefined,
+      useAi: assistAllowed,
+      drafter: assistAllowed ? draftReplyWithAi : undefined,
     });
+
+    if (outcome.usage) {
+      await recordAiUsage(
+        db,
+        {
+          provider: 'groq',
+          model: outcome.usageModel ?? 'unknown',
+          inputTokens: outcome.usage.inputTokens,
+          outputTokens: outcome.usage.outputTokens,
+          ok: outcome.source === 'AI',
+          fellBack: outcome.source !== 'AI',
+        },
+        now,
+      );
+    }
 
     if (outcome.blocked) {
       const reason = outcome.problems

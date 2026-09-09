@@ -9,6 +9,7 @@ import {
   getThemeSummary,
 } from '@/lib/feedback/analysis';
 import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
+import { FAILED_RETRY_COOLDOWN_MS } from '@/lib/feedback/state';
 import { createTestDb, resetDb, validClientInput } from './helpers/test-db';
 
 let db: PrismaClient;
@@ -300,7 +301,16 @@ describe('failure handling', () => {
       data: { analysisStatus: 'FAILED', analysisError: 'earlier failure' },
     });
 
-    const retry = await analyseClientFeedback(db, clientId, OFFLINE);
+    // A failed item waits out its cooldown first. Until M30 it did not, and
+    // "the next run will try again" meant the next PAGE VIEW would try again,
+    // for ever, with no attempt counter — one stuck row could spend a whole
+    // day's AI allowance on its own.
+    const tooSoon = await analyseClientFeedback(db, clientId, OFFLINE);
+    expect(tooSoon.ok && tooSoon.data.analysed).toBe(0);
+
+    // Past the cooldown it is retried exactly as before.
+    const later = new Date(Date.now() + FAILED_RETRY_COOLDOWN_MS + 1_000);
+    const retry = await analyseClientFeedback(db, clientId, { ...OFFLINE, now: later });
     expect(retry.ok && retry.data.analysed).toBe(1);
     expect(retry.ok && retry.data.skippedUpToDate).toBe(4);
 

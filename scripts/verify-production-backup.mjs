@@ -77,7 +77,11 @@ run(['db', 'execute', '--file', join(OUT, 'repo', 'm20', 'rls.sql'), '--schema',
 run(['db', 'execute', '--file', join(OUT, 'repo', 'm20', 'public-gateway.sql'), '--schema', schemaPath]);
 log('schema rebuilt from the runbook');
 
-const ORDER = ['User', 'Client', 'Membership', 'Invitation', 'Commercial', 'FeedbackGateway', 'BusinessContext', 'VoiceProfile', 'BusinessPolicy', 'Competitor', 'KitConfig', 'Minute', 'TimeEntry', 'AppSetting', 'Snapshot', 'ReviewItem', 'ImprovementAction'];
+// Foreign keys decide this order. Two names were missing and the script threw
+// rather than restoring: ServiceContinuationRequest (M28) and AiUsageDay (M30).
+// AiUsageDay is last and references nothing — it is a per-day token counter
+// holding no customer data.
+const ORDER = ['User', 'Client', 'Membership', 'Invitation', 'Commercial', 'FeedbackGateway', 'BusinessContext', 'VoiceProfile', 'BusinessPolicy', 'Competitor', 'KitConfig', 'Minute', 'TimeEntry', 'AppSetting', 'Snapshot', 'ReviewItem', 'ImprovementAction', 'ServiceContinuationRequest', 'AiUsageDay'];
 const unknown = Object.keys(manifest.tables).filter((t) => !ORDER.includes(t));
 if (unknown.length) throw new Error(`restore order does not know: ${unknown.join(', ')}`);
 

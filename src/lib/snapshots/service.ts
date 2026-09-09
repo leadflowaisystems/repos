@@ -14,6 +14,7 @@ import type { LanguageCode } from '@/lib/analysis/language';
 import { classifyReviews } from '@/lib/ai/classify-reviews';
 import { buildNarrative, type Narrative } from '@/lib/ai/narrative';
 import { aiStatus } from '@/lib/ai';
+import { aiBudget, recordAiUsage } from '@/lib/ai/budget';
 import { getPackOrFallback, type Pack } from '@/lib/packs';
 import {
   computeHealthCard,
@@ -37,6 +38,17 @@ import { nullableInt, nullableNumber } from '@/lib/actions/shared';
  * Storing the snapshot preserves the state used to compute the client's health
  * at that point in time, which is what makes later comparison possible.
  */
+
+/**
+ * The most reviews from one pasted snapshot that go to a provider.
+ *
+ * A snapshot is one click, and the paste can hold 200,000 characters — enough
+ * for thousands of reviews and, before this, thousands of sequential requests
+ * from a single form submission. Ten batches of twenty is a generous reading
+ * of any real paste; the rest is classified locally, which is exactly what
+ * every review gets on an installation with no key.
+ */
+const MAX_AI_REVIEWS = 200;
 
 export type ServiceOk<T> = { ok: true; data: T };
 export type ServiceErr = {
@@ -458,19 +470,59 @@ export async function createSnapshot(
 
   const input = parsed.data;
   const pack: Pack = getPackOrFallback(client.vertical);
-  const useAi = options.useAi ?? aiStatus().enabled;
   const notes: string[] = [];
+
+  // A snapshot is one operator click, and until now the only thing bounding
+  // how many provider requests it could make was the 200,000-character limit
+  // on the paste — enough for thousands of reviews and thousands of sequential
+  // requests. The budget is checked first, and the fan-out is capped: past the
+  // cap the keyword classifier reads the rest, which is what it does for every
+  // snapshot on an installation with no key at all.
+  const budgetState = (options.useAi ?? aiStatus().enabled) ? await aiBudget(db) : null;
+  const useAi = (options.useAi ?? aiStatus().enabled) && budgetState?.allowed !== false;
+  if (budgetState && !budgetState.allowed) notes.push(budgetState.note);
 
   // 1. Parse the pasted text. Dates resolve against the observation date, so
   //    re-parsing the same paste always yields the same result.
   const parseSummary = parseReviews(input.reviewsRaw, input.capturedAt);
 
   // 2. Classify. AI may assign tags; it never counts anything.
-  const classification = await classifyReviews(
-    parseSummary.reviews.map((r) => ({ text: r.text, stars: r.stars })),
+  //
+  //    Only the first MAX_AI_REVIEWS go to a provider. Everything past that is
+  //    read by the keyword classifier, so a very large paste stays a bounded
+  //    number of requests and the snapshot is still complete.
+  const aiSlice = useAi ? parseSummary.reviews.slice(0, MAX_AI_REVIEWS) : [];
+  const restSlice = parseSummary.reviews.slice(aiSlice.length);
+  if (restSlice.length > 0 && useAi) {
+    notes.push(
+      `${aiSlice.length} of ${parseSummary.reviews.length} reviews were read with the assistant; the rest were read with the local taxonomy.`,
+    );
+  }
+
+  const assisted = await classifyReviews(
+    aiSlice.map((r) => ({ text: r.text, stars: r.stars })),
     pack,
     { useAi },
   );
+  if (assisted.requests > 0) {
+    await recordAiUsage(db, {
+      provider: 'groq',
+      model: assisted.model ?? 'unknown',
+      inputTokens: assisted.usage.inputTokens,
+      outputTokens: assisted.usage.outputTokens,
+      ok: assisted.failures === 0,
+      fellBack: !assisted.source.startsWith('AI:'),
+    });
+  }
+  const remainder = await classifyReviews(
+    restSlice.map((r) => ({ text: r.text, stars: r.stars })),
+    pack,
+    { useAi: false },
+  );
+  const classification = {
+    ...assisted,
+    results: [...assisted.results, ...remainder.results],
+  };
   notes.push(...classification.notes);
 
   const classified: ClassifiedReview[] = parseSummary.reviews.map((review, i) => {

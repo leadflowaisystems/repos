@@ -646,6 +646,7 @@ describe('AI is optional and never trusted', () => {
         ok: true,
         text: 'Thank you for telling us. We are sorry the wait was longer than it should have been, and we are looking at it.',
         model: 'test-model',
+        usage: { inputTokens: 700, outputTokens: 120 },
       }),
     });
     expect(outcome.source).toBe('AI');
@@ -655,7 +656,7 @@ describe('AI is optional and never trusted', () => {
   it('falls back when the provider fails', async () => {
     const outcome = await draftReply(context(), {
       useAi: true,
-      drafter: async () => ({ ok: false, reason: 'the provider returned HTTP 503' }),
+      drafter: async () => ({ ok: false, reason: 'the provider returned HTTP 503', usage: null }),
     });
     expect(outcome.source).toBe('TEMPLATE');
     expect(outcome.notes.join(' ')).toContain('503');
@@ -679,6 +680,7 @@ describe('AI is optional and never trusted', () => {
         ok: true,
         text: 'Sorry about that! If we fixed it, please update your review to 5 stars.',
         model: 'test-model',
+        usage: { inputTokens: 700, outputTokens: 120 },
       }),
     });
     expect(outcome.source).toBe('TEMPLATE');
@@ -692,6 +694,7 @@ describe('AI is optional and never trusted', () => {
         ok: true,
         text: 'We are very sorry about this. We will refund you the full amount today.',
         model: 'test-model',
+        usage: { inputTokens: 700, outputTokens: 120 },
       }),
     });
     expect(outcome.source).toBe('TEMPLATE');
@@ -704,6 +707,7 @@ describe('AI is optional and never trusted', () => {
         ok: true,
         text: 'Sorry about the wait. Please call our manager on 020 4455 6677 to discuss.',
         model: 'test-model',
+        usage: { inputTokens: 700, outputTokens: 120 },
       }),
     });
     expect(outcome.source).toBe('TEMPLATE');
@@ -713,7 +717,7 @@ describe('AI is optional and never trusted', () => {
     for (const bad of ['', '   ', 'ok']) {
       const outcome = await draftReply(context(), {
         useAi: true,
-        drafter: async () => ({ ok: true, text: bad, model: null }),
+        drafter: async () => ({ ok: true, text: bad, model: null, usage: null }),
       });
       expect(outcome.source, JSON.stringify(bad)).toBe('TEMPLATE');
     }
@@ -722,7 +726,7 @@ describe('AI is optional and never trusted', () => {
   it('never fabricates a result when everything failed', async () => {
     const outcome = await draftReply(context(), {
       useAi: true,
-      drafter: async () => ({ ok: false, reason: 'no provider configured' }),
+      drafter: async () => ({ ok: false, reason: 'no provider configured', usage: null }),
     });
     // Fallback, clearly labelled — not a pretend AI answer.
     expect(outcome.source).toBe('TEMPLATE');
@@ -750,7 +754,7 @@ describe('wording shown to the operator has no jargon', () => {
   it('never shows a technical term in a draft note', async () => {
     const outcome = await draftReply(contextFor('The wait was long', 2), {
       useAi: true,
-      drafter: async () => ({ ok: false, reason: 'HTTP 500' }),
+      drafter: async () => ({ ok: false, reason: 'HTTP 500', usage: null }),
     });
     expect(outcome.notes.join(' ')).not.toMatch(
       /token|inference|provider|model|embedding|prompt/i,

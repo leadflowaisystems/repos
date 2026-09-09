@@ -1,7 +1,11 @@
 import type { PrismaClient } from '@prisma/client';
 import { oncePerRequest } from '@/lib/request-cache';
 import { readStructured } from '@/lib/feedback/structured';
-import { analysisStateOf, PROCESSING_STALE_MS } from '@/lib/feedback/state';
+import {
+  analysisStateOf,
+  FAILED_RETRY_COOLDOWN_MS,
+  PROCESSING_STALE_MS,
+} from '@/lib/feedback/state';
 import { getPackOrFallback, type Pack } from '@/lib/packs';
 import { sanitiseSentiment, sanitiseTags, type Sentiment } from '@/lib/analysis/classify';
 import {
@@ -11,6 +15,8 @@ import {
   type NormalizedTheme,
 } from '@/lib/analysis/normalize';
 import { classifyReviews } from '@/lib/ai/classify-reviews';
+import { routeForAi } from '@/lib/ai/route';
+import { aiBudget, recordAiUsage } from '@/lib/ai/budget';
 import { aiStatus } from '@/lib/ai';
 import { parseJson } from '@/lib/format';
 
@@ -134,11 +140,25 @@ export async function analyseClientFeedback(
       .filter((row) => row.analysisStatus === 'PROCESSING' && row.updatedAt >= staleBefore)
       .map((row) => row.id),
   );
+  // Which items some engine had already read BEFORE this run touched them.
+  // They may still be re-read — a version bump makes the deterministic pass
+  // run again so their themes stay current — but they are never sent to a
+  // provider a second time. See the AI pass below for why.
+  const alreadyRead = new Set(
+    all.filter((row) => row.analysisStatus === 'ANALYSED').map((row) => row.id),
+  );
+
   const pending: ItemRow[] = all.filter((row) => {
     if (inProgressIds.has(row.id)) return false;
     if (options.force) return true;
     const state = analysisStateOf(row, now);
-    return state === 'COLLECTED' || state === 'FAILED';
+    if (state === 'COLLECTED') return true;
+    // A failed row waits out its cooldown, so one permanently broken item
+    // cannot re-enter every run for the rest of the day.
+    if (state === 'FAILED') {
+      return row.updatedAt.getTime() <= now.getTime() - FAILED_RETRY_COOLDOWN_MS;
+    }
+    return false;
   });
 
   const skippedUpToDate = all.length - pending.length - inProgressIds.size;
@@ -208,21 +228,62 @@ export async function analyseClientFeedback(
   }
 
   // --- Optional AI pass ------------------------------------------------------
-  // Suggestions are collected per item and may be absent for any of them. The
-  // deterministic engine runs regardless, so a gap is never a failure.
+  //
+  // THREE THINGS DECIDE WHETHER AN ITEM IS SENT, and all three must say yes.
+  //
+  //   1. IS IT NEW? A re-read never goes to a provider. When the engine
+  //      version moves, every stored item becomes eligible for re-reading so
+  //      that its themes are current — but re-reading is the DETERMINISTIC
+  //      pass, which is free and offline. Paying a provider again for words it
+  //      has already read is how a routine deploy turns into a bill, and it
+  //      buys nothing: the taxonomy did not change, the sentence did not
+  //      change. An operator who genuinely wants the model consulted again
+  //      asks for it with `force`.
+  //
+  //   2. IS IT AMBIGUOUS? routeForAi decides, per item. Taps with no words go
+  //      nowhere. Words the keyword pass recognised, agreeing with the stars,
+  //      go nowhere. What is left is the minority worth reading properly.
+  //
+  //   3. IS THERE BUDGET? One allowance for the installation, checked once per
+  //      run rather than per batch.
+  //
+  // Anything that says no is still fully analysed by the deterministic engine
+  // below. A skipped call is never an unread item.
   const suggestions = new Map<string, AiSuggestion>();
   let usedAi = false;
   let aiModel: string | null = null;
 
-  if (useAi) {
-    for (let start = 0; start < claimed.length; start += AI_BATCH_SIZE) {
-      const slice = claimed.slice(start, start + AI_BATCH_SIZE);
+  const routes = new Map<string, ReturnType<typeof routeForAi>>();
+  const aiQueue = claimed.filter((row) => {
+    if (!options.force && alreadyRead.has(row.id)) return false;
+    const route = routeForAi({ text: row.text, stars: row.stars }, pack);
+    routes.set(row.id, route);
+    return route.needsAi;
+  });
+
+  const budget = useAi && aiQueue.length > 0 ? await aiBudget(db, now) : null;
+  if (budget && !budget.allowed) notes.push(budget.note);
+
+  if (useAi && aiQueue.length > 0 && budget?.allowed) {
+    for (let start = 0; start < aiQueue.length; start += AI_BATCH_SIZE) {
+      const slice = aiQueue.slice(start, start + AI_BATCH_SIZE);
       try {
         const outcome = await classifyReviews(
           slice.map((row) => ({ text: row.text, stars: row.stars })),
           pack,
           { useAi: true },
         );
+
+        if (outcome.requests > 0) {
+          await recordAiUsage(db, {
+            provider: 'groq',
+            model: outcome.model ?? 'unknown',
+            inputTokens: outcome.usage.inputTokens,
+            outputTokens: outcome.usage.outputTokens,
+            ok: outcome.failures === 0,
+            fellBack: !outcome.source.startsWith('AI:'),
+          }, now);
+        }
 
         if (outcome.source.startsWith('AI:')) {
           usedAi = true;

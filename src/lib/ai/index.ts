@@ -5,6 +5,7 @@ import {
   type AiCompleteOptions,
   type AiProvider,
   type AiProviderId,
+  type AiUsage,
 } from './types';
 
 export * from './types';
@@ -89,7 +90,14 @@ export function aiStatus(): AiStatus {
 }
 
 export type AiRun =
-  | { ok: true; text: string; providerId: AiProviderId; model: string }
+  | {
+      ok: true;
+      text: string;
+      providerId: AiProviderId;
+      model: string;
+      /** What the provider says it cost. Null when it did not say. */
+      usage: AiUsage | null;
+    }
   | { ok: false; reason: string; attempts: string[] };
 
 /**
@@ -113,8 +121,14 @@ export async function runCompletion(options: AiCompleteOptions): Promise<AiRun> 
   const attempts: string[] = [];
   for (const provider of chain) {
     try {
-      const text = await provider.complete(options);
-      return { ok: true, text, providerId: provider.id, model: provider.model };
+      const completion = await provider.complete(options);
+      return {
+        ok: true,
+        text: completion.text,
+        providerId: provider.id,
+        model: provider.model,
+        usage: completion.usage,
+      };
     } catch (error) {
       const message =
         error instanceof AiError

@@ -2,7 +2,7 @@ import type { PrismaClient } from '@prisma/client';
 import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
 import { analyseClientFeedback } from '@/lib/feedback/analysis';
 import { triageClientFeedback } from '@/lib/feedback/replies';
-import { PROCESSING_STALE_MS } from '@/lib/feedback/state';
+import { FAILED_RETRY_COOLDOWN_MS, PROCESSING_STALE_MS } from '@/lib/feedback/state';
 
 /**
  * THE FEEDBACK PIPELINE, AS ONE CALL.
@@ -48,11 +48,20 @@ export async function hasUnprocessedFeedback(
   now: Date = new Date(),
 ): Promise<boolean> {
   const staleBefore = new Date(now.getTime() - PROCESSING_STALE_MS);
+  const retryBefore = new Date(now.getTime() - FAILED_RETRY_COOLDOWN_MS);
   const waiting = await db.reviewItem.count({
     where: {
       clientId,
       OR: [
-        { analysisStatus: { in: ['PENDING', 'FAILED'] } },
+        { analysisStatus: 'PENDING' },
+        // A failed row is only "waiting" once its cooldown has passed, so a
+        // stuck item stops waking a run on every single page view.
+        { analysisStatus: 'FAILED', updatedAt: { lt: retryBefore } },
+        // Read by an older engine. This still wakes a run — the reading has to
+        // be brought up to date or the item drops out of the counts — but that
+        // re-read is DETERMINISTIC ONLY. See the AI pass in
+        // src/lib/feedback/analysis.ts: a deploy never re-sends history to a
+        // provider.
         { analysisStatus: 'ANALYSED', analysisVersion: { lt: ANALYSIS_VERSION } },
         { analysisStatus: 'PROCESSING', updatedAt: { lt: staleBefore } },
       ],

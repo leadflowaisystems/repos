@@ -120,6 +120,7 @@ export function createTestDb(name: string): PrismaClient {
 
 /** Empties every table between tests. Order respects foreign keys. */
 export async function resetDb(db: PrismaClient): Promise<void> {
+  await db.aiUsageDay.deleteMany();
   await db.businessContext.deleteMany();
   await db.feedbackGateway.deleteMany();
   await db.minute.deleteMany();

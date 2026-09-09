@@ -29,6 +29,23 @@ export type AiCompleteOptions = {
   temperature?: number;
 };
 
+/**
+ * What one call actually cost, as the provider reported it.
+ *
+ * Reported rather than estimated wherever possible: the daily budget is only
+ * as honest as its arithmetic, and a provider counts its own tokens better
+ * than any character heuristic can. Null when a provider does not say.
+ */
+export type AiUsage = {
+  inputTokens: number;
+  outputTokens: number;
+};
+
+export type AiCompletion = {
+  text: string;
+  usage: AiUsage | null;
+};
+
 export type AiProvider = {
   id: AiProviderId;
   label: string;
@@ -36,7 +53,7 @@ export type AiProvider = {
   model: string;
   /** True when an API key is present in the environment. */
   isConfigured(): boolean;
-  complete(options: AiCompleteOptions): Promise<string>;
+  complete(options: AiCompleteOptions): Promise<AiCompletion>;
 };
 
 export class AiError extends Error {

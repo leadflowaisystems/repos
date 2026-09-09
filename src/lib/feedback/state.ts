@@ -29,6 +29,22 @@ export type AnalysisState = 'COLLECTED' | 'PROCESSING' | 'ANALYSED' | 'FAILED';
  */
 export const PROCESSING_STALE_MS = 10 * 60_000;
 
+/**
+ * How long a failed reading waits before the automatic pipeline tries again.
+ *
+ * A row fails when its write throws, which is usually something persistent —
+ * and until this existed, "the next run will try again" meant the next PAGE
+ * VIEW would try again, forever, with no attempt counter and no ceiling. One
+ * stuck row could therefore spend an entire day's AI allowance on its own,
+ * a few tokens at a time, and nothing on any screen would say so.
+ *
+ * An hour keeps a genuine transient failure self-healing within the hour
+ * while capping a permanently broken row at 24 attempts a day instead of one
+ * per visit. The operator's own re-read ignores this: a person who has just
+ * fixed the cause should not be told to wait.
+ */
+export const FAILED_RETRY_COOLDOWN_MS = 60 * 60_000;
+
 /** Read by the engine that is running now — not by an older one. */
 export function isCurrentAnalysis(row: { analysisStatus: string; analysisVersion: number }): boolean {
   return row.analysisStatus === 'ANALYSED' && row.analysisVersion >= ANALYSIS_VERSION;
