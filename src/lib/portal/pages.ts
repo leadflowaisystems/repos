@@ -4,13 +4,10 @@ import { MIN_MENTIONS_TO_NAME } from '@/lib/intelligence/engine';
 import type { AnalysisCoverage, ThemeSummary } from '@/lib/feedback/analysis';
 import type { AnalysisState } from '@/lib/feedback/state';
 import type { SnapshotListRow } from '@/lib/snapshots/service';
-import { SENTIMENT_LABELS } from '@/lib/analysis/normalize';
 import { formatDate } from '@/lib/format';
-import { RESPONSE_CLASS_LABELS } from '@/lib/reply/triage';
 import type { Pack } from '@/lib/packs';
 import {
   buildPortalView,
-  pieces,
   spoken,
   type PortalAction,
   type PortalInput,
@@ -18,6 +15,8 @@ import {
   type PortalSoFar,
   type PortalWatch,
 } from './view';
+import { EN } from '@/lib/i18n/translator';
+import type { PortalTranslator } from '@/lib/i18n/translator';
 
 /**
  * THE OTHER PAGES OF THE CLIENT WORKSPACE (M12).
@@ -35,9 +34,20 @@ import {
  * computes intelligence.
  */
 
-function joinNames(names: string[]): string {
+/**
+ * A list of pack labels, as a sentence would say it.
+ *
+ * The labels themselves are data and are never touched. Only the word that
+ * joins the last two is language — "and", "और", "आणि" — and it comes from the
+ * dictionary, so the list reads as a list in whichever language the sentence
+ * around it is written in.
+ */
+function joinNames(names: string[], t: PortalTranslator): string {
   if (names.length <= 1) return names[0] ?? '';
-  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  return t('evidence.list.pair', {
+    rest: names.slice(0, -1).join(', '),
+    last: names[names.length - 1] ?? '',
+  });
 }
 
 // ===========================================================================
@@ -82,45 +92,54 @@ export type AnalysisView = {
 export function buildAnalysisView(input: PortalInput): AnalysisView {
   const v = buildPortalView(input);
   const intel = input.intelligence;
+  // Handed in on the input, never looked up. No translator means English,
+  // which is the operator console's deliberate answer, not an oversight.
+  const t = input.t ?? EN;
 
   const telling: string[] = [];
   if (v.keep) {
     const others = v.loved
       .filter((s) => s.themeKey !== v.keep?.themeKey && s.bucket !== 'EARLY')
       .map((s) => spoken(s.themeLabel));
-    const othersLine = others.length ? ` Customers also praise your ${joinNames(others)} often.` : '';
+    const othersLine = others.length
+      ? ` ${t('evidence.telling.others', { things: joinNames(others, t) })}`
+      : '';
     // The disagreement was glued on with ", though ...". It is its own fact,
     // so it gets its own short sentence.
     const opposite = v.keep.counterpart
-      ? ` But ${v.keep.counterpart.count} ${v.keep.counterpart.count === 1 ? 'comment' : 'comments'} said the opposite.`
+      ? ` ${t.plural('evidence.telling.opposite', v.keep.counterpart.count)}`
       : '';
     telling.push(
-      `${v.keep.isRecurring ? 'Customers keep praising' : 'Customers praise'} your ${spoken(v.keep.themeLabel)}${
-        v.keep.isRecurring ? '' : ' most'
-      }.${opposite}${othersLine}`,
+      `${
+        v.keep.isRecurring
+          ? t('evidence.telling.keep.recurring', { theme: spoken(v.keep.themeLabel) })
+          : t('evidence.telling.keep.top', { theme: spoken(v.keep.themeLabel) })
+      }${opposite}${othersLine}`,
     );
   } else if (v.loved.length > 0) {
-    const one = v.loved.length === 1;
     telling.push(
-      `Customers praise your ${joinNames(v.loved.map((s) => spoken(s.themeLabel)))}. ${
-        one ? 'It has' : 'They have'
-      } not come up often enough yet to call ${one ? 'it' : 'them'} a strength.`,
+      t.plural('evidence.telling.early', v.loved.length, {
+        things: joinNames(
+          v.loved.map((s) => spoken(s.themeLabel)),
+          t,
+        ),
+      }),
     );
   }
   // The count and the other complaints live on the cards directly beneath;
   // saying them here as well made the page open by repeating itself.
   if (v.first) {
-    telling.push(`Headway would deal with ${spoken(v.first.themeLabel)} first.`);
+    telling.push(t('evidence.telling.first', { theme: spoken(v.first.themeLabel) }));
   } else if (intel.evidence.analysed > 0) {
-    telling.push('No complaint has come up often enough to call it a weakness.');
+    telling.push(t('evidence.telling.noWeakness'));
   }
 
   const readable = input.snapshots.length;
   const recurrenceNote =
     readable < 2
       ? readable === 0
-        ? 'You have not recorded a check-in yet. Headway cannot tell you what keeps coming back until you do.'
-        : 'You have only one check-in so far. After your next one, Headway can tell you what keeps coming back and what is new.'
+        ? t('evidence.recurrence.noCheckin')
+        : t('evidence.recurrence.oneCheckin')
       : null;
 
   const better = v.changed.filter((s) => s.movementDirection === 'IMPROVING');
@@ -128,10 +147,13 @@ export function buildAnalysisView(input: PortalInput): AnalysisView {
   const steadyLine =
     intel.window.available && better.length + worse.length === 0
       ? v.steady.length > 0
-        ? `Nothing moved by 2 or more mentions between these check-ins. Your ${joinNames(
-            v.steady.map((s) => `${spoken(s.themeLabel)} (${s.movementCounts ?? 'steady'})`),
-          )} held steady.`
-        : 'Nothing moved by 2 or more mentions between these check-ins.'
+        ? t('evidence.steady.with', {
+            things: joinNames(
+              v.steady.map((s) => `${spoken(s.themeLabel)} (${s.movementCounts ?? 'steady'})`),
+              t,
+            ),
+          })
+        : t('evidence.steady.none')
       : null;
 
   return {
@@ -178,6 +200,7 @@ export type ImprovementsView = {
 
 export function buildImprovementsView(input: PortalInput): ImprovementsView {
   const v = buildPortalView(input);
+  const t = input.t ?? EN;
   const checked = v.actions.filter((a) => a.stage === 'CHECKED');
   const notPursued = v.actions.filter((a) => a.stage === 'NOT_DOING');
   const open = v.actions.filter((a) => a.stage !== 'CHECKED' && a.stage !== 'NOT_DOING');
@@ -185,12 +208,20 @@ export function buildImprovementsView(input: PortalInput): ImprovementsView {
   const improved = v.actions.filter((a) => a.outcome?.good).length;
   const worse = v.actions.filter((a) => a.outcome?.result === 'WORSENED').length;
 
-  const bits = [`${compared} ${compared === 1 ? 'change' : 'changes'} compared`];
+  const bits = [t.plural('evidence.record.compared', compared)];
   if (improved > 0) {
-    bits.push(`mentioned less often after ${compared === 1 ? 'the change' : `${improved} of them`}`);
+    bits.push(
+      compared === 1
+        ? t('evidence.record.better.single')
+        : t('evidence.record.better.many', { count: improved }),
+    );
   }
   if (worse > 0) {
-    bits.push(`mentioned more often after ${compared === 1 ? 'the change' : `${worse} of them`}`);
+    bits.push(
+      compared === 1
+        ? t('evidence.record.worse.single')
+        : t('evidence.record.worse.many', { count: worse }),
+    );
   }
 
   return {
@@ -198,8 +229,8 @@ export function buildImprovementsView(input: PortalInput): ImprovementsView {
     record:
       compared === 0
         ? v.actions.length === 0
-          ? 'You have not agreed to any change yet.'
-          : 'Headway has not compared any change with later feedback yet.'
+          ? t('evidence.record.noChange')
+          : t('evidence.record.noComparison')
         : bits.join(' · '),
     suggested: v.suggestedNow,
     open,
@@ -327,8 +358,32 @@ function replyStateOf(row: FeedbackRow): ReviewItem['replyState'] {
   return worthReply(row) ? 'SUGGESTED' : 'DRAFT';
 }
 
-function sentimentLabelOf(key: string): string {
-  return SENTIMENT_LABELS[key as keyof typeof SENTIMENT_LABELS] ?? 'Not read yet';
+/**
+ * How a row was read, in the owner's language.
+ *
+ * The four tones borrow the keys the filter chips already use, so a chip and
+ * the row beneath it cannot drift apart; only "not read yet" is new. The
+ * stored value itself (POSITIVE, NEGATIVE) is data and never appears.
+ */
+const TONE_KEYS = {
+  POSITIVE: 'feedback.tone.positive',
+  NEGATIVE: 'feedback.tone.negative',
+  MIXED: 'feedback.tone.mixed',
+  NEUTRAL: 'feedback.tone.neutral',
+  UNKNOWN: 'evidence.tone.unread',
+} as const;
+
+/** What the reply engine sorted a comment into. UNCLASSIFIED shows nothing. */
+const CLASS_KEYS = {
+  PRAISE: 'evidence.class.praise',
+  COMPLAINT: 'evidence.class.complaint',
+  MIXED: 'evidence.class.mixed',
+  QUESTION: 'evidence.class.question',
+  NEUTRAL: 'evidence.class.neutral',
+} as const;
+
+function sentimentLabelOf(key: string, t: PortalTranslator): string {
+  return t(TONE_KEYS[key as keyof typeof TONE_KEYS] ?? 'evidence.tone.unread');
 }
 
 export function buildReviewsView(input: {
@@ -348,8 +403,13 @@ export function buildReviewsView(input: {
   /** The theme counts behind the intelligence, for the funnel. Optional for older callers. */
   themes?: ThemeSummary | null;
   replyWorth: number;
+  /** The owner's language. Omitted means English — see PortalTranslator. */
+  t?: PortalTranslator;
 }): ReviewsView {
   const rows = input.rows;
+  // Handed in on the input, never looked up. No translator means English,
+  // which is the operator console's deliberate answer, not an oversight.
+  const t = input.t ?? EN;
 
   const themeLabel = (key: string) =>
     input.pack.praiseTaxonomy.find((t) => t.key === key)?.label ??
@@ -359,14 +419,20 @@ export function buildReviewsView(input: {
   const parts: string[] = [];
   if (input.filters.theme) {
     const l = themeLabel(input.filters.theme);
-    if (l) parts.push(`about ${spoken(l)}`);
+    if (l) parts.push(t('evidence.filter.theme', { theme: spoken(l) }));
   }
   if (input.filters.stars) {
-    parts.push(`rated ${input.filters.stars} star${input.filters.stars === 1 ? '' : 's'}`);
+    parts.push(t.plural('evidence.filter.stars', input.filters.stars));
   }
-  if (input.filters.sentiment) parts.push(sentimentLabelOf(input.filters.sentiment).toLowerCase());
-  if (input.filters.needs === 'reply') parts.push('that need your answer');
-  if (input.filters.q.trim()) parts.push(`mentioning "${input.filters.q.trim()}"`);
+  if (input.filters.sentiment) {
+    parts.push(sentimentLabelOf(input.filters.sentiment, t).toLowerCase());
+  }
+  if (input.filters.needs === 'reply') parts.push(t('evidence.filter.needsReply'));
+  // The owner's own search words are a value, quoted and passed through
+  // exactly as typed. Nothing a person typed is ever reworded.
+  if (input.filters.q.trim()) {
+    parts.push(t('evidence.filter.mentioning', { query: input.filters.q.trim() }));
+  }
 
   const ratings = [5, 4, 3, 2, 1].map((stars) => ({
     stars,
@@ -374,7 +440,7 @@ export function buildReviewsView(input: {
   }));
   const sentiments = (['POSITIVE', 'MIXED', 'NEUTRAL', 'NEGATIVE'] as const).map((key) => ({
     key,
-    label: SENTIMENT_LABELS[key],
+    label: t(TONE_KEYS[key]),
     count: input.coverage.sentimentCounts[key] ?? 0,
   }));
 
@@ -389,9 +455,11 @@ export function buildReviewsView(input: {
   const negative = sentiments.find((s) => s.key === 'NEGATIVE')?.count ?? 0;
   const mixed = sentiments.find((s) => s.key === 'MIXED')?.count ?? 0;
   const neutral = sentiments.find((s) => s.key === 'NEUTRAL')?.count ?? 0;
+  // Counts are feedback entries, not people: one customer may leave several.
+  const entries = t.plural('evidence.pieces', analysed);
   if (intel && intel.evidence.analysed > 0) {
     found.push(
-      `Headway has read all ${pieces(analysed)}: ${positive} positive, ${mixed} mixed, ${neutral} neutral, ${negative} negative.`,
+      t('evidence.found.read', { entries, positive, mixed, neutral, negative }),
     );
     const topPraise = [...intel.loved]
       .sort((a, b) => b.evidence.count - a.evidence.count)
@@ -403,27 +471,34 @@ export function buildReviewsView(input: {
           ? // A pack label can itself contain "and" ("doctor's care and
             // explanation"), so the two are kept apart with a colon and a
             // comma rather than run together on a bare "and".
-            `Customers praise two things most: your ${topPraise[0]}, and your ${topPraise[1]}.`
-          : `Customers praise your ${topPraise[0]} most.`,
+            t('evidence.found.praiseTwo', {
+              first: topPraise[0] ?? '',
+              second: topPraise[1] ?? '',
+            })
+          : t('evidence.found.praiseOne', { first: topPraise[0] ?? '' }),
       );
     }
     if (intel.attention) {
       found.push(
-        `Headway would deal with ${spoken(intel.attention.themeLabel)} first. ${intel.attention.evidence.count} of ${intel.attention.evidence.outOf} comments mention it.`,
+        t('evidence.found.attention', {
+          theme: spoken(intel.attention.themeLabel),
+          count: intel.attention.evidence.count,
+          outOf: intel.attention.evidence.outOf,
+        }),
       );
       quick.push({
-        label: `${intel.attention.themeLabel} (${intel.attention.evidence.count} comments)`,
+        // The pack's own label, exactly as the pack words it.
+        label: t('evidence.quick.theme', {
+          theme: intel.attention.themeLabel,
+          count: intel.attention.evidence.count,
+        }),
         query: `theme=${encodeURIComponent(intel.attention.themeKey)}`,
       });
     } else {
-      found.push(
-        `No complaint is a pattern yet. None has come up ${MIN_MENTIONS_TO_NAME} or more times.`,
-      );
+      found.push(t('evidence.found.noPattern', { min: MIN_MENTIONS_TO_NAME }));
     }
     if (input.replyWorth > 0) {
-      found.push(
-        `${input.replyWorth} of ${pieces(analysed)} ${input.replyWorth === 1 ? 'needs' : 'need'} an answer from you. Headway has written a draft reply where it could do so safely. The ones without a draft need your own words.`,
-      );
+      found.push(t.plural('evidence.found.reply', input.replyWorth, { entries }));
     }
   }
   // ---- The funnel and the signals ----------------------------------------
@@ -449,10 +524,17 @@ export function buildReviewsView(input: {
       active: input.filters.theme === t.key,
     }));
 
-  if (positive > 0) quick.push({ label: `All positive (${positive})`, query: 'sentiment=POSITIVE' });
-  if (negative > 0) quick.push({ label: `All negative (${negative})`, query: 'sentiment=NEGATIVE' });
+  if (positive > 0) {
+    quick.push({ label: t('evidence.quick.positive', { count: positive }), query: 'sentiment=POSITIVE' });
+  }
+  if (negative > 0) {
+    quick.push({ label: t('evidence.quick.negative', { count: negative }), query: 'sentiment=NEGATIVE' });
+  }
   if (input.replyWorth > 0) {
-    quick.push({ label: `Need your answer (${input.replyWorth} of ${analysed})`, query: 'needs=reply' });
+    quick.push({
+      label: t('evidence.quick.needsReply', { count: input.replyWorth, total: analysed }),
+      query: 'needs=reply',
+    });
   }
 
   return {
@@ -480,6 +562,7 @@ export function buildReviewsView(input: {
     filterSummary: parts.length ? parts.join(', ') : null,
     items: rows.map((row) => {
       const state = replyStateOf(row);
+      const classKey = CLASS_KEYS[row.responseClass as keyof typeof CLASS_KEYS];
       return {
         id: row.id,
         text: row.text,
@@ -492,9 +575,9 @@ export function buildReviewsView(input: {
           selected: row.answers.flatMap((a) => a.signals),
         },
         sentiment: row.sentiment,
-        sentimentLabel: sentimentLabelOf(row.sentiment),
+        sentimentLabel: sentimentLabelOf(row.sentiment, t),
         classLabel:
-          row.responseClass === 'UNCLASSIFIED' ? null : (RESPONSE_CLASS_LABELS[row.responseClass] ?? null),
+          row.responseClass === 'UNCLASSIFIED' || !classKey ? null : t(classKey),
         themes: row.themes.map((t) => t.label),
         replyState: state,
         suggestedReply: state === 'SUGGESTED' || state === 'DRAFT' ? row.draftText : null,
@@ -541,19 +624,29 @@ export type CheckinView = {
   limits: string[];
 };
 
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+/**
+ * The month a check-in is named after.
+ *
+ * A word in a title, not a date: the dates themselves go through `formatDate`
+ * and are printed exactly as it prints them, in every language.
+ */
+const MONTH_KEYS = [
+  'evidence.month.1', 'evidence.month.2', 'evidence.month.3', 'evidence.month.4',
+  'evidence.month.5', 'evidence.month.6', 'evidence.month.7', 'evidence.month.8',
+  'evidence.month.9', 'evidence.month.10', 'evidence.month.11', 'evidence.month.12',
+] as const;
 
 export function buildCheckinView(
   input: PortalInput & { checkins: SnapshotListRow[] },
 ): CheckinView {
   const v = buildPortalView(input);
   const intel = input.intelligence;
+  // Handed in on the input, never looked up. No translator means English,
+  // which is the operator console's deliberate answer, not an oversight.
+  const t = input.t ?? EN;
   const latest = input.checkins[0] ?? null;
   const previous = input.checkins[1] ?? null;
-  const month = latest ? MONTHS[latest.capturedAt.getMonth()] : null;
+  const month = latest ? MONTH_KEYS[latest.capturedAt.getMonth()] : null;
   const on = (s: SnapshotListRow) => formatDate(s.capturedAt);
 
   const better = v.changed.filter((s) => s.movementDirection === 'IMPROVING');
@@ -570,9 +663,9 @@ export function buildCheckinView(
   const made = v.actions.filter((a) => a.awaiting !== null);
 
   const bits: string[] = [];
-  if (better.length) bits.push(`${better.length} ${better.length === 1 ? 'thing is' : 'things are'} getting better`);
-  if (worse.length) bits.push(`${worse.length} ${worse.length === 1 ? 'thing is' : 'things are'} getting worse`);
-  if (checked.length) bits.push(`${checked.length} ${checked.length === 1 ? 'change was' : 'changes were'} compared`);
+  if (better.length) bits.push(t.plural('evidence.checkin.better', better.length));
+  if (worse.length) bits.push(t.plural('evidence.checkin.worse', worse.length));
+  if (checked.length) bits.push(t.plural('evidence.checkin.compared', checked.length));
   const prevDate = intel.window.previousCapturedAt
     ? formatDate(intel.window.previousCapturedAt)
     : previous
@@ -581,33 +674,42 @@ export function buildCheckinView(
   const movementLine = !intel.window.available
     ? v.changedNote
     : bits.length
-      ? `Since your check-in on ${prevDate}: ${bits.join(', ')}.`
-      : `Nothing moved enough to report since your check-in on ${prevDate}.`;
+      ? t('evidence.checkin.since', { date: String(prevDate), bits: bits.join(', ') })
+      : t('evidence.checkin.nothing', { date: String(prevDate) });
 
   const moved = better.length + worse.length > 0;
+  // The honest limit on the comparison: what could NOT be compared, and why.
+  // The qualifier is the sentence, so it travels whole into every language.
   const comparedNote =
     v.notComparable.length > 0
-      ? ` Headway could not compare ${v.notComparable.length} ${v.notComparable.length === 1 ? 'topic' : 'topics'}. ${v.notComparable.length === 1 ? 'It' : 'They'} had too few mentions at one of the two check-ins.`
+      ? ` ${t.plural('evidence.checkin.notCompared', v.notComparable.length)}`
       : '';
   const unchangedNote = !intel.window.available
     ? ''
     : !moved
       ? comparedNote.trim()
       : v.steady.length > 0
-        ? `Everything else Headway could compare held steady. This includes your ${joinNames(v.steady.slice(0, 3).map((s) => spoken(s.themeLabel)))}.${comparedNote}`
-        : `Everything else Headway could compare held steady.${comparedNote}`;
+        ? `${t('evidence.checkin.steadyIncludes', {
+            things: joinNames(
+              v.steady.slice(0, 3).map((s) => spoken(s.themeLabel)),
+              t,
+            ),
+          })}${comparedNote}`
+        : `${t('evidence.checkin.steady')}${comparedNote}`;
 
   const movedKeys = new Set([...better, ...worse, ...returning].map((s) => s.themeKey));
   const next = v.watching.filter((w) => w.themeKey !== null && movedKeys.has(w.themeKey));
 
   return {
     businessName: v.businessName,
-    title: month ? `${month} check-in` : 'No check-in yet',
+    title: month
+      ? t('evidence.checkin.title', { month: t(month) })
+      : t('evidence.checkin.noneTitle'),
     periodNote: latest
       ? previous
-        ? `This compares your check-in on ${on(latest)} with your check-in on ${on(previous)}.`
-        : `This uses your check-in on ${on(latest)}. A second check-in will show what changed.`
-      : 'This covers everything Headway has read so far.',
+        ? t('evidence.period.compares', { latest: on(latest), previous: on(previous) })
+        : t('evidence.period.single', { latest: on(latest) })
+      : t('evidence.period.all'),
     compared: intel.window.available,
     movementLine,
     better,

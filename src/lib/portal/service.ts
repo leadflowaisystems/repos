@@ -20,6 +20,7 @@ import {
   type ReviewFilters,
   type ReviewsView,
 } from './pages';
+import type { PortalTranslator } from '@/lib/i18n/translator';
 
 /**
  * CLIENT WORKSPACE SERVICE (M12).
@@ -53,15 +54,20 @@ export type Core = PortalInput & { checkins: Awaited<ReturnType<typeof listSnaps
  * exported so the responsibility layer (M15) is built on this exact load
  * rather than a second one that could drift.
  */
-export async function loadCore(db: PrismaClient, client: ClientRow, now: Date): Promise<Core> {
+export async function loadCore(
+  db: PrismaClient,
+  client: ClientRow,
+  now: Date,
+  t?: PortalTranslator,
+): Promise<Core> {
   const [context, stored, actions, checkins, ownerContext] = await Promise.all([
-    loadIntelligence(db, client, now),
+    loadIntelligence(db, client, now, t),
     loadHealthSnapshots(db, client.id),
     listActionsWithProgress(db, client.id),
     listSnapshots(db, client.id),
     getContextSet(db, client.id),
   ]);
-  const card = computeHealthCard({ pack: context.pack, snapshots: stored, now });
+  const card = computeHealthCard({ pack: context.pack, snapshots: stored, now, t });
   return {
     intelligence: context.intelligence,
     card,
@@ -71,6 +77,9 @@ export async function loadCore(db: PrismaClient, client: ClientRow, now: Date): 
     themes: context.themes,
     context: ownerContext,
     checkins,
+    // The one place the owner's language enters the generation layer. From
+    // here it rides on the input object every builder already takes.
+    t,
   };
 }
 
@@ -80,42 +89,42 @@ export type PortalBundle = { clientId: string; view: PortalView };
 export async function getPortalView(
   db: PrismaClient,
   clientId: string,
-  options: { now?: Date } = {},
+  options: { now?: Date; t?: PortalTranslator } = {},
 ): Promise<PortalBundle | null> {
   const client = await findClient(db, clientId);
   if (!client) return null;
-  const core = await loadCore(db, client, options.now ?? new Date());
+  const core = await loadCore(db, client, options.now ?? new Date(), options.t);
   return { clientId: client.id, view: buildPortalView(core) };
 }
 
 export async function getAnalysisView(
   db: PrismaClient,
   clientId: string,
-  options: { now?: Date } = {},
+  options: { now?: Date; t?: PortalTranslator } = {},
 ): Promise<AnalysisView | null> {
   const client = await findClient(db, clientId);
   if (!client) return null;
-  return buildAnalysisView(await loadCore(db, client, options.now ?? new Date()));
+  return buildAnalysisView(await loadCore(db, client, options.now ?? new Date(), options.t));
 }
 
 export async function getImprovementsView(
   db: PrismaClient,
   clientId: string,
-  options: { now?: Date } = {},
+  options: { now?: Date; t?: PortalTranslator } = {},
 ): Promise<ImprovementsView | null> {
   const client = await findClient(db, clientId);
   if (!client) return null;
-  return buildImprovementsView(await loadCore(db, client, options.now ?? new Date()));
+  return buildImprovementsView(await loadCore(db, client, options.now ?? new Date(), options.t));
 }
 
 export async function getCheckinView(
   db: PrismaClient,
   clientId: string,
-  options: { now?: Date } = {},
+  options: { now?: Date; t?: PortalTranslator } = {},
 ): Promise<CheckinView | null> {
   const client = await findClient(db, clientId);
   if (!client) return null;
-  return buildCheckinView(await loadCore(db, client, options.now ?? new Date()));
+  return buildCheckinView(await loadCore(db, client, options.now ?? new Date(), options.t));
 }
 
 /**
@@ -133,7 +142,7 @@ export async function getReviewsView(
   db: PrismaClient,
   clientId: string,
   filters: ReviewFilters,
-  options: { now?: Date; page?: number } = {},
+  options: { now?: Date; page?: number; t?: PortalTranslator } = {},
 ): Promise<ReviewsView | null> {
   const client = await findClient(db, clientId);
   if (!client) return null;
@@ -169,7 +178,7 @@ export async function getReviewsView(
     // The pack goes along so each row's tapped ratings come back as labels.
     listClientFeedback(db, client.id, { ...listFilters, limit: REVIEWS_PAGE_SIZE * page }, pack),
     countClientFeedback(db, client.id, listFilters),
-    loadIntelligence(db, client, options.now ?? new Date()),
+    loadIntelligence(db, client, options.now ?? new Date(), options.t),
     // The same definition the filter uses, so the number and the list agree.
     countClientFeedback(db, client.id, { worthReply: true }),
   ]);
@@ -187,6 +196,7 @@ export async function getReviewsView(
     intelligence: context.intelligence,
     themes: context.themes,
     replyWorth,
+    t: options.t,
   });
 }
 

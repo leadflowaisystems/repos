@@ -220,7 +220,12 @@ describe('what Headway wants you to know, and the next step', () => {
     expect(focus.next?.headline).toBe('Before you undo the change, check what else changed.');
     // The suggestion frozen on the action at the time, not the pack's current wording.
     expect(focus.next?.detail).toBe('The original suggestion still stands: Publish a realistic slot length.');
-    expect(focus.next?.why[0]).toBe('Customers are mentioning long waiting time more often since the change.');
+    // The portal now RE-RENDERS the measurement's sentences from the numbers
+    // frozen on the action, rather than replaying the prose frozen beside them.
+    // So this is the engine's current English, not the fixture's older copy —
+    // which is the whole point: stored wording can no longer go stale, and it
+    // can be read in Hindi and Marathi.
+    expect(focus.next?.why[0]).toBe('Customers mention long waiting time more often since the change.');
   });
 
   it('carries a follow-up on an agreed change as the next step', () => {

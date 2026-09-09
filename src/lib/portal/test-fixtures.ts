@@ -274,7 +274,11 @@ export function action(status: ActionStatus, result: ActionResult = 'IMPROVED'):
 }
 
 export function input(overrides: Partial<PortalInput> = {}): PortalInput {
-  const intelligence = overrides.intelligence ?? intel();
+  // Built WITH the same translator the view will use. In production
+  // `loadCore` passes the language to `loadIntelligence`, so a fixture that
+  // built its intelligence in English and then rendered the view in Hindi
+  // would be testing a path the product does not have.
+  const intelligence = overrides.intelligence ?? intel(overrides.t ? { t: overrides.t } : {});
   return {
     intelligence,
     card: computeHealthCard({

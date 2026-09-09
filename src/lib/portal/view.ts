@@ -10,14 +10,15 @@ import type { HealthCard, StoredSnapshot } from '@/lib/health/health';
 import type { DimensionSummaryRow, ThemeSummary } from '@/lib/feedback/analysis';
 import type { Pack, TaxonomyEntry } from '@/lib/packs';
 import {
-  RESULT_LABELS,
   formatShare,
   type ActionResult,
   type ActionStatus,
 } from '@/lib/improve/model';
-import { MIN_FEEDBACK_TO_MEASURE } from '@/lib/improve/measure';
+import { MIN_FEEDBACK_TO_MEASURE, measurementWords } from '@/lib/improve/measure';
 import type { ActionProgress } from '@/lib/improve/service';
 import { formatDate } from '@/lib/format';
+import { EN } from '@/lib/i18n/translator';
+import type { PortalTranslator } from '@/lib/i18n/translator';
 import {
   EMPTY_CONTEXT,
   answerFor,
@@ -76,12 +77,21 @@ export type PortalMood = 'GOOD' | 'MIXED' | 'NEEDS_WORK' | 'TOO_EARLY';
  */
 export type PortalBucket = 'FIRST' | 'KEEP' | 'WATCH' | 'EARLY';
 
+/**
+ * The English labels, for the operator console and anything else without a
+ * translator. Read out of the dictionary rather than typed a second time, so
+ * the two cannot drift apart; the portal calls `bucketLabelFor` instead.
+ */
 export const BUCKET_LABELS: Record<PortalBucket, string> = {
-  FIRST: 'Do this first',
-  KEEP: 'Keep doing this',
-  WATCH: 'Watching',
-  EARLY: 'Waiting for more feedback',
+  FIRST: EN('insight.bucket.FIRST'),
+  KEEP: EN('insight.bucket.KEEP'),
+  WATCH: EN('insight.bucket.WATCH'),
+  EARLY: EN('insight.bucket.EARLY'),
 };
+
+function bucketLabelFor(bucket: PortalBucket, t: PortalTranslator): string {
+  return t(`insight.bucket.${bucket}`);
+}
 
 /** The short instruction attached to a theme. */
 export type PortalAdvice =
@@ -96,16 +106,20 @@ export type PortalAdvice =
   | 'WAIT';
 
 export const ADVICE_LABELS: Record<PortalAdvice, string> = {
-  START: 'Act on this',
-  HOLD: 'Coming up less on its own',
-  CONTINUE: 'Finish the change you agreed',
-  CHECKING: 'Change made, not yet checked',
-  KEEP_CHANGE: 'Keep it in place',
-  REVIEW_CHANGE: 'Look at this again',
-  PROTECT: 'Worth protecting',
-  WATCH: 'Keep watching',
-  WAIT: 'Wait for more feedback',
+  START: EN('insight.advice.START'),
+  HOLD: EN('insight.advice.HOLD'),
+  CONTINUE: EN('insight.advice.CONTINUE'),
+  CHECKING: EN('insight.advice.CHECKING'),
+  KEEP_CHANGE: EN('insight.advice.KEEP_CHANGE'),
+  REVIEW_CHANGE: EN('insight.advice.REVIEW_CHANGE'),
+  PROTECT: EN('insight.advice.PROTECT'),
+  WATCH: EN('insight.advice.WATCH'),
+  WAIT: EN('insight.advice.WAIT'),
 };
+
+function adviceLabelFor(advice: PortalAdvice, t: PortalTranslator): string {
+  return t(`insight.advice.${advice}`);
+}
 
 export type PortalActionState = 'NONE' | 'SUGGESTED' | 'IN_PROGRESS' | 'CHECKED' | 'DECLINED';
 
@@ -186,6 +200,18 @@ export type PortalOutcome = {
   afterShare: string | null;
   beforeLine: string;
   afterLine: string;
+  /**
+   * The same four figures, as numbers.
+   *
+   * Home needs them to draw the two piles. It used to read them back out of
+   * `beforeLine` with /^(\d+) of (\d+)/ — which is English sentence structure,
+   * and Hindi writes the total first, so the whole before/after block vanished
+   * for a Hindi reader with nothing to indicate it ever existed.
+   */
+  beforeCount: number;
+  beforeTotal: number;
+  afterCount: number;
+  afterTotal: number;
   /** "Feedback read up to 12 Mar 2026" */
   beforeScope: string;
   /** "Feedback after the change you made on 1 Apr 2026" */
@@ -202,7 +228,17 @@ export type PortalOutcome = {
   caveat: string;
 };
 
-const OUTCOME_NOTE = 'This does not show the change caused the difference.';
+/**
+ * The sentence that keeps a before/after observational.
+ *
+ * It travels with every reading, in every language. A translation that softens
+ * it into "may not have been caused by" would make the portal claim more in
+ * Hindi than it claims in English, which is the one thing this layer exists to
+ * prevent.
+ */
+function outcomeNote(t: PortalTranslator): string {
+  return t('insight.outcome.note');
+}
 
 /** The other face of a theme, when the pack declares one and customers raised it. */
 export type PortalCounterpart = {
@@ -262,6 +298,15 @@ export type PortalSignal = {
   movementLine: string | null;
   /** "Raised at 2 of your last 2 check-ins." */
   recurrence: string | null;
+  /**
+   * The same two numbers, as numbers.
+   *
+   * Home's recurrence chip needs them. Reading them back out of `recurrence`
+   * with a regex worked only while that sentence was English — see the note on
+   * Recurrence in portal/history.ts.
+   */
+  recurrenceRaised: number | null;
+  recurrenceOutOf: number | null;
   isRecurring: boolean;
   isNew: boolean;
   counterpart: PortalCounterpart | null;
@@ -327,6 +372,19 @@ export type PortalAction = {
   stageMeaning: string;
   /** Customer fact at the time: "12 of 80 feedback entries read by 2 Mar 2026." */
   problem: string;
+  /**
+   * The same figures, as data.
+   *
+   * The Improvements page draws them as a labelled row. It used to recover them
+   * by matching the sentence against
+   * /^(\d+) of the (\d+) pieces of feedback read by (.+?) \((\d+%)\)/ — which
+   * stopped matching the moment the wording changed, in English, and would
+   * never have matched Hindi at all.
+   */
+  problemCount: number;
+  problemTotal: number;
+  problemShare: string;
+  problemBy: string;
   suggestedAt: Date;
   /** What RepOS suggested, verbatim from the pack. */
   suggested: string;
@@ -364,6 +422,16 @@ export type PortalView = {
 
   /** The invisible work, stated plainly. */
   work: string[];
+  /**
+   * What each work line IS, in the same order — 'read', 'grouped', 'compared',
+   * 'firstCheckin', 'measured', 'remembered'.
+   *
+   * The responsibility engine picks some of these lines out. It used to do so
+   * with /^Grouped |^Compared |^Kept track /, which matched nothing once the
+   * lines were written in Hindi — so the sentence describing the work Headway
+   * did simply disappeared for those readers.
+   */
+  workKinds: string[];
 
   keep: PortalSignal | null;
   first: PortalSignal | null;
@@ -420,19 +488,34 @@ export type PortalInput = {
   themes: ThemeSummary;
   /** What the owner told RepOS. Optional so an owner with nothing recorded is the same page. */
   context?: ContextSet;
+  /**
+   * The language this portal is being read in, as a translator.
+   *
+   * Passed in, never looked up: these builders are pure, and a function that
+   * asked what language it was in would have to be edited again for the next
+   * one. Omitted means English — which is not an oversight but the operator
+   * console's deliberate answer, since staff read one language.
+   */
+  t?: PortalTranslator;
 };
 
 // ---------------------------------------------------------------------------
 // Small wording helpers
 // ---------------------------------------------------------------------------
 
-export function pieces(n: number): string {
-  return `${n} feedback ${n === 1 ? 'entry' : 'entries'}`;
+/**
+ * The pile, counted.
+ *
+ * The translator defaults to English because this is exported and the operator
+ * console's own callers have no translator to give it.
+ */
+export function pieces(n: number, t: PortalTranslator = EN): string {
+  return t.plural('insight.pieces', n);
 }
 
 /** Counts are feedback entries, not people: one customer may leave several. */
-function comments(n: number): string {
-  return `${n} ${n === 1 ? 'comment' : 'comments'}`;
+function comments(n: number, t: PortalTranslator): string {
+  return t.plural('insight.comments', n);
 }
 
 function shareText(count: number, total: number): string {
@@ -463,26 +546,27 @@ function hasSignal(insight: Insight, key: SignalKey): boolean {
   return insight.signals.some((s) => s.key === key);
 }
 
-function joinNames(names: string[]): string {
+/**
+ * A list of theme names, as a person would read it.
+ *
+ * The names are pack data and are never translated; only the last join is a
+ * word, and it is one key rather than a bare " and " glued in.
+ */
+function joinNames(names: string[], t: PortalTranslator): string {
   if (names.length <= 1) return names[0] ?? '';
-  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  return t('insight.list.pair', {
+    first: names.slice(0, -1).join(', '),
+    last: names[names.length - 1] ?? '',
+  });
 }
 
-const STAGE_LABELS: Record<PortalActionStage, string> = {
-  SUGGESTED: 'Suggested',
-  AGREED: 'Agreed',
-  DONE: 'Change made',
-  CHECKED: 'Checked',
-  NOT_DOING: 'Not doing',
-};
+function stageLabelFor(stage: PortalActionStage, t: PortalTranslator): string {
+  return t(`insight.stage.${stage}`);
+}
 
-const STAGE_MEANINGS: Record<PortalActionStage, string> = {
-  SUGGESTED: 'Suggested from your feedback. Nothing has been decided yet.',
-  AGREED: 'You agreed to make this change. It has not been made yet.',
-  DONE: 'You told us the change was made. Headway has not compared the feedback yet.',
-  CHECKED: 'Headway compared how often it came up before and after the change.',
-  NOT_DOING: 'You decided not to make this change.',
-};
+function stageMeaningFor(stage: PortalActionStage, t: PortalTranslator): string {
+  return t(`insight.stageMeaning.${stage}`);
+}
 
 function stageFor(status: ActionStatus): PortalActionStage {
   switch (status) {
@@ -541,29 +625,113 @@ function loopByTheme(actions: ActionProgress[]): Map<string, ActionProgress> {
 // Outcomes
 // ---------------------------------------------------------------------------
 
-export function outcomeFrom(progress: ActionProgress | undefined): PortalOutcome | null {
+/**
+ * The suggestion frozen onto an action, in the owner's language WHERE THAT IS
+ * HONEST.
+ *
+ * `recommendationText` is copied onto the action when it is created, so an old
+ * action can carry wording the pack has since changed. Showing the pack's
+ * current sentence instead would rewrite history — the portal is supposed to
+ * say what Headway suggested at the time.
+ *
+ * So: translate it only when the frozen text is still word-for-word the pack's
+ * current suggestion, which means nothing has changed and the translation says
+ * exactly the same thing. When they differ, the frozen English stands, because
+ * there is no translation of a sentence that no longer exists anywhere.
+ */
+function frozenSuggestion(
+  pack: Pack,
+  themeKey: string,
+  frozen: string | null,
+  t: PortalTranslator,
+): string | null {
+  if (!frozen) return null;
+  const current = pack.issueTaxonomy.find((x) => x.key === themeKey)?.action?.trim() ?? null;
+  if (!current || current !== frozen.trim()) return frozen;
+  return t.soft(`pack.${pack.id}.${themeKey}.action`) ?? frozen;
+}
+
+export function outcomeFrom(
+  progress: ActionProgress | undefined,
+  t: PortalTranslator = EN,
+  packId?: string,
+): PortalOutcome | null {
   const m = progress?.action.measurement;
   if (!m || !progress) return null;
   const delta = m.shareDelta ?? 0;
   const doneAt = progress.action.doneAt;
+
+  // THE SENTENCES ARE RE-RENDERED, THE NUMBERS ARE NOT.
+  //
+  // A measurement is stored as JSON with its prose inside it, so a reading
+  // taken before the portal spoke Hindi holds English prose forever — reading
+  // `m.headline` back out of storage would show that English to a Hindi owner
+  // with nothing to indicate why. So the words are written again here, from
+  // the frozen figures, in the reader's language.
+  //
+  // Every figure still comes from the stored measurement and the frozen
+  // baseline: the counts, the totals, the share move, the feedback that fell
+  // between the decision and the change, and the two dates the comparison was
+  // drawn between. Nothing is recounted. The verdict is not re-decided either
+  // — `m.result` is handed over as a fact, and the renderer only picks the
+  // sentence that describes it.
+  const words = doneAt
+    ? measurementWords(
+        {
+          result: m.result,
+          // The label frozen beside the figures is English. The KEY is stable,
+          // so the label is looked up again here — otherwise a Marathi
+          // sentence carries an English noun phrase in the middle of it.
+          themeLabel:
+            (packId
+              ? t.soft(`pack.${packId}.${progress.action.provenance.themeKey}`)
+              : null) ?? m.themeLabel,
+          sentiment: m.sentiment,
+          before: m.before,
+          after: m.after,
+          shareDelta: m.shareDelta,
+          betweenCount: m.betweenCount,
+          capturedAt: progress.action.baseline.capturedAt,
+          doneAt,
+        },
+        t,
+      )
+    : // Only reachable if the change date were cleared while the measurement
+      // survived, which the service does not allow — it drops the measurement
+      // in the same write. The stored sentences stand rather than a blank.
+      {
+        resultLabel: m.resultLabel,
+        headline: m.headline,
+        why: m.why,
+        limits: m.limits,
+        beforeLine: m.before.line,
+        afterLine: m.after.line,
+      };
+
   return {
     result: m.result,
-    resultLabel: RESULT_LABELS[m.result],
-    headline: m.headline,
+    resultLabel: words.resultLabel,
+    headline: words.headline,
     beforeShare: m.before.share === null ? null : formatShare(m.before.share),
     afterShare: m.after.share === null ? null : formatShare(m.after.share),
-    beforeLine: m.before.line,
-    afterLine: m.after.line,
-    beforeScope: `Feedback read up to ${formatDate(progress.action.baseline.capturedAt)}`,
+    beforeLine: words.beforeLine,
+    afterLine: words.afterLine,
+    beforeCount: m.before.count,
+    beforeTotal: m.before.total,
+    afterCount: m.after.count,
+    afterTotal: m.after.total,
+    beforeScope: t('insight.outcome.beforeScope', {
+      date: formatDate(progress.action.baseline.capturedAt),
+    }),
     afterScope: doneAt
-      ? `Feedback after the change you made on ${formatDate(doneAt)}`
-      : 'Feedback after the change',
+      ? t('insight.outcome.afterScope.dated', { date: formatDate(doneAt) })
+      : t('insight.outcome.afterScope'),
     changeDate: doneAt,
     direction: delta === 0 ? 'FLAT' : delta < 0 ? 'DOWN' : 'UP',
     good: m.result === 'IMPROVED',
-    why: m.why,
-    note: OUTCOME_NOTE,
-    caveat: m.limits[0] ?? '',
+    why: words.why,
+    note: outcomeNote(t),
+    caveat: words.limits[0] ?? '',
   };
 }
 
@@ -580,70 +748,74 @@ function nextStepFor(args: {
   suggestion: string | null;
   progress: ActionProgress | undefined;
   returning: boolean;
+  t: PortalTranslator;
 }): string {
-  const { progress, suggestion, bucket } = args;
+  const { progress, suggestion, bucket, t } = args;
   const a = progress?.action;
-  const returnNote = args.returning
-    ? ' It is coming up more again. Before you make another change, check what else has changed.'
-    : '';
 
   if (!a) {
     if (args.kind === 'PRAISE') {
       // The watch line beside this already names the drop Headway would flag,
       // and names the number. Saying it here too would repeat it on one card —
       // and it would be wrong on a strength that has already slipped.
-      return 'Keep doing what customers are praising here.';
+      return t('insight.next.praise');
     }
     if (bucket === 'WATCH') {
       // Same reason as above: the watch line says what Headway will flag, and
       // at what number.
       return suggestion
-        ? `No change needed yet. If you want to fix it early, the usual fix is: ${suggestion}`
-        : 'No change needed yet.';
+        ? t('insight.next.watch.suggestion', { suggestion })
+        : t('insight.next.watch');
     }
     // On the card, the advice label beside this already says the complaint is
     // coming up less on its own, so this sentence gives the decision rather
     // than repeating the movement a third time.
     if (args.easing) {
       return suggestion
-        ? `Decide whether to act now or wait. If it comes up more again, start here: ${suggestion}`
-        : 'Decide whether to act now or wait.';
+        ? t('insight.next.easing.suggestion', { suggestion })
+        : t('insight.next.easing');
     }
-    return suggestion
-      ? `Start here: ${suggestion}`
-      : 'Customers have raised this often enough to act on. Decide what to change and tell us.';
+    return suggestion ? t('insight.next.start', { suggestion }) : t('insight.next.act');
   }
 
   switch (a.status) {
     case 'RECOMMENDED':
-      return 'Decide whether to make this change and tell us.';
+      return t('insight.next.recommended');
     case 'ACCEPTED':
-      return 'Tell us once the change is made. Then Headway can compare the feedback that comes after it.';
+      return t('insight.next.accepted');
     case 'PAUSED':
-      return 'The change you agreed is on hold. Headway cannot compare anything until it is made.';
+      return t('insight.next.paused');
     case 'DONE': {
       // Once enough has arrived, saying "48 of the 10 needed" is nonsense —
       // and it is what an owner saw on every page of a busy client (M18).
       const have = progress?.newFeedbackSinceDone ?? 0;
-      const made = `You made the change${a.doneAt ? ` on ${formatDate(a.doneAt)}` : ''}.`;
+      // A whole sentence, not a stem: it is dropped into the two sentences
+      // below as `{made}`, so each language keeps its own word order inside it.
+      const made = a.doneAt
+        ? t('insight.next.done.madeOn', { date: formatDate(a.doneAt) })
+        : t('insight.next.done.made');
       return have >= MIN_FEEDBACK_TO_MEASURE
-        ? `${made} ${pieces(have)} ${have === 1 ? 'has' : 'have'} come in since then. That is enough to compare before and after.`
-        : `${made} Headway is waiting for enough new feedback to compare. So far it has ${have} of the ${MIN_FEEDBACK_TO_MEASURE} it needs.`;
+        ? t.plural('insight.next.done.enough', have, { made })
+        : t('insight.next.done.waiting', { made, have, need: MIN_FEEDBACK_TO_MEASURE });
     }
     case 'MEASURED': {
       switch (a.measurement?.result) {
         case 'IMPROVED':
-          return `Nothing in the feedback after the change says you should undo it. Headway will keep comparing as more comes in.${returnNote}`;
+          return args.returning
+            ? t('insight.next.improved.returning')
+            : t('insight.next.improved');
         case 'WORSENED':
-          return `It came up more often in the feedback after the change. That does not show the change caused it. Before you undo the change, check what else changed.${suggestion ? ` The first suggestion still stands: ${suggestion}` : ''}`;
+          return suggestion
+            ? t('insight.next.worsened.suggestion', { suggestion })
+            : t('insight.next.worsened');
         case 'NO_CLEAR_CHANGE':
-          return 'The feedback after the change reads about the same as before. Keep collecting it. Headway will compare again.';
+          return t('insight.next.noClearChange');
         default:
-          return `Not enough feedback after the change to compare yet. Headway will compare once ${MIN_FEEDBACK_TO_MEASURE} feedback entries have come in after it.`;
+          return t('insight.next.notEnough', { need: MIN_FEEDBACK_TO_MEASURE });
       }
     }
     default:
-      return 'The suggestion stays on record in case it comes up again.';
+      return t('insight.next.record');
   }
 }
 
@@ -663,19 +835,37 @@ type ThemeContext = {
   /** Position among strengths by count: 0 and 1 are "praised most". */
   strengthRank: number;
   featuredBecause?: string | null;
+  /** The language this theme is being read in. Passed down, never looked up. */
+  t: PortalTranslator;
 };
 
 /** The feedback-page question that is evidence for this issue, once anyone has answered it. */
-function tappedFor(insight: Insight, ctx: ThemeContext): PortalTapped | null {
+/**
+ * What customers tapped on the feedback page, for one theme.
+ *
+ * The dimension and signal labels come from the pack's gateway block, which is
+ * DATA — so they are looked up softly by key with the pack's own English as the
+ * fallback. Without this the owner reads "What customers tapped" in Marathi and
+ * then an English list underneath it.
+ */
+function tappedFor(
+  insight: Insight,
+  ctx: ThemeContext,
+  t: PortalTranslator,
+  packId: string,
+): PortalTapped | null {
   if (insight.sentiment !== 'ISSUE') return null;
   const row = ctx.dimensions.find((d) => d.themeKey === insight.themeKey && d.rated > 0 && d.average !== null);
   if (!row) return null;
   return {
-    label: row.label,
+    label: t.soft(`pack.${packId}.dim.${row.key}`) ?? row.label,
     rated: row.rated,
     low: row.low,
     average: row.average as number,
-    specifics: row.signals.map((s) => ({ label: s.label, count: s.count })),
+    specifics: row.signals.map((s) => ({
+      label: t.soft(`pack.${packId}.sig.${row.key}.${s.key}`) ?? s.label,
+      count: s.count,
+    })),
   };
 }
 
@@ -731,22 +921,21 @@ function adviceFor(
 }
 
 /** The last two check-ins, on their own. */
-function movementBriefFor(insight: Insight): string {
+function movementBriefFor(insight: Insight, t: PortalTranslator): string {
   const move = insight.movement.state;
   const issue = insight.sentiment === 'ISSUE';
   if (move === 'WORSENING') {
     return issue
-      ? 'Customers raised it more at your latest check-in than at the one before.'
-      : 'Customers praised it less at your latest check-in than at the one before.';
+      ? t('insight.movement.issue.worsening')
+      : t('insight.movement.praise.worsening');
   }
   if (move === 'IMPROVING') {
     return issue
-      ? 'Customers raised it less at your latest check-in than at the one before.'
-      : 'Customers praised it more at your latest check-in than at the one before.';
+      ? t('insight.movement.issue.improving')
+      : t('insight.movement.praise.improving');
   }
-  if (move === 'STABLE')
-    return 'Customers mentioned it about as often at your latest check-in as at the one before.';
-  return 'There were too few mentions at one of your last two check-ins to compare.';
+  if (move === 'STABLE') return t('insight.movement.stable');
+  return t('insight.movement.none');
 }
 
 /**
@@ -765,63 +954,81 @@ function meaningFor(args: {
   returning: boolean;
   bucket: PortalBucket;
   strengthRank: number;
+  t: PortalTranslator;
 }): { brief: string; meaning: string } {
-  const { insight, counterpart, recurrence, outcome, bucket } = args;
+  const { insight, counterpart, recurrence, outcome, bucket, t } = args;
   const move = insight.movement.state;
   const sentences: string[] = [];
 
   if (insight.sentiment === 'ISSUE') {
     if (counterpart) {
       sentences.push(
-        `${counterpart.themeLabel} is mostly a strength. ${comments(counterpart.count)} praised it. But ${comments(insight.evidence.count)} said the opposite.`,
+        t('insight.meaning.counterpart.issue', {
+          label: counterpart.themeLabel,
+          praise: comments(counterpart.count, t),
+          against: comments(insight.evidence.count, t),
+        }),
       );
     }
     let primary: string;
     let afterNote: string | null = null;
     if (args.state === 'CHECKED' && outcome) {
-      const range =
-        outcome.beforeShare && outcome.afterShare
-          ? ` (${outcome.beforeShare} of feedback before, ${outcome.afterShare} after)`
-          : '';
-      const when = outcome.changeDate ? ` on ${formatDate(outcome.changeDate)}` : '';
+      // The date and the two shares sit in different places in Hindi and
+      // Marathi than they do in English, so each combination is a whole
+      // sentence of its own rather than fragments dropped into the middle.
+      const shares = Boolean(outcome.beforeShare && outcome.afterShare);
+      const dated = outcome.changeDate !== null;
+      const vars = {
+        date: outcome.changeDate ? formatDate(outcome.changeDate) : '',
+        before: outcome.beforeShare ?? '',
+        after: outcome.afterShare ?? '',
+      };
+      const variant = (base: 'improved' | 'worsened' | 'noClearChange'): string =>
+        dated && shares
+          ? t(`insight.meaning.${base}.dated.shares`, vars)
+          : dated
+            ? t(`insight.meaning.${base}.dated`, vars)
+            : shares
+              ? t(`insight.meaning.${base}.shares`, vars)
+              : t(`insight.meaning.${base}`);
       switch (outcome.result) {
         case 'IMPROVED':
-          primary = `In the feedback after the change${when}, it has come up less often${range}.${
-            args.isAttention ? ' It is still the complaint Headway watches most closely.' : ''
-          }`;
+          primary = args.isAttention
+            ? `${variant('improved')} ${t('insight.meaning.stillWatched')}`
+            : variant('improved');
           afterNote = outcome.note;
           break;
         case 'WORSENED':
-          primary = `In the feedback after the change${when}, it has come up more often${range}.`;
-          afterNote = `${outcome.note} Look at it again.`;
+          primary = variant('worsened');
+          afterNote = `${outcome.note} ${t('insight.outcome.lookAgain')}`;
           break;
         case 'NO_CLEAR_CHANGE':
-          primary = `In the feedback after the change${when}, it is coming up about as often as before${range}.`;
+          primary = variant('noClearChange');
           break;
         default:
-          primary = `Not enough feedback after the change${when} to compare yet.`;
+          primary = dated
+            ? t('insight.meaning.notEnough.dated', vars)
+            : t('insight.meaning.notEnough');
       }
     } else if (move === 'WORSENING') {
-      primary = movementBriefFor(insight);
+      primary = movementBriefFor(insight, t);
     } else if (move === 'IMPROVING') {
-      primary = movementBriefFor(insight);
+      primary = movementBriefFor(insight, t);
     } else if (recurrence.recurring) {
-      primary = `It has come up at each of your recent check-ins. It is not a one-off.`;
+      primary = t('insight.meaning.recurring');
     } else if (recurrence.isNew) {
-      primary = `It became a pattern for the first time at your latest check-in. Watch it before you decide anything.`;
+      primary = t('insight.meaning.new');
     } else if (bucket === 'EARLY') {
-      primary = `Customers raised it in ${comments(insight.evidence.count)} so far. That is too few to be sure it is a pattern.`;
+      primary = t('insight.meaning.early', { comments: comments(insight.evidence.count, t) });
     } else if (bucket === 'WATCH') {
-      primary = `Mentioned often enough to be a pattern, but not the main problem to fix first.`;
+      primary = t('insight.meaning.watch');
     } else {
-      primary = `Customers raised it in ${comments(insight.evidence.count)}. That is often enough to act on.`;
+      primary = t('insight.meaning.act', { comments: comments(insight.evidence.count, t) });
     }
     sentences.push(primary);
     if (afterNote) sentences.push(afterNote);
     if (args.returning) {
-      sentences.push(
-        `It came up less often after your earlier change. Now it is coming up more again.`,
-      );
+      sentences.push(t('insight.meaning.returning'));
     }
     return { brief: primary, meaning: sentences.join(' ') };
   }
@@ -832,25 +1039,26 @@ function meaningFor(args: {
   let primary: string;
   if (strong && move === 'IMPROVING') {
     primary = top
-      ? `This is one of the things customers praise most. They are mentioning it more than before.`
-      : `This is a strength. Customers are mentioning it more than before.`;
+      ? t('insight.meaning.praise.growing.top')
+      : t('insight.meaning.praise.growing');
   } else if (strong && move === 'WORSENING') {
-    primary = `This is still a strength. But customers praised it less at your latest check-in than at the one before.`;
+    primary = t('insight.meaning.praise.slipping');
   } else if (strong && recurrence.recurring) {
     primary = top
-      ? `Customers praised it at each of your recent check-ins. It is one of the things they praise most.`
-      : `Customers praised it at each of your recent check-ins. It is a steady strength.`;
+      ? t('insight.meaning.praise.recurring.top')
+      : t('insight.meaning.praise.recurring');
   } else if (strong) {
-    primary = top
-      ? `This is one of the things customers praise most.`
-      : `This is one of your strengths.`;
+    primary = top ? t('insight.meaning.praise.top') : t('insight.meaning.praise.strength');
   } else {
-    primary = `Customers have praised this a few times. That is not often enough yet to call it a strength.`;
+    primary = t('insight.meaning.praise.few');
   }
   sentences.push(primary);
   if (counterpart) {
     sentences.push(
-      `Not everyone agrees. ${comments(counterpart.count)} said the opposite: ${lower(counterpart.themeLabel)}.`,
+      t('insight.meaning.praise.counterpart', {
+        comments: comments(counterpart.count, t),
+        theme: lower(counterpart.themeLabel),
+      }),
     );
   }
   return { brief: primary, meaning: sentences.join(' ') };
@@ -861,23 +1069,24 @@ function watchLineFor(
   bucket: PortalBucket,
   state: PortalActionState,
   outcome: PortalOutcome | null,
+  t: PortalTranslator,
 ): string {
-  const label = lower(insight.themeLabel);
+  const theme = lower(insight.themeLabel);
   if (bucket === 'EARLY') {
     return insight.sentiment === 'PRAISE'
-      ? `Headway is watching whether customers praise ${label} often enough to call it a strength. It needs ${MIN_MENTIONS_TO_NAME * 2} comments before it can say so.`
-      : `Headway is watching whether ${label} comes up more often. It calls this a pattern once customers have raised it ${MIN_MENTIONS_TO_NAME} times.`;
+      ? t('insight.watch.early.praise', { theme, need: MIN_MENTIONS_TO_NAME * 2 })
+      : t('insight.watch.early.issue', { theme, need: MIN_MENTIONS_TO_NAME });
   }
   if (insight.sentiment === 'PRAISE') {
-    return `Headway is checking that customers keep praising ${label}. It will tell you if the praise drops by ${MIN_CHANGE_TO_REPORT} or more mentions at a check-in.`;
+    return t('insight.watch.praise', { theme, change: MIN_CHANGE_TO_REPORT });
   }
   if (state === 'CHECKED' && outcome?.result === 'IMPROVED') {
-    return `Headway is checking whether ${label} keeps coming up less often as new feedback arrives. It will tell you if it comes up more again.`;
+    return t('insight.watch.improved', { theme });
   }
   if (state === 'IN_PROGRESS') {
-    return `Headway is waiting for the feedback that comes in after the change. Then it can compare how often ${label} comes up.`;
+    return t('insight.watch.inProgress', { theme });
   }
-  return `Headway is checking whether ${label} comes up more or less at your next check-in. It will tell you if the count moves by ${MIN_CHANGE_TO_REPORT} or more mentions.`;
+  return t('insight.watch.default', { theme, change: MIN_CHANGE_TO_REPORT });
 }
 
 /**
@@ -894,10 +1103,11 @@ function whyFor(insight: Insight, verticalLabel: string): string[] {
 }
 
 export function toSignal(insight: Insight, ctx: ThemeContext): PortalSignal {
+  const t = ctx.t;
   const { count, outOf } = insight.evidence;
   const progress = ctx.loops.get(insight.themeKey);
   const state: PortalActionState = progress ? stateFor(progress.action.status) : 'NONE';
-  const outcome = outcomeFrom(progress);
+  const outcome = outcomeFrom(progress, t, ctx.pack.id);
   const recurrence = recurrenceFor(ctx.presence, insight.sentiment, insight.themeKey);
   const counterpart = counterpartFor(insight, ctx);
   const moved = insight.movement.state;
@@ -931,6 +1141,7 @@ export function toSignal(insight: Insight, ctx: ThemeContext): PortalSignal {
     returning,
     bucket,
     strengthRank: ctx.strengthRank,
+    t,
   });
   const entry = entryFor(ctx.pack, insight.sentiment, insight.themeKey);
   const ask = entry?.askOwner;
@@ -940,7 +1151,7 @@ export function toSignal(insight: Insight, ctx: ThemeContext): PortalSignal {
   // evidence, it does not become evidence.
   const applied =
     insight.sentiment === 'ISSUE'
-      ? applyConstraints(entry, ctx.context)
+      ? applyConstraints(entry, ctx.context, t, ctx.pack.id)
       : { text: null, constraint: null, note: null, blocked: false };
   const suggestion = insight.sentiment === 'ISSUE' ? (applied.text ?? insight.recommendation) : null;
   const priorityItem = ownerPriority(ctx.context, insight.themeKey);
@@ -956,21 +1167,23 @@ export function toSignal(insight: Insight, ctx: ThemeContext): PortalSignal {
   const actionLine = !progress
     ? null
     : state === 'DECLINED'
-      ? `You decided not to make this change.`
+      ? t('insight.action.declined')
       : state === 'SUGGESTED'
-        ? `You have not decided on Headway's suggestion yet.`
+        ? t('insight.action.undecided')
         : decision
-          ? `You ${state === 'CHECKED' || progress.action.status === 'DONE' ? 'changed' : 'agreed to change'}: ${decision}`
+          ? state === 'CHECKED' || progress.action.status === 'DONE'
+            ? t('insight.action.changed', { decision })
+            : t('insight.action.agreedToChange', { decision })
           : state === 'CHECKED'
-            ? `You made a change here.`
-            : `You agreed to a change here.`;
+            ? t('insight.action.madeChange')
+            : t('insight.action.agreedChange');
 
   return {
     themeKey: insight.themeKey,
     themeLabel: insight.themeLabel,
     kind: insight.sentiment,
 
-    fact: `${count} of ${pieces(outOf)} Headway has read mention it.`,
+    fact: t.plural('insight.fact', outOf, { count, total: outOf }),
     evidenceCount: count,
     evidenceTotal: outOf,
     share: shareText(count, outOf),
@@ -978,18 +1191,20 @@ export function toSignal(insight: Insight, ctx: ThemeContext): PortalSignal {
     movementCounts: readable ? insight.movement.countNote : null,
     movementLine: readable ? insight.movement.pointNote : null,
     recurrence: recurrenceLine,
+    recurrenceRaised: recurrence.raisedAt,
+    recurrenceOutOf: recurrence.outOf,
     isRecurring: recurrence.recurring,
     isNew,
     counterpart,
 
     brief,
-    movementBrief: movementBriefFor(insight),
+    movementBrief: movementBriefFor(insight, t),
     meaning,
     why: whyFor(insight, ctx.intel.verticalLabel),
     bucket,
-    bucketLabel: BUCKET_LABELS[bucket],
+    bucketLabel: bucketLabelFor(bucket, t),
     advice,
-    adviceLabel: ADVICE_LABELS[advice],
+    adviceLabel: adviceLabelFor(advice, t),
     featuredBecause: ctx.featuredBecause ?? null,
     returning,
 
@@ -1002,13 +1217,14 @@ export function toSignal(insight: Insight, ctx: ThemeContext): PortalSignal {
       suggestion,
       progress,
       returning,
+      t,
     }),
-    watchLine: watchLineFor(insight, bucket, state, outcome),
+    watchLine: watchLineFor(insight, bucket, state, outcome, t),
 
     actionState: state,
     actionLine,
     outcome,
-    tapped: tappedFor(insight, ctx),
+    tapped: tappedFor(insight, ctx, t, ctx.pack.id),
     ownerPriority: priorityItem ? youToldUs(priorityItem) : null,
     ownerContext,
     // Asked once. Once the owner has answered, the answer is shown instead.
@@ -1017,9 +1233,16 @@ export function toSignal(insight: Insight, ctx: ThemeContext): PortalSignal {
         ? {
             themeKey: insight.themeKey,
             themeLabel: insight.themeLabel,
-            question: ask.question,
-            options: ask.options,
-            why: `${comments(count)} mention ${lower(insight.themeLabel)}. Headway cannot tell from the feedback alone which of these fits. Your answer decides what to try first.`,
+            question:
+              t.soft(`pack.${ctx.pack.id}.${insight.themeKey}.ask`) ?? ask.question,
+            options: ask.options.map(
+              (option, i) =>
+                t.soft(`pack.${ctx.pack.id}.${insight.themeKey}.ask.${i}`) ?? option,
+            ),
+            why: t('insight.question.why', {
+              comments: comments(count, t),
+              theme: lower(insight.themeLabel),
+            }),
           }
         : null,
   };
@@ -1040,6 +1263,7 @@ export function summaryFor(
   trend: TrendState,
   keep: { insight: Insight; recurring: boolean } | null,
   first: { insight: Insight; outcome: PortalOutcome | null; recurring: boolean } | null,
+  t: PortalTranslator = EN,
 ): { mood: PortalMood; summary: string } {
   if (intel.evidence.analysed === 0) {
     const arrived = intel.evidence.unread;
@@ -1047,14 +1271,14 @@ export function summaryFor(
       mood: 'TOO_EARLY',
       summary:
         arrived > 0
-          ? `${pieces(arrived)} ${arrived === 1 ? 'has' : 'have'} arrived. Headway is reading ${arrived === 1 ? 'it' : 'them'} now.`
-          : 'No feedback has come in yet. Once customers leave feedback through your QR code, Headway will read it and say what matters.',
+          ? t.plural('insight.summary.arrived', arrived)
+          : t('insight.summary.none'),
     };
   }
   if (!intel.evidence.enough) {
     return {
       mood: 'TOO_EARLY',
-      summary: `It is still early. Headway has read ${pieces(intel.evidence.analysed)}. That is enough to start looking, but not enough to be sure of anything.`,
+      summary: t.plural('insight.summary.early', intel.evidence.analysed),
     };
   }
 
@@ -1063,32 +1287,41 @@ export function summaryFor(
     .sort((a, b) => b.evidence.count - a.evidence.count)
     .slice(0, 2);
   const praiseClause = growing.length
-    ? `Customers are praising your ${joinNames(growing.map((i) => lower(i.themeLabel)))} more than before.`
+    ? t('insight.summary.praise.growing', {
+        themes: joinNames(
+          growing.map((i) => lower(i.themeLabel)),
+          t,
+        ),
+      })
     : keep
       ? keep.recurring
-        ? `Customers keep praising your ${lower(keep.insight.themeLabel)}.`
-        : `Customers praise your ${lower(keep.insight.themeLabel)} most.`
+        ? t('insight.summary.praise.keeps', { theme: lower(keep.insight.themeLabel) })
+        : t('insight.summary.praise.most', { theme: lower(keep.insight.themeLabel) })
       : null;
 
   let weakClause: string | null = null;
   if (first) {
-    const label = lower(first.insight.themeLabel);
+    const theme = lower(first.insight.themeLabel);
     const move = first.insight.movement.state;
-    const still = first.recurring || first.outcome !== null ? 'still ' : '';
+    const still = first.recurring || first.outcome !== null;
     // Each of these was glued on with ", although …" or ", and …". Two short
-    // sentences read better than one long one, so the clause stands on its own.
+    // sentences read better than one long one, so the clause stands on its own
+    // — and a whole sentence is what the other two languages can reorder.
     const tail =
       first.outcome?.result === 'IMPROVED'
-        ? ' It has come up less in the feedback after the change.'
+        ? t('insight.summary.tail.improved')
         : first.outcome?.result === 'WORSENED'
-          ? ' It has come up more in the feedback after the change.'
+          ? t('insight.summary.tail.worsened')
           : move === 'WORSENING'
-            ? ' It came up more at your latest check-in.'
+            ? t('insight.summary.tail.worsening')
             : move === 'IMPROVING'
-              ? ' It came up less at your latest check-in.'
+              ? t('insight.summary.tail.improving')
               : '';
     // "The main problem is X" reads right whether X is singular or plural.
-    weakClause = `The main problem is ${still}${label}.${tail}`;
+    const main = still
+      ? t('insight.summary.main.still', { theme })
+      : t('insight.summary.main', { theme });
+    weakClause = tail ? `${main} ${tail}` : main;
   }
 
   if (praiseClause && weakClause) {
@@ -1103,12 +1336,12 @@ export function summaryFor(
   if (praiseClause) {
     return {
       mood: 'GOOD',
-      summary: `${praiseClause} Nothing is coming up often enough to call a problem.`,
+      summary: `${praiseClause} ${t('insight.summary.noProblem')}`,
     };
   }
   return {
     mood: 'GOOD',
-    summary: 'Nothing in your feedback is standing out as a problem.',
+    summary: t('insight.summary.clear'),
   };
 }
 
@@ -1117,6 +1350,9 @@ export function summaryFor(
 // ---------------------------------------------------------------------------
 
 export function buildPortalView(input: PortalInput): PortalView {
+  // English when nobody supplied a language — the operator console's answer,
+  // not a fallback. Never a locale check, and never a second mechanism.
+  const t = input.t ?? EN;
   const intel = input.intelligence;
   const trend = intel.overallTrend;
   const presence = presenceFrom(input.snapshots, input.pack);
@@ -1135,9 +1371,9 @@ export function buildPortalView(input: PortalInput): PortalView {
   const featuredBecause = !strongest
     ? null
     : strongest.movement.state === 'IMPROVING'
-      ? 'Chosen because customers are mentioning it more than before, not only because it is mentioned often.'
+      ? t('insight.featured.growing')
       : strongest.evidence.count < biggestOther
-        ? 'Not your most-mentioned strength, but the one that matters most right now.'
+        ? t('insight.featured.notBiggest')
         : null;
   // "Praised most" is reserved for the top two strengths by count.
   const byCount = [...intel.loved]
@@ -1148,7 +1384,7 @@ export function buildPortalView(input: PortalInput): PortalView {
     const at = byCount.indexOf(i.themeKey);
     return at === -1 ? 99 : at;
   };
-  const base = { intel, pack: input.pack, presence, loops, context, dimensions: input.themes.dimensions };
+  const base = { intel, pack: input.pack, presence, loops, context, dimensions: input.themes.dimensions, t };
 
   const loved = rankedPraise.map((i) =>
     toSignal(i, {
@@ -1176,6 +1412,7 @@ export function buildPortalView(input: PortalInput): PortalView {
     intel.attention && first
       ? { insight: intel.attention, outcome: first.outcome, recurring: first.isRecurring }
       : null,
+    t,
   );
 
   const changed = intel.changing.map((i) =>
@@ -1215,17 +1452,17 @@ export function buildPortalView(input: PortalInput): PortalView {
     rated,
     note:
       mentions.length === 0 && rated.length === 0
-        ? 'Once Headway has read some feedback, what customers mention appears here.'
+        ? t('insight.soFar.empty')
         : mentions.some((m) => m.pattern)
-          ? `The marked ones are patterns. Customers raised them ${MIN_MENTIONS_TO_NAME} or more times. The rest are mentions Headway is watching, not conclusions.`
-          : `Nothing here has been raised ${MIN_MENTIONS_TO_NAME} times yet. So Headway is not calling any of it a pattern. It needs two check-ins before it can say whether anything is coming up more or less.`,
+          ? t('insight.soFar.patterns', { need: MIN_MENTIONS_TO_NAME })
+          : t('insight.soFar.noPattern', { need: MIN_MENTIONS_TO_NAME }),
   };
 
   // ---- Facts, each with its own scope ---------------------------------------
   const facts: PortalFact[] = [
     {
       key: 'direction',
-      label: 'Overall direction',
+      label: t('insight.fact.direction.label'),
       // The words are free to change and to be translated; the colour is
       // chosen from `tone` below, not from these.
       tone:
@@ -1238,29 +1475,29 @@ export function buildPortalView(input: PortalInput): PortalView {
               : 'unknown',
       value:
         trend === 'IMPROVING'
-          ? 'Getting better'
+          ? t('insight.fact.direction.improving')
           : trend === 'WORSENING'
-            ? 'Getting worse'
+            ? t('insight.fact.direction.worsening')
             : trend === 'STABLE'
-              ? 'Holding steady'
-              : 'Not enough to say',
+              ? t('insight.fact.direction.stable')
+              : t('insight.fact.direction.unknown'),
       scope:
         trend === 'INSUFFICIENT_DATA'
-          ? 'Headway needs two check-ins before it can compare'
-          : 'Compared with your previous check-in',
+          ? t('insight.fact.direction.scope.none')
+          : t('insight.fact.direction.scope'),
     },
   ];
   const observed = input.card.observed;
   if (observed.rating !== null) {
     facts.push({
       key: 'publicRating',
-      label: 'Public rating',
+      label: t('insight.fact.rating.label'),
       tone: 'neutral',
       value: observed.rating.toFixed(1),
       scope:
         observed.reviewCount !== null
-          ? `All ${observed.reviewCount} public reviews, not just the feedback Headway has read`
-          : 'Your public listing, not the feedback Headway has read',
+          ? t('insight.fact.rating.scope.count', { count: observed.reviewCount })
+          : t('insight.fact.rating.scope'),
     });
   }
 
@@ -1270,56 +1507,80 @@ export function buildPortalView(input: PortalInput): PortalView {
   ).length;
   const patterns = intel.loved.length + intel.unhappy.length;
   const work: string[] = [];
+  const workKinds: string[] = [];
+  const addWork = (kind: string, sentence: string) => {
+    work.push(sentence);
+    workKinds.push(kind);
+  };
   if (intel.evidence.analysed > 0) {
-    work.push(
-      `Read ${pieces(intel.evidence.analysed)}${intel.evidence.unread > 0 ? ` (${intel.evidence.unread} more being read now)` : ''}.`,
+    addWork(
+      'read',
+      intel.evidence.unread > 0
+        ? t.plural('insight.work.readWithUnread', intel.evidence.analysed, {
+            unread: intel.evidence.unread,
+          })
+        : t.plural('insight.work.read', intel.evidence.analysed),
     );
-    work.push(
+    const grouped = t.plural('insight.work.grouped', patterns);
+    addWork(
+      'grouped',
       patterns > 0
-        ? `Grouped them into ${patterns} ${patterns === 1 ? 'thing' : 'things'} customers keep raising.${quiet > 0 ? ` Set aside ${quiet} ${quiet === 1 ? 'topic' : 'topics'} mentioned only once or twice.` : ''}`
-        : `Found nothing yet that has been raised ${MIN_MENTIONS_TO_NAME} or more times.`,
+        ? quiet > 0
+          ? `${grouped} ${t.plural('insight.work.setAside', quiet)}`
+          : grouped
+        : t('insight.work.nothing', { need: MIN_MENTIONS_TO_NAME }),
     );
   }
   if (intel.window.available && intel.window.previousCapturedAt && intel.window.currentCapturedAt) {
     // Dates, not labels: a label is whatever was typed at the time.
-    work.push(
-      `Compared your check-ins of ${formatDate(intel.window.previousCapturedAt)} and ${formatDate(intel.window.currentCapturedAt)}.`,
+    addWork(
+      'compared',
+      t('insight.work.compared', {
+        first: formatDate(intel.window.previousCapturedAt),
+        second: formatDate(intel.window.currentCapturedAt),
+      }),
     );
   } else if (presence.checkins === 1) {
-    work.push('Recorded your first check-in. The next one lets Headway show what changed.');
+    addWork('firstCheckin', t('insight.work.firstCheckin'));
   }
   const measured = input.actions.filter((p) => p.action.measurement).length;
   const remembered = input.actions.length - measured;
   if (measured > 0) {
-    work.push(
-      `Compared the feedback before and after ${measured} ${measured === 1 ? 'change' : 'changes'} you made.`,
-    );
+    addWork('measured', t.plural('insight.work.measured', measured));
   }
   if (remembered > 0) {
-    work.push(`Kept track of ${remembered} ${remembered === 1 ? 'decision' : 'decisions'} you have made.`);
+    addWork('remembered', t.plural('insight.work.remembered', remembered));
   }
 
   // ---- What not to worry about ---------------------------------------------
-  const quietNote =
-    quiet > 0
-      ? `${quiet} other ${quiet === 1 ? 'topic was' : 'topics were'} mentioned once or twice. That is not enough to call a pattern.`
-      : null;
+  const quietNote = quiet > 0 ? t.plural('insight.quiet', quiet) : null;
   const earlyNames = early.map((s) => lower(s.themeLabel));
   // With a watch list on screen, the bare "nothing else needs your attention"
   // would be false — the watch items are right there. So the lead only claims
   // that nothing comes ahead of them.
   const lead =
-    watch.length > 0
-      ? 'Nothing else comes ahead of what is listed above.'
-      : 'Nothing else needs your attention.';
+    watch.length > 0 ? t('insight.noAction.lead.watch') : t('insight.noAction.lead');
+  // Whole sentences, joined. Each one keeps its own word order in each
+  // language, which a mid-sentence fragment could not.
   const noAction =
     early.length > 0 || quiet > 0
-      ? `${lead} ${earlyNames.length ? `${joinNames(earlyNames).replace(/^./, (c) => c.toUpperCase())} ${earlyNames.length === 1 ? 'has' : 'have'} come up. That is not often enough to act on yet. ` : ''}${quiet > 0 ? `${quiet} other ${quiet === 1 ? 'topic was' : 'topics were'} mentioned once or twice. ` : ''}Headway is not suggesting a change for any of these until they come up more often.`
+      ? [
+          lead,
+          earlyNames.length
+            ? t.plural('insight.noAction.early', earlyNames.length, {
+                names: joinNames(earlyNames, t).replace(/^./, (c) => c.toUpperCase()),
+              })
+            : null,
+          quiet > 0 ? t.plural('insight.noAction.quiet', quiet) : null,
+          t('insight.noAction.tail'),
+        ]
+          .filter((s): s is string => s !== null)
+          .join(' ')
       : intel.evidence.analysed > 0
         ? watch.length > 0
-          ? `${lead} Everything else customers raised is in the watch list above. None of it needs a change yet.`
-          : 'Nothing else is coming up often enough to act on.'
-        : 'There is nothing to set aside yet.';
+          ? `${lead} ${t('insight.noAction.watchList')}`
+          : t('insight.noAction.none')
+        : t('insight.noAction.empty');
 
   // ---- The improvement loop, told end to end ---------------------------------
   const windowAfter = (doneAt: Date | null): boolean =>
@@ -1332,7 +1593,7 @@ export function buildPortalView(input: PortalInput): PortalView {
     const a = progress.action;
     const stage = stageFor(a.status);
     const measuredNow = stage === 'CHECKED';
-    const outcome = outcomeFrom(progress);
+    const outcome = outcomeFrom(progress, t, input.pack.id);
     const insightNow =
       [...intel.loved, ...intel.unhappy].find((i) => i.themeKey === a.provenance.themeKey) ?? null;
     const returning =
@@ -1348,25 +1609,43 @@ export function buildPortalView(input: PortalInput): PortalView {
       themeKey: a.provenance.themeKey,
       kind: a.provenance.themeSentiment,
       stage,
-      stageLabel: STAGE_LABELS[stage],
-      stageMeaning: STAGE_MEANINGS[stage],
+      stageLabel: stageLabelFor(stage, t),
+      stageMeaning: stageMeaningFor(stage, t),
       // The pile and the date it was counted on — never a check-in label,
       // which names a different pile.
-      problem: `${a.baseline.count} of ${pieces(a.baseline.total)} read by ${formatDate(a.baseline.capturedAt)} mentioned it (${shareText(a.baseline.count, a.baseline.total)}).`,
+      problem: t.plural('insight.action.problem', a.baseline.total, {
+        count: a.baseline.count,
+        total: a.baseline.total,
+        date: formatDate(a.baseline.capturedAt),
+        share: shareText(a.baseline.count, a.baseline.total),
+      }),
+      problemCount: a.baseline.count,
+      problemTotal: a.baseline.total,
+      problemShare: shareText(a.baseline.count, a.baseline.total),
+      problemBy: formatDate(a.baseline.capturedAt),
       suggestedAt: a.createdAt,
-      suggested: a.provenance.recommendationText || 'Headway raised this without a specific suggestion.',
+      suggested:
+        frozenSuggestion(
+          input.pack,
+          a.provenance.themeKey,
+          a.provenance.recommendationText || null,
+          t,
+        ) ?? t('insight.action.noSuggestion'),
       decision: a.description.trim(),
       decidedAt: a.decidedAt,
       decisionNote: a.statusNote.trim(),
       doneAt: a.doneAt,
       measuredAt: a.measuredAt,
       steps: [
-        { label: 'Suggested', done: true },
-        { label: stage === 'NOT_DOING' ? 'Not doing' : 'Agreed', done: a.decidedAt !== null },
-        { label: 'Change made', done: a.doneAt !== null && stage !== 'NOT_DOING' },
+        { label: stageLabelFor('SUGGESTED', t), done: true },
+        {
+          label: stageLabelFor(stage === 'NOT_DOING' ? 'NOT_DOING' : 'AGREED', t),
+          done: a.decidedAt !== null,
+        },
+        { label: stageLabelFor('DONE', t), done: a.doneAt !== null && stage !== 'NOT_DOING' },
         // One stage word, "Checked"; "compared" stays as the verb inside the
         // stage meaning, never as a competing name for the same step.
-        { label: 'Checked', done: measuredNow },
+        { label: stageLabelFor('CHECKED', t), done: measuredNow },
       ],
       outcome,
       learning: a.learningNote.trim() || null,
@@ -1374,31 +1653,37 @@ export function buildPortalView(input: PortalInput): PortalView {
         kind: a.provenance.themeSentiment,
         bucket: 'FIRST',
         easing: false,
-        suggestion: a.provenance.recommendationText || null,
+        suggestion: frozenSuggestion(
+          input.pack,
+          a.provenance.themeKey,
+          a.provenance.recommendationText || null,
+          t,
+        ),
         progress,
         returning,
+        t,
       }),
       memory:
         m && m.before.share !== null && m.after.share !== null
           ? {
               then: formatShare(m.before.share),
-              change: a.description.trim() || 'the change you made',
+              change: a.description.trim() || t('insight.memory.change'),
               now: formatShare(m.after.share),
               result:
                 m.result === 'IMPROVED'
-                  ? 'Less often'
+                  ? t('insight.memory.less')
                   : m.result === 'WORSENED'
-                    ? 'More often'
+                    ? t('insight.memory.more')
                     : m.result === 'NO_CLEAR_CHANGE'
-                      ? 'No clear difference'
-                      : 'Not enough feedback',
+                      ? t('insight.memory.noChange')
+                      : t('insight.memory.notEnough'),
             }
           : null,
       // Only check-ins recorded after the change count as "since". Earlier
       // ones are not evidence about it, and are not shown as if they were.
       sinceThen:
         insightNow && insightNow.movement.available && insightNow.movement.pointNote && windowAfter(a.doneAt)
-          ? `At check-ins after the change: ${insightNow.movement.pointNote}`
+          ? t('insight.sinceThen', { note: insightNow.movement.pointNote })
           : null,
       returning,
       awaiting:
@@ -1417,23 +1702,25 @@ export function buildPortalView(input: PortalInput): PortalView {
         ? 'warn'
         : 'neutral';
   const stateOf = (s: PortalSignal): string => {
-    if (s.returning) return 'coming up again';
-    if (s.actionState === 'IN_PROGRESS') return 'change in progress';
-    if (s.outcome?.result === 'IMPROVED') return 'less often after the change';
-    if (s.outcome?.result === 'WORSENED') return 'more often after the change';
+    if (s.returning) return t('insight.state.returning');
+    if (s.actionState === 'IN_PROGRESS') return t('insight.state.inProgress');
+    if (s.outcome?.result === 'IMPROVED') return t('insight.state.improvedAfter');
+    if (s.outcome?.result === 'WORSENED') return t('insight.state.worsenedAfter');
     if (s.movementDirection === null) {
-      return intel.window.available ? 'too few to compare yet' : 'one check-in so far';
+      return intel.window.available
+        ? t('insight.state.tooFew')
+        : t('insight.state.oneCheckin');
     }
     // Mention counts, in the portal's three words: more often, less often,
     // about the same. The verb says which side of the ledger it is.
     if (s.kind === 'ISSUE') {
-      if (s.movementDirection === 'IMPROVING') return 'raised less often';
-      if (s.movementDirection === 'WORSENING') return 'raised more often';
-      return 'about the same';
+      if (s.movementDirection === 'IMPROVING') return t('insight.state.raisedLess');
+      if (s.movementDirection === 'WORSENING') return t('insight.state.raisedMore');
+      return t('insight.state.same');
     }
-    if (s.movementDirection === 'IMPROVING') return 'praised more often';
-    if (s.movementDirection === 'WORSENING') return 'praised less often';
-    return 'about the same';
+    if (s.movementDirection === 'IMPROVING') return t('insight.state.praisedMore');
+    if (s.movementDirection === 'WORSENING') return t('insight.state.praisedLess');
+    return t('insight.state.same');
   };
   // The watch-this themes already carry their own flag line in their section;
   // listing them again here would say the same sentence twice on one page.
@@ -1451,28 +1738,37 @@ export function buildPortalView(input: PortalInput): PortalView {
       watching.push({
         themeKey: a.themeKey,
         label: a.about,
-        state: 'not yet checked',
+        state: t('insight.state.notChecked'),
         tone: 'neutral',
-        next: `Headway is waiting for enough new feedback to compare. So far it has ${a.awaiting.have} of ${a.awaiting.need}.`,
+        next: t('insight.watching.awaiting', {
+          have: a.awaiting.have,
+          need: a.awaiting.need,
+        }),
       });
     }
   }
   if (early.length > 0) {
     watching.push({
       themeKey: null,
-      label: joinNames(early.map((s) => s.themeLabel)),
-      state: 'waiting for more feedback',
+      label: joinNames(
+        early.map((s) => s.themeLabel),
+        t,
+      ),
+      state: t('insight.state.waitingFeedback'),
       tone: 'neutral',
       next:
         early.length === 1 && early[0]
           ? early[0].watchLine
-          : `Headway is watching whether these come up more often before it says anything about them.`,
+          : t('insight.watching.early'),
     });
   }
 
   // The quiet-topics count is already in "not worth your time"; the engine's
   // limit line would say it a second time on the same page.
-  const limits = quiet > 0 ? intel.limits.filter((l) => !/mentioned once or twice/.test(l)) : intel.limits;
+  const limits =
+    quiet > 0
+      ? intel.limits.filter((_, i) => intel.limitKinds[i] !== 'quiet')
+      : intel.limits;
 
   // ---- What the owner told RepOS, shown back as theirs ----------------------
   const KIND_ORDER: ContextItem['kind'][] = [
@@ -1497,7 +1793,9 @@ export function buildPortalView(input: PortalInput): PortalView {
       line: youToldUs(
         i,
         i.kind === 'ANSWER' && i.questionKey
-          ? (entryFor(input.pack, 'ISSUE', i.questionKey)?.askOwner?.question ?? null)
+          ? (t.soft(`pack.${input.pack.id}.${i.questionKey}.ask`) ??
+             entryFor(input.pack, 'ISSUE', i.questionKey)?.askOwner?.question ??
+             null)
           : null,
       ),
       themeKey: i.themeKey,
@@ -1513,14 +1811,15 @@ export function buildPortalView(input: PortalInput): PortalView {
     basis:
       intel.evidence.analysed === 0
         ? intel.evidence.unread > 0
-          ? 'Feedback is usually read within a minute of arriving. Refresh this page to see what Headway found.'
-          : 'No feedback collected yet.'
+          ? t('insight.basis.reading')
+          : t('insight.basis.none')
         : intel.evidence.unread > 0
-          ? `Based on ${pieces(intel.evidence.analysed)}. ${intel.evidence.unread} more ${intel.evidence.unread === 1 ? 'is' : 'are'} being read now.`
-          : `Based on ${pieces(intel.evidence.analysed)}.`,
+          ? `${t.plural('insight.basis.on', intel.evidence.analysed)} ${t.plural('insight.basis.more', intel.evidence.unread)}`
+          : t.plural('insight.basis.on', intel.evidence.analysed),
     facts,
     soFar,
     work,
+    workKinds,
 
     keep,
     first,
@@ -1534,9 +1833,13 @@ export function buildPortalView(input: PortalInput): PortalView {
     changed,
     changedNote: intel.window.available
       ? intel.window.previousCapturedAt && intel.window.currentCapturedAt
-        ? `Comparing your check-ins of ${formatDate(intel.window.previousCapturedAt)} (${pieces(intel.window.previousFeedbackCount ?? 0)}) and ${formatDate(intel.window.currentCapturedAt)} (${intel.window.currentFeedbackCount ?? 0}).`
+        ? t.plural('insight.changed.comparing', intel.window.previousFeedbackCount ?? 0, {
+            first: formatDate(intel.window.previousCapturedAt),
+            second: formatDate(intel.window.currentCapturedAt),
+            current: intel.window.currentFeedbackCount ?? 0,
+          })
         : intel.window.note
-      : 'Headway needs two check-ins before it can show you what changed.',
+      : t('insight.changed.needTwo'),
     steady,
     notComparable,
 
@@ -1545,10 +1848,7 @@ export function buildPortalView(input: PortalInput): PortalView {
     knows,
 
     actions,
-    actionsNote:
-      actions.length === 0
-        ? 'Nothing has been agreed yet. When something comes up often enough to act on, it will appear here.'
-        : '',
+    actionsNote: actions.length === 0 ? t('insight.actions.none') : '',
     suggestedNow: first && first.actionState === 'NONE' ? first : null,
 
     limits,

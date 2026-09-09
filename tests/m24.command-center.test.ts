@@ -393,7 +393,9 @@ describe('the check-in is a pulse', () => {
 
   it('is named after the month, without a possessive', () => {
     const pages = code(read('src', 'lib', 'portal', 'pages.ts'));
-    expect(pages).toContain('title: month ? `${month} check-in`');
+    // Still named after the month and still without a possessive; the
+    // sentence is now evidence.checkin.title, which interpolates {month}.
+    expect(pages).toContain("t('evidence.checkin.title', { month:");
   });
 });
 

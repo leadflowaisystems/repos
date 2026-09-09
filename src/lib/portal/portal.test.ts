@@ -141,8 +141,12 @@ describe('priorities come from the engine, not from raw counts', () => {
     });
     const v = buildPortalView(input({ intelligence: both }));
     expect(v.first?.counterpart?.themeKey).toBe('short_wait');
+    // "Short waiting times" is what the clinic pack calls this theme. The
+    // fixture's own theme row carries an older label, and production has always
+    // preferred the pack's wording (getThemeSummary resolves the label from the
+    // taxonomy), so this is the label an owner actually reads.
     expect(v.first?.meaning).toMatch(
-      /^Little or no waiting is mostly a strength\. 8 comments praised it\. But 9 comments said the opposite\./,
+      /^Short waiting times is mostly a strength\. 8 comments praised it\. But 9 comments said the opposite\./,
     );
     expect(v.keep?.counterpart?.themeKey).toBe('wait_time');
     expect(v.keep?.meaning).toMatch(/Not everyone agrees\. 9 comments said the opposite: long waiting time\./);

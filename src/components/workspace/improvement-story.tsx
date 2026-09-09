@@ -62,11 +62,20 @@ function readingOf(t: T, result: string | undefined): string {
   }
 }
 
-/** "14 of the 44 pieces of feedback read by 23 Jul 2026 (32%) mentioned it." → the parts. */
-function problemParts(problem: string): { count: string; total: string; share: string; by: string } | null {
-  const m = /^(\d+) of the (\d+) pieces of feedback read by (.+?) \((\d+%)\)/.exec(problem);
-  if (!m) return null;
-  return { count: m[1]!, total: m[2]!, by: m[3]!, share: m[4]! };
+/**
+ * The figures behind the problem line, taken from the action itself.
+ *
+ * This used to parse them back out of the English sentence. That broke silently
+ * when the wording changed — the row simply stopped rendering — and could never
+ * have worked in Hindi or Marathi, where the total comes first.
+ */
+function problemParts(a: PortalAction): { count: string; total: string; share: string; by: string } {
+  return {
+    count: String(a.problemCount),
+    total: String(a.problemTotal),
+    share: a.problemShare,
+    by: a.problemBy,
+  };
 }
 
 function Moment({
@@ -118,7 +127,10 @@ function whatToDoNow(t: T, a: PortalAction): { lead: string; rest: string[] } {
     case 'WORSENED':
       return {
         lead: t('improvements.next.worsened'),
-        rest: sentences.filter((s) => /^The original suggestion/.test(s)),
+        // Was: sentences.filter((s) => /^The original suggestion/.test(s)) —
+        // an English prefix test over a sentence that is no longer English.
+        // The suggestion is carried on the action itself.
+        rest: a.suggested ? [t('improvements.next.originalSuggestion', { suggestion: a.suggested })] : [],
       };
     case 'IMPROVED':
       return { lead: t('improvements.next.improved'), rest: sentences };
@@ -151,7 +163,7 @@ export async function ImprovementStory({
   const declined = a.stage === 'NOT_DOING';
   const outcome = a.outcome;
   const population = outcome ? populationFrom(outcome, a) : null;
-  const problem = problemParts(a.problem);
+  const problem = problemParts(a);
   const reviews = `${basePath}/reviews?theme=${encodeURIComponent(a.themeKey)}`;
   const afterQuotes = quotesFor(evidence, a.themeKey, { limit: 3, since: a.doneAt });
   const beforeQuotes = quotesFor(evidence, a.themeKey, { limit: 3, until: a.doneAt ?? undefined });
@@ -172,15 +184,11 @@ export async function ImprovementStory({
         <Moment
           label={t('improvements.moment.problem')}
           when={a.suggestedAt}
-          figure={problem?.share ?? undefined}
-          line={
-            problem
-              ? t.plural('improvements.entries', Number(problem.total), {
-                  count: problem.count,
-                  total: problem.total,
-                })
-              : a.problem
-          }
+          figure={problem.share}
+          line={t.plural('improvements.entries', a.problemTotal, {
+            count: problem.count,
+            total: problem.total,
+          })}
         />
         <Arrow />
         <Moment

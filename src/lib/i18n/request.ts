@@ -1,8 +1,8 @@
 import { cookies } from 'next/headers';
 import { DEFAULT_LOCALE, LOCALE_COOKIE, toLocale, type Locale } from './locale';
-import { MESSAGES } from './strings';
-import { makeTranslator, type Translator } from './t';
-import type { MessageKey } from './strings';
+import { translatorFor, type PortalTranslator } from './translator';
+
+export { translatorFor, EN, type PortalTranslator } from './translator';
 
 /**
  * READING THE OWNER'S CHOSEN LANGUAGE, SERVER-SIDE.
@@ -28,11 +28,6 @@ export async function getLocale(): Promise<Locale> {
 }
 
 /** The language and a translator for it, which is what most pages want. */
-export async function getTranslator(): Promise<Translator<MessageKey>> {
-  return makeTranslator(MESSAGES, await getLocale()) as Translator<MessageKey>;
-}
-
-/** A translator for a language already in hand — no cookie read. */
-export function translatorFor(locale: Locale): Translator<MessageKey> {
-  return makeTranslator(MESSAGES, locale) as Translator<MessageKey>;
+export async function getTranslator(): Promise<PortalTranslator> {
+  return translatorFor(await getLocale());
 }

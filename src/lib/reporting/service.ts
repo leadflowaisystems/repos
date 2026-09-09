@@ -7,6 +7,8 @@ import {
 } from '@/lib/intelligence/engine';
 import { getPackOrFallback } from '@/lib/packs';
 import { RESULT_LABELS, type ActionResult } from '@/lib/improve/model';
+import { EN } from '@/lib/i18n/translator';
+import type { PortalTranslator } from '@/lib/i18n/translator';
 
 /** A stored result string RepOS still recognises. */
 function isActionResult(value: string | null): value is ActionResult {
@@ -158,10 +160,6 @@ function named(themes: PeriodTheme[]): PeriodTheme[] {
   return themes.filter((t) => t.count >= MIN_MENTIONS_TO_NAME);
 }
 
-function plural(n: number, one: string, many: string): string {
-  return `${n} ${n === 1 ? one : many}`;
-}
-
 /**
  * One report builder for both periods.
  *
@@ -172,9 +170,12 @@ export async function buildPeriodReport(
   db: PrismaClient,
   clientId: string,
   kind: PeriodKind,
-  options: { now?: Date } = {},
+  options: { now?: Date; t?: PortalTranslator } = {},
 ): Promise<PeriodReport | null> {
   const now = options.now ?? new Date();
+  // English unless the caller hands over a language. The operator console
+  // calls this builder without one and reads English by design.
+  const t = options.t ?? EN;
   const { current, previous } = periodWindows(kind, now);
 
   const client = await db.client.findUnique({
@@ -245,35 +246,40 @@ export async function buildPeriodReport(
       ? issues.filter((t) => t.movement !== 'DOWN' && t.before >= MIN_MENTIONS_TO_NAME)
       : [];
 
+  // Which half of the dictionary to read, not a language check. A week and a
+  // month are two different sentences in every language — "this week" opens
+  // the Hindi sentence where it closes the English one — so each period has
+  // its own whole phrase rather than a "{period}" hole in a shared one.
   const period = kind === 'WEEK' ? 'week' : 'month';
   const limits: string[] = [];
   let headline: string;
 
   if (volume.current === 0) {
-    headline = `No new feedback this ${period}.`;
-    limits.push('No feedback arrived, so there is nothing to compare.');
+    headline = t(`period.headline.none.${period}`);
+    limits.push(t('period.limit.noFeedback'));
   } else if (!enoughEvidence) {
-    headline = `Not enough new feedback this ${period} to see a pattern yet.`;
+    headline = t(`period.headline.thin.${period}`);
     limits.push(
-      `${plural(volume.current, 'feedback entry', 'feedback entries')} arrived. Headway names a problem once at least ${MIN_MENTIONS_TO_NAME} customers have mentioned it.`,
+      t.plural('period.limit.thin', volume.current, { min: MIN_MENTIONS_TO_NAME }),
     );
   } else if (!comparable) {
-    headline = `${plural(volume.current, 'feedback entry', 'feedback entries')} this ${period}. The ${period} before does not have enough to compare with.`;
+    headline = t.plural(`period.headline.incomparable.${period}`, volume.current);
     limits.push(
-      `The ${period} before has ${plural(volume.previous, 'feedback entry', 'feedback entries')}. Headway needs at least ${MIN_PERIOD_FEEDBACK_TO_COMPARE} to compare fairly.`,
+      t.plural(`period.limit.incomparable.${period}`, volume.previous, {
+        min: MIN_PERIOD_FEEDBACK_TO_COMPARE,
+      }),
     );
   } else if (worsened.length === 0 && improved.length === 0) {
-    headline = `No major change this ${period}.`;
+    headline = t(`period.headline.steady.${period}`);
   } else if (worsened.length > 0) {
-    headline = `${worsened[0]!.label} came up more often this ${period}.`;
+    // The theme label is data from the pack, interpolated and never translated.
+    headline = t(`period.headline.worsened.${period}`, { label: worsened[0]!.label });
   } else {
-    headline = `${improved[0]!.label} came up less often this ${period}.`;
+    headline = t(`period.headline.improved.${period}`, { label: improved[0]!.label });
   }
 
   if (comparable && Math.abs(volume.current - volume.previous) > volume.previous) {
-    limits.push(
-      'Much more or much less feedback arrived than last time. So part of this change is the amount of feedback, not what customers said.',
-    );
+    limits.push(t('period.limit.volume'));
   }
 
   // The one thing worth looking at next. Never invented: it is whichever
@@ -317,7 +323,7 @@ export async function buildPeriodReport(
 export function getWeeklyPulse(
   db: PrismaClient,
   clientId: string,
-  options: { now?: Date } = {},
+  options: { now?: Date; t?: PortalTranslator } = {},
 ): Promise<PeriodReport | null> {
   return buildPeriodReport(db, clientId, 'WEEK', options);
 }
@@ -325,7 +331,7 @@ export function getWeeklyPulse(
 export function getMonthlyReview(
   db: PrismaClient,
   clientId: string,
-  options: { now?: Date } = {},
+  options: { now?: Date; t?: PortalTranslator } = {},
 ): Promise<PeriodReport | null> {
   return buildPeriodReport(db, clientId, 'MONTH', options);
 }

@@ -1,4 +1,6 @@
 import type { Insight, IntelligenceSignal } from '@/lib/intelligence/engine';
+import { EN } from '@/lib/i18n/translator';
+import type { PortalTranslator } from '@/lib/i18n/translator';
 
 /**
  * THE IMPROVEMENT ACTION (M11).
@@ -171,11 +173,25 @@ export function formatShare(value: number | null): string {
  * this milestone is not allowed to make. The unit is feedback entries, never
  * reviews: this pile is what customers left privately, and a review is
  * something posted on a public listing.
+ *
+ * The owner's language arrives as `t`, defaulting to English so the operator
+ * console — which calls this without one — keeps reading English. The plural
+ * turns on the TOTAL rather than the count, because it is the denominator this
+ * line is naming the unit of; Hindi and Marathi put that total first, which is
+ * why the whole line is one phrase and not a count glued to a denominator.
  */
-export function evidenceLine(count: number, total: number): string {
+export function evidenceLine(
+  count: number,
+  total: number,
+  t: PortalTranslator = EN,
+): string {
   const share = shareOf(count, total);
-  if (share === null) return 'No feedback read for this period';
-  return `${count} of ${total} feedback ${total === 1 ? 'entry' : 'entries'} (${formatShare(share)})`;
+  if (share === null) return t('improve.evidence.none');
+  return t.plural('improve.evidence.line', total, {
+    count,
+    total,
+    share: formatShare(share),
+  });
 }
 
 /**
@@ -292,12 +308,44 @@ export type ActionResult =
  * Observational wording only. The comparison shows how often a theme came up
  * before and after the change; it never shows why, so the label must not
  * read as a verdict on the change itself.
+ *
+ * The four labels are not written here. They are the same four phrases the
+ * cards already show, so they live once in `common.outcome.*` and this map
+ * holds only which one belongs to which result. A second copy of the words
+ * here is a second copy that can drift, and the two would then disagree on
+ * the same screen.
+ */
+export const RESULT_LABEL_KEYS = {
+  IMPROVED: 'common.outcome.improved',
+  WORSENED: 'common.outcome.worsened',
+  NO_CLEAR_CHANGE: 'common.outcome.noChange',
+  INSUFFICIENT_DATA: 'common.outcome.tooEarly',
+} as const satisfies Record<ActionResult, string>;
+
+/**
+ * The label for a result, in the reader's language.
+ *
+ * English by default, which is not a fallback but a decision: the operator
+ * console and the CSV export are deliberately not localized and call this
+ * without a translator.
+ */
+export function resultLabel(result: ActionResult, t: PortalTranslator = EN): string {
+  return t(RESULT_LABEL_KEYS[result]);
+}
+
+/**
+ * The same four labels in English, ready-made.
+ *
+ * For the un-localized surfaces — the operator console badge and the reporting
+ * export — and for the `in` check that recognises a stored result code. Read
+ * through `t` like everything else, so there is still only one place the words
+ * are written down.
  */
 export const RESULT_LABELS: Record<ActionResult, string> = {
-  IMPROVED: 'Mentioned less often after the change',
-  WORSENED: 'Mentioned more often after the change',
-  NO_CLEAR_CHANGE: 'No clear difference after the change',
-  INSUFFICIENT_DATA: 'Not enough feedback after the change',
+  IMPROVED: resultLabel('IMPROVED'),
+  WORSENED: resultLabel('WORSENED'),
+  NO_CLEAR_CHANGE: resultLabel('NO_CLEAR_CHANGE'),
+  INSUFFICIENT_DATA: resultLabel('INSUFFICIENT_DATA'),
 };
 
 export const RESULT_TONES: Record<ActionResult, 'good' | 'warn' | 'bad' | 'neutral'> = {

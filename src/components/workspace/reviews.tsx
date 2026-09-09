@@ -221,10 +221,13 @@ export async function PortalReviews({
   const filters = parseFilters(search);
   const page = Math.max(Number.parseInt(one(search.page), 10) || 1, 1);
   const all = one(search.all) === '1';
-  const [view, evidence, t] = await Promise.all([
-    getReviewsView(prisma, client.id, filters, { page }),
+  // The language has to be in hand BEFORE the view is built, because the view
+  // is where the sentences are written. Resolving it alongside would have
+  // raced the thing it is needed for.
+  const t = await getTranslator();
+  const [view, evidence] = await Promise.all([
+    getReviewsView(prisma, client.id, filters, { page, t }),
     getEvidenceIndex(prisma, client.id),
-    getTranslator(),
   ]);
   if (!view) notFound();
 

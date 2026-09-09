@@ -126,8 +126,8 @@ export async function PortalCheckin({
   const client = { id: clientId };
   const t = await getTranslator();
   const [view, bundle, evidence] = await Promise.all([
-    getCheckinView(prisma, client.id),
-    getResponsibility(prisma, client.id),
+    getCheckinView(prisma, client.id, { t }),
+    getResponsibility(prisma, client.id, { t }),
     getEvidenceIndex(prisma, client.id),
   ]);
   if (!view || !bundle) notFound();
@@ -141,7 +141,11 @@ export async function PortalCheckin({
   // The page's own intro already names the two check-ins compared.
   const since = {
     ...r,
-    did: r.did.filter((line) => !line.startsWith('Compared your check-ins')),
+    // By kind, not by English prefix. This block already names the two
+    // check-ins itself, so the engine's "Compared your check-ins…" line would
+    // say it twice — but a startsWith on English said it twice in Hindi too,
+    // because it matched nothing there.
+    did: r.did.filter((_, i) => r.didKinds[i] !== 'compared'),
   };
   const hasDetail =
     moved || view.sinceCheckin.length > 0 || view.made.length > 0 || view.unchangedNote.length > 0;

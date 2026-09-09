@@ -1,4 +1,5 @@
 import type { Pack, TaxonomyEntry } from '@/lib/packs';
+import { EN, type PortalTranslator } from '@/lib/i18n/translator';
 
 /**
  * HOW BUSINESS CONTEXT MAY TOUCH REPOS (M13).
@@ -133,28 +134,41 @@ export type AppliedSuggestion = {
 export function applyConstraints(
   entry: TaxonomyEntry | undefined,
   set: ContextSet,
+  t: PortalTranslator = EN,
+  packId?: string,
 ): AppliedSuggestion {
-  const action = entry?.action?.trim() || null;
+  // The pack's own wording, in the owner's language when the dictionary has it.
+  // Looked up here as well as in the intelligence layer because THIS text wins
+  // over the recommendation when a constraint applies, so localizing only the
+  // other path left the suggestion in English exactly when a constraint was
+  // recorded.
+  const localized = (field: 'action' | 'alternativeAction'): string | null => {
+    const own = entry?.[field]?.trim() || null;
+    if (!own || !packId || !entry) return own;
+    const suffix = field === 'action' ? 'action' : 'alternativeAction';
+    return t.soft(`pack.${packId}.${entry.key}.${suffix}`) ?? own;
+  };
+  const action = localized('action');
   if (!entry || !action) return { text: action, constraint: null, note: null, blocked: false };
 
   const needs = entry.actionNeeds ?? [];
   const hit = constraints(set).find((c) => c.constraintKey && (needs as string[]).includes(c.constraintKey));
   if (!hit || !hit.constraintKey) return { text: action, constraint: null, note: null, blocked: false };
 
-  const noun = CONSTRAINT_NOUNS[hit.constraintKey];
-  const alternative = entry.alternativeAction?.trim() || null;
+  const noun = t.soft(`insight.constraint.noun.${hit.constraintKey}`) ?? CONSTRAINT_NOUNS[hit.constraintKey];
+  const alternative = localized('alternativeAction');
   if (alternative) {
     return {
       text: alternative,
       constraint: hit,
-      note: `You told us ${noun} is not possible right now, so this is the version that does not need it.`,
+      note: t('insight.constraint.alternative', { noun }),
       blocked: false,
     };
   }
   return {
     text: action,
     constraint: hit,
-    note: `You told us ${noun} is not possible right now. This suggestion needs it, so ask your Headway contact for a version that does not.`,
+    note: t('insight.constraint.blocked', { noun }),
     blocked: true,
   };
 }

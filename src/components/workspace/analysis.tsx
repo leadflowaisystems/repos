@@ -48,14 +48,16 @@ export async function PortalAnalysis({
   searchParams?: Promise<Search>;
 }) {
   const client = { id: clientId };
+  // Resolved before the fetch, not after: the sentences these builders write
+  // are generated during the fetch, so the language has to be in hand first.
+  const t = await getTranslator();
   const [view, bundle, evidence, search] = await Promise.all([
-    getAnalysisView(prisma, client.id),
-    getResponsibility(prisma, client.id),
+    getAnalysisView(prisma, client.id, { t }),
+    getResponsibility(prisma, client.id, { t }),
     getEvidenceIndex(prisma, client.id),
     searchParams ?? Promise.resolve({} as Search),
   ]);
   if (!view || !bundle) notFound();
-  const t = await getTranslator();
   const r = bundle.responsibility;
   const open = one(search.open).slice(0, 80) || null;
 

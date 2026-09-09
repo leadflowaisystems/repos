@@ -32,7 +32,7 @@ export default async function MONTHPage({
   const { clientId } = await params;
   await requireOpenWorkspace(clientId);
 
-  const report = await getMonthlyReview(prisma, clientId);
+  const report = await getMonthlyReview(prisma, clientId, { t: await getTranslator() });
   if (!report) notFound();
 
   return <PeriodReportView report={report} basePath={`/workspace/${clientId}`} />;

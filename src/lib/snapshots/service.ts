@@ -25,6 +25,7 @@ import {
   type StoredSnapshot,
 } from '@/lib/health/health';
 import { parseJson } from '@/lib/format';
+import type { PortalTranslator } from '@/lib/i18n/translator';
 import { nullableInt, nullableNumber } from '@/lib/actions/shared';
 
 /**
@@ -236,12 +237,13 @@ export async function getClientHealth(
   clientId: string,
   vertical: string,
   now: Date = new Date(),
+  t?: PortalTranslator,
 ): Promise<ClientHealth> {
   const pack = getPackOrFallback(vertical);
   const snapshots = await loadHealthSnapshots(db, clientId);
   return {
-    card: computeHealthCard({ pack, snapshots, now }),
-    pulse: computePulse({ pack, snapshots, now }),
+    card: computeHealthCard({ pack, snapshots, now, t }),
+    pulse: computePulse({ pack, snapshots, now, t }),
   };
 }
 

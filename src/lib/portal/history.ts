@@ -2,6 +2,8 @@ import type { Pack } from '@/lib/packs';
 import { summariseThemes, type StoredSnapshot } from '@/lib/health/health';
 import { MIN_PERIOD_FEEDBACK_TO_COMPARE } from '@/lib/intelligence/engine';
 import { formatDate } from '@/lib/format';
+import { EN } from '@/lib/i18n/translator';
+import type { PortalTranslator } from '@/lib/i18n/translator';
 
 /**
  * WHAT KEEPS COMING BACK (M12).
@@ -95,9 +97,46 @@ export type Recurrence = {
   faded: boolean;
   /** The plain sentence, or null when there is nothing honest to say. */
   line: string | null;
+  /**
+   * The two numbers the sentence is built from.
+   *
+   * Carried as numbers because something downstream needs them, and the only
+   * other way to get them is to read them back out of the sentence — which
+   * works in English and silently stops working the moment the sentence is in
+   * Marathi. Null when there is no recurrence to describe.
+   */
+  raisedAt: number | null;
+  outOf: number | null;
 };
 
-const NONE: Recurrence = { recurring: false, isNew: false, faded: false, line: null };
+const NONE: Recurrence = {
+  recurring: false,
+  isNew: false,
+  faded: false,
+  line: null,
+  raisedAt: null,
+  outOf: null,
+};
+
+/**
+ * The three things the history can say, per kind.
+ *
+ * A complaint and a piece of praise get WHOLE separate sentences rather than
+ * one sentence with a verb dropped into it. English tolerates that trick;
+ * Hindi and Marathi do not, because the verb changes the shape of everything
+ * around it. One key per sentence is what makes the sentence translatable.
+ */
+const ISSUE_KEYS = {
+  repeat: 'evidence.recurrence.issue.repeat',
+  fresh: 'evidence.recurrence.issue.new',
+  faded: 'evidence.recurrence.issue.faded',
+} as const;
+
+const PRAISE_KEYS = {
+  repeat: 'evidence.recurrence.praise.repeat',
+  fresh: 'evidence.recurrence.praise.new',
+  faded: 'evidence.recurrence.praise.faded',
+} as const;
 
 /**
  * What the check-in history says about one theme, in owner words.
@@ -109,7 +148,11 @@ export function recurrenceFor(
   presence: PresenceMap,
   kind: 'PRAISE' | 'ISSUE',
   themeKey: string,
+  translator?: PortalTranslator,
 ): Recurrence {
+  // Handed in, never looked up. Omitted means English, which is the operator
+  // console's deliberate answer rather than an oversight.
+  const t = translator ?? EN;
   if (presence.checkins < 2) return NONE;
   const p = (kind === 'ISSUE' ? presence.issues : presence.praises).get(themeKey);
   if (!p) return NONE;
@@ -117,16 +160,16 @@ export function recurrenceFor(
   // "Raised at 2 of your last 3 check-ins" reads like a meeting minute. An
   // owner reads it once and understands it when the customers are the subject
   // of the sentence and the verb is the one they would use themselves.
-  const said = kind === 'ISSUE' ? 'mentioned this' : 'praised this';
-  const notSaid = kind === 'ISSUE' ? 'did not mention it' : 'did not praise it';
-  const of = `${p.raisedAt} of your last ${p.checkins} check-ins`;
+  const keys = kind === 'ISSUE' ? ISSUE_KEYS : PRAISE_KEYS;
 
   if (p.raisedAt >= 2) {
     return {
       recurring: true,
       isNew: false,
       faded: false,
-      line: `Customers ${said} at ${of}.`,
+      line: t(keys.repeat, { raised: p.raisedAt, total: p.checkins }),
+      raisedAt: p.raisedAt,
+      outOf: p.checkins,
     };
   }
   if (p.latest && !p.before) {
@@ -135,7 +178,9 @@ export function recurrenceFor(
       recurring: false,
       isNew: true,
       faded: false,
-      line: `Customers ${said} at your latest check-in only. They ${notSaid} at the ${earlier === 1 ? 'one' : `${earlier}`} before it.`,
+      line: t.plural(keys.fresh, earlier),
+      raisedAt: 1,
+      outOf: p.checkins,
     };
   }
   if (!p.latest && p.before) {
@@ -143,7 +188,9 @@ export function recurrenceFor(
       recurring: false,
       isNew: false,
       faded: true,
-      line: `Customers ${said} at an earlier check-in. They ${notSaid} at your latest one.`,
+      line: t(keys.faded),
+      raisedAt: 0,
+      outOf: p.checkins,
     };
   }
   return NONE;

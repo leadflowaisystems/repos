@@ -34,7 +34,7 @@ export async function PortalImprovements({
   const client = { id: clientId };
   const t = await getTranslator();
   const [view, evidence] = await Promise.all([
-    getImprovementsView(prisma, client.id),
+    getImprovementsView(prisma, client.id, { t }),
     getEvidenceIndex(prisma, client.id),
   ]);
   if (!view) notFound();

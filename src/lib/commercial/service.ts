@@ -1,5 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { isMissingDbFunction, withRlsContext } from '@/lib/db';
+import { EN } from '@/lib/i18n/translator';
+import type { PortalTranslator } from '@/lib/i18n/translator';
 
 /**
  * THE COMMERCIAL SIDE: what state an account is in, and what it costs.
@@ -229,7 +231,10 @@ export function describeAccount(input: {
   ownerEmail: string | null;
   ownerPhone: string | null;
   now: Date;
+  /** The owner's language. Omitted means English — see PortalTranslator. */
+  t?: PortalTranslator;
 }): AccountState {
+  const t = input.t ?? EN;
   const state = subscriptionState(input.subscriptionStatus);
   const trialDaysLeft = input.trialEndsAt ? daysBetween(input.now, input.trialEndsAt) : null;
   const trialExpired = trialDaysLeft !== null && trialDaysLeft <= 0;
@@ -247,32 +252,33 @@ export function describeAccount(input: {
 
   if (state === 'PAUSED') {
     phase = 'PAUSED';
-    headline = 'Headway is paused';
-    line =
-      'Your feedback and your history are safe. New feedback is still saved. Headway is not reading it yet.';
-    note = servicePausedAt ? `Paused since ${formatLongDate(servicePausedAt)}.` : null;
+    headline = t('lifecycle.account.paused.headline');
+    line = t('lifecycle.account.paused.line');
+    note = servicePausedAt
+      ? t('lifecycle.account.paused.note', { date: formatLongDate(servicePausedAt) })
+      : null;
   } else if (state === 'CANCELLED') {
     phase = 'CLOSED';
-    headline = 'Your account is closed';
-    line = 'Your feedback and your history are safe. Headway is not reading new feedback.';
+    headline = t('lifecycle.account.closed.headline');
+    line = t('lifecycle.account.closed.line');
   } else if (state === 'ACTIVE') {
     phase = 'ACTIVE';
-    headline = 'Headway is active';
-    line = 'Headway is reading new feedback as it arrives.';
-    note = resumedRecently ? 'Your account was paused. It is running again.' : null;
+    headline = t('lifecycle.account.active.headline');
+    line = t('lifecycle.account.active.line');
+    note = resumedRecently ? t('lifecycle.account.resumed.note') : null;
   } else if (trialExpired) {
     phase = 'TRIAL_ENDED';
-    headline = 'Your trial has ended';
-    line = 'Your feedback and your history are safe.';
+    headline = t('lifecycle.account.trialEnded.headline');
+    line = t('lifecycle.account.trialEnded.line');
   } else {
     phase = 'TRIAL';
-    headline = 'Your Headway trial';
+    headline = t('lifecycle.account.trial.headline');
     line = input.trialEndsAt
-      ? `Your trial runs until ${formatLongDate(input.trialEndsAt)}.`
+      ? t('lifecycle.account.trial.line', { date: formatLongDate(input.trialEndsAt) })
       : // Only for a business created before every trial carried a window, and
         // only until the M23 backfill runs. Never "no end date".
-        'Your trial is running. Your Headway contact will confirm the end date.';
-    note = resumedRecently ? 'Your account was paused. It is running again.' : null;
+        t('lifecycle.account.trial.lineNoEndDate');
+    note = resumedRecently ? t('lifecycle.account.resumed.note') : null;
   }
 
   return {
@@ -300,7 +306,7 @@ export function describeAccount(input: {
 export async function getAccountState(
   db: PrismaClient,
   clientId: string,
-  options: { now?: Date } = {},
+  options: { now?: Date; t?: PortalTranslator } = {},
 ): Promise<AccountState | null> {
   const client = await db.client.findFirst({
     where: { id: clientId },
@@ -317,7 +323,7 @@ export async function getAccountState(
     },
   });
   if (!client) return null;
-  return describeAccount({ ...client, now: options.now ?? new Date() });
+  return describeAccount({ ...client, now: options.now ?? new Date(), t: options.t });
 }
 
 // ---------------------------------------------------------------------------
@@ -522,18 +528,19 @@ export type OwnerContactInput = { name: string; email: string; phone: string };
 
 function cleanContact(
   input: OwnerContactInput,
+  t: PortalTranslator,
 ): ServiceResult<{ name: string; email: string; phone: string }> {
   const name = (input.name ?? '').trim();
   const email = (input.email ?? '').trim().toLowerCase();
   const phone = (input.phone ?? '').replace(/[^\d+ ]/g, '').trim();
 
   const errors: Record<string, string> = {};
-  if (name.length < 2) errors.name = 'Add your name.';
-  if (!email.includes('@') || email.length < 5) errors.email = 'Add a full email address.';
+  if (name.length < 2) errors.name = t('lifecycle.form.nameNeeded');
+  if (!email.includes('@') || email.length < 5) errors.email = t('lifecycle.form.emailNeeded');
   if (phone.replace(/\D/g, '').length < 8) {
-    errors.phone = 'Add a WhatsApp or mobile number we can reach you on.';
+    errors.phone = t('lifecycle.form.whatsappNeeded');
   }
-  if (Object.keys(errors).length > 0) return err('Some fields need attention.', errors);
+  if (Object.keys(errors).length > 0) return err(t('lifecycle.form.fieldsNeedAttention'), errors);
   return ok({ name, email, phone });
 }
 
@@ -549,9 +556,10 @@ export async function requestContinuation(
   db: PrismaClient,
   clientId: string,
   input: OwnerContactInput,
-  options: { now?: Date } = {},
+  options: { now?: Date; t?: PortalTranslator } = {},
 ): Promise<ServiceResult<{ clientId: string; requestedAt: Date }>> {
-  const clean = cleanContact(input);
+  const t = options.t ?? EN;
+  const clean = cleanContact(input, t);
   if (!clean.ok) return clean;
 
   const now = options.now ?? new Date();
@@ -564,17 +572,23 @@ export async function requestContinuation(
       paymentRequestedAt: now,
     },
   });
-  if (updated.count === 0) return err('That business no longer exists.');
+  if (updated.count === 0) return err(t('lifecycle.form.businessGone'));
   return ok({ clientId, requestedAt: now });
 }
 
-/** The same three details, kept up to date, without asking anything of anyone. */
+/**
+ * The same three details, kept up to date, without asking anything of anyone.
+ *
+ * `t` is trailing and optional because there is no options object here to carry
+ * it. Omitted means English.
+ */
 export async function updateOwnerContact(
   db: PrismaClient,
   clientId: string,
   input: OwnerContactInput,
+  t: PortalTranslator = EN,
 ): Promise<ServiceResult<{ clientId: string }>> {
-  const clean = cleanContact(input);
+  const clean = cleanContact(input, t);
   if (!clean.ok) return clean;
 
   const updated = await db.client.updateMany({
@@ -585,7 +599,7 @@ export async function updateOwnerContact(
       ownerPhone: clean.data.phone,
     },
   });
-  if (updated.count === 0) return err('That business no longer exists.');
+  if (updated.count === 0) return err(t('lifecycle.form.businessGone'));
   return ok({ clientId });
 }
 

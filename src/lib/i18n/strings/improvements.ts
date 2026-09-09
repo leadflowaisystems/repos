@@ -262,4 +262,9 @@ export const improvements = {
     hi: 'समस्या, आँकड़ों में',
     mr: 'अडचण, आकड्यांमध्ये',
   },
+  'improvements.next.originalSuggestion': {
+    en: 'The original suggestion still stands: {suggestion}',
+    hi: 'पहली सलाह अब भी वही है: {suggestion}',
+    mr: 'पहिला सल्ला अजूनही तोच आहे: {suggestion}',
+  },
 } satisfies Namespace;

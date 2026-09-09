@@ -1,4 +1,6 @@
 import type { Pack } from '@/lib/packs';
+import { EN } from '@/lib/i18n/translator';
+import type { PortalTranslator } from '@/lib/i18n/translator';
 import { LOW_RATING_AT, type ThemeSummary, type ThemeSummaryRow } from '@/lib/feedback/analysis';
 import type { Pulse, PulsePeriod, ThemeCount } from '@/lib/health/health';
 import {
@@ -292,6 +294,15 @@ export type ClientIntelligence = {
 
   /** What RepOS cannot yet say, in plain words. Never empty by accident. */
   limits: string[];
+  /**
+   * What each limit IS, in the same order — 'quiet', 'unread', 'thin', …
+   *
+   * Anything downstream that needs to single out one limit matches on these,
+   * never on the sentence. Home used to drop the quiet-topics line with
+   * /mentioned once or twice/, which matched nothing once the sentence was in
+   * Hindi and showed the owner the same line twice.
+   */
+  limitKinds: string[];
 
   version: number;
 };
@@ -304,31 +315,35 @@ export type IntelligenceInput = {
   totalFeedback: number;
   pulse: Pulse;
   notes: RecordedStep[];
+  /**
+   * The owner's language, if there is one.
+   *
+   * Passed in rather than looked up, so this file never asks what language it
+   * is in. Absent from the operator console, which reads English on purpose.
+   */
+  t?: PortalTranslator;
 };
 
 // ---------------------------------------------------------------------------
 // Small helpers
 // ---------------------------------------------------------------------------
 
-function mentions(n: number): string {
-  return `${n} mention${n === 1 ? '' : 's'}`;
-}
-
-function customers(n: number): string {
-  return `${n} customer${n === 1 ? '' : 's'}`;
-}
-
 /**
- * The counting unit for the feedback pile.
+ * The key segment for the second count in a sentence.
  *
- * Never "reviews": a review is something published on a public listing, and
- * almost everything counted here is private feedback a customer left after
- * scanning the card. Calling it a review would break the one promise the
- * product makes about where feedback goes. Counts count feedback entries,
- * not people — one customer can leave several.
+ * `t.plural` carries exactly one number, and several sentences here inflect on
+ * two: how many entries mention a theme, and how many entries have been read.
+ * The pile's own singular/plural is therefore chosen in the key — `.single` or
+ * `.many` — before the translator appends `.one` or `.other` for the first.
+ *
+ * The counting unit is never "reviews": a review is something published on a
+ * public listing, and almost everything counted here is private feedback a
+ * customer left after scanning the card. Calling it a review would break the
+ * one promise the product makes about where feedback goes. Counts count
+ * feedback entries, not people — one customer can leave several.
  */
-function pieces(n: number): string {
-  return `${n} feedback ${n === 1 ? 'entry' : 'entries'}`;
+function readSuffix(analysed: number): string {
+  return analysed === 1 ? 'single' : 'many';
 }
 
 /** Insight ids are stable so the action loop can key off them later. */
@@ -336,33 +351,41 @@ export function insightId(clientId: string, kind: InsightKind, themeKey: string)
   return `${clientId}:${kind}:${themeKey}`;
 }
 
-function evidenceNote(tier: EvidenceTier, analysed: number): string {
+function evidenceNote(tier: EvidenceTier, analysed: number, t: PortalTranslator): string {
   switch (tier) {
     case 'STANDARD':
-      return `Based on ${pieces(analysed)}. That is enough to be confident about what keeps coming up.`;
+      return t.plural('intelligence.evidence.standard', analysed);
     case 'LIMITED':
-      return `Based on ${pieces(analysed)}. That is enough to spot patterns, but not enough to be sure of them yet.`;
+      return t.plural('intelligence.evidence.limited', analysed);
     default:
       return analysed === 0
-        ? 'No feedback has been read yet, so there is nothing to report.'
-        : `Only ${pieces(analysed)} so far. That is too few to draw any conclusion.`;
+        ? t('intelligence.evidence.none')
+        : t.plural('intelligence.evidence.thin', analysed);
   }
 }
 
 function confidenceFor(
   count: number,
   analysed: number,
+  t: PortalTranslator,
 ): { level: Confidence; reason: string } {
-  const basis = `${count} of ${pieces(analysed)} read so far ${count === 1 ? 'mentions' : 'mention'} this`;
+  const read = readSuffix(analysed);
+  const basis = { total: analysed };
   if (count >= MIN_MENTIONS_TO_NAME * 2 && analysed >= TIER_STANDARD_MIN) {
-    return { level: 'STRONG', reason: `${basis}. That is often enough to act on.` };
+    return {
+      level: 'STRONG',
+      reason: t.plural(`intelligence.confidence.strong.${read}`, count, basis),
+    };
   }
   if (count >= MIN_MENTIONS_TO_NAME && analysed >= TIER_LIMITED_MIN) {
-    return { level: 'MODERATE', reason: `${basis}. That is a real pattern, but keep watching it.` };
+    return {
+      level: 'MODERATE',
+      reason: t.plural(`intelligence.confidence.moderate.${read}`, count, basis),
+    };
   }
   return {
     level: 'EARLY',
-    reason: `${basis}. That is an early sign, on too little feedback to be sure of.`,
+    reason: t.plural(`intelligence.confidence.early.${read}`, count, basis),
   };
 }
 
@@ -394,12 +417,12 @@ const NO_WINDOW = (reason: string): ComparisonWindow => ({
  * feedback attached to both sides for a count to mean anything — and states
  * the volume caveat when the two piles are very different sizes.
  */
-export function comparisonWindowFrom(pulse: Pulse): ComparisonWindow {
+export function comparisonWindowFrom(
+  pulse: Pulse,
+  t: PortalTranslator = EN,
+): ComparisonWindow {
   if (!pulse.available || !pulse.current || !pulse.previous) {
-    return NO_WINDOW(
-      pulse.reason ||
-        'There is only one check-in so far, so there is nothing to compare against yet.',
-    );
+    return NO_WINDOW(pulse.reason || t('intelligence.window.single_checkin'));
   }
 
   const previous: PulsePeriod = pulse.previous;
@@ -427,10 +450,17 @@ export function comparisonWindowFrom(pulse: Pulse): ComparisonWindow {
     // arrived since — and the fix is another check-in, not more feedback (M18).
     const bothEmpty = previous.feedbackCount === 0 && current.feedbackCount === 0;
     const reason = bothEmpty
-      ? `Your check-ins of ${previous.label} and ${current.label} have no feedback between them to compare. Everything read so far came in after them. Your next check-in will include it.`
-      : `There is not enough feedback between your check-ins to compare topic by topic: ${previous.feedbackCount} at ` +
-        `${previous.label} and ${current.feedbackCount} at ${current.label}. ` +
-        `Headway needs ${MIN_PERIOD_FEEDBACK_TO_COMPARE} on each side.`;
+      ? t('intelligence.window.both_empty', {
+          previous: previous.label,
+          current: current.label,
+        })
+      : t('intelligence.window.too_thin', {
+          previous: previous.label,
+          previousCount: previous.feedbackCount,
+          current: current.label,
+          currentCount: current.feedbackCount,
+          needed: MIN_PERIOD_FEEDBACK_TO_COMPARE,
+        });
     return { ...NO_WINDOW(reason), ...base, available: false, reason, note: reason };
   }
 
@@ -442,13 +472,16 @@ export function comparisonWindowFrom(pulse: Pulse): ComparisonWindow {
     ...base,
     available: true,
     reason: '',
-    note:
-      `Comparing your check-in of ${previous.label} (${pieces(previous.feedbackCount)}) ` +
-      `with ${current.label} (${current.feedbackCount}).`,
+    note: t.plural('intelligence.window.note', previous.feedbackCount, {
+      previous: previous.label,
+      current: current.label,
+      currentCount: current.feedbackCount,
+    }),
     volumeCaveat: lopsided
-      ? `One check-in has far more feedback than the other (${previous.feedbackCount} then, ` +
-        `${current.feedbackCount} now). Some of this movement is just more feedback, ` +
-        `not a change in what customers think.`
+      ? t('intelligence.window.volume_caveat', {
+          previousCount: previous.feedbackCount,
+          currentCount: current.feedbackCount,
+        })
       : null,
   };
 }
@@ -487,6 +520,7 @@ export function movementFor(
   sentiment: Sentiment,
   themeKey: string,
   themeLabel: string,
+  t: PortalTranslator = EN,
 ): ThemeMovement {
   if (!window.available || !pulse.current || !pulse.previous) {
     return NO_MOVEMENT(window.reason);
@@ -500,21 +534,24 @@ export function movementFor(
   // absent from the other, and calling that "holding steady" would be a claim
   // about feedback that never mentioned it.
   if (previousCount === 0 && currentCount === 0) {
-    return NO_MOVEMENT(
-      `${themeLabel} has not come up in the feedback attached to either check-in, ` +
-        `so there is nothing to compare.`,
-    );
+    return NO_MOVEMENT(t('intelligence.movement.absent', { theme: themeLabel }));
   }
 
   const delta = currentCount - previousCount;
-  const countNote = `${previousCount} → ${mentions(currentCount)}`;
+  const countNote = t.plural('intelligence.movement.count_note', currentCount, {
+    previousCount,
+  });
 
-  const point =
-    `${previousCount} ${previousCount === 1 ? 'mention' : 'mentions'} at your check-in on ` +
-    `${window.previousLabel}, ${currentCount} at ${window.currentLabel}`;
+  // The two points a movement sentence names. `String` rather than a fallback:
+  // an unlabelled window is a bug worth seeing, not one worth papering over.
+  const point = {
+    previous: String(window.previousLabel),
+    current: String(window.currentLabel),
+    currentCount,
+  };
 
   if (Math.abs(delta) < MIN_CHANGE_TO_REPORT) {
-    const pointNote = `${point}. Holding steady.`;
+    const pointNote = t.plural('intelligence.movement.steady', previousCount, point);
     return {
       available: true,
       previousCount,
@@ -531,9 +568,10 @@ export function movementFor(
   // The naming floor applies to movement for the same reason it applies to
   // themes: at least one side has to be a pattern before a direction is real.
   if (Math.max(previousCount, currentCount) < MIN_MENTIONS_TO_NAME) {
-    const pointNote =
-      `${point}. Too few either way to call it a change. ` +
-      `Headway needs ${MIN_MENTIONS_TO_NAME} on one side.`;
+    const pointNote = t.plural('intelligence.movement.too_few', previousCount, {
+      ...point,
+      needed: MIN_MENTIONS_TO_NAME,
+    });
     return {
       available: true,
       previousCount,
@@ -548,8 +586,11 @@ export function movementFor(
 
   const rose = delta > 0;
   const good = sentiment === 'ISSUE' ? !rose : rose;
-  const word = rose ? 'up' : 'down';
-  const pointNote = `${point} (${word} ${Math.abs(delta)}).`;
+  const pointNote = t.plural(
+    rose ? 'intelligence.movement.up' : 'intelligence.movement.down',
+    previousCount,
+    { ...point, delta: Math.abs(delta) },
+  );
 
   return {
     available: true,
@@ -598,23 +639,24 @@ export function signalsFor(
   movement: ThemeMovement,
   verticalLabel: string,
   rated: RatedEvidence | null = null,
+  t: PortalTranslator = EN,
+  packId?: string,
 ): IntelligenceSignal[] {
   const out: IntelligenceSignal[] = [];
+  // The vertical is a word inside a sentence — "a serious complaint for a
+  // clinic / healthcare" — so it has to be in the reader's language too, or an
+  // otherwise-Marathi sentence carries an English noun in the middle of it.
+  // The dictionary's English is the same lowercased label this used before.
+  const vertical =
+    (packId ? t.soft(`pack.vertical.${packId}`) : null) ?? verticalLabel.toLowerCase();
 
   if (sentiment === 'ISSUE') {
     if (theme.severity === 'high') {
-      out.push(
-        signal(
-          'severity_high',
-          `This is a serious complaint for a ${verticalLabel.toLowerCase()}.`,
-        ),
-      );
+      out.push(signal('severity_high', t('intelligence.signal.severity_high', { vertical })));
     } else if (theme.severity === 'medium') {
-      out.push(
-        signal('severity_medium', `This matters to ${verticalLabel.toLowerCase()} customers.`),
-      );
+      out.push(signal('severity_medium', t('intelligence.signal.severity_medium', { vertical })));
     } else {
-      out.push(signal('severity_low', 'A small complaint, but customers did mention it.'));
+      out.push(signal('severity_low', t('intelligence.signal.severity_low')));
     }
   }
 
@@ -626,9 +668,12 @@ export function signalsFor(
     out.push(
       signal(
         'mention',
-        sentiment === 'ISSUE'
-          ? `Mentioned ${theme.count} time${theme.count === 1 ? '' : 's'}.`
-          : `Praised ${theme.count} time${theme.count === 1 ? '' : 's'}.`,
+        t.plural(
+          sentiment === 'ISSUE'
+            ? 'intelligence.signal.mentioned'
+            : 'intelligence.signal.praised',
+          theme.count,
+        ),
         mentionWeight,
       ),
     );
@@ -636,10 +681,7 @@ export function signalsFor(
 
   if (theme.count >= MIN_MENTIONS_TO_NAME) {
     out.push(
-      signal(
-        'pattern',
-        `Mentioned at least ${MIN_MENTIONS_TO_NAME} times. That makes it a pattern, not a one-off.`,
-      ),
+      signal('pattern', t('intelligence.signal.pattern', { needed: MIN_MENTIONS_TO_NAME })),
     );
   }
 
@@ -647,9 +689,7 @@ export function signalsFor(
     sentiment === 'PRAISE' &&
     theme.count >= MIN_MENTIONS_TO_NAME * 2
   ) {
-    out.push(
-      signal('strength', 'Praised often enough to be a strength. Protect it.'),
-    );
+    out.push(signal('strength', t('intelligence.signal.strength')));
   }
 
   // The same floor a written theme has to clear. Ratings are easier to give
@@ -659,7 +699,11 @@ export function signalsFor(
     out.push(
       signal(
         'rated_low',
-        `${customers(rated.low)} of the ${rated.rated} who rated ${rated.label.toLowerCase()} put it at ${LOW_RATING_AT} or below.`,
+        t.plural('intelligence.signal.rated_low', rated.low, {
+          rated: rated.rated,
+          label: rated.label.toLowerCase(),
+          threshold: LOW_RATING_AT,
+        }),
       ),
     );
   }
@@ -669,7 +713,7 @@ export function signalsFor(
       out.push(
         signal(
           'worsening',
-          `Customers mention it more than last time: ${movement.countNote}.`,
+          t('intelligence.signal.worsening', { counts: String(movement.countNote) }),
         ),
       );
     }
@@ -682,7 +726,10 @@ export function signalsFor(
     movement.delta !== null
   ) {
     out.push(
-      signal('growing', `Customers praise it more than last time: ${movement.countNote}.`),
+      signal(
+        'growing',
+        t('intelligence.signal.growing', { counts: String(movement.countNote) }),
+      ),
     );
   }
 
@@ -713,24 +760,28 @@ function headlineFor(
   sentiment: Sentiment,
   label: string,
   movement: ThemeMovement,
+  t: PortalTranslator,
 ): string {
+  // The pack's own label, as data. Lowercased for the sentences that put it
+  // mid-phrase in English; the other languages interpolate it unchanged.
+  const lower = { theme: label.toLowerCase() };
   switch (kind) {
     case 'LOVED':
-      return `Customers keep praising ${label.toLowerCase()}.`;
+      return t('intelligence.headline.loved', lower);
     case 'UNHAPPY':
-      return `Customers complain about ${label.toLowerCase()}.`;
+      return t('intelligence.headline.unhappy', lower);
     case 'ATTENTION':
-      return `${label} needs your attention.`;
+      return t('intelligence.headline.attention', { theme: label });
     case 'CHANGING': {
       const better = movement.state === 'IMPROVING';
       if (sentiment === 'ISSUE') {
         return better
-          ? `Fewer customers are mentioning ${label.toLowerCase()}.`
-          : `More customers are mentioning ${label.toLowerCase()}.`;
+          ? t('intelligence.headline.issue_down', lower)
+          : t('intelligence.headline.issue_up', lower);
       }
       return better
-        ? `More customers are praising ${label.toLowerCase()}.`
-        : `Fewer customers are praising ${label.toLowerCase()}.`;
+        ? t('intelligence.headline.praise_up', lower)
+        : t('intelligence.headline.praise_down', lower);
     }
   }
 }
@@ -739,13 +790,28 @@ function detailFor(
   kind: InsightKind,
   evidence: InsightEvidence,
   movement: ThemeMovement,
+  t: PortalTranslator,
 ): string {
   if (kind === 'CHANGING') return movement.pointNote ?? movement.note;
-  return `${mentions(evidence.count)} ${evidence.scope}.`;
+  return t.plural(
+    `intelligence.detail.mentions.${readSuffix(evidence.outOf)}`,
+    evidence.count,
+    { total: evidence.outOf },
+  );
 }
 
-function actionFor(pack: Pack, themeKey: string): string | null {
-  return pack.issueTaxonomy.find((t) => t.key === themeKey)?.action?.trim() || null;
+/**
+ * The pack's suggested change, in the owner's language when there is one.
+ *
+ * This string is the WHAT TO DO line on Home, so leaving it English would put
+ * the one instruction an owner is meant to act on in a language they may not
+ * read. Looked up softly by key, with the pack's own English as the fallback,
+ * so a pack that has not been translated yet still says something useful.
+ */
+function actionFor(pack: Pack, themeKey: string, t: PortalTranslator): string | null {
+  const own = pack.issueTaxonomy.find((x) => x.key === themeKey)?.action?.trim() || null;
+  if (!own) return null;
+  return t.soft(`pack.${pack.id}.${themeKey}.action`) ?? own;
 }
 
 function buildInsightFor(args: {
@@ -761,28 +827,46 @@ function buildInsightFor(args: {
   window: ComparisonWindow;
   /** The tapped evidence for this theme, when the vertical asks about it. */
   rated?: RatedEvidence | null;
+  t: PortalTranslator;
 }): Insight {
-  const { clientId, kind, sentiment, theme, analysed, movement, window } = args;
+  const { clientId, kind, sentiment, theme, analysed, movement, window, t } = args;
 
   const evidence: InsightEvidence = {
     count: theme.count,
     outOf: analysed,
     itemIds: args.itemIds,
-    scope: `across ${pieces(analysed)} read so far`,
+    scope: t.plural('intelligence.evidence.scope', analysed),
   };
-  const signals = signalsFor(sentiment, theme, movement, args.verticalLabel, args.rated ?? null);
-  const confidence = confidenceFor(theme.count, analysed);
+  const signals = signalsFor(
+    sentiment,
+    theme,
+    movement,
+    args.verticalLabel,
+    args.rated ?? null,
+    t,
+    args.pack.id,
+  );
+  const confidence = confidenceFor(theme.count, analysed, t);
+
+  // The pack's label, in the owner's language when there is one.
+  //
+  // Localized HERE, at the single point where a theme becomes an insight, so
+  // every sentence downstream — the headline, the WHY paragraph, the evidence
+  // chips, the responsibility items — inherits it without any of them knowing
+  // that labels can be translated. `themeKey` is untouched: the key is how the
+  // code recognises a theme, the label is only how it is read.
+  const themeLabel = t.soft(`pack.${args.pack.id}.${theme.key}`) ?? theme.label;
 
   return {
     id: insightId(clientId, kind, theme.key),
     clientId,
     kind,
     themeKey: theme.key,
-    themeLabel: theme.label,
+    themeLabel,
     sentiment,
     severity: theme.severity,
-    headline: headlineFor(kind, sentiment, theme.label, movement),
-    detail: detailFor(kind, evidence, movement),
+    headline: headlineFor(kind, sentiment, themeLabel, movement, t),
+    detail: detailFor(kind, evidence, movement, t),
     evidence,
     movement,
     window,
@@ -790,7 +874,7 @@ function buildInsightFor(args: {
     rank: rankOf(signals),
     confidence: confidence.level,
     confidenceReason: confidence.reason,
-    recommendation: sentiment === 'ISSUE' ? actionFor(args.pack, theme.key) : null,
+    recommendation: sentiment === 'ISSUE' ? actionFor(args.pack, theme.key, t) : null,
     version: INTELLIGENCE_VERSION,
   };
 }
@@ -811,33 +895,32 @@ function buildInsightFor(args: {
 export function overallTrendFrom(
   pulse: Pulse,
   window: ComparisonWindow,
+  t: PortalTranslator = EN,
 ): { state: TrendState; note: string } {
   if (!pulse.available) {
     return {
       state: 'INSUFFICIENT_DATA',
-      note:
-        pulse.reason ||
-        'There is only one check-in so far, so Headway cannot say which way things are going.',
+      note: pulse.reason || t('intelligence.trend.single_checkin'),
     };
   }
 
+  // The verdict, then the two points it was read between. Two finished
+  // sentences joined by a space — each already written in the owner's language.
   const scope = window.available ? ` ${window.note}` : '';
   switch (pulse.direction) {
     case 'IMPROVING':
-      return { state: 'IMPROVING', note: `Things are moving the right way.${scope}` };
+      return { state: 'IMPROVING', note: `${t('intelligence.trend.improving')}${scope}` };
     case 'DECLINING':
-      return { state: 'WORSENING', note: `Things are moving the wrong way.${scope}` };
+      return { state: 'WORSENING', note: `${t('intelligence.trend.declining')}${scope}` };
     case 'STABLE':
       return {
         state: 'STABLE',
-        note: `Things are holding steady.${scope}`,
+        note: `${t('intelligence.trend.stable')}${scope}`,
       };
     default:
       return {
         state: 'INSUFFICIENT_DATA',
-        note:
-          pulse.reason ||
-          'There is not enough to compare yet, so Headway cannot say which way things are going.',
+        note: pulse.reason || t('intelligence.trend.unknown'),
       };
   }
 }
@@ -854,16 +937,15 @@ function belowFloor(rows: ThemeSummaryRow[]): ThemeSummaryRow[] {
   return rows.filter((row) => row.count > 0 && row.count < MIN_MENTIONS_TO_NAME);
 }
 
-function headlineNoteFor(count: number): string {
+function headlineNoteFor(count: number, t: PortalTranslator): string {
   switch (count) {
     case 0:
-      return 'Nothing has been said often enough yet for Headway to call it a pattern.';
+      return t('intelligence.summary.none');
     case 1:
-      return 'Only 1 clear pattern so far. More will appear as feedback comes in.';
     case 2:
-      return 'Only 2 clear patterns so far. More will appear as feedback comes in.';
+      return t.plural('intelligence.summary.few', count);
     default:
-      return 'The clearest things customers are telling this business right now.';
+      return t('intelligence.summary.clearest');
   }
 }
 
@@ -879,11 +961,12 @@ function headlineNoteFor(count: number): string {
  *  5. Say plainly what is still missing.
  */
 export function buildIntelligence(input: IntelligenceInput): ClientIntelligence {
+  const t = input.t ?? EN;
   const clientId = input.client.id;
   const analysed = input.themes.analysedCount;
   const tier = tierFor(analysed);
   const verticalLabel = input.pack.label;
-  const window = comparisonWindowFrom(input.pulse);
+  const window = comparisonWindowFrom(input.pulse, t);
 
   // A theme is corroborated by the question the pack points at it, and only
   // for complaints: the vertical's questions ask what went wrong, so a high
@@ -904,8 +987,20 @@ export function buildIntelligence(input: IntelligenceInput): ClientIntelligence 
     sentiment: Sentiment,
     row: { key: string; label: string; count: number; severity: 'low' | 'medium' | 'high' },
     itemIds: string[],
-  ): Insight =>
-    buildInsightFor({
+  ): Insight => {
+    // The theme's name in the owner's language, resolved before the comparison
+    // sentence is written rather than after.
+    //
+    // `movementFor` is the one place a theme label is joined to a translated
+    // sentence by CODE — `${label} — ${pointNote}` and the "has not come up in
+    // either check-in" line both take the name as a value — so handing it the
+    // pack's raw English put an English noun phrase inside a Hindi sentence.
+    // `buildInsightFor` resolves the same key for the insight itself; doing it
+    // here as well means both say the theme's name the same way. Identical in
+    // English: the dictionary's `en` for a pack label is the pack label, byte
+    // for byte, and an untranslated theme still falls back to `row.label`.
+    const label = t.soft(`pack.${input.pack.id}.${row.key}`) ?? row.label;
+    return buildInsightFor({
       clientId,
       kind,
       sentiment,
@@ -914,10 +1009,12 @@ export function buildIntelligence(input: IntelligenceInput): ClientIntelligence 
       analysed,
       pack: input.pack,
       verticalLabel,
-      movement: movementFor(input.pulse, window, sentiment, row.key, row.label),
+      movement: movementFor(input.pulse, window, sentiment, row.key, label, t),
       window,
       rated: sentiment === 'ISSUE' ? ratedFor(row.key) : null,
+      t,
     });
+  };
 
   // ---- A + B: what customers love, and what they are unhappy about --------
   const loved = qualifying(input.themes.praises)
@@ -991,38 +1088,38 @@ export function buildIntelligence(input: IntelligenceInput): ClientIntelligence 
     if (headline.length >= HEADLINE_LIMIT) break;
   }
 
-  const overall = overallTrendFrom(input.pulse, window);
+  const overall = overallTrendFrom(input.pulse, window, t);
 
   // ---- What RepOS still cannot say ----------------------------------------
   const limits: string[] = [];
+  const limitKinds: string[] = [];
+  const addLimit = (kind: string, sentence: string) => {
+    limits.push(sentence);
+    limitKinds.push(kind);
+  };
   const unread = Math.max(0, input.totalFeedback - analysed);
   if (analysed === 0) {
-    limits.push(
+    addLimit(
+      'nothingRead',
       unread > 0
-        ? `Headway is reading ${pieces(unread)} now. Nothing is counted until Headway has read it.`
-        : 'No feedback has been read yet, so there is nothing for Headway to tell you.',
+        ? t.plural('intelligence.limit.reading_all', unread)
+        : t('intelligence.limit.nothing_read'),
     );
   } else if (tier === 'INSUFFICIENT') {
-    limits.push(
-      `Only ${pieces(analysed)} ${analysed === 1 ? 'has' : 'have'} been read. Everything above is an early sign, not a conclusion.`,
-    );
+    addLimit('thin', t.plural('intelligence.limit.too_thin', analysed));
   }
   if (unread > 0 && analysed > 0) {
-    limits.push(
-      `Headway is reading ${unread} more feedback ${unread === 1 ? 'entry' : 'entries'} now. ${unread === 1 ? 'It is' : 'They are'} not counted above yet.`,
-    );
+    addLimit('unread', t.plural('intelligence.limit.reading_more', unread));
   }
   if (!window.available && analysed > 0) {
-    limits.push(window.reason);
+    addLimit('window', window.reason);
   }
   const quiet = [...belowFloor(input.themes.praises), ...belowFloor(input.themes.issues)];
   if (quiet.length > 0) {
-    limits.push(
-      `${quiet.length} other topic${quiet.length === 1 ? ' was' : 's were'} mentioned once or twice. That is not enough to call a pattern yet.`,
-    );
+    addLimit('quiet', t.plural('intelligence.limit.quiet', quiet.length));
   }
   if (window.volumeCaveat) {
-    limits.push(window.volumeCaveat);
+    addLimit('volume', window.volumeCaveat);
   }
 
   return {
@@ -1036,7 +1133,7 @@ export function buildIntelligence(input: IntelligenceInput): ClientIntelligence 
       total: input.totalFeedback,
       unread,
       tier,
-      note: evidenceNote(tier, analysed),
+      note: evidenceNote(tier, analysed, t),
       enough: tier !== 'INSUFFICIENT',
     },
 
@@ -1046,7 +1143,7 @@ export function buildIntelligence(input: IntelligenceInput): ClientIntelligence 
     attention,
 
     headline,
-    headlineNote: headlineNoteFor(headline.length),
+    headlineNote: headlineNoteFor(headline.length, t),
 
     window,
     overallTrend: overall.state,
@@ -1058,10 +1155,11 @@ export function buildIntelligence(input: IntelligenceInput): ClientIntelligence 
       title: note.title,
       category: note.category,
       source: 'OPERATOR_NOTE' as const,
-      label: 'You recorded this. A customer did not say it.',
+      label: t('intelligence.context.label'),
     })),
 
     limits,
+    limitKinds,
     version: INTELLIGENCE_VERSION,
   };
 }

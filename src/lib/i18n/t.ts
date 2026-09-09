@@ -102,6 +102,7 @@ export function makeFlatTranslator(
   const t = ((key: string, vars?: Vars) =>
     interpolate(flat[key] ?? key, vars)) as Translator;
   t.locale = locale;
+  t.soft = (key: string) => (flat[key] !== undefined ? flat[key] : null);
   t.plural = (base: string, count: number, vars?: Vars) => {
     const key = `${base}.${count === 1 ? 'one' : 'other'}`;
     return interpolate(flat[key] ?? key, { count, ...vars });
@@ -120,6 +121,16 @@ export type Translator<K extends string = string> = {
   /** The language this translator was built for. */
   locale: Locale;
   /**
+   * A phrase if the dictionary has one, otherwise null.
+   *
+   * For labels that come from DATA rather than from code — a vertical's theme
+   * labels live in packs/*.json, so their keys are only known at runtime and
+   * cannot be in the typed key union. The caller supplies the pack's own
+   * English as the fallback, which is why a missing translation here shows the
+   * English label rather than a key.
+   */
+  soft: (key: string) => string | null;
+  /**
    * Picks `<base>.one` or `<base>.other` by count.
    *
    * English, Hindi and Marathi all split the same way — one versus everything
@@ -134,6 +145,7 @@ export function makeTranslator(messages: Namespace, locale: Locale): Translator 
   const t = ((key: string, vars?: Vars) =>
     resolve(messages, locale, key, vars)) as Translator;
   t.locale = locale;
+  t.soft = (key: string) => (messages[key] ? resolve(messages, locale, key) : null);
   t.plural = (base: string, count: number, vars?: Vars) =>
     resolve(messages, locale, `${base}.${count === 1 ? 'one' : 'other'}`, {
       count,

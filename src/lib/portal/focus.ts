@@ -4,9 +4,11 @@ import type {
   ResponsibilityState,
 } from '@/lib/responsibility/engine';
 import type { PortalMood, PortalOutcome, PortalSignal, PortalView } from '@/lib/portal/view';
-import { pieces, spoken } from '@/lib/portal/view';
+import { spoken } from '@/lib/portal/view';
 import { quotesFor, type EvidenceIndex, type Quote } from './evidence';
 import { formatDate } from '@/lib/format';
+import { EN } from '@/lib/i18n/translator';
+import type { PortalTranslator } from '@/lib/i18n/translator';
 
 /**
  * THE FOCUS — what an owner reads in ten seconds (M24).
@@ -35,6 +37,13 @@ import { formatDate } from '@/lib/format';
  * needs the owner; the view already read every theme; the measurement engine
  * already compared before and after; the evidence index already holds the
  * rows. This chooses, orders and words. Pure: everything it needs is passed in.
+ *
+ * THE LANGUAGE IS PASSED IN (M31b). Every sentence below comes out of the
+ * dictionary through `t`, and `t` arrives on the input object — it is never
+ * looked up and never branched on. The WHY line in particular is three whole
+ * sentences, not an English clause with a verb dropped into the middle of it:
+ * Hindi and Marathi put the verb at the end, so a sentence assembled from
+ * fragments can only ever be assembled in English.
  */
 
 export type ProofPopulation = {
@@ -103,6 +112,15 @@ export type FocusInput = {
   evidence: EvidenceIndex;
   /** Where this door lives, so links stay inside it. */
   basePath: string;
+  /**
+   * The language this portal is being read in, as a translator.
+   *
+   * Passed in, never looked up: these builders are pure, and a function that
+   * asked what language it was in would have to be edited again for the next
+   * one. Omitted means English — which is not an oversight but the operator
+   * console's deliberate answer, since staff read one language.
+   */
+  t?: PortalTranslator;
 };
 
 // ---------------------------------------------------------------------------
@@ -122,16 +140,19 @@ function signalHref(basePath: string, themeKey: string): string {
   return `${basePath}/analysis?open=${encodeURIComponent(themeKey)}#signal-${encodeURIComponent(themeKey)}`;
 }
 
-function outcomeReading(outcome: PortalOutcome): { reading: string; tone: 'good' | 'bad' | 'neutral' } {
+function outcomeReading(
+  outcome: PortalOutcome,
+  t: PortalTranslator,
+): { reading: string; tone: 'good' | 'bad' | 'neutral' } {
   switch (outcome.result) {
     case 'IMPROVED':
-      return { reading: 'Mentioned less often after the change', tone: 'good' };
+      return { reading: t('focus.outcome.reading.improved'), tone: 'good' };
     case 'WORSENED':
-      return { reading: 'Mentioned more often after the change', tone: 'bad' };
+      return { reading: t('focus.outcome.reading.worsened'), tone: 'bad' };
     case 'NO_CLEAR_CHANGE':
-      return { reading: 'No clear difference after the change', tone: 'neutral' };
+      return { reading: t('focus.outcome.reading.noChange'), tone: 'neutral' };
     default:
-      return { reading: 'Not enough feedback after the change', tone: 'neutral' };
+      return { reading: t('focus.outcome.reading.tooEarly'), tone: 'neutral' };
   }
 }
 
@@ -139,11 +160,14 @@ function outcomeReading(outcome: PortalOutcome): { reading: string; tone: 'good'
 export function populationFrom(
   outcome: PortalOutcome,
   action: PortalView['actions'][number] | null,
+  translator?: PortalTranslator,
 ): ProofPopulation | null {
-  const before = parseLine(outcome.beforeLine);
-  const after = parseLine(outcome.afterLine);
-  if (!before || !after || !outcome.beforeShare || !outcome.afterShare) return null;
-  const { reading, tone } = outcomeReading(outcome);
+  const t = translator ?? EN;
+  // The engine's own numbers, not a reading of its sentence.
+  const before = { count: outcome.beforeCount, total: outcome.beforeTotal };
+  const after = { count: outcome.afterCount, total: outcome.afterTotal };
+  if (!outcome.beforeShare || !outcome.afterShare) return null;
+  const { reading, tone } = outcomeReading(outcome, t);
   return {
     before: { ...before, share: outcome.beforeShare, scope: outcome.beforeScope },
     after: { ...after, share: outcome.afterShare, scope: outcome.afterScope },
@@ -155,47 +179,53 @@ export function populationFrom(
   };
 }
 
-/** "14 of 44 reviews (32%)" → 14 and 44. The engine's own line, not a recount. */
-function parseLine(line: string): { count: number; total: number } | null {
-  const m = /^(\d+) of (\d+)\b/.exec(line.trim());
-  if (!m) return null;
-  return { count: Number(m[1]), total: Number(m[2]) };
-}
-
-function outcomeChip(outcome: PortalOutcome): { label: string; tone: 'good' | 'bad' | 'neutral' } {
+function outcomeChip(
+  outcome: PortalOutcome,
+  t: PortalTranslator,
+): { label: string; tone: 'good' | 'bad' | 'neutral' } {
   switch (outcome.result) {
     case 'IMPROVED':
-      return { label: 'Less often after the change', tone: 'good' };
+      return { label: t('focus.chip.outcome.improved'), tone: 'good' };
     case 'WORSENED':
-      return { label: 'More often after the change', tone: 'bad' };
+      return { label: t('focus.chip.outcome.worsened'), tone: 'bad' };
     case 'NO_CLEAR_CHANGE':
-      return { label: 'No clear difference after the change', tone: 'neutral' };
+      return { label: t('focus.chip.outcome.noChange'), tone: 'neutral' };
     default:
-      return { label: 'Too early to compare', tone: 'neutral' };
+      return { label: t('focus.chip.outcome.tooEarly'), tone: 'neutral' };
   }
 }
 
-/** "Raised at 2 of your last 2 check-ins." → "At both recent check-ins". */
-function recurrenceChip(signal: PortalSignal): string | null {
-  const m = /at (\d+) of your last (\d+) check-ins/i.exec(signal.recurrence ?? '');
-  if (m) {
-    const [, raised, of] = m;
-    if (raised === of && of === '2') return 'At both recent check-ins';
-    return `At ${raised} of your last ${of} check-ins`;
+/**
+ * "Raised at 2 of your last 2 check-ins." → "At both recent check-ins".
+ *
+ * Reads the signal's two NUMBERS, not its sentence. It used to pull them back
+ * out of the English with /at (\d+) of your last (\d+) check-ins/, which found
+ * nothing the moment that sentence was written in Hindi or Marathi — so the
+ * chip simply disappeared for those readers, with nothing to notice.
+ */
+function recurrenceChip(signal: PortalSignal, t: PortalTranslator): string | null {
+  const raised = signal.recurrenceRaised;
+  const outOf = signal.recurrenceOutOf;
+  if (raised !== null && outOf !== null && raised >= 1) {
+    if (raised === outOf && outOf === 2) return t('focus.chip.recurrence.both');
+    return t('focus.chip.recurrence.some', { raised, of: outOf });
   }
-  if (signal.isNew) return 'New at your latest check-in';
+  if (signal.isNew) return t('focus.chip.recurrence.new');
   return null;
 }
 
-function movementChip(signal: PortalSignal): { label: string; tone: 'good' | 'bad' | 'neutral' } | null {
+function movementChip(
+  signal: PortalSignal,
+  t: PortalTranslator,
+): { label: string; tone: 'good' | 'bad' | 'neutral' } | null {
   const d = signal.movementDirection;
   if (!d) return null;
   const issue = signal.kind === 'ISSUE';
-  if (d === 'STABLE') return { label: 'About the same at your check-ins', tone: 'neutral' };
+  if (d === 'STABLE') return { label: t('focus.chip.movement.stable'), tone: 'neutral' };
   const rose = issue ? d === 'WORSENING' : d === 'IMPROVING';
   const good = d === 'IMPROVING';
   return {
-    label: rose ? 'More often at your latest check-in' : 'Less often at your latest check-in',
+    label: rose ? t('focus.chip.movement.more') : t('focus.chip.movement.less'),
     tone: good ? 'good' : 'bad',
   };
 }
@@ -209,19 +239,27 @@ export function proofsFor(
   view: PortalView,
   evidence: EvidenceIndex,
   basePath: string,
+  translator?: PortalTranslator,
 ): FocusProof[] {
+  const t = translator ?? EN;
   const out: FocusProof[] = [];
   const issue = signal.kind === 'ISSUE';
   const tone: 'good' | 'bad' = issue ? 'bad' : 'good';
 
   out.push({
     key: 'share',
-    label: `${signal.share} of feedback`,
-    detail: `${signal.evidenceCount} of ${pieces(signal.evidenceTotal)} mention ${spoken(signal.themeLabel)}.`,
+    label: t('focus.chip.share', { share: signal.share }),
+    // One sentence, one key. "34 of 87 feedback entries mention slow service."
+    // used to be built by dropping a count into the middle of another phrase;
+    // Hindi and Marathi put the total first, so the whole line is the phrase.
+    detail: t.plural('focus.proof.share.detail', signal.evidenceTotal, {
+      mentions: signal.evidenceCount,
+      theme: spoken(signal.themeLabel),
+    }),
     tone,
     quotes: quotesFor(evidence, signal.themeKey, { limit: 3 }),
     seeAll: {
-      label: `See all ${signal.evidenceCount} ${signal.evidenceCount === 1 ? 'mention' : 'mentions'}`,
+      label: t.plural('focus.proof.share.seeAll', signal.evidenceCount),
       href: reviewsHref(basePath, signal.themeKey),
     },
     population: null,
@@ -229,15 +267,18 @@ export function proofsFor(
   });
 
   if (signal.outcome) {
-    const chip = outcomeChip(signal.outcome);
+    const chip = outcomeChip(signal.outcome, t);
     const action = view.actions.find((a) => a.themeKey === signal.themeKey && a.outcome) ?? null;
-    const population = populationFrom(signal.outcome, action);
+    const population = populationFrom(signal.outcome, action, t);
     out.push({
       key: 'outcome',
       label: chip.label,
       detail:
         population
-          ? `${population.before.share} of feedback before the change, ${population.after.share} after.`
+          ? t('focus.proof.outcome.detail', {
+              before: population.before.share,
+              after: population.after.share,
+            })
           : signal.outcome.headline,
       tone: chip.tone,
       quotes: [],
@@ -246,7 +287,7 @@ export function proofsFor(
       comparison: null,
     });
   } else {
-    const chip = movementChip(signal);
+    const chip = movementChip(signal, t);
     if (chip) {
       out.push({
         key: 'movement',
@@ -256,12 +297,14 @@ export function proofsFor(
         quotes: [],
         seeAll: null,
         population: null,
-        comparison: signal.movementCounts ? `${signal.movementCounts} at your last two check-ins` : null,
+        comparison: signal.movementCounts
+          ? t('focus.proof.movement.comparison', { counts: signal.movementCounts })
+          : null,
       });
     }
   }
 
-  const recurrence = recurrenceChip(signal);
+  const recurrence = recurrenceChip(signal, t);
   if (recurrence && signal.recurrence) {
     out.push({
       key: 'recurrence',
@@ -278,8 +321,11 @@ export function proofsFor(
     if (rated && rated.rated > 0) {
       out.push({
         key: 'rated',
-        label: `Rated ${rated.average.toFixed(1)}/5 by ${rated.rated} ${rated.rated === 1 ? 'customer' : 'customers'}`,
-        detail: `${rated.low} of the ${rated.rated} ${rated.rated === 1 ? 'customer' : 'customers'} who rated ${spoken(rated.label)} gave it 3 stars or less.`,
+        label: t.plural('focus.chip.rated', rated.rated, { average: rated.average.toFixed(1) }),
+        detail: t.plural('focus.proof.rated.detail', rated.rated, {
+          low: rated.low,
+          theme: spoken(rated.label),
+        }),
         tone: rated.low >= 3 ? 'bad' : 'neutral',
         quotes: [],
         seeAll: null,
@@ -300,29 +346,34 @@ function headlineFor(
   top: ResponsibilityItem | null,
   r: Responsibility,
   view: PortalView,
+  t: PortalTranslator,
 ): string {
   if (view.basedOn === 0) {
     return view.soFar.waiting > 0
-      ? 'Feedback has arrived. Headway is reading it now.'
-      : 'No customer feedback yet.';
+      ? t('focus.headline.reading')
+      : t('focus.headline.none');
   }
   if (r.state === 'WAITING_FOR_EVIDENCE' && !top) {
-    return 'Too early to say what needs your attention.';
+    return t('focus.headline.tooEarly');
   }
   if (top) {
     if (top.themeLabel && top.state === 'DO_NOW') {
       // "worth your attention" is a phrase from a report, not from a person.
       // An owner wants to be told what to fix.
       return top.kind === 'ISSUE'
-        ? `${top.themeLabel} is the main thing to fix.`
-        : `${top.themeLabel} is the main thing to look at.`;
+        ? t('focus.headline.fix', { theme: top.themeLabel })
+        : t('focus.headline.look', { theme: top.themeLabel });
     }
     return top.headline;
   }
-  return 'Nothing needs your attention right now.';
+  return t('focus.headline.nothing');
 }
 
-function synthesisFor(top: ResponsibilityItem | null, view: PortalView): string | null {
+function synthesisFor(
+  top: ResponsibilityItem | null,
+  view: PortalView,
+  t: PortalTranslator,
+): string | null {
   const keep = view.keep;
   const issue = top?.themeKey && top.kind === 'ISSUE' ? signalFor(view, top.themeKey) : null;
 
@@ -334,25 +385,34 @@ function synthesisFor(top: ResponsibilityItem | null, view: PortalView): string 
     // two thoughts at once; two short sentences ask nothing.
     const why =
       issue.outcome?.result === 'WORSENED'
-        ? ' Customers have mentioned it more often since your change.'
+        ? ` ${t('focus.why.change.worsened')}`
         : issue.outcome?.result === 'IMPROVED'
-          ? ' Customers have mentioned it less often since your change.'
+          ? ` ${t('focus.why.change.improved')}`
           : issue.movementDirection === 'WORSENING'
-            ? ' Customers mentioned it more often at your latest check-in.'
+            ? ` ${t('focus.why.movement.worsening')}`
             : issue.movementDirection === 'IMPROVING'
-              ? ' Customers mentioned it less often at your latest check-in.'
+              ? ` ${t('focus.why.movement.improving')}`
               : '';
-    const verb =
-      issue.isRecurring || issue.movementDirection === 'WORSENING'
-        ? 'keep mentioning'
-        : 'mention';
+    // Not a verb dropped into a hole: two whole sentences, because the verb
+    // that ends the English clause sits somewhere else in Hindi and Marathi.
+    const keeps = issue.isRecurring || issue.movementDirection === 'WORSENING';
     if (keep && keep.themeKey !== issue.themeKey) {
       // Was: "Customers are not unhappy about your food taste and quality."
       // Saying a good thing with two negatives is the worst habit this pass
       // exists to remove.
-      return `Customers like your ${spoken(keep.themeLabel)} — ${keep.evidenceCount} praised it. The main problem they ${verb} is ${spoken(issue.themeLabel)}.${why}`;
+      const strength = t('focus.why.keep', {
+        theme: spoken(keep.themeLabel),
+        count: keep.evidenceCount,
+      });
+      const problem = keeps
+        ? t('focus.why.main.keepMentioning', { theme: spoken(issue.themeLabel) })
+        : t('focus.why.main.mention', { theme: spoken(issue.themeLabel) });
+      return `${strength} ${problem}${why}`;
     }
-    return `No single thing is praised often enough yet to call it a strength. The main problem customers ${verb} is ${spoken(issue.themeLabel)}.${why}`;
+    const problem = keeps
+      ? t('focus.why.mainCustomers.keepMentioning', { theme: spoken(issue.themeLabel) })
+      : t('focus.why.mainCustomers.mention', { theme: spoken(issue.themeLabel) });
+    return `${t('focus.why.noStrength')} ${problem}${why}`;
   }
 
   if (top && !top.themeKey) {
@@ -369,23 +429,34 @@ function synthesisFor(top: ResponsibilityItem | null, view: PortalView): string 
     return s ? s.brief : top.whyItMatters;
   }
 
+  const praised = keep
+    ? t.plural('focus.synthesis.praiseMost', keep.evidenceTotal, {
+        theme: spoken(keep.themeLabel),
+        mentions: keep.evidenceCount,
+      })
+    : null;
+
   const eased = view.first && view.first.outcome?.result === 'IMPROVED' ? view.first : null;
-  if (keep && eased) {
-    return `Customers praise your ${spoken(keep.themeLabel)} most — ${keep.evidenceCount} of ${pieces(keep.evidenceTotal)}. Customers still mention ${spoken(eased.themeLabel)}, but less often since your change.`;
+  if (praised && eased) {
+    return `${praised} ${t('focus.synthesis.stillEased', { theme: spoken(eased.themeLabel) })}`;
   }
-  if (keep && view.first) {
-    return `Customers praise your ${spoken(keep.themeLabel)} most — ${keep.evidenceCount} of ${pieces(keep.evidenceTotal)}. Customers still mention ${spoken(view.first.themeLabel)}. Headway is watching it and will tell you if it needs your attention.`;
+  if (praised && view.first) {
+    return `${praised} ${t('focus.synthesis.stillMention', { theme: spoken(view.first.themeLabel) })} ${t('focus.synthesis.watching')}`;
   }
-  if (keep) {
-    return `Customers praise your ${spoken(keep.themeLabel)} most — ${keep.evidenceCount} of ${pieces(keep.evidenceTotal)}. Nothing else comes up often enough to call it a problem.`;
+  if (praised) {
+    return `${praised} ${t('focus.synthesis.nothingElse')}`;
   }
   if (view.basedOn > 0 && view.unhappy.length === 0 && view.loved.length === 0) {
-    return 'Nothing has come up often enough yet for Headway to call it a pattern.';
+    return t('focus.synthesis.noPattern');
   }
   return null;
 }
 
-function nextFor(top: ResponsibilityItem | null, view: PortalView): FocusNext | null {
+function nextFor(
+  top: ResponsibilityItem | null,
+  view: PortalView,
+  t: PortalTranslator,
+): FocusNext | null {
   if (view.basedOn === 0) return null;
   const signal = top?.themeKey ? signalFor(view, top.themeKey) : null;
   // What Headway suggested at the time, frozen on the action; the pack's
@@ -399,31 +470,33 @@ function nextFor(top: ResponsibilityItem | null, view: PortalView): FocusNext | 
     const outcome = signal.outcome;
     if (top.state === 'DO_NOW' && outcome?.result === 'WORSENED') {
       return {
-        headline: 'Before you undo the change, check what else changed.',
-        detail: suggestion ? `The original suggestion still stands: ${suggestion}` : null,
+        headline: t('focus.next.undo'),
+        detail: suggestion ? t('focus.next.suggestionStands', { suggestion }) : null,
         why: [outcome.headline, outcome.caveat || outcome.note],
         watching: signal.watchLine,
       };
     }
     if (top.state === 'DO_NOW' && signal.returning) {
       return {
-        headline: 'Before you make another change, check whether the old problem is back.',
-        detail: suggestion ? `The original suggestion: ${suggestion}` : null,
+        headline: t('focus.next.returning'),
+        detail: suggestion ? t('focus.next.originalSuggestion', { suggestion }) : null,
         why: [signal.brief],
         watching: signal.watchLine,
       };
     }
     if (top.state === 'DO_NOW' && signal.advice === 'HOLD') {
       return {
-        headline: 'Decide whether to act now or wait. Customers are mentioning it less on their own.',
-        detail: signal.suggestion ? `If it comes up more often again, start here: ${signal.suggestion}` : null,
+        headline: t('focus.next.hold'),
+        detail: signal.suggestion
+          ? t('focus.next.holdDetail', { suggestion: signal.suggestion })
+          : null,
         why: [signal.brief, ...signal.why.slice(0, 1)],
         watching: signal.watchLine,
       };
     }
     if (top.state === 'DO_NOW') {
       return {
-        headline: signal.suggestion ?? 'Decide what to change, and tell your Headway contact.',
+        headline: signal.suggestion ?? t('focus.next.decide'),
         detail: signal.suggestionNote,
         why: [signal.brief, ...signal.why.slice(0, 1)],
         watching: signal.watchLine,
@@ -450,7 +523,7 @@ function nextFor(top: ResponsibilityItem | null, view: PortalView): FocusNext | 
   const keep = view.keep;
   if (keep) {
     return {
-      headline: `Nothing to do. Keep doing what customers praise you for: ${spoken(keep.themeLabel)}.`,
+      headline: t('focus.next.keepDoing', { theme: spoken(keep.themeLabel) }),
       detail: null,
       why: [keep.brief],
       watching: keep.watchLine,
@@ -461,6 +534,7 @@ function nextFor(top: ResponsibilityItem | null, view: PortalView): FocusNext | 
 
 export function buildFocus(input: FocusInput): Focus {
   const { responsibility: r, view, evidence, basePath } = input;
+  const t = input.t ?? EN;
   const top = r.needsYou[0] ?? null;
   // With nothing needing the owner, the evidence worth showing is the leading
   // complaint's own state — eased after a change, or simply carried.
@@ -476,31 +550,33 @@ export function buildFocus(input: FocusInput): Focus {
     ? { key: signal.themeKey, label: signal.themeLabel, kind: signal.kind }
     : null;
 
-  const proofs = signal ? proofsFor(signal, view, evidence, basePath) : [];
+  const proofs = signal ? proofsFor(signal, view, evidence, basePath, t) : [];
 
   // The button is the way to the whole reading of the theme on Customers, and
   // it says so: the instruction itself is the next step, two lines up.
   const cta = signal
     ? {
-        label: top ? `See everything on ${spoken(signal.themeLabel)}` : 'See what changed',
+        label: top
+          ? t('focus.cta.seeEverything', { theme: spoken(signal.themeLabel) })
+          : t('focus.cta.whatChanged'),
         href: signalHref(basePath, signal.themeKey),
       }
     : top
-      ? { label: 'Read what needs a reply', href: `${basePath}/reviews?needs=reply` }
+      ? { label: t('focus.cta.needsReply'), href: `${basePath}/reviews?needs=reply` }
       : view.keep
-        ? { label: 'See what is going well', href: signalHref(basePath, view.keep.themeKey) }
+        ? { label: t('focus.cta.goingWell'), href: signalHref(basePath, view.keep.themeKey) }
         : null;
 
   return {
     mood: view.mood,
     state: r.state,
-    headline: headlineFor(top, r, view),
+    headline: headlineFor(top, r, view, t),
     basis: view.basis,
     theme,
     proofs,
     cta,
-    synthesis: synthesisFor(top, view),
-    next: nextFor(top, view),
+    synthesis: synthesisFor(top, view, t),
+    next: nextFor(top, view, t),
   };
 }
 
@@ -508,14 +584,30 @@ export function buildFocus(input: FocusInput): Focus {
 // The check-in, in one sentence
 // ---------------------------------------------------------------------------
 
-const WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+/**
+ * "No", "One", "Two" … as dictionary keys rather than an English array.
+ *
+ * A spelled-out count is a number the reader has to be able to read, so it is
+ * looked up like any other phrase and then interpolated like any other figure.
+ * Index 0 exists to keep the array aligned with the count; the callers below
+ * all take the "nothing" sentence before they reach it.
+ */
+const COUNT_WORDS = [
+  'focus.count.0',
+  'focus.count.1',
+  'focus.count.2',
+  'focus.count.3',
+  'focus.count.4',
+  'focus.count.5',
+  'focus.count.6',
+  'focus.count.7',
+  'focus.count.8',
+  'focus.count.9',
+] as const;
 
-function countWord(n: number): string {
-  return WORDS[n] ?? String(n);
-}
-
-function things(n: number, singular: string, plural: string): string {
-  return `${countWord(n)} ${n === 1 ? singular : plural}`;
+function countWord(n: number, t: PortalTranslator): string {
+  const key = COUNT_WORDS[n];
+  return key ? t(key) : String(n);
 }
 
 export type CheckinBlock = {
@@ -534,8 +626,18 @@ export type CheckinPulse = {
 /**
  * The whole check-in above the fold: three counts in one sentence, and the
  * three blocks an owner leaves with.
+ *
+ * The block labels stay English here and are not read by the portal: the
+ * check-in page looks each one up from `checkin.block.*` by the block's kind,
+ * so the word an owner sees is already in their language.
  */
-export function checkinPulse(r: Responsibility, view: PortalView, compared: boolean): CheckinPulse {
+export function checkinPulse(
+  r: Responsibility,
+  view: PortalView,
+  compared: boolean,
+  translator?: PortalTranslator,
+): CheckinPulse {
+  const t = translator ?? EN;
   const needs = r.needsYou.length;
   const watching = r.watching.filter((i) => i.state === 'WATCH').length;
   const steady = compared ? view.steady.length : 0;
@@ -543,18 +645,20 @@ export function checkinPulse(r: Responsibility, view: PortalView, compared: bool
   const parts: string[] = [];
   parts.push(
     needs === 0
-      ? 'Nothing needs your attention.'
-      : `${things(needs, 'thing needs', 'things need')} your attention.`,
+      ? t('focus.pulse.attention.none')
+      : t.plural('focus.pulse.attention', needs, { word: countWord(needs, t) }),
   );
-  if (watching > 0) parts.push(`${things(watching, 'thing needs', 'things need')} watching.`);
+  if (watching > 0) {
+    parts.push(t.plural('focus.pulse.watching', watching, { word: countWord(watching, t) }));
+  }
   if (compared) {
     parts.push(
       steady === 0
-        ? 'Nothing is holding steady.'
-        : `${things(steady, 'thing is', 'things are')} holding steady.`,
+        ? t('focus.pulse.steady.none')
+        : t.plural('focus.pulse.steady', steady, { word: countWord(steady, t) }),
     );
   } else if (view.basedOn > 0) {
-    parts.push('A second check-in will show what is holding steady.');
+    parts.push(t('focus.pulse.secondCheckin'));
   }
 
   const blocks: CheckinBlock[] = [];
@@ -581,7 +685,13 @@ export type ActivityFact = { label: string; value: string; href: string | null }
  * figure is one the workspace shows elsewhere; nothing is invented to fill a
  * row, and the section is empty rather than padded when nothing has arrived.
  */
-export function activityFacts(view: PortalView, r: Responsibility, basePath: string): ActivityFact[] {
+export function activityFacts(
+  view: PortalView,
+  r: Responsibility,
+  basePath: string,
+  translator?: PortalTranslator,
+): ActivityFact[] {
+  const t = translator ?? EN;
   const collected = view.soFar.read + view.soFar.waiting;
   if (collected === 0) return [];
   const signals = view.loved.length + view.unhappy.length;
@@ -590,14 +700,14 @@ export function activityFacts(view: PortalView, r: Responsibility, basePath: str
   const inProgress = view.actions.filter((a) => a.stage === 'AGREED' || a.stage === 'DONE').length;
 
   const facts: ActivityFact[] = [
-    { label: 'Feedback entries read', value: String(view.basedOn), href: `${basePath}/reviews` },
+    { label: t('focus.activity.read'), value: String(view.basedOn), href: `${basePath}/reviews` },
     {
-      label: 'What keeps coming up',
+      label: t('focus.activity.recurring'),
       value: String(signals),
       href: signals > 0 ? `${basePath}/analysis` : null,
     },
     {
-      label: issues === 1 ? 'Problem that needs your attention' : 'Problems that need your attention',
+      label: t.plural('focus.activity.problems', issues),
       value: String(issues),
       href: issues > 0 ? basePath : null,
     },
@@ -606,12 +716,8 @@ export function activityFacts(view: PortalView, r: Responsibility, basePath: str
     facts.push({
       label:
         checked > 0
-          ? checked === 1
-            ? 'Change compared'
-            : 'Changes compared'
-          : inProgress === 1
-            ? 'Change being checked'
-            : 'Changes being checked',
+          ? t.plural('focus.activity.compared', checked)
+          : t.plural('focus.activity.checking', inProgress),
       value: String(checked > 0 ? checked : inProgress),
       href: `${basePath}/improvements`,
     });
@@ -620,10 +726,15 @@ export function activityFacts(view: PortalView, r: Responsibility, basePath: str
 }
 
 /** "ends 21 Sep 2026" for the service section. */
-export function trialLine(trialEndsAt: Date | null, days: number | null): string | null {
+export function trialLine(
+  trialEndsAt: Date | null,
+  days: number | null,
+  translator?: PortalTranslator,
+): string | null {
+  const t = translator ?? EN;
   if (!trialEndsAt) return null;
   const when = formatDate(trialEndsAt);
-  if (days === null) return `Ends ${when}`;
-  if (days < 0) return `Ended ${when}`;
-  return `Ends ${when}`;
+  if (days === null) return t('focus.trial.ends', { date: when });
+  if (days < 0) return t('focus.trial.ended', { date: when });
+  return t('focus.trial.ends', { date: when });
 }

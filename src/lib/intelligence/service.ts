@@ -9,6 +9,7 @@ import {
   type ClientIntelligence,
   type RecordedStep,
 } from './engine';
+import type { PortalTranslator } from '@/lib/i18n/translator';
 
 /**
  * CUSTOMER INTELLIGENCE SERVICE (M10).
@@ -80,6 +81,7 @@ export async function loadIntelligence(
   db: PrismaClient,
   client: { id: string; businessName: string; vertical: string },
   now: Date,
+  t?: PortalTranslator,
 ): Promise<IntelligenceContext> {
   // Three services ask for this independently while one page renders - the
   // owner's update, the improvement actions, and the responsibility panel - so
@@ -88,20 +90,27 @@ export async function loadIntelligence(
   // by the milliseconds between their `new Date()` calls, and everything here
   // buckets by week and month, so no reachable difference in `now` within one
   // request can change the answer.
-  return oncePerRequest(`intelligence:${client.id}`, () => loadIntelligenceUncached(db, client, now));
+  //
+  // The language is part of the key. Everything this builds is SENTENCES, so
+  // two callers reading in different languages inside one request must not be
+  // handed each other's copy.
+  return oncePerRequest(`intelligence:${client.id}:${t?.locale ?? 'en'}`, () =>
+    loadIntelligenceUncached(db, client, now, t),
+  );
 }
 
 async function loadIntelligenceUncached(
   db: PrismaClient,
   client: { id: string; businessName: string; vertical: string },
   now: Date,
+  t?: PortalTranslator,
 ): Promise<IntelligenceContext> {
   const pack = getPackOrFallback(client.vertical);
 
   const [themes, totalFeedback, health, recentlyDone] = await Promise.all([
     getThemeSummary(db, client.id, client.vertical),
     db.reviewItem.count({ where: { clientId: client.id } }),
-    getClientHealth(db, client.id, client.vertical, now),
+    getClientHealth(db, client.id, client.vertical, now, t),
     loadRecentSteps(db, client.id, now),
   ]);
 
@@ -112,6 +121,7 @@ async function loadIntelligenceUncached(
     totalFeedback,
     pulse: health.pulse,
     notes: recentlyDone,
+    t,
   });
 
   return { pack, themes, totalFeedback, pulse: health.pulse, recentlyDone, intelligence };

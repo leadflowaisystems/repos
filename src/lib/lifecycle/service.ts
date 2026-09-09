@@ -32,6 +32,9 @@
  * through a Tuesday.
  */
 
+import { EN } from '@/lib/i18n/translator';
+import type { PortalTranslator } from '@/lib/i18n/translator';
+
 const DAY = 86_400_000;
 
 /** India is +05:30 all year. No DST, so this is exact, not an approximation. */
@@ -275,23 +278,28 @@ export function describeLifecycle(input: LifecycleInput): Lifecycle {
  *
  * A paying account just says "Active". The row above it already says the
  * service is Headway, so "Active service" only repeated the word.
+ *
+ * `t` is the owner's language, and it is trailing and optional because this
+ * function has no input object to carry one. Omitted means English, which is
+ * not a fallback so much as a decision: the operator console calls this without
+ * a translator and stays English deliberately.
  */
-export function statusLabel(lifecycle: Lifecycle): string {
+export function statusLabel(lifecycle: Lifecycle, t: PortalTranslator = EN): string {
   switch (lifecycle.state) {
     case 'ACTIVE_TRIAL':
-      return 'Active trial';
+      return t('lifecycle.status.activeTrial');
     case 'ACTIVE_SERVICE':
-      return 'Active';
+      return t('lifecycle.status.active');
     case 'TRIAL_EXPIRED':
-      return 'Trial ended';
+      return t('lifecycle.status.trialEnded');
     case 'MANUALLY_LOCKED':
-      return 'Paused';
+      return t('lifecycle.status.paused');
     case 'ADMIN_OVERRIDE':
-      return 'Active';
+      return t('lifecycle.status.active');
     case 'FOUNDER_EXEMPT':
-      return 'Headway staff access';
+      return t('lifecycle.status.staff');
     case 'DEMO_EXEMPT':
-      return 'Demo workspace';
+      return t('lifecycle.status.demo');
   }
 }
 

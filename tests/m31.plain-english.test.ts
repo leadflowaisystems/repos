@@ -177,6 +177,13 @@ describe('the dictionary itself is written in plain English', () => {
   it('uses the glossary’s word, not a synonym of it', () => {
     const offenders: string[] = [];
     for (const [key, text] of english) {
+      // `pack.*` entries are the vertical packs' own labels, copied byte-for-
+      // byte from packs/*.json so that English and the translations describe
+      // the same theme. They are DATA, not Headway's voice: editing one here
+      // would silently disagree with the pack, and editing the pack would
+      // change a business's taxonomy to satisfy a style rule. Where a pack
+      // label reads oddly, that is a product decision about the pack.
+      if (key.startsWith('pack.')) continue;
       for (const [avoid, prefer] of Object.entries(PREFERRED_INSTEAD)) {
         const re = new RegExp(`\\b${avoid.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
         if (re.test(text)) offenders.push(`${key}: “${avoid}” → use “${prefer}”`);

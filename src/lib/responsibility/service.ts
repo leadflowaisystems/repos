@@ -10,6 +10,7 @@ import {
   type GatewayState,
   type Responsibility,
 } from './engine';
+import type { PortalTranslator } from '@/lib/i18n/translator';
 
 /**
  * RESPONSIBILITY SERVICE (M15).
@@ -65,14 +66,14 @@ export function feedbackSince(rows: DatedRow[], since: Date | null): FeedbackSin
 export async function getResponsibility(
   db: PrismaClient,
   clientId: string,
-  options: { now?: Date } = {},
+  options: { now?: Date; t?: PortalTranslator } = {},
 ): Promise<ResponsibilityBundle | null> {
   const client = await findPortalClient(db, clientId);
   if (!client) return null;
   const now = options.now ?? new Date();
 
   const [core, rows, replies, gateway, archived] = await Promise.all([
-    loadCore(db, client, now),
+    loadCore(db, client, now, options.t),
     db.reviewItem.findMany({
       where: { clientId: client.id },
       select: {
@@ -107,6 +108,7 @@ export async function getResponsibility(
     gateway: gatewayState,
     archived: archived?.archivedAt !== null && archived?.archivedAt !== undefined,
     now,
+    t: options.t,
   });
 
   return { clientId: client.id, view, responsibility };

@@ -200,7 +200,7 @@ describe('status — healthy', () => {
   });
 
   it('explains what it checked instead of leaving the reason blank', () => {
-    expect(healthy.statusSummary).toContain('13 pieces of feedback');
+    expect(healthy.statusSummary).toContain('13 feedback entries');
   });
 });
 
@@ -522,7 +522,7 @@ describe('pulse', () => {
       snapshot({ id: 'then', capturedAt: daysAgo(31), feedback: many(20, 'POSITIVE') }),
     ]);
     expect(p.sampleWarning).toContain(`needs ${MIN_FEEDBACK_FOR_TREND_CLAIMS}`);
-    expect(p.sampleWarning).toContain('20 pieces of feedback at the earlier check-in');
+    expect(p.sampleWarning).toContain('20 feedback entries at the earlier check-in');
   });
 
   it('does not warn when both sides clear the floor', () => {

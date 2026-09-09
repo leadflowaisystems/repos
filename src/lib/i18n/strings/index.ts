@@ -3,6 +3,13 @@ import { checkin } from './checkin';
 import { common } from './common';
 import { customers } from './customers';
 import { errors } from './errors';
+import { evidence } from './evidence';
+import { improve } from './improve';
+import { insight } from './insight';
+import { intelligence } from './intelligence';
+import { pack } from './pack';
+import { period } from './period';
+import { responsibility } from './responsibility';
 import { feedback } from './feedback';
 import { focus } from './focus';
 import { home } from './home';
@@ -45,6 +52,17 @@ export const MESSAGES = {
   ...focus,
   ...lifecycle,
   ...errors,
+
+  // The generated sentences: written by pure builders that are handed a
+  // translator. Same flat namespace as everything else, so a phrase used by
+  // both a component and a builder is defined once.
+  ...insight,
+  ...responsibility,
+  ...improve,
+  ...intelligence,
+  ...period,
+  ...evidence,
+  ...pack,
 };
 
 /**

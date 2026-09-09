@@ -457,7 +457,9 @@ describe('continuity', () => {
     ]);
     expect(item.thread.find((s) => s.key === 'decided')?.text).toBe('Cut evening bookings to five an hour');
     expect(item.thread.find((s) => s.key === 'result')?.text).toMatch(
-      /^Customers are mentioning long waiting time less often since the change\. This does not show the change caused the difference\.$/,
+      // Re-rendered from the stored figures, so it is the engine's current
+      // English. The no-causation sentence is unchanged and still required.
+      /^Customers mention long waiting time less often since the change\. This does not show the change caused the difference\.$/,
     );
     expect(item.thread.find((s) => s.key === 'next')?.text).toMatch(/^Headway is checking whether long waiting time keeps coming up less often/);
   });

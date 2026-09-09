@@ -101,13 +101,13 @@ export async function PortalHome({
   const t = await getTranslator();
   const client = { id: clientId };
   const [bundle, evidence] = await Promise.all([
-    getResponsibility(prisma, client.id),
+    getResponsibility(prisma, client.id, { t }),
     getEvidenceIndex(prisma, client.id),
   ]);
   if (!bundle) notFound();
   const { view, responsibility: r } = bundle;
 
-  const focus = buildFocus({ responsibility: r, view, evidence, basePath });
+  const focus = buildFocus({ responsibility: r, view, evidence, basePath, t });
 
   // The engine files a strength under "watching" — it is carrying it. On the
   // page, a thing going well and a thing being watched for trouble are not

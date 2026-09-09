@@ -1678,7 +1678,11 @@ describe('V1 hard rules — the owner reads sentences, not labels (M18)', () => 
     // on" printed directly under a live follow-up.
     const engine = EXECUTABLE.find(({ file }) => file === 'src/lib/responsibility/engine.ts');
     expect(engine?.code).toMatch(
-      /!args\.hasNeedsYou[\s\S]{0,120}Found no new problem big enough to act on\./,
+      // The sentence itself now lives in the dictionary as
+      // responsibility.did.noProblem; what matters here is that it is still
+      // guarded by !hasNeedsYou, so an owner with a follow-up waiting never
+      // reads "no new problem" directly above it.
+      /!args\.hasNeedsYou[\s\S]{0,160}responsibility\.did\.noProblem/,
     );
   });
   it('never lets a server action read a constant out of a client component', () => {

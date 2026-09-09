@@ -511,11 +511,29 @@ describe('the words an owner reads', () => {
 
   it('says paused and resumed in the words the owner is promised', () => {
     const service = stripComments(read('src', 'lib', 'commercial', 'service.ts'));
-    expect(service).toContain("headline = 'Headway is paused'");
-    expect(service).toContain('Your feedback and your history are safe. New feedback is still saved. Headway is not reading it yet.');
-    expect(service).toContain("headline = 'Headway is active'");
-    expect(service).toContain("line = 'Headway is reading new feedback as it arrives.'");
-    expect(service).toContain('Your account was paused. It is running again.');
+    // These sentences moved into the dictionary so an owner can read them in
+    // Hindi and Marathi. Both halves are still pinned: the module reaches for
+    // the right key, and the key still says the promised words in English.
+    for (const key of [
+      'lifecycle.account.paused.headline',
+      'lifecycle.account.paused.line',
+      'lifecycle.account.active.headline',
+      'lifecycle.account.active.line',
+      'lifecycle.account.resumed.note',
+    ] as const) {
+      expect(service, key).toContain(`t('${key}'`);
+    }
+    expect(MESSAGES['lifecycle.account.paused.headline'].en).toBe('Headway is paused');
+    expect(MESSAGES['lifecycle.account.paused.line'].en).toBe(
+      'Your feedback and your history are safe. New feedback is still saved. Headway is not reading it yet.',
+    );
+    expect(MESSAGES['lifecycle.account.active.headline'].en).toBe('Headway is active');
+    expect(MESSAGES['lifecycle.account.active.line'].en).toBe(
+      'Headway is reading new feedback as it arrives.',
+    );
+    expect(MESSAGES['lifecycle.account.resumed.note'].en).toContain(
+      'Your account was paused. It is running again.',
+    );
     // The banner across the workspace shell now reads from the dictionary, so
     // the key is what the layout carries and the sentence is pinned there.
     const layout = stripComments(

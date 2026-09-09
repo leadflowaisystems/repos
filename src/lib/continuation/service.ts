@@ -1,4 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
+import { EN } from '@/lib/i18n/translator';
+import type { PortalTranslator } from '@/lib/i18n/translator';
 
 /**
  * ASKING TO CARRY ON (M28).
@@ -140,25 +142,26 @@ export async function requestContinuation(
   db: PrismaClient,
   clientId: string,
   input: { phone: string; email?: string | null },
-  options: { now?: Date } = {},
+  options: { now?: Date; t?: PortalTranslator } = {},
 ): Promise<ServiceResult<{ request: ContinuationRequest; created: boolean }>> {
+  const t = options.t ?? EN;
   const phone = normalisePhone(input.phone);
   const email = normaliseEmail(input.email);
 
   const errors: Record<string, string> = {};
   if (phone === null) {
-    errors.phone = 'Add a phone number we can reach you on.';
+    errors.phone = t('lifecycle.form.phoneNeeded');
   }
   if (!email.ok) {
-    errors.email = 'That email address does not look right. You can leave it blank instead.';
+    errors.email = t('lifecycle.form.emailLooksWrong');
   }
-  if (Object.keys(errors).length > 0) return err('Some fields need attention.', errors);
+  if (Object.keys(errors).length > 0) return err(t('lifecycle.form.fieldsNeedAttention'), errors);
 
   const client = await db.client.findFirst({
     where: { id: clientId },
     select: { id: true, businessName: true },
   });
-  if (!client) return err('That business no longer exists.');
+  if (!client) return err(t('lifecycle.form.businessGone'));
 
   const existing = await pendingRequestFor(db, clientId);
   if (existing) return ok({ request: existing, created: false });

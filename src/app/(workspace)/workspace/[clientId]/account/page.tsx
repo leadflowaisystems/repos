@@ -237,7 +237,7 @@ export default async function WorkspaceAccountPage({
 
   const [account, bundle, pending] = await Promise.all([
     getAccountState(prisma, clientId),
-    getResponsibility(prisma, clientId),
+    getResponsibility(prisma, clientId, { t: await getTranslator() }),
     pendingRequestFor(prisma, clientId),
   ]);
   if (!account) notFound();

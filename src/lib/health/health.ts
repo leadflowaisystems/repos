@@ -1,6 +1,8 @@
 import { MIN_MENTIONS_FOR_THEME } from '@/lib/analysis/aggregate';
 import type { Sentiment } from '@/lib/analysis/classify';
 import { formatDate } from '@/lib/format';
+import { EN } from '@/lib/i18n/translator';
+import type { PortalTranslator } from '@/lib/i18n/translator';
 import type { Pack } from '@/lib/packs';
 import {
   LOW_VELOCITY_PER_WEEK,
@@ -12,9 +14,6 @@ import {
   RATING_DROP_WATCH,
   STALE_SNAPSHOT_ATTENTION_DAYS,
   STALE_SNAPSHOT_WATCH_DAYS,
-  STATUS_DESCRIPTIONS,
-  STATUS_LABELS,
-  TREND_LABELS,
   TREND_RATING_DELTA,
   TREND_SHARE_DELTA,
   UNANSWERED_SHARE_ATTENTION,
@@ -68,6 +67,11 @@ export type HealthInput = {
   snapshots: StoredSnapshot[];
   /** Injected so results are reproducible in tests. */
   now: Date;
+  /**
+   * The owner's language, passed in — never looked up and never branched on.
+   * Absent means English, which is what the operator console wants.
+   */
+  t?: PortalTranslator;
 };
 
 // ---------------------------------------------------------------------------
@@ -228,14 +232,57 @@ function stars(value: number): string {
 }
 
 /**
- * The counting unit for feedback, everywhere.
+ * THE COUNTING UNIT FOR FEEDBACK, EVERYWHERE.
  *
  * Never "items" or "stored items": those name a row in a table, not the thing
  * a customer left. And counts count pieces of feedback, not people — one
  * customer can leave several.
+ *
+ * It is not a phrase this file can glue into a sentence, which is why there is
+ * no `pieces()` helper any more. "3 of 13 pieces of feedback are negative" is
+ * one sentence in the dictionary, inflected on the total by `t.plural`, because
+ * Hindi and Marathi put that total first and a fragment cannot be reordered.
  */
-function pieces(n: number): string {
-  return `${n} ${n === 1 ? 'piece' : 'pieces'} of feedback`;
+
+/** The status word, as a phrase rather than a lookup, so it can be translated. */
+function statusLabelOf(status: HealthStatus, t: PortalTranslator): string {
+  switch (status) {
+    case 'HEALTHY':
+      return t('intelligence.health.status_label.healthy');
+    case 'WATCH':
+      return t('intelligence.health.status_label.watch');
+    case 'ATTENTION':
+      return t('intelligence.health.status_label.attention');
+    default:
+      return t('intelligence.health.status_label.insufficient');
+  }
+}
+
+/**
+ * A theme's label for use INSIDE a sentence.
+ *
+ * The label on a `ThemeCount` stays the pack's own English, because that is
+ * data other layers key off and translate themselves. But a label dropped into
+ * "Recurring issue: …" is part of a sentence an owner reads, so it goes through
+ * the same soft lookup the rest of the generation layer uses — the pack's
+ * English is the fallback, so a theme with no entry yet is never a broken line.
+ */
+function themeLabel(pack: Pack, theme: ThemeCount, t: PortalTranslator): string {
+  return t.soft(`pack.${pack.id}.${theme.key}`) ?? theme.label;
+}
+
+/** Same, for the direction. `NONE` is "no trend yet", never "flat". */
+function trendLabelOf(direction: TrendDirection, t: PortalTranslator): string {
+  switch (direction) {
+    case 'IMPROVING':
+      return t('intelligence.health.trend_label.improving');
+    case 'STABLE':
+      return t('intelligence.health.trend_label.stable');
+    case 'DECLINING':
+      return t('intelligence.health.trend_label.declining');
+    default:
+      return t('intelligence.health.trend_label.none');
+  }
 }
 
 function daysBetween(a: Date, b: Date): number {
@@ -251,7 +298,10 @@ export function safeShare(part: number | null, whole: number | null): number | n
 }
 
 /** Counts sentiment across stored feedback. Zero feedback yields no shares. */
-export function summariseDistribution(feedback: StoredFeedback[]): Distribution {
+export function summariseDistribution(
+  feedback: StoredFeedback[],
+  t: PortalTranslator = EN,
+): Distribution {
   const counts: Record<Sentiment, number> = { ...EMPTY_SENTIMENT };
   for (const item of feedback) counts[item.sentiment] += 1;
 
@@ -262,7 +312,7 @@ export function summariseDistribution(feedback: StoredFeedback[]): Distribution 
       counts,
       shares: null,
       reliable: false,
-      note: 'No feedback yet.',
+      note: t('intelligence.health.distribution.none'),
     };
   }
 
@@ -280,8 +330,10 @@ export function summariseDistribution(feedback: StoredFeedback[]): Distribution 
     shares,
     reliable,
     note: reliable
-      ? `Based on ${pieces(total)}.`
-      : `Only ${pieces(total)} so far, below the ${MIN_FEEDBACK_FOR_SHARE_CLAIMS} Headway needs before it states a share.`,
+      ? t.plural('intelligence.health.distribution.based_on', total)
+      : t.plural('intelligence.health.distribution.thin', total, {
+          needed: MIN_FEEDBACK_FOR_SHARE_CLAIMS,
+        }),
   };
 }
 
@@ -331,6 +383,7 @@ function sortedNewestFirst(snapshots: StoredSnapshot[]): StoredSnapshot[] {
 function buildTrendMetrics(
   current: StoredSnapshot,
   previous: StoredSnapshot,
+  t: PortalTranslator,
 ): TrendMetric[] {
   const metrics: TrendMetric[] = [];
 
@@ -344,17 +397,23 @@ function buildTrendMetrics(
 
     let note: string;
     if (!comparable || delta === null) {
-      note = 'The rating was not recorded at both check-ins, so it cannot be compared.';
+      note = t('intelligence.health.trend.rating.not_recorded');
     } else {
-      const move = `Rating moved from ${stars(then)} to ${stars(now)}`;
+      const move = { previous: stars(then), current: stars(now) };
       note = contributes
-        ? `${move} (${delta > 0 ? '+' : ''}${delta}).`
-        : `${move} — smaller than the ${TREND_RATING_DELTA} needed to call a direction.`;
+        ? t('intelligence.health.trend.rating.moved', {
+            ...move,
+            delta: `${delta > 0 ? '+' : ''}${delta}`,
+          })
+        : t('intelligence.health.trend.rating.flat', {
+            ...move,
+            needed: TREND_RATING_DELTA,
+          });
     }
 
     metrics.push({
       key: 'rating',
-      label: 'Rating',
+      label: t('intelligence.health.metric.rating'),
       current: now,
       previous: then,
       delta,
@@ -368,8 +427,8 @@ function buildTrendMetrics(
   // 2. Negative share of stored feedback — sample-derived, so it needs a floor
   //    on BOTH sides before it may influence the trend.
   {
-    const currentDist = summariseDistribution(current.feedback);
-    const previousDist = summariseDistribution(previous.feedback);
+    const currentDist = summariseDistribution(current.feedback, t);
+    const previousDist = summariseDistribution(previous.feedback, t);
     const now = currentDist.shares?.NEGATIVE ?? null;
     const then = previousDist.shares?.NEGATIVE ?? null;
     const delta = now !== null && then !== null ? round(now - then, 4) : null;
@@ -382,7 +441,7 @@ function buildTrendMetrics(
 
     metrics.push({
       key: 'negativeShare',
-      label: 'Negative feedback share',
+      label: t('intelligence.health.metric.negative_share'),
       current: now,
       previous: then,
       delta,
@@ -391,12 +450,23 @@ function buildTrendMetrics(
       score: contributes && delta !== null ? (delta < 0 ? 1 : -1) : 0,
       note:
         delta === null
-          ? 'One of the two check-ins has no feedback, so the share cannot be compared.'
+          ? t('intelligence.health.trend.negative.not_comparable')
           : !bigEnough
-            ? `Too little feedback to read as a trend: ${previousDist.total} then, ${currentDist.total} now. Headway needs ${MIN_FEEDBACK_FOR_TREND_CLAIMS} on each side.`
+            ? t('intelligence.health.trend.negative.too_little', {
+                previousCount: previousDist.total,
+                currentCount: currentDist.total,
+                needed: MIN_FEEDBACK_FOR_TREND_CLAIMS,
+              })
             : contributes
-              ? `Negative share moved from ${pct(then as number)} to ${pct(now as number)}.`
-              : `Negative share moved from ${pct(then as number)} to ${pct(now as number)} — under the ${pct(TREND_SHARE_DELTA)} needed to call a direction.`,
+              ? t('intelligence.health.trend.negative.moved', {
+                  previous: pct(then as number),
+                  current: pct(now as number),
+                })
+              : t('intelligence.health.trend.negative.flat', {
+                  previous: pct(then as number),
+                  current: pct(now as number),
+                  needed: pct(TREND_SHARE_DELTA),
+                }),
     });
   }
 
@@ -408,7 +478,7 @@ function buildTrendMetrics(
     const contributes = delta !== null && Math.abs(delta) >= TREND_SHARE_DELTA;
     metrics.push({
       key: 'unansweredShare',
-      label: 'Unanswered public reviews',
+      label: t('intelligence.health.metric.unanswered_share'),
       current: now,
       previous: then,
       delta,
@@ -417,10 +487,17 @@ function buildTrendMetrics(
       score: contributes && delta !== null ? (delta < 0 ? 1 : -1) : 0,
       note:
         delta === null
-          ? 'Unanswered public reviews were not recorded at both check-ins, so they cannot be compared.'
+          ? t('intelligence.health.trend.unanswered.not_recorded')
           : contributes
-            ? `Unanswered share moved from ${pct(then as number)} to ${pct(now as number)}.`
-            : `Unanswered share moved from ${pct(then as number)} to ${pct(now as number)} — under the ${pct(TREND_SHARE_DELTA)} needed to call a direction.`,
+            ? t('intelligence.health.trend.unanswered.moved', {
+                previous: pct(then as number),
+                current: pct(now as number),
+              })
+            : t('intelligence.health.trend.unanswered.flat', {
+                previous: pct(then as number),
+                current: pct(now as number),
+                needed: pct(TREND_SHARE_DELTA),
+              }),
     });
   }
 
@@ -436,7 +513,10 @@ function directionFromMetrics(metrics: TrendMetric[]): TrendDirection {
   return 'STABLE';
 }
 
-export function computeTrend(snapshots: StoredSnapshot[]): Trend {
+export function computeTrend(
+  snapshots: StoredSnapshot[],
+  t: PortalTranslator = EN,
+): Trend {
   const ordered = sortedNewestFirst(snapshots);
   const current = ordered[0];
   const previous = ordered[1];
@@ -444,28 +524,27 @@ export function computeTrend(snapshots: StoredSnapshot[]): Trend {
   if (!current || !previous) {
     return {
       direction: 'NONE',
-      label: TREND_LABELS.NONE,
+      label: trendLabelOf('NONE', t),
       available: false,
       reason:
         ordered.length === 0
-          ? 'No check-ins yet, so there is nothing to compare.'
-          : 'Only one check-in so far. A trend needs at least two.',
+          ? t('intelligence.health.trend.no_checkins')
+          : t('intelligence.health.trend.one_checkin'),
       metrics: [],
       comparedSnapshotIds: null,
       periodDays: null,
     };
   }
 
-  const metrics = buildTrendMetrics(current, previous);
+  const metrics = buildTrendMetrics(current, previous, t);
   const comparable = metrics.filter((m) => m.delta !== null);
 
   if (comparable.length === 0) {
     return {
       direction: 'NONE',
-      label: TREND_LABELS.NONE,
+      label: trendLabelOf('NONE', t),
       available: false,
-      reason:
-        'The last two check-ins have no figure in common, so Headway cannot say which way things are going.',
+      reason: t('intelligence.health.trend.no_common_figure'),
       metrics,
       comparedSnapshotIds: [current.id, previous.id],
       periodDays: daysBetween(current.capturedAt, previous.capturedAt),
@@ -477,11 +556,11 @@ export function computeTrend(snapshots: StoredSnapshot[]): Trend {
 
   return {
     direction,
-    label: TREND_LABELS[direction],
+    label: trendLabelOf(direction, t),
     available: true,
     reason:
       moving.length === 0
-        ? `Nothing moved far enough to count, across ${comparable.length} figure${comparable.length === 1 ? '' : 's'} Headway could compare.`
+        ? t.plural('intelligence.health.trend.nothing_moved', comparable.length)
         : moving.map((m) => m.note).join(' '),
     metrics,
     comparedSnapshotIds: [current.id, previous.id],
@@ -499,6 +578,8 @@ function buildSignals(
   distribution: Distribution,
   issues: ThemeCount[],
   now: Date,
+  pack: Pack,
+  t: PortalTranslator,
 ): HealthSignal[] {
   const signals: HealthSignal[] = [];
 
@@ -510,8 +591,16 @@ function buildSignals(
       signals.push({
         key: 'negative_share',
         level: 'ATTENTION',
-        label: 'High share of negative feedback',
-        detail: `${count} of ${pieces(distribution.total)} are negative (${pct(share)}). Headway flags anything at ${pct(NEGATIVE_SHARE_ATTENTION)} or above.`,
+        label: t('intelligence.health.signal.negative_share_attention.label'),
+        detail: t.plural(
+          'intelligence.health.signal.negative_share_attention.detail',
+          distribution.total,
+          {
+            negative: count,
+            share: pct(share),
+            threshold: pct(NEGATIVE_SHARE_ATTENTION),
+          },
+        ),
       });
     } else if (share >= NEGATIVE_SHARE_WATCH) {
       // A level, not a direction: this fires on one check-in's share and never
@@ -519,8 +608,16 @@ function buildSignals(
       signals.push({
         key: 'negative_share',
         level: 'WATCH',
-        label: 'Negative feedback worth watching',
-        detail: `${count} of ${pieces(distribution.total)} are negative (${pct(share)}). Headway watches anything at ${pct(NEGATIVE_SHARE_WATCH)} or above.`,
+        label: t('intelligence.health.signal.negative_share_watch.label'),
+        detail: t.plural(
+          'intelligence.health.signal.negative_share_watch.detail',
+          distribution.total,
+          {
+            negative: count,
+            share: pct(share),
+            threshold: pct(NEGATIVE_SHARE_WATCH),
+          },
+        ),
       });
     }
   }
@@ -532,35 +629,55 @@ function buildSignals(
     signals.push({
       key: 'severe_issue',
       level: 'ATTENTION',
-      label: `Recurring issue: ${severeIssue.label}`,
-      detail: `Mentioned in ${severeIssue.count} of ${pieces(distribution.total)} — at or above the ${MIN_MENTIONS_FOR_THEME} needed to call it a pattern, and a serious complaint for this kind of business.`,
+      label: t('intelligence.health.signal.recurring_issue.label', {
+        theme: themeLabel(pack, severeIssue, t),
+      }),
+      detail: t.plural(
+        'intelligence.health.signal.severe_issue.detail',
+        distribution.total,
+        { mentions: severeIssue.count, needed: MIN_MENTIONS_FOR_THEME },
+      ),
     });
   } else if (qualifying.length > 0) {
     const top = qualifying[0] as ThemeCount;
     signals.push({
       key: 'recurring_issue',
       level: 'WATCH',
-      label: `Recurring issue: ${top.label}`,
-      detail: `Mentioned in ${top.count} of ${pieces(distribution.total)}, at or above the ${MIN_MENTIONS_FOR_THEME} needed to call it a pattern.`,
+      label: t('intelligence.health.signal.recurring_issue.label', {
+        theme: themeLabel(pack, top, t),
+      }),
+      detail: t.plural(
+        'intelligence.health.signal.recurring_issue.detail',
+        distribution.total,
+        { mentions: top.count, needed: MIN_MENTIONS_FOR_THEME },
+      ),
     });
   }
 
   // --- rating movement ------------------------------------------------------
   if (previous && latest.rating !== null && previous.rating !== null) {
     const delta = round(latest.rating - previous.rating, 2);
+    const move = {
+      previous: stars(previous.rating),
+      current: stars(latest.rating),
+      delta,
+    };
     if (delta <= RATING_DROP_ATTENTION) {
       signals.push({
         key: 'rating_drop',
         level: 'ATTENTION',
-        label: 'Rating fell',
-        detail: `Rating went from ${stars(previous.rating)} to ${stars(latest.rating)} (${delta}). Headway flags a fall of ${Math.abs(RATING_DROP_ATTENTION)} or more.`,
+        label: t('intelligence.health.signal.rating_drop_attention.label'),
+        detail: t('intelligence.health.signal.rating_drop_attention.detail', {
+          ...move,
+          threshold: Math.abs(RATING_DROP_ATTENTION),
+        }),
       });
     } else if (delta <= RATING_DROP_WATCH) {
       signals.push({
         key: 'rating_drop',
         level: 'WATCH',
-        label: 'Rating slipping',
-        detail: `Rating went from ${stars(previous.rating)} to ${stars(latest.rating)} (${delta}).`,
+        label: t('intelligence.health.signal.rating_drop_watch.label'),
+        detail: t('intelligence.health.signal.rating_drop_watch.detail', move),
       });
     }
   }
@@ -568,12 +685,20 @@ function buildSignals(
   // --- reply gap ------------------------------------------------------------
   const unansweredShare = safeShare(latest.unansweredCount, latest.reviewCount);
   if (unansweredShare !== null && (latest.unansweredCount ?? 0) > 0) {
+    const gap = {
+      unanswered: String(latest.unansweredCount),
+      total: String(latest.reviewCount),
+      share: pct(unansweredShare),
+    };
     if (unansweredShare >= UNANSWERED_SHARE_ATTENTION) {
       signals.push({
         key: 'reply_gap',
         level: 'ATTENTION',
-        label: 'Most public reviews have no reply',
-        detail: `${latest.unansweredCount} of ${latest.reviewCount} public reviews have no reply (${pct(unansweredShare)}). Headway flags ${pct(UNANSWERED_SHARE_ATTENTION)} or more.`,
+        label: t('intelligence.health.signal.reply_gap_attention.label'),
+        detail: t('intelligence.health.signal.reply_gap_attention.detail', {
+          ...gap,
+          threshold: pct(UNANSWERED_SHARE_ATTENTION),
+        }),
       });
     } else if (unansweredShare >= UNANSWERED_SHARE_WATCH) {
       // Again a level, not a direction: the share at this check-in only. The
@@ -581,8 +706,11 @@ function buildSignals(
       signals.push({
         key: 'reply_gap',
         level: 'WATCH',
-        label: 'Some public reviews have no reply',
-        detail: `${latest.unansweredCount} of ${latest.reviewCount} public reviews have no reply (${pct(unansweredShare)}). Headway watches ${pct(UNANSWERED_SHARE_WATCH)} or more.`,
+        label: t('intelligence.health.signal.reply_gap_watch.label'),
+        detail: t('intelligence.health.signal.reply_gap_watch.detail', {
+          ...gap,
+          threshold: pct(UNANSWERED_SHARE_WATCH),
+        }),
       });
     }
   }
@@ -593,15 +721,21 @@ function buildSignals(
     signals.push({
       key: 'stale_data',
       level: 'ATTENTION',
-      label: 'Last check-in is out of date',
-      detail: `The last check-in was ${age} days ago, past the ${STALE_SNAPSHOT_ATTENTION_DAYS}-day limit. This card describes then, not now.`,
+      label: t('intelligence.health.signal.stale_attention.label'),
+      detail: t('intelligence.health.signal.stale_attention.detail', {
+        days: age,
+        limit: STALE_SNAPSHOT_ATTENTION_DAYS,
+      }),
     });
   } else if (age >= STALE_SNAPSHOT_WATCH_DAYS) {
     signals.push({
       key: 'stale_data',
       level: 'WATCH',
-      label: 'Check-in due',
-      detail: `The last check-in was ${age} days ago, past the ${STALE_SNAPSHOT_WATCH_DAYS}-day mark.`,
+      label: t('intelligence.health.signal.stale_watch.label'),
+      detail: t('intelligence.health.signal.stale_watch.detail', {
+        days: age,
+        limit: STALE_SNAPSHOT_WATCH_DAYS,
+      }),
     });
   }
 
@@ -613,8 +747,11 @@ function buildSignals(
     signals.push({
       key: 'low_velocity',
       level: 'WATCH',
-      label: 'Almost no new public reviews',
-      detail: `${latest.reviewsPerWeek} public reviews a week at the last check-in, below the ${LOW_VELOCITY_PER_WEEK} Headway expects. The print kit and staff asking customers for a review are what change this.`,
+      label: t('intelligence.health.signal.low_velocity.label'),
+      detail: t('intelligence.health.signal.low_velocity.detail', {
+        perWeek: String(latest.reviewsPerWeek),
+        expected: LOW_VELOCITY_PER_WEEK,
+      }),
     });
   }
 
@@ -640,6 +777,8 @@ function hasJudgeableData(latest: StoredSnapshot | undefined): boolean {
 
 export function computeHealthCard(input: HealthInput): HealthCard {
   const { pack, now } = input;
+  // EN is correct as the default: the operator console is not localized.
+  const t = input.t ?? EN;
   const ordered = sortedNewestFirst(input.snapshots);
   const latest = ordered[0];
   const previous = ordered[1];
@@ -661,26 +800,32 @@ export function computeHealthCard(input: HealthInput): HealthCard {
     daysSinceLastSnapshot: latest ? daysBetween(now, latest.capturedAt) : null,
     totalFeedbackStored,
     note: !latest
-      ? 'No check-ins have been saved for this client yet.'
+      ? t('intelligence.health.coverage.none')
       : ordered.length === 1
-        ? `One check-in, covering the day it was taken. ${pieces(totalFeedbackStored)}.`
-        : `${ordered.length} check-ins over ${daysBetween(latest.capturedAt, (first as StoredSnapshot).capturedAt)} days. ${pieces(totalFeedbackStored)}.`,
+        ? t.plural('intelligence.health.coverage.single', totalFeedbackStored)
+        : t.plural('intelligence.health.coverage.many', totalFeedbackStored, {
+            checkins: ordered.length,
+            days: daysBetween(
+              latest.capturedAt,
+              (first as StoredSnapshot).capturedAt,
+            ),
+          }),
   };
 
-  const distribution = summariseDistribution(latest?.feedback ?? []);
+  const distribution = summariseDistribution(latest?.feedback ?? [], t);
   const topIssues = latest ? summariseThemes(latest.feedback, pack, 'issues') : [];
   const topPraises = latest
     ? summariseThemes(latest.feedback, pack, 'praises')
     : [];
-  const trend = computeTrend(ordered);
+  const trend = computeTrend(ordered, t);
 
   if (!hasJudgeableData(latest)) {
     return {
       status: 'INSUFFICIENT_DATA',
-      statusLabel: STATUS_LABELS.INSUFFICIENT_DATA,
+      statusLabel: statusLabelOf('INSUFFICIENT_DATA', t),
       statusSummary: !latest
-        ? 'No check-in yet. Take the first one to give this client a health status.'
-        : 'The last check-in has no rating and no feedback, so there is nothing to judge.',
+        ? t('intelligence.health.summary.no_checkin')
+        : t('intelligence.health.summary.nothing_to_judge'),
       signals: [],
       latestSnapshotId: latest?.id ?? null,
       latestSnapshotLabel: latest?.label ?? null,
@@ -705,7 +850,15 @@ export function computeHealthCard(input: HealthInput): HealthCard {
   }
 
   const snapshot = latest as StoredSnapshot;
-  const signals = buildSignals(snapshot, previous, distribution, topIssues, now);
+  const signals = buildSignals(
+    snapshot,
+    previous,
+    distribution,
+    topIssues,
+    now,
+    pack,
+    t,
+  );
 
   const hasAttention = signals.some((s) => s.level === 'ATTENTION');
   const status: HealthStatus = hasAttention
@@ -716,12 +869,14 @@ export function computeHealthCard(input: HealthInput): HealthCard {
 
   const statusSummary =
     status === 'HEALTHY'
-      ? `${STATUS_DESCRIPTIONS.HEALTHY} That is ${pieces(distribution.total)} and the figures from the last check-in.`
-      : `Headway flagged ${signals.length} thing${signals.length === 1 ? '' : 's'}: ${signals.map((s) => s.label.toLowerCase()).join('; ')}.`;
+      ? t.plural('intelligence.health.summary.healthy', distribution.total)
+      : t.plural('intelligence.health.summary.flagged', signals.length, {
+          labels: signals.map((s) => s.label.toLowerCase()).join('; '),
+        });
 
   return {
     status,
-    statusLabel: STATUS_LABELS[status],
+    statusLabel: statusLabelOf(status, t),
     statusSummary,
     signals,
     latestSnapshotId: snapshot.id,
@@ -748,7 +903,11 @@ export function computeHealthCard(input: HealthInput): HealthCard {
 // Pulse
 // ---------------------------------------------------------------------------
 
-function toPeriod(snapshot: StoredSnapshot, pack: Pack): PulsePeriod {
+function toPeriod(
+  snapshot: StoredSnapshot,
+  pack: Pack,
+  t: PortalTranslator,
+): PulsePeriod {
   return {
     snapshotId: snapshot.id,
     // House date format, never an ISO string: this label is read out loud in
@@ -757,7 +916,7 @@ function toPeriod(snapshot: StoredSnapshot, pack: Pack): PulsePeriod {
     label: snapshot.label ?? formatDate(snapshot.capturedAt),
     capturedAt: snapshot.capturedAt,
     feedbackCount: snapshot.feedback.length,
-    distribution: summariseDistribution(snapshot.feedback),
+    distribution: summariseDistribution(snapshot.feedback, t),
     rating: snapshot.rating,
     reviewCount: snapshot.reviewCount,
     unansweredCount: snapshot.unansweredCount,
@@ -776,6 +935,7 @@ function toPeriod(snapshot: StoredSnapshot, pack: Pack): PulsePeriod {
  */
 export function computePulse(input: HealthInput): Pulse {
   const { pack } = input;
+  const t = input.t ?? EN;
   const ordered = sortedNewestFirst(input.snapshots);
   const currentSnapshot = ordered[0];
   const previousSnapshot = ordered[1];
@@ -783,9 +943,9 @@ export function computePulse(input: HealthInput): Pulse {
   if (!currentSnapshot) {
     return {
       available: false,
-      reason: 'No check-in recorded yet. Once two are on record, Headway can say which way things are moving.',
+      reason: t('intelligence.health.pulse.no_checkin'),
       direction: 'NONE',
-      directionLabel: TREND_LABELS.NONE,
+      directionLabel: trendLabelOf('NONE', t),
       current: null,
       previous: null,
       periodDays: null,
@@ -795,15 +955,14 @@ export function computePulse(input: HealthInput): Pulse {
     };
   }
 
-  const current = toPeriod(currentSnapshot, pack);
+  const current = toPeriod(currentSnapshot, pack, t);
 
   if (!previousSnapshot) {
     return {
       available: false,
-      reason:
-        'Only one check-in so far. The next one will let Headway compare the two.',
+      reason: t('intelligence.health.pulse.one_checkin'),
       direction: 'NONE',
-      directionLabel: TREND_LABELS.NONE,
+      directionLabel: trendLabelOf('NONE', t),
       current,
       previous: null,
       periodDays: null,
@@ -813,8 +972,8 @@ export function computePulse(input: HealthInput): Pulse {
     };
   }
 
-  const previous = toPeriod(previousSnapshot, pack);
-  const metrics = buildTrendMetrics(currentSnapshot, previousSnapshot);
+  const previous = toPeriod(previousSnapshot, pack, t);
+  const metrics = buildTrendMetrics(currentSnapshot, previousSnapshot, t);
   const direction = directionFromMetrics(metrics);
 
   // Issue themes that moved. Reported as raw counts on both sides so a change
@@ -838,7 +997,9 @@ export function computePulse(input: HealthInput): Pulse {
         current: nowCount,
         previous: thenCount,
         delta,
-        note: `${thenCount} → ${nowCount} mention${nowCount === 1 ? '' : 's'}`,
+        note: t.plural('intelligence.health.pulse.count_note', nowCount, {
+          previousCount: thenCount,
+        }),
       };
     })
     .filter((c) => c.delta !== 0)
@@ -852,16 +1013,26 @@ export function computePulse(input: HealthInput): Pulse {
 
   return {
     available: true,
-    reason: `Comparing ${previous.label} with ${current.label}.`,
+    reason: t('intelligence.health.pulse.comparing', {
+      previous: previous.label,
+      current: current.label,
+    }),
     direction,
-    directionLabel: TREND_LABELS[direction],
+    directionLabel: trendLabelOf(direction, t),
     current,
     previous,
     periodDays: daysBetween(currentSnapshot.capturedAt, previousSnapshot.capturedAt),
     metrics,
     notableChanges,
     sampleWarning: tooSmall
-      ? `Small numbers: ${pieces(previous.feedbackCount)} at the earlier check-in and ${current.feedbackCount} at the later one. Headway needs ${MIN_FEEDBACK_FOR_TREND_CLAIMS} on each side before it calls a change a trend — read these as counts, not a pattern.`
+      ? t.plural(
+          'intelligence.health.pulse.small_numbers',
+          previous.feedbackCount,
+          {
+            currentCount: current.feedbackCount,
+            needed: MIN_FEEDBACK_FOR_TREND_CLAIMS,
+          },
+        )
       : null,
   };
 }

@@ -5,15 +5,18 @@ import {
   TREND_SHARE_DELTA,
 } from '@/lib/health/rules';
 import {
-  RESULT_LABELS,
   evidenceLine,
   measurementWindowStart,
   formatShare,
+  resultLabel,
   shareOf,
   type ActionBaseline,
+  type ActionResult,
   type Measurement,
   type MeasurementSide,
 } from './model';
+import { EN } from '@/lib/i18n/translator';
+import type { PortalTranslator } from '@/lib/i18n/translator';
 
 /**
  * DID CUSTOMER FEEDBACK CHANGE AFTER THE CHANGE? (M11)
@@ -37,6 +40,14 @@ import {
  *     not improved; it has not been measured.
  *
  * No model is involved in any of it.
+ *
+ * TWO HALVES, ON PURPOSE. `measureAction` DECIDES — it counts the two windows
+ * and reaches a verdict, once, and that verdict is frozen. `measurementWords`
+ * DESCRIBES — it turns those frozen facts into sentences in one language, and
+ * can be called again, years later, by a reader in a different language. The
+ * split exists because a measurement is stored as JSON with its sentences
+ * inside it: without it, a reading taken in March would speak March's English
+ * forever, and no amount of translating this file would reach it.
  */
 
 /** Bump when the verdict rules change. Stored with each frozen result. */
@@ -89,6 +100,15 @@ export type MeasurementInput = {
   doneAt: Date;
   rows: MeasurableRow[];
   now: Date;
+  /**
+   * The owner's language, passed in by whoever asked for the measurement.
+   *
+   * Absent from the operator console, which is deliberately not localized, so
+   * the default is English. Never a locale and never looked up: this module
+   * must not know which language it is writing in, or the next language would
+   * mean editing the verdict rules again.
+   */
+  t?: PortalTranslator;
 };
 
 // ---------------------------------------------------------------------------
@@ -122,6 +142,10 @@ const MONTHS = [
  * every other screen shows it back to them that way. A frozen string that says
  * a different day from the one on the card beside it is worse than a string
  * that is only stable within one installation.
+ *
+ * Not translated, and not routed through the dictionary: a date is a date in
+ * every language Headway speaks, and a month name that changed with the reader
+ * would make the same measurement look like two.
  */
 function dateLabel(value: Date): string {
   return `${value.getDate()} ${MONTHS[value.getMonth()]} ${value.getFullYear()}`;
@@ -139,6 +163,7 @@ function dateLabel(value: Date): string {
  */
 export function measureAction(input: MeasurementInput): Measurement {
   const { baseline, doneAt, pack, themeKey, themeLabel, sentiment } = input;
+  const t = input.t ?? EN;
 
   // The after window starts at the change, but never earlier than the moment
   // the baseline was frozen. Without that floor, feedback already counted in
@@ -159,37 +184,71 @@ export function measureAction(input: MeasurementInput): Measurement {
       row.evidenceAt.getTime() < windowStart,
   ).length;
 
-  const before: MeasurementSide = {
+  const beforeCounts: MeasurementCounts = {
     count: baseline.count,
     total: baseline.total,
     share: shareOf(baseline.count, baseline.total),
-    label: `everything read up to ${dateLabel(baseline.capturedAt)}, when the change was agreed`,
-    line: evidenceLine(baseline.count, baseline.total),
+  };
+
+  const afterCounts: MeasurementCounts = {
+    count: afterCount,
+    total: afterTotal,
+    share: shareOf(afterCount, afterTotal),
+  };
+
+  const shareDelta =
+    beforeCounts.share !== null && afterCounts.share !== null
+      ? Number((afterCounts.share - beforeCounts.share).toFixed(4))
+      : null;
+
+  // ---- The verdict -------------------------------------------------------
+  //
+  // Everything this function decides, it decides here and once. The thresholds
+  // live in this half; the sentences live in the other, so re-reading a stored
+  // measurement can restate the verdict but never reach a different one.
+  const thinBefore = beforeCounts.total < MIN_FEEDBACK_TO_MEASURE;
+  const thinAfter = afterCounts.total < MIN_FEEDBACK_TO_MEASURE;
+  const moved = shareDelta !== null && Math.abs(shareDelta) >= MIN_SHARE_MOVE;
+  const rose = (shareDelta ?? 0) > 0;
+  const good = sentiment === 'ISSUE' ? !rose : rose;
+
+  const result: ActionResult =
+    thinBefore || thinAfter
+      ? 'INSUFFICIENT_DATA'
+      : !moved
+        ? 'NO_CLEAR_CHANGE'
+        : good
+          ? 'IMPROVED'
+          : 'WORSENED';
+
+  const words = measurementWords(
+    {
+      result,
+      themeLabel,
+      sentiment,
+      before: beforeCounts,
+      after: afterCounts,
+      shareDelta,
+      betweenCount,
+      capturedAt: baseline.capturedAt,
+      doneAt,
+    },
+    t,
+  );
+
+  const before: MeasurementSide = {
+    ...beforeCounts,
+    label: words.beforeLabel,
+    line: words.beforeLine,
     snapshotLabel: baseline.snapshotLabel,
   };
 
   const after: MeasurementSide = {
-    count: afterCount,
-    total: afterTotal,
-    share: shareOf(afterCount, afterTotal),
-    label: `feedback that has come in since the change on ${dateLabel(doneAt)}`,
-    line: evidenceLine(afterCount, afterTotal),
+    ...afterCounts,
+    label: words.afterLabel,
+    line: words.afterLine,
     snapshotLabel: null,
   };
-
-  const shareDelta =
-    before.share !== null && after.share !== null
-      ? Number((after.share - before.share).toFixed(4))
-      : null;
-
-  const limits: string[] = [
-    'This compares feedback from before the change with feedback from after it. It cannot show that the change caused the difference. Nothing Headway can see would prove that.',
-  ];
-  if (betweenCount > 0) {
-    limits.push(
-      `${betweenCount} feedback ${betweenCount === 1 ? 'entry' : 'entries'} came in between the decision and the change being made. ${betweenCount === 1 ? 'It is' : 'They are'} in neither number.`,
-    );
-  }
 
   const base = {
     themeKey,
@@ -203,22 +262,118 @@ export function measureAction(input: MeasurementInput): Measurement {
     version: MEASUREMENT_VERSION,
   };
 
-  // ---- Not enough on one side or the other -------------------------------
-  const thinBefore = before.total < MIN_FEEDBACK_TO_MEASURE;
-  const thinAfter = after.total < MIN_FEEDBACK_TO_MEASURE;
+  return {
+    ...base,
+    result,
+    resultLabel: words.resultLabel,
+    headline: words.headline,
+    why: words.why,
+    limits: words.limits,
+  };
+}
 
-  if (thinBefore || thinAfter) {
+// ---------------------------------------------------------------------------
+// The words, written from the frozen facts
+// ---------------------------------------------------------------------------
+
+/** One side of the comparison, as figures only. Not a sentence in sight. */
+export type MeasurementCounts = {
+  count: number;
+  total: number;
+  share: number | null;
+};
+
+/**
+ * Everything a measurement's sentences are written from.
+ *
+ * All of it is frozen at measure time and stored: the verdict, both sides'
+ * figures, the share move, the feedback that fell between the decision and the
+ * change, and the two dates. None of it is ever recomputed from live data —
+ * that is the whole point of a measurement. The evidence belongs to a moment,
+ * and the moment does not come back.
+ */
+export type MeasurementFacts = {
+  result: ActionResult;
+  themeLabel: string;
+  sentiment: 'PRAISE' | 'ISSUE';
+  before: MeasurementCounts;
+  after: MeasurementCounts;
+  shareDelta: number | null;
+  betweenCount: number;
+  /** When the baseline was frozen — the day the change was agreed. */
+  capturedAt: Date;
+  /** When the business says the change was made. */
+  doneAt: Date;
+};
+
+/** The sentences, in one language. Every figure in them came from the facts. */
+export type MeasurementWords = {
+  resultLabel: string;
+  headline: string;
+  why: string[];
+  limits: string[];
+  beforeLabel: string;
+  afterLabel: string;
+  beforeLine: string;
+  afterLine: string;
+};
+
+/**
+ * THE SENTENCES, RENDERED FROM THE FROZEN FACTS.
+ *
+ * Split out of `measureAction` because a measurement is stored as JSON with
+ * its sentences inside it. A reading taken in March holds March's English, and
+ * translating this file cannot reach back into the database to change it. So
+ * the portal calls this again at READ time, handing it the stored numbers and
+ * the owner's translator, and gets the same reading in the owner's language.
+ * The figures are the evidence and are never touched; only the words around
+ * them are new.
+ *
+ * Nothing here decides anything. `facts.result` is the verdict, already made
+ * and already stored; every branch below only asks which sentence describes
+ * the verdict it was handed. Re-rendering must not be able to reach a
+ * different conclusion from the one an owner was shown the first time.
+ */
+export function measurementWords(
+  facts: MeasurementFacts,
+  t: PortalTranslator = EN,
+): MeasurementWords {
+  const { before, after, result, sentiment, themeLabel } = facts;
+  const theme = themeLabel.toLowerCase();
+
+  const beforeLine = evidenceLine(before.count, before.total, t);
+  const afterLine = evidenceLine(after.count, after.total, t);
+  const sides = {
+    beforeLabel: t('improve.side.before', { date: dateLabel(facts.capturedAt) }),
+    afterLabel: t('improve.side.after', { date: dateLabel(facts.doneAt) }),
+    beforeLine,
+    afterLine,
+  };
+
+  const limits: string[] = [t('improve.limit.noCause')];
+  if (facts.betweenCount > 0) {
+    limits.push(t.plural('improve.limit.between', facts.betweenCount));
+  }
+
+  // ---- Not enough on one side or the other -------------------------------
+  if (result === 'INSUFFICIENT_DATA') {
+    const thinBefore = before.total < MIN_FEEDBACK_TO_MEASURE;
+    const thinAfter = after.total < MIN_FEEDBACK_TO_MEASURE;
     const why: string[] = [];
     if (thinBefore) {
       why.push(
-        `Only ${before.total} feedback ${before.total === 1 ? 'entry' : 'entries'} had been read before the change. Headway needs ${MIN_FEEDBACK_TO_MEASURE} before it will give a percentage.`,
+        t.plural('improve.why.thinBefore', before.total, {
+          min: MIN_FEEDBACK_TO_MEASURE,
+        }),
       );
     }
     if (thinAfter) {
       why.push(
         after.total === 0
-          ? 'No new feedback has been read since the change was made.'
-          : `Only ${after.total} feedback ${after.total === 1 ? 'entry has' : 'entries have'} come in since the change. Headway needs ${MIN_FEEDBACK_TO_MEASURE} to compare.`,
+          ? t('improve.why.noneAfter')
+          : t.plural('improve.why.thinAfter', after.total, {
+              min: MIN_FEEDBACK_TO_MEASURE,
+            }),
       );
     }
 
@@ -227,49 +382,56 @@ export function measureAction(input: MeasurementInput): Measurement {
     // a small sample is not improvement — it is silence.
     if (thinAfter && after.count === 0 && after.total > 0) {
       why.push(
-        `${themeLabel} has not come up in those ${after.total}. That is too little feedback to say customers mention it less. Maybe nobody has mentioned it yet.`,
+        t('improve.why.absentInSmallSample', {
+          theme: themeLabel,
+          total: after.total,
+        }),
       );
     }
 
     return {
-      ...base,
-      result: 'INSUFFICIENT_DATA',
-      resultLabel: RESULT_LABELS.INSUFFICIENT_DATA,
-      headline: `Not enough feedback yet to say whether ${themeLabel.toLowerCase()} changed.`,
+      ...sides,
+      resultLabel: resultLabel('INSUFFICIENT_DATA', t),
+      headline: t('improve.headline.insufficient', { theme }),
       why,
-      limits: [
-        ...limits,
-        'Add the feedback you have collected since the change and measure again.',
-      ],
+      limits: [...limits, t('improve.limit.addMore')],
     };
   }
 
   // ---- Both sides are quotable -------------------------------------------
-  const moved = shareDelta !== null && Math.abs(shareDelta) >= MIN_SHARE_MOVE;
+  const shareDelta = facts.shareDelta;
+  const moved = result !== 'NO_CLEAR_CHANGE';
   const rose = (shareDelta ?? 0) > 0;
-  const good = sentiment === 'ISSUE' ? !rose : rose;
 
   // The before half must keep `before.line` intact as a substring: the operator
   // panel hides any reason line that repeats it, because the Before card above
   // already shows that figure.
-  const comparison =
-    `Before the change, customers mentioned ${themeLabel.toLowerCase()} in ${before.line}. ` +
-    `That is everything read up to ${dateLabel(baseline.capturedAt)}. ` +
-    `Since the change on ${dateLabel(doneAt)}, they have mentioned it in ${after.line}.`;
+  const comparison = t('improve.why.comparison', {
+    theme,
+    beforeLine,
+    date: dateLabel(facts.capturedAt),
+    doneDate: dateLabel(facts.doneAt),
+    afterLine,
+  });
 
   const why = [
     comparison,
     moved
-      ? `The share of feedback mentioning it moved by ${formatShare(Math.abs(shareDelta as number))}. Headway needs a move of ${formatShare(MIN_SHARE_MOVE)} before it will say it went up or down.`
-      : `The share of feedback mentioning it moved by ${formatShare(Math.abs(shareDelta ?? 0))}. That is under the ${formatShare(MIN_SHARE_MOVE)} Headway needs before it will say it went up or down.`,
+      ? t('improve.why.moved', {
+          delta: formatShare(Math.abs(shareDelta as number)),
+          min: formatShare(MIN_SHARE_MOVE),
+        })
+      : t('improve.why.notMoved', {
+          delta: formatShare(Math.abs(shareDelta ?? 0)),
+          min: formatShare(MIN_SHARE_MOVE),
+        }),
   ];
 
   if (!moved) {
     return {
-      ...base,
-      result: 'NO_CLEAR_CHANGE',
-      resultLabel: RESULT_LABELS.NO_CLEAR_CHANGE,
-      headline: `Customers mention ${themeLabel.toLowerCase()} about as often as before the change.`,
+      ...sides,
+      resultLabel: resultLabel('NO_CLEAR_CHANGE', t),
+      headline: t('improve.headline.noClearChange', { theme }),
       why,
       limits,
     };
@@ -278,16 +440,21 @@ export function measureAction(input: MeasurementInput): Measurement {
   // The headline states what happened; the verdict states whether that is good
   // news. Keeping them apart is what stops "improved" from creeping into the
   // description of the evidence itself.
-  const direction = rose ? 'more' : 'less';
+  // One key per case rather than a "more"/"less" word dropped into a frame: in
+  // Hindi and Marathi the direction word does not sit where English puts it,
+  // and a phrase assembled from fragments is a phrase no translator can fix.
   const headline =
     sentiment === 'ISSUE'
-      ? `Customers mention ${themeLabel.toLowerCase()} ${direction} often since the change.`
-      : `Customers praise ${themeLabel.toLowerCase()} ${direction} often since the change.`;
+      ? rose
+        ? t('improve.headline.issue.more', { theme })
+        : t('improve.headline.issue.less', { theme })
+      : rose
+        ? t('improve.headline.praise.more', { theme })
+        : t('improve.headline.praise.less', { theme });
 
   return {
-    ...base,
-    result: good ? 'IMPROVED' : 'WORSENED',
-    resultLabel: good ? RESULT_LABELS.IMPROVED : RESULT_LABELS.WORSENED,
+    ...sides,
+    resultLabel: resultLabel(result, t),
     headline,
     why,
     limits,

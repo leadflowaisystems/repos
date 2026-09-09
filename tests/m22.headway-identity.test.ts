@@ -376,7 +376,10 @@ describe('nothing on the page claims more than the engine knows', () => {
     expect(ui).not.toContain('Neither needs');
     // The check-in sentence pluralises from the count, never from a guess.
     const focus = stripComments(read('src', 'lib', 'portal', 'focus.ts'));
-    expect(focus).toContain("n === 1 ? singular : plural");
+    // Pluralising is now t.plural(base, n), which picks '<base>.one' or
+    // '<base>.other' from the count — the same rule, in the dictionary, for
+    // all three languages instead of an English-only ternary.
+    expect(focus).toContain('t.plural(');
   });
 });
 
