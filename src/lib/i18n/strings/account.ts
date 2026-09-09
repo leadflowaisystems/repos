@@ -23,8 +23,8 @@ export const account = {
   },
   'account.language.help': {
     en: 'Choose the language you want to read Headway in.',
-    hi: 'आप हेडवे किस भाषा में पढ़ना चाहते हैं, वह चुनें।',
-    mr: 'तुम्हाला हेडवे कोणत्या भाषेत वाचायचे आहे ते निवडा.',
+    hi: 'आप Headway किस भाषा में पढ़ना चाहते हैं, वह चुनें।',
+    mr: 'तुम्हाला Headway कोणत्या भाषेत वाचायचे आहे ते निवडा.',
   },
   'account.language.scope': {
     en: 'This changes only what you see. Everyone else on your team keeps their own choice.',
@@ -38,8 +38,8 @@ export const account = {
   },
   'account.language.choose': {
     en: 'Show Headway in {language}',
-    hi: 'हेडवे को {language} में दिखाएँ',
-    mr: 'हेडवे {language} मध्ये दाखवा',
+    hi: 'Headway को {language} में दिखाएँ',
+    mr: 'Headway {language} मध्ये दाखवा',
   },
   'account.language.saving': {
     en: 'Changing…',
@@ -71,8 +71,8 @@ export const account = {
   // -------------------------------------------------------------------------
   'account.headline.workspace': {
     en: 'Your Headway workspace',
-    hi: 'आपका हेडवे वर्कस्पेस',
-    mr: 'तुमचं हेडवे वर्कस्पेस',
+    hi: 'आपका Headway वर्कस्पेस',
+    mr: 'तुमचं Headway वर्कस्पेस',
   },
   'account.headline.demo': {
     en: 'This is the demo workspace. It stays open.',
@@ -81,33 +81,33 @@ export const account = {
   },
   'account.headline.staff': {
     en: 'You are signed in as Headway staff. This workspace is always open to you.',
-    hi: 'आप हेडवे स्टाफ़ के तौर पर साइन इन हैं। यह वर्कस्पेस आपके लिए हमेशा खुला रहता है।',
-    mr: 'तुम्ही हेडवे स्टाफ म्हणून साइन इन आहात. हे वर्कस्पेस तुमच्यासाठी नेहमी खुलं असतं.',
+    hi: 'आप Headway स्टाफ़ के तौर पर साइन इन हैं। यह वर्कस्पेस आपके लिए हमेशा खुला रहता है।',
+    mr: 'तुम्ही Headway स्टाफ म्हणून साइन इन आहात. हे वर्कस्पेस तुमच्यासाठी नेहमी खुलं असतं.',
   },
   'account.headline.activeTitle': {
     en: 'Headway is active',
-    hi: 'हेडवे चालू है',
-    mr: 'हेडवे चालू आहे',
+    hi: 'Headway चालू है',
+    mr: 'Headway चालू आहे',
   },
   'account.headline.activeBody': {
     en: 'Your workspace is open. Your Headway contact arranged it for you.',
-    hi: 'आपका वर्कस्पेस खुला है। आपके हेडवे संपर्क ने यह आपके लिए तय किया है।',
-    mr: 'तुमचं वर्कस्पेस खुलं आहे. तुमच्या हेडवे संपर्काने ते तुमच्यासाठी ठरवलं आहे.',
+    hi: 'आपका वर्कस्पेस खुला है। आपके Headway संपर्क ने यह आपके लिए तय किया है।',
+    mr: 'तुमचं वर्कस्पेस खुलं आहे. तुमच्या Headway संपर्काने ते तुमच्यासाठी ठरवलं आहे.',
   },
   'account.headline.pausedTitle': {
     en: 'Your Headway workspace is paused',
-    hi: 'आपका हेडवे वर्कस्पेस रोका गया है',
-    mr: 'तुमचं हेडवे वर्कस्पेस थांबवलं आहे',
+    hi: 'आपका Headway वर्कस्पेस रोका गया है',
+    mr: 'तुमचं Headway वर्कस्पेस थांबवलं आहे',
   },
   'account.headline.trialEndedTitle': {
     en: 'Your Headway trial has ended',
-    hi: 'आपकी हेडवे ट्रायल ख़त्म हो गई है',
-    mr: 'तुमची हेडवे ट्रायल संपली आहे',
+    hi: 'आपकी Headway ट्रायल ख़त्म हो गई है',
+    mr: 'तुमची Headway ट्रायल संपली आहे',
   },
   'account.locked.body': {
     en: 'Your feedback and your history are safe. Your workspace opens again when you continue your Headway service.',
-    hi: 'आपका फ़ीडबैक और आपका पुराना रिकॉर्ड सुरक्षित है। जब आप हेडवे सर्विस आगे जारी रखेंगे, तब आपका वर्कस्पेस फिर से खुल जाएगा।',
-    mr: 'तुमचा फीडबॅक आणि तुमचा जुना रेकॉर्ड सुरक्षित आहे. तुम्ही हेडवे सर्व्हिस पुढे सुरू ठेवाल तेव्हा तुमचं वर्कस्पेस पुन्हा उघडेल.',
+    hi: 'आपका फ़ीडबैक और आपका पुराना रिकॉर्ड सुरक्षित है। जब आप Headway सर्विस आगे जारी रखेंगे, तब आपका वर्कस्पेस फिर से खुल जाएगा।',
+    mr: 'तुमचा फीडबॅक आणि तुमचा जुना रेकॉर्ड सुरक्षित आहे. तुम्ही Headway सर्व्हिस पुढे सुरू ठेवाल तेव्हा तुमचं वर्कस्पेस पुन्हा उघडेल.',
   },
 
   // -------------------------------------------------------------------------
@@ -116,8 +116,8 @@ export const account = {
   // -------------------------------------------------------------------------
   'account.service.eyebrow': {
     en: 'Your Headway service',
-    hi: 'आपकी हेडवे सर्विस',
-    mr: 'तुमची हेडवे सर्व्हिस',
+    hi: 'आपकी Headway सर्विस',
+    mr: 'तुमची Headway सर्व्हिस',
   },
   'account.service.label': {
     en: 'Service',
@@ -126,18 +126,18 @@ export const account = {
   },
   'account.service.demo': {
     en: 'Headway demo',
-    hi: 'हेडवे डेमो',
-    mr: 'हेडवे डेमो',
+    hi: 'Headway डेमो',
+    mr: 'Headway डेमो',
   },
   'account.service.headway': {
     en: 'Headway',
-    hi: 'हेडवे',
-    mr: 'हेडवे',
+    hi: 'Headway',
+    mr: 'Headway',
   },
   'account.service.trial': {
     en: 'Headway trial',
-    hi: 'हेडवे ट्रायल',
-    mr: 'हेडवे ट्रायल',
+    hi: 'Headway ट्रायल',
+    mr: 'Headway ट्रायल',
   },
   'account.service.status': {
     en: 'Status',
@@ -233,13 +233,13 @@ export const account = {
   // -------------------------------------------------------------------------
   'account.activity.eyebrow': {
     en: 'What Headway has done so far',
-    hi: 'हेडवे ने अब तक क्या किया',
-    mr: 'हेडवेने आतापर्यंत काय केलं',
+    hi: 'Headway ने अब तक क्या किया',
+    mr: 'Headway ने आतापर्यंत काय केलं',
   },
   'account.activity.empty': {
     en: 'Nothing yet. When customers start scanning your card, this section will show how much feedback came in and what Headway found in it.',
-    hi: 'अभी कुछ नहीं। जब ग्राहक आपका कार्ड स्कैन करना शुरू करेंगे, तब यहाँ दिखेगा कि कितना फ़ीडबैक आया और हेडवे ने उसमें क्या पाया।',
-    mr: 'अजून काही नाही. ग्राहक तुमचं कार्ड स्कॅन करायला लागतील तेव्हा इथे दिसेल की किती फीडबॅक आला आणि हेडवेला त्यात काय सापडलं.',
+    hi: 'अभी कुछ नहीं। जब ग्राहक आपका कार्ड स्कैन करना शुरू करेंगे, तब यहाँ दिखेगा कि कितना फ़ीडबैक आया और Headway ने उसमें क्या पाया।',
+    mr: 'अजून काही नाही. ग्राहक तुमचं कार्ड स्कॅन करायला लागतील तेव्हा इथे दिसेल की किती फीडबॅक आला आणि Headway ला त्यात काय सापडलं.',
   },
 
   // -------------------------------------------------------------------------
@@ -251,8 +251,8 @@ export const account = {
   // -------------------------------------------------------------------------
   'account.continue.eyebrow': {
     en: 'Continuing with Headway',
-    hi: 'हेडवे आगे जारी रखना',
-    mr: 'हेडवे पुढे सुरू ठेवणे',
+    hi: 'Headway आगे जारी रखना',
+    mr: 'Headway पुढे सुरू ठेवणे',
   },
   'account.continue.received': {
     en: 'Request received',
@@ -281,8 +281,8 @@ export const account = {
   },
   'account.continue.question': {
     en: 'Want to continue with Headway?',
-    hi: 'क्या आप हेडवे आगे जारी रखना चाहते हैं?',
-    mr: 'तुम्हाला हेडवे पुढे सुरू ठेवायचं आहे का?',
+    hi: 'क्या आप Headway आगे जारी रखना चाहते हैं?',
+    mr: 'तुम्हाला Headway पुढे सुरू ठेवायचं आहे का?',
   },
   'account.continue.trialBody': {
     en: 'Your trial gives you the whole workspace. When it ends, you can ask to continue. No money is taken automatically.',
@@ -300,8 +300,8 @@ export const account = {
   // -------------------------------------------------------------------------
   'account.reach.eyebrow': {
     en: 'Where Headway reaches you',
-    hi: 'हेडवे आपसे कहाँ संपर्क करेगा',
-    mr: 'हेडवे तुमच्याशी कुठे संपर्क करेल',
+    hi: 'Headway आपसे कहाँ संपर्क करेगा',
+    mr: 'Headway तुमच्याशी कुठे संपर्क करेल',
   },
   'account.reach.none': {
     en: 'No contact details yet.',
@@ -310,8 +310,8 @@ export const account = {
   },
   'account.contact.eyebrow': {
     en: 'Reaching Headway',
-    hi: 'हेडवे से संपर्क करना',
-    mr: 'हेडवेशी संपर्क करणे',
+    hi: 'Headway से संपर्क करना',
+    mr: 'Headway शी संपर्क करणे',
   },
   'account.contact.body': {
     en: 'We reply to any request you send from this page. You can also contact us directly.',

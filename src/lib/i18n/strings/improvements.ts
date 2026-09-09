@@ -23,8 +23,8 @@ export const improvements = {
   },
   'improvements.page.empty': {
     en: 'Nothing here yet. Make a change Headway suggested, and this page will compare the feedback from before and after it.',
-    hi: 'यहाँ अभी कुछ नहीं है। हेडवे ने जो बदलाव सुझाया है वह करें, और यह पेज उससे पहले और बाद के फ़ीडबैक की तुलना करेगा।',
-    mr: 'इथे अजून काही नाही. हेडवेने सुचवलेला बदल करा, आणि हे पान त्याआधीच्या आणि नंतरच्या फीडबॅकची तुलना करेल.',
+    hi: 'यहाँ अभी कुछ नहीं है। Headway ने जो बदलाव सुझाया है वह करें, और यह पेज उससे पहले और बाद के फ़ीडबैक की तुलना करेगा।',
+    mr: 'इथे अजून काही नाही. Headway ने सुचवलेला बदल करा, आणि हे पान त्याआधीच्या आणि नंतरच्या फीडबॅकची तुलना करेल.',
   },
   'improvements.section.compared': {
     en: 'Changes compared',
@@ -48,8 +48,8 @@ export const improvements = {
   },
   'improvements.section.waitingNote': {
     en: 'Headway has suggested a change',
-    hi: 'हेडवे ने एक बदलाव सुझाया है',
-    mr: 'हेडवेने एक बदल सुचवला आहे',
+    hi: 'Headway ने एक बदलाव सुझाया है',
+    mr: 'Headway ने एक बदल सुचवला आहे',
   },
 
   /** Used both as the section heading and as the label on that moment. */
@@ -74,8 +74,8 @@ export const improvements = {
   },
   'improvements.moment.checkedAgain': {
     en: 'Headway checked again',
-    hi: 'हेडवे ने फिर से जाँचा',
-    mr: 'हेडवेने पुन्हा तपासलं',
+    hi: 'Headway ने फिर से जाँचा',
+    mr: 'Headway ने पुन्हा तपासलं',
   },
 
   /**
@@ -125,18 +125,18 @@ export const improvements = {
   },
   'improvements.moment.awaiting.one': {
     en: 'Not yet. Headway needs {need} new feedback entry to compare. It has {have} so far.',
-    hi: 'अभी नहीं। तुलना करने के लिए हेडवे को {need} नया फ़ीडबैक चाहिए। अभी तक {have} मिले हैं।',
-    mr: 'अजून नाही. तुलना करण्यासाठी हेडवेला {need} नवीन फीडबॅक हवा आहे. आतापर्यंत {have} मिळाले आहेत.',
+    hi: 'अभी नहीं। तुलना करने के लिए Headway को {need} नया फ़ीडबैक चाहिए। अभी तक {have} मिले हैं।',
+    mr: 'अजून नाही. तुलना करण्यासाठी Headway ला {need} नवीन फीडबॅक हवा आहे. आतापर्यंत {have} मिळाले आहेत.',
   },
   'improvements.moment.awaiting.other': {
     en: 'Not yet. Headway needs {need} new feedback entries to compare. It has {have} so far.',
-    hi: 'अभी नहीं। तुलना करने के लिए हेडवे को {need} नए फ़ीडबैक चाहिए। अभी तक {have} मिले हैं।',
-    mr: 'अजून नाही. तुलना करण्यासाठी हेडवेला {need} नवीन फीडबॅक हवेत. आतापर्यंत {have} मिळाले आहेत.',
+    hi: 'अभी नहीं। तुलना करने के लिए Headway को {need} नए फ़ीडबैक चाहिए। अभी तक {have} मिले हैं।',
+    mr: 'अजून नाही. तुलना करण्यासाठी Headway ला {need} नवीन फीडबॅक हवेत. आतापर्यंत {have} मिळाले आहेत.',
   },
   'improvements.moment.notMadeYet': {
     en: 'Not yet. Headway will compare after you make the change.',
-    hi: 'अभी नहीं। आपके बदलाव करने के बाद हेडवे तुलना करेगा।',
-    mr: 'अजून नाही. तुम्ही बदल केल्यानंतर हेडवे तुलना करेल.',
+    hi: 'अभी नहीं। आपके बदलाव करने के बाद Headway तुलना करेगा।',
+    mr: 'अजून नाही. तुम्ही बदल केल्यानंतर Headway तुलना करेल.',
   },
 
   // -------------------------------------------------------------------------
@@ -244,8 +244,8 @@ export const improvements = {
   },
   'improvements.started.suggested': {
     en: 'Headway suggested',
-    hi: 'हेडवे ने सुझाया',
-    mr: 'हेडवेने सुचवलं',
+    hi: 'Headway ने सुझाया',
+    mr: 'Headway ने सुचवलं',
   },
   'improvements.started.decided': {
     en: 'You decided',

@@ -18,8 +18,8 @@ export const checkin = {
   },
   'checkin.empty': {
     en: 'Headway has not read any feedback yet. Once feedback comes in, every check-in will show what needs your attention, what to keep doing, and what Headway is watching.',
-    hi: 'हेडवे ने अभी तक कोई फ़ीडबैक नहीं पढ़ा है। फ़ीडबैक आने के बाद हर चेक-इन में दिखेगा कि किस पर आपका ध्यान चाहिए, क्या करते रहना है, और हेडवे किस पर नज़र रख रहा है।',
-    mr: 'हेडवेने अजून कोणताही फीडबॅक वाचलेला नाही. फीडबॅक आल्यानंतर प्रत्येक चेक-इनमध्ये कशाकडे तुमचं लक्ष हवं, काय करत राहायचं, आणि हेडवे कशावर लक्ष ठेवत आहे हे दिसेल.',
+    hi: 'Headway ने अभी तक कोई फ़ीडबैक नहीं पढ़ा है। फ़ीडबैक आने के बाद हर चेक-इन में दिखेगा कि किस पर आपका ध्यान चाहिए, क्या करते रहना है, और Headway किस पर नज़र रख रहा है।',
+    mr: 'Headway ने अजून कोणताही फीडबॅक वाचलेला नाही. फीडबॅक आल्यानंतर प्रत्येक चेक-इनमध्ये कशाकडे तुमचं लक्ष हवं, काय करत राहायचं, आणि Headway कशावर लक्ष ठेवत आहे हे दिसेल.',
   },
 
   // -------------------------------------------------------------------------
@@ -62,8 +62,8 @@ export const checkin = {
   // -------------------------------------------------------------------------
   'checkin.nextCheck.title': {
     en: 'What Headway will check next',
-    hi: 'हेडवे आगे क्या देखेगा',
-    mr: 'हेडवे पुढे काय पाहणार आहे',
+    hi: 'Headway आगे क्या देखेगा',
+    mr: 'Headway पुढे काय पाहणार आहे',
   },
 
   // -------------------------------------------------------------------------
@@ -80,8 +80,8 @@ export const checkin = {
   },
   'checkin.reveal.did': {
     en: 'What Headway did · {since}',
-    hi: 'हेडवे ने क्या किया · {since}',
-    mr: 'हेडवेने काय केलं · {since}',
+    hi: 'Headway ने क्या किया · {since}',
+    mr: 'Headway ने काय केलं · {since}',
   },
 
   // -------------------------------------------------------------------------
@@ -109,13 +109,13 @@ export const checkin = {
   },
   'checkin.changes.comparedSince': {
     en: 'Changes Headway compared since this check-in',
-    hi: 'इस चेक-इन के बाद हेडवे ने जिन बदलावों की तुलना की',
-    mr: 'या चेक-इननंतर हेडवेने ज्या बदलांची तुलना केली',
+    hi: 'इस चेक-इन के बाद Headway ने जिन बदलावों की तुलना की',
+    mr: 'या चेक-इननंतर Headway ने ज्या बदलांची तुलना केली',
   },
   'checkin.alsoWatching': {
     en: 'Headway is also watching',
-    hi: 'हेडवे इन पर भी नज़र रख रहा है',
-    mr: 'हेडवे यांच्यावरही लक्ष ठेवत आहे',
+    hi: 'Headway इन पर भी नज़र रख रहा है',
+    mr: 'Headway यांच्यावरही लक्ष ठेवत आहे',
   },
   'checkin.nothingToDecide': {
     en: 'Nothing from this check-in needs a decision from you.',

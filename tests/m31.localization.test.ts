@@ -188,9 +188,14 @@ describe('choosing a language changes the words', () => {
     let checked = 0;
     for (const key of translated) {
       const phrase = MESSAGES[key];
-      // Skip phrases that are legitimately identical in all three — a bare
-      // brand name, a number, a placeholder-only string.
-      if (!/[a-z]{4}/i.test(phrase.en)) continue;
+      // Skip phrases that are legitimately identical in all three — a number,
+      // a placeholder-only string, or the brand on its own. "Headway" is a
+      // name: it is written the same way in every language, on the printed
+      // card and in the wordmark, and translating it would make it a different
+      // brand. With the brand removed there has to be a real word left before
+      // a translation can be demanded.
+      const translatable = phrase.en.replace(/Headway/g, '').trim();
+      if (!/[a-z]{4}/i.test(translatable)) continue;
       checked += 1;
       expect(devanagari.test(phrase.hi as string), `${key} Hindi is not Devanagari`).toBe(true);
       expect(devanagari.test(phrase.mr as string), `${key} Marathi is not Devanagari`).toBe(true);

@@ -19,23 +19,23 @@ export const home = {
   // -------------------------------------------------------------------------
   'home.trial.endsToday': {
     en: 'Your Headway trial ends today, on {date}. Headway will not charge you automatically.',
-    hi: 'आपका हेडवे ट्रायल आज, {date} को ख़त्म हो रहा है। हेडवे अपने आप पैसे नहीं काटेगा।',
-    mr: 'तुमचा हेडवे ट्रायल आज, {date} रोजी संपत आहे. हेडवे आपोआप पैसे कापणार नाही.',
+    hi: 'आपका Headway ट्रायल आज, {date} को ख़त्म हो रहा है। Headway अपने आप पैसे नहीं काटेगा।',
+    mr: 'तुमचा Headway ट्रायल आज, {date} रोजी संपत आहे. Headway आपोआप पैसे कापणार नाही.',
   },
   'home.trial.endsTomorrow': {
     en: 'Your Headway trial ends tomorrow, on {date}. Headway will not charge you automatically.',
-    hi: 'आपका हेडवे ट्रायल कल, {date} को ख़त्म हो रहा है। हेडवे अपने आप पैसे नहीं काटेगा।',
-    mr: 'तुमचा हेडवे ट्रायल उद्या, {date} रोजी संपत आहे. हेडवे आपोआप पैसे कापणार नाही.',
+    hi: 'आपका Headway ट्रायल कल, {date} को ख़त्म हो रहा है। Headway अपने आप पैसे नहीं काटेगा।',
+    mr: 'तुमचा Headway ट्रायल उद्या, {date} रोजी संपत आहे. Headway आपोआप पैसे कापणार नाही.',
   },
   'home.trial.endsInDays.one': {
     en: 'Your Headway trial ends in {count} day, on {date}. Headway will not charge you automatically.',
-    hi: 'आपका हेडवे ट्रायल {count} दिन में, {date} को ख़त्म हो रहा है। हेडवे अपने आप पैसे नहीं काटेगा।',
-    mr: 'तुमचा हेडवे ट्रायल {count} दिवसात, {date} रोजी संपत आहे. हेडवे आपोआप पैसे कापणार नाही.',
+    hi: 'आपका Headway ट्रायल {count} दिन में, {date} को ख़त्म हो रहा है। Headway अपने आप पैसे नहीं काटेगा।',
+    mr: 'तुमचा Headway ट्रायल {count} दिवसात, {date} रोजी संपत आहे. Headway आपोआप पैसे कापणार नाही.',
   },
   'home.trial.endsInDays.other': {
     en: 'Your Headway trial ends in {count} days, on {date}. Headway will not charge you automatically.',
-    hi: 'आपका हेडवे ट्रायल {count} दिन में, {date} को ख़त्म हो रहा है। हेडवे अपने आप पैसे नहीं काटेगा।',
-    mr: 'तुमचा हेडवे ट्रायल {count} दिवसांत, {date} रोजी संपत आहे. हेडवे आपोआप पैसे कापणार नाही.',
+    hi: 'आपका Headway ट्रायल {count} दिन में, {date} को ख़त्म हो रहा है। Headway अपने आप पैसे नहीं काटेगा।',
+    mr: 'तुमचा Headway ट्रायल {count} दिवसांत, {date} रोजी संपत आहे. Headway आपोआप पैसे कापणार नाही.',
   },
   'home.trial.continue': {
     en: 'Continue your service',
@@ -57,8 +57,8 @@ export const home = {
   },
   'home.watching.title': {
     en: 'Headway is watching',
-    hi: 'हेडवे नज़र रख रहा है',
-    mr: 'हेडवे लक्ष ठेवत आहे',
+    hi: 'Headway नज़र रख रहा है',
+    mr: 'Headway लक्ष ठेवत आहे',
   },
   'home.watching.note': {
     en: 'Nothing here needs your attention today',
@@ -87,13 +87,13 @@ export const home = {
   },
   'home.question.title': {
     en: 'What Headway needs from you',
-    hi: 'हेडवे को आपसे क्या चाहिए',
-    mr: 'हेडवेला तुमच्याकडून काय हवं आहे',
+    hi: 'Headway को आपसे क्या चाहिए',
+    mr: 'Headway ला तुमच्याकडून काय हवं आहे',
   },
   'home.knows.title': {
     en: 'What Headway knows about your business',
-    hi: 'हेडवे आपके बिज़नेस के बारे में क्या जानता है',
-    mr: 'हेडवेला तुमच्या व्यवसायाबद्दल काय माहीत आहे',
+    hi: 'Headway आपके बिज़नेस के बारे में क्या जानता है',
+    mr: 'Headway ला तुमच्या व्यवसायाबद्दल काय माहीत आहे',
   },
 
   // -------------------------------------------------------------------------

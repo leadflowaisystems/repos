@@ -50,8 +50,8 @@ export const pulse = {
   // number is the one the engine uses to decide whether to name a topic.
   'pulse.topics.none': {
     en: 'Nothing came up 3 or more times this week. Once something does, Headway will name it here.',
-    hi: 'इस हफ़्ते कोई भी बात 3 या उससे ज़्यादा बार सामने नहीं आई। जब कोई बात इतनी बार आएगी, हेडवे उसका नाम यहाँ लिखेगा।',
-    mr: 'या आठवड्यात कोणतीही गोष्ट 3 किंवा जास्त वेळा समोर आली नाही. जेव्हा एखादी गोष्ट इतक्या वेळा येईल, तेव्हा हेडवे तिचं नाव इथे लिहील.',
+    hi: 'इस हफ़्ते कोई भी बात 3 या उससे ज़्यादा बार सामने नहीं आई। जब कोई बात इतनी बार आएगी, Headway उसका नाम यहाँ लिखेगा।',
+    mr: 'या आठवड्यात कोणतीही गोष्ट 3 किंवा जास्त वेळा समोर आली नाही. जेव्हा एखादी गोष्ट इतक्या वेळा येईल, तेव्हा Headway तिचं नाव इथे लिहील.',
   },
   // On the week page the changes are still running; on the month page they are
   // behind the owner. Two headings, not one heading with a hole in it.
@@ -143,16 +143,16 @@ export const pulse = {
   },
   'pulse.report.section.limits': {
     en: 'What Headway cannot tell you yet',
-    hi: 'हेडवे अभी क्या नहीं बता सकता',
-    mr: 'हेडवे अजून काय सांगू शकत नाही',
+    hi: 'Headway अभी क्या नहीं बता सकता',
+    mr: 'Headway अजून काय सांगू शकत नाही',
   },
 
   // A change the owner made whose result is not measured yet. It says who is
   // doing the checking, so nobody reads it as something they have to do.
   'pulse.report.action.checking': {
     en: 'Headway is checking this now.',
-    hi: 'हेडवे इसे अभी जाँच रहा है।',
-    mr: 'हेडवे हे आता तपासत आहे.',
+    hi: 'Headway इसे अभी जाँच रहा है।',
+    mr: 'Headway हे आता तपासत आहे.',
   },
 
   // -------------------------------------------------------------------------
@@ -164,28 +164,28 @@ export const pulse = {
   // -------------------------------------------------------------------------
   'pulse.since.arrived.read.one': {
     en: '{count} feedback entry came in. Headway has read it.',
-    hi: '{count} फ़ीडबैक आया। हेडवे ने उसे पढ़ लिया है।',
-    mr: '{count} फीडबॅक आला. हेडवेने तो वाचला आहे.',
+    hi: '{count} फ़ीडबैक आया। Headway ने उसे पढ़ लिया है।',
+    mr: '{count} फीडबॅक आला. Headway ने तो वाचला आहे.',
   },
   'pulse.since.arrived.read.other': {
     en: '{count} feedback entries came in. Headway has read them all.',
-    hi: '{count} फ़ीडबैक आए। हेडवे ने सब पढ़ लिए हैं।',
-    mr: '{count} फीडबॅक आले. हेडवेने ते सर्व वाचले आहेत.',
+    hi: '{count} फ़ीडबैक आए। Headway ने सब पढ़ लिए हैं।',
+    mr: '{count} फीडबॅक आले. Headway ने ते सर्व वाचले आहेत.',
   },
   'pulse.since.arrived.reading.one': {
     en: '{count} feedback entry came in. Headway is reading it now.',
-    hi: '{count} फ़ीडबैक आया। हेडवे उसे अभी पढ़ रहा है।',
-    mr: '{count} फीडबॅक आला. हेडवे तो आता वाचत आहे.',
+    hi: '{count} फ़ीडबैक आया। Headway उसे अभी पढ़ रहा है।',
+    mr: '{count} फीडबॅक आला. Headway तो आता वाचत आहे.',
   },
   'pulse.since.arrived.reading.other': {
     en: '{count} feedback entries came in. Headway is reading them now.',
-    hi: '{count} फ़ीडबैक आए। हेडवे उन्हें अभी पढ़ रहा है।',
-    mr: '{count} फीडबॅक आले. हेडवे ते आता वाचत आहे.',
+    hi: '{count} फ़ीडबैक आए। Headway उन्हें अभी पढ़ रहा है।',
+    mr: '{count} फीडबॅक आले. Headway ते आता वाचत आहे.',
   },
   'pulse.since.arrived.partial': {
     en: '{count} feedback entries came in. Headway has read {read} so far and is reading the rest.',
-    hi: '{count} फ़ीडबैक आए। हेडवे ने अब तक {read} पढ़े हैं और बाकी पढ़ रहा है।',
-    mr: '{count} फीडबॅक आले. हेडवेने आतापर्यंत {read} वाचले आहेत आणि बाकीचे वाचत आहे.',
+    hi: '{count} फ़ीडबैक आए। Headway ने अब तक {read} पढ़े हैं और बाकी पढ़ रहा है।',
+    mr: '{count} फीडबॅक आले. Headway ने आतापर्यंत {read} वाचले आहेत आणि बाकीचे वाचत आहे.',
   },
   'pulse.since.link.feedback': {
     en: 'Read the feedback',
@@ -198,8 +198,8 @@ export const pulse = {
   // does, and only the dictionary can know where.
   'pulse.since.measured': {
     en: 'Headway checked {title} against the feedback that came in after it.',
-    hi: 'हेडवे ने {title} की जाँच उसके बाद आए फ़ीडबैक से की।',
-    mr: 'हेडवेने {title} याची तपासणी नंतर आलेल्या फीडबॅकवरून केली.',
+    hi: 'Headway ने {title} की जाँच उसके बाद आए फ़ीडबैक से की।',
+    mr: 'Headway ने {title} याची तपासणी नंतर आलेल्या फीडबॅकवरून केली.',
   },
 
   // THE READING, AND ONLY THE READING. Every one of these puts the count next

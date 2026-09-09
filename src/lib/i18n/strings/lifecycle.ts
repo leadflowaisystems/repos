@@ -43,8 +43,8 @@ export const lifecycle = {
   },
   'lifecycle.status.staff': {
     en: 'Headway staff access',
-    hi: 'हेडवे स्टाफ़ का एक्सेस',
-    mr: 'हेडवे स्टाफचा अ‍ॅक्सेस',
+    hi: 'Headway स्टाफ़ का एक्सेस',
+    mr: 'Headway स्टाफचा अ‍ॅक्सेस',
   },
   'lifecycle.status.demo': {
     en: 'Demo workspace',
@@ -65,13 +65,13 @@ export const lifecycle = {
   // -------------------------------------------------------------------------
   'lifecycle.account.paused.headline': {
     en: 'Headway is paused',
-    hi: 'हेडवे रोका गया है',
-    mr: 'हेडवे थांबवलं आहे',
+    hi: 'Headway रोका गया है',
+    mr: 'Headway थांबवलं आहे',
   },
   'lifecycle.account.paused.line': {
     en: 'Your feedback and your history are safe. New feedback is still saved. Headway is not reading it yet.',
-    hi: 'आपका फ़ीडबैक और आपका पुराना रिकॉर्ड सुरक्षित है। नया फ़ीडबैक अब भी सेव हो रहा है। हेडवे उसे अभी पढ़ नहीं रहा।',
-    mr: 'तुमचा फीडबॅक आणि तुमचा जुना रेकॉर्ड सुरक्षित आहे. नवीन फीडबॅक अजूनही सेव्ह होत आहे. हेडवे तो अजून वाचत नाही.',
+    hi: 'आपका फ़ीडबैक और आपका पुराना रिकॉर्ड सुरक्षित है। नया फ़ीडबैक अब भी सेव हो रहा है। Headway उसे अभी पढ़ नहीं रहा।',
+    mr: 'तुमचा फीडबॅक आणि तुमचा जुना रेकॉर्ड सुरक्षित आहे. नवीन फीडबॅक अजूनही सेव्ह होत आहे. Headway तो अजून वाचत नाही.',
   },
   'lifecycle.account.paused.note': {
     en: 'Paused since {date}.',
@@ -85,18 +85,18 @@ export const lifecycle = {
   },
   'lifecycle.account.closed.line': {
     en: 'Your feedback and your history are safe. Headway is not reading new feedback.',
-    hi: 'आपका फ़ीडबैक और आपका पुराना रिकॉर्ड सुरक्षित है। हेडवे नया फ़ीडबैक नहीं पढ़ रहा।',
-    mr: 'तुमचा फीडबॅक आणि तुमचा जुना रेकॉर्ड सुरक्षित आहे. हेडवे नवीन फीडबॅक वाचत नाही.',
+    hi: 'आपका फ़ीडबैक और आपका पुराना रिकॉर्ड सुरक्षित है। Headway नया फ़ीडबैक नहीं पढ़ रहा।',
+    mr: 'तुमचा फीडबॅक आणि तुमचा जुना रेकॉर्ड सुरक्षित आहे. Headway नवीन फीडबॅक वाचत नाही.',
   },
   'lifecycle.account.active.headline': {
     en: 'Headway is active',
-    hi: 'हेडवे चालू है',
-    mr: 'हेडवे चालू आहे',
+    hi: 'Headway चालू है',
+    mr: 'Headway चालू आहे',
   },
   'lifecycle.account.active.line': {
     en: 'Headway is reading new feedback as it arrives.',
-    hi: 'नया फ़ीडबैक जैसे-जैसे आता है, हेडवे उसे पढ़ता जाता है।',
-    mr: 'नवीन फीडबॅक जसजसा येतो, तसा हेडवे तो वाचत जातो.',
+    hi: 'नया फ़ीडबैक जैसे-जैसे आता है, Headway उसे पढ़ता जाता है।',
+    mr: 'नवीन फीडबॅक जसजसा येतो, तसा Headway तो वाचत जातो.',
   },
   'lifecycle.account.resumed.note': {
     en: 'Your account was paused. It is running again.',
@@ -115,8 +115,8 @@ export const lifecycle = {
   },
   'lifecycle.account.trial.headline': {
     en: 'Your Headway trial',
-    hi: 'आपकी हेडवे ट्रायल',
-    mr: 'तुमची हेडवे ट्रायल',
+    hi: 'आपकी Headway ट्रायल',
+    mr: 'तुमची Headway ट्रायल',
   },
   'lifecycle.account.trial.line': {
     en: 'Your trial runs until {date}.',
@@ -125,8 +125,8 @@ export const lifecycle = {
   },
   'lifecycle.account.trial.lineNoEndDate': {
     en: 'Your trial is running. Your Headway contact will confirm the end date.',
-    hi: 'आपकी ट्रायल चल रही है। ख़त्म होने की तारीख़ आपका हेडवे संपर्क बता देगा।',
-    mr: 'तुमची ट्रायल चालू आहे. संपण्याची तारीख तुमचा हेडवे संपर्क सांगेल.',
+    hi: 'आपकी ट्रायल चल रही है। ख़त्म होने की तारीख़ आपका Headway संपर्क बता देगा।',
+    mr: 'तुमची ट्रायल चालू आहे. संपण्याची तारीख तुमचा Headway संपर्क सांगेल.',
   },
 
   // -------------------------------------------------------------------------

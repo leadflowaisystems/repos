@@ -77,8 +77,8 @@ export const common = {
   },
   'common.form.continue.help': {
     en: 'We will use this to contact you about continuing your Headway service.',
-    hi: 'हेडवे सेवा आगे जारी रखने के बारे में बात करने के लिए हम इसी का इस्तेमाल करेंगे।',
-    mr: 'हेडवे सेवा पुढे सुरू ठेवण्याबद्दल बोलण्यासाठी आम्ही याचाच वापर करू.',
+    hi: 'Headway सेवा आगे जारी रखने के बारे में बात करने के लिए हम इसी का इस्तेमाल करेंगे।',
+    mr: 'Headway सेवा पुढे सुरू ठेवण्याबद्दल बोलण्यासाठी आम्ही याचाच वापर करू.',
   },
   'common.form.continue.phone': {
     en: 'Phone number',
@@ -119,8 +119,8 @@ export const common = {
   },
   'common.form.contact.updateHelp': {
     en: 'Headway uses these details to reach you about your account.',
-    hi: 'आपके अकाउंट के बारे में आप तक पहुँचने के लिए हेडवे इन्हीं जानकारियों का इस्तेमाल करता है।',
-    mr: 'तुमच्या अकाउंटबद्दल तुमच्यापर्यंत पोहोचण्यासाठी हेडवे याच माहितीचा वापर करतं.',
+    hi: 'आपके अकाउंट के बारे में आप तक पहुँचने के लिए Headway इन्हीं जानकारियों का इस्तेमाल करता है।',
+    mr: 'तुमच्या अकाउंटबद्दल तुमच्यापर्यंत पोहोचण्यासाठी Headway याच माहितीचा वापर करतं.',
   },
   'common.form.contact.phone': {
     en: 'WhatsApp or mobile number',
@@ -280,8 +280,8 @@ export const common = {
   },
   'common.layer.recommend': {
     en: 'Headway recommends',
-    hi: 'हेडवे की सलाह',
-    mr: 'हेडवेची सूचना',
+    hi: 'Headway की सलाह',
+    mr: 'Headway ची सूचना',
   },
   'common.layer.owner': {
     en: 'You told us',
@@ -410,13 +410,13 @@ export const common = {
   // --- what the owner told Headway, and the one question back ---------------
   'common.knows.note': {
     en: 'Tell your Headway contact if any of this changes.',
-    hi: 'इसमें कुछ भी बदले तो अपने हेडवे कॉन्टैक्ट को बताएँ।',
-    mr: 'यात काही बदल झाला तर तुमच्या हेडवे संपर्काला सांगा.',
+    hi: 'इसमें कुछ भी बदले तो अपने Headway कॉन्टैक्ट को बताएँ।',
+    mr: 'यात काही बदल झाला तर तुमच्या Headway संपर्काला सांगा.',
   },
   'common.question.note': {
     en: 'Tell your Headway contact which one fits.',
-    hi: 'इनमें से कौन सा सही है, अपने हेडवे कॉन्टैक्ट को बताएँ।',
-    mr: 'यांपैकी कोणतं बरोबर आहे ते तुमच्या हेडवे संपर्काला सांगा.',
+    hi: 'इनमें से कौन सा सही है, अपने Headway कॉन्टैक्ट को बताएँ।',
+    mr: 'यांपैकी कोणतं बरोबर आहे ते तुमच्या Headway संपर्काला सांगा.',
   },
 
   // --- what Headway has read so far -----------------------------------------
@@ -427,23 +427,23 @@ export const common = {
   },
   'common.sofar.read.one': {
     en: 'Headway has read {count} feedback entry.',
-    hi: 'हेडवे ने {count} फ़ीडबैक पढ़ा है।',
-    mr: 'हेडवेने {count} फीडबॅक वाचला आहे.',
+    hi: 'Headway ने {count} फ़ीडबैक पढ़ा है।',
+    mr: 'Headway ने {count} फीडबॅक वाचला आहे.',
   },
   'common.sofar.read.other': {
     en: 'Headway has read {count} feedback entries.',
-    hi: 'हेडवे ने {count} फ़ीडबैक पढ़े हैं।',
-    mr: 'हेडवेने {count} फीडबॅक वाचले आहेत.',
+    hi: 'Headway ने {count} फ़ीडबैक पढ़े हैं।',
+    mr: 'Headway ने {count} फीडबॅक वाचले आहेत.',
   },
   'common.sofar.beingRead.one': {
     en: 'Headway is reading {count} more feedback entry now.',
-    hi: 'हेडवे अभी {count} और फ़ीडबैक पढ़ रहा है।',
-    mr: 'हेडवे आत्ता आणखी {count} फीडबॅक वाचत आहे.',
+    hi: 'Headway अभी {count} और फ़ीडबैक पढ़ रहा है।',
+    mr: 'Headway आत्ता आणखी {count} फीडबॅक वाचत आहे.',
   },
   'common.sofar.beingRead.other': {
     en: 'Headway is reading {count} more feedback entries now.',
-    hi: 'हेडवे अभी {count} और फ़ीडबैक पढ़ रहा है।',
-    mr: 'हेडवे आत्ता आणखी {count} फीडबॅक वाचत आहे.',
+    hi: 'Headway अभी {count} और फ़ीडबैक पढ़ रहा है।',
+    mr: 'Headway आत्ता आणखी {count} फीडबॅक वाचत आहे.',
   },
   'common.sofar.chip.one': {
     en: '{label}, mentioned {count} time.',
@@ -488,8 +488,8 @@ export const common = {
   },
   'common.review.understood': {
     en: 'Headway understood',
-    hi: 'हेडवे ने क्या समझा',
-    mr: 'हेडवेला काय समजलं',
+    hi: 'Headway ने क्या समझा',
+    mr: 'Headway ला काय समजलं',
   },
   'common.review.noRating': {
     en: 'No overall rating',
@@ -518,8 +518,8 @@ export const common = {
   },
   'common.review.noTopic': {
     en: 'Nothing here matched a topic Headway tracks.',
-    hi: 'हेडवे जिन विषयों पर नज़र रखता है, उनमें से कोई इसमें नहीं मिला।',
-    mr: 'हेडवे ज्या विषयांवर लक्ष ठेवतं, त्यांपैकी एकही यात आढळला नाही.',
+    hi: 'Headway जिन विषयों पर नज़र रखता है, उनमें से कोई इसमें नहीं मिला।',
+    mr: 'Headway ज्या विषयांवर लक्ष ठेवतं, त्यांपैकी एकही यात आढळला नाही.',
   },
   'common.review.tone': {
     en: '{label} in tone',
@@ -558,18 +558,18 @@ export const common = {
   },
   'common.review.reading': {
     en: 'Headway is reading this now.',
-    hi: 'हेडवे इसे अभी पढ़ रहा है।',
-    mr: 'हेडवे हे आत्ता वाचत आहे.',
+    hi: 'Headway इसे अभी पढ़ रहा है।',
+    mr: 'Headway हे आत्ता वाचत आहे.',
   },
   'common.review.failed': {
     en: 'Headway could not read this one yet. It will try again on its own.',
-    hi: 'हेडवे इसे अभी तक पढ़ नहीं पाया। वह अपने आप दोबारा कोशिश करेगा।',
-    mr: 'हेडवेला हे अजून वाचता आलेलं नाही. ते आपोआप पुन्हा प्रयत्न करेल.',
+    hi: 'Headway इसे अभी तक पढ़ नहीं पाया। वह अपने आप दोबारा कोशिश करेगा।',
+    mr: 'Headway ला हे अजून वाचता आलेलं नाही. ते आपोआप पुन्हा प्रयत्न करेल.',
   },
   'common.review.waiting': {
     en: 'Waiting for Headway to read it — usually within a minute of it arriving.',
-    hi: 'हेडवे के पढ़ने का इंतज़ार — आम तौर पर आने के एक मिनट के अंदर।',
-    mr: 'हेडवे वाचण्याची वाट — सहसा आल्यापासून एका मिनिटात.',
+    hi: 'Headway के पढ़ने का इंतज़ार — आम तौर पर आने के एक मिनट के अंदर।',
+    mr: 'Headway वाचण्याची वाट — सहसा आल्यापासून एका मिनिटात.',
   },
 
   // --- the five ratings, as one-tap filters ---------------------------------
@@ -617,8 +617,8 @@ export const common = {
   },
   'common.reveal.why': {
     en: 'Why Headway says this',
-    hi: 'हेडवे ऐसा क्यों कहता है',
-    mr: 'हेडवे असं का म्हणतं',
+    hi: 'Headway ऐसा क्यों कहता है',
+    mr: 'Headway असं का म्हणतं',
   },
   'common.reveal.howWeGotHere': {
     en: 'How we got here',
@@ -627,8 +627,8 @@ export const common = {
   },
   'common.limits.title': {
     en: 'What Headway cannot tell you yet',
-    hi: 'हेडवे अभी क्या नहीं बता सकता',
-    mr: 'हेडवे अजून काय सांगू शकत नाही',
+    hi: 'Headway अभी क्या नहीं बता सकता',
+    mr: 'Headway अजून काय सांगू शकत नाही',
   },
 
   // --- the full stop itself -------------------------------------------------
@@ -658,8 +658,8 @@ export const common = {
   },
   'common.source.headway': {
     en: 'Headway',
-    hi: 'हेडवे',
-    mr: 'हेडवे',
+    hi: 'Headway',
+    mr: 'Headway',
   },
   'common.next.prefix': {
     en: 'Next.',

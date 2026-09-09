@@ -22,8 +22,8 @@ export const errors = {
   },
   'errors.workspace.headline': {
     en: 'Headway could not show this page right now.',
-    hi: 'हेडवे अभी यह पेज नहीं दिखा सका।',
-    mr: 'हेडवे आत्ता हे पेज दाखवू शकलं नाही.',
+    hi: 'Headway अभी यह पेज नहीं दिखा सका।',
+    mr: 'Headway आत्ता हे पेज दाखवू शकलं नाही.',
   },
   'errors.workspace.reassurance': {
     en: 'Your feedback and your old records are safe.',
@@ -63,8 +63,8 @@ export const errors = {
   // -------------------------------------------------------------------------
   'errors.paused.banner': {
     en: 'Headway is paused. New feedback is still saved, but nobody is reading it yet.',
-    hi: 'हेडवे रोका गया है। नया फ़ीडबैक अब भी सेव हो रहा है, लेकिन उसे अभी कोई नहीं पढ़ रहा।',
-    mr: 'हेडवे थांबवलं आहे. नवीन फीडबॅक अजूनही सेव्ह होत आहे, पण ते अजून कोणी वाचत नाही.',
+    hi: 'Headway रोका गया है। नया फ़ीडबैक अब भी सेव हो रहा है, लेकिन उसे अभी कोई नहीं पढ़ रहा।',
+    mr: 'Headway थांबवलं आहे. नवीन फीडबॅक अजूनही सेव्ह होत आहे, पण ते अजून कोणी वाचत नाही.',
   },
   'errors.paused.account': {
     en: 'Go to Account',

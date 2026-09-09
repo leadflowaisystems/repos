@@ -130,13 +130,13 @@ export const period = {
   // to name a problem, not only that it did not name one.
   'period.limit.thin.one': {
     en: '{count} feedback entry arrived. Headway names a problem once at least {min} customers have mentioned it.',
-    hi: '{count} फ़ीडबैक आया। हेडवे किसी समस्या का नाम तभी लेता है जब कम से कम {min} ग्राहक उसका ज़िक्र कर चुके हों।',
-    mr: '{count} फीडबॅक आला. हेडवे एखाद्या अडचणीचं नाव तेव्हाच घेतो जेव्हा किमान {min} ग्राहकांनी तिचा उल्लेख केलेला असतो.',
+    hi: '{count} फ़ीडबैक आया। Headway किसी समस्या का नाम तभी लेता है जब कम से कम {min} ग्राहक उसका ज़िक्र कर चुके हों।',
+    mr: '{count} फीडबॅक आला. Headway एखाद्या अडचणीचं नाव तेव्हाच घेतो जेव्हा किमान {min} ग्राहकांनी तिचा उल्लेख केलेला असतो.',
   },
   'period.limit.thin.other': {
     en: '{count} feedback entries arrived. Headway names a problem once at least {min} customers have mentioned it.',
-    hi: '{count} फ़ीडबैक आए। हेडवे किसी समस्या का नाम तभी लेता है जब कम से कम {min} ग्राहक उसका ज़िक्र कर चुके हों।',
-    mr: '{count} फीडबॅक आले. हेडवे एखाद्या अडचणीचं नाव तेव्हाच घेतो जेव्हा किमान {min} ग्राहकांनी तिचा उल्लेख केलेला असतो.',
+    hi: '{count} फ़ीडबैक आए। Headway किसी समस्या का नाम तभी लेता है जब कम से कम {min} ग्राहक उसका ज़िक्र कर चुके हों।',
+    mr: '{count} फीडबॅक आले. Headway एखाद्या अडचणीचं नाव तेव्हाच घेतो जेव्हा किमान {min} ग्राहकांनी तिचा उल्लेख केलेला असतो.',
   },
 
   // {count} is the EARLIER window's feedback and {min} is the floor for
@@ -144,23 +144,23 @@ export const period = {
   // by what it counts rather than left to be told apart by position.
   'period.limit.incomparable.week.one': {
     en: 'The week before has {count} feedback entry. Headway needs at least {min} to compare fairly.',
-    hi: 'पिछले हफ़्ते में {count} फ़ीडबैक है। सही तरीक़े से तुलना करने के लिए हेडवे को कम से कम {min} चाहिए।',
-    mr: 'मागच्या आठवड्यात {count} फीडबॅक आहे. योग्य तुलना करण्यासाठी हेडवेला किमान {min} लागतात.',
+    hi: 'पिछले हफ़्ते में {count} फ़ीडबैक है। सही तरीक़े से तुलना करने के लिए Headway को कम से कम {min} चाहिए।',
+    mr: 'मागच्या आठवड्यात {count} फीडबॅक आहे. योग्य तुलना करण्यासाठी Headway ला किमान {min} लागतात.',
   },
   'period.limit.incomparable.week.other': {
     en: 'The week before has {count} feedback entries. Headway needs at least {min} to compare fairly.',
-    hi: 'पिछले हफ़्ते में {count} फ़ीडबैक हैं। सही तरीक़े से तुलना करने के लिए हेडवे को कम से कम {min} चाहिए।',
-    mr: 'मागच्या आठवड्यात {count} फीडबॅक आहेत. योग्य तुलना करण्यासाठी हेडवेला किमान {min} लागतात.',
+    hi: 'पिछले हफ़्ते में {count} फ़ीडबैक हैं। सही तरीक़े से तुलना करने के लिए Headway को कम से कम {min} चाहिए।',
+    mr: 'मागच्या आठवड्यात {count} फीडबॅक आहेत. योग्य तुलना करण्यासाठी Headway ला किमान {min} लागतात.',
   },
   'period.limit.incomparable.month.one': {
     en: 'The month before has {count} feedback entry. Headway needs at least {min} to compare fairly.',
-    hi: 'पिछले महीने में {count} फ़ीडबैक है। सही तरीक़े से तुलना करने के लिए हेडवे को कम से कम {min} चाहिए।',
-    mr: 'मागच्या महिन्यात {count} फीडबॅक आहे. योग्य तुलना करण्यासाठी हेडवेला किमान {min} लागतात.',
+    hi: 'पिछले महीने में {count} फ़ीडबैक है। सही तरीक़े से तुलना करने के लिए Headway को कम से कम {min} चाहिए।',
+    mr: 'मागच्या महिन्यात {count} फीडबॅक आहे. योग्य तुलना करण्यासाठी Headway ला किमान {min} लागतात.',
   },
   'period.limit.incomparable.month.other': {
     en: 'The month before has {count} feedback entries. Headway needs at least {min} to compare fairly.',
-    hi: 'पिछले महीने में {count} फ़ीडबैक हैं। सही तरीक़े से तुलना करने के लिए हेडवे को कम से कम {min} चाहिए।',
-    mr: 'मागच्या महिन्यात {count} फीडबॅक आहेत. योग्य तुलना करण्यासाठी हेडवेला किमान {min} लागतात.',
+    hi: 'पिछले महीने में {count} फ़ीडबैक हैं। सही तरीक़े से तुलना करने के लिए Headway को कम से कम {min} चाहिए।',
+    mr: 'मागच्या महिन्यात {count} फीडबॅक आहेत. योग्य तुलना करण्यासाठी Headway ला किमान {min} लागतात.',
   },
 
   // THE VOLUME CAVEAT, and it must not soften in translation. It says that

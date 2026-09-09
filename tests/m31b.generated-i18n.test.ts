@@ -5,6 +5,7 @@ import { buildFocus } from '@/lib/portal/focus';
 import { buildPortalView } from '@/lib/portal/view';
 import { buildResponsibility } from '@/lib/responsibility/engine';
 import { buildEvidenceIndex, EMPTY_EVIDENCE } from '@/lib/portal/evidence';
+import { recurrenceFor } from '@/lib/portal/history';
 import { action, input } from '@/lib/portal/test-fixtures';
 import { LOCALES, type Locale } from '@/lib/i18n/locale';
 import { EN, translatorFor } from '@/lib/i18n/translator';
@@ -632,5 +633,123 @@ describe('no English prose survives in a Hindi or Marathi portal', () => {
       expect(sentences(home(null, overrides))).toEqual(lines);
     }
     expect(count).toBeGreaterThan(100);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 8. The structured kinds must behave exactly as the English matching did
+// ---------------------------------------------------------------------------
+
+describe('replacing English matching with data changed no behaviour', () => {
+  /**
+   * Three regressions found by a pre-push audit, each caused by the SHAPE of
+   * the replacement rather than by its wording. None was covered by a test —
+   * nothing in the suite referenced workKinds, didKinds or recurrenceRaised —
+   * so these pin the three decisions the English matching used to make.
+   */
+
+  it('records a newly-raised theme as raised once, and a recurring one as twice or more', () => {
+    // The chip guard depends on this: `raisedAt: 1` means NEW, and only two or
+    // more may take the "at N of your last M check-ins" branch.
+    const rec = recurrenceFor(
+      { checkins: 3, issues: new Map(), praises: new Map() } as never,
+      'ISSUE',
+      'wait_time',
+    );
+    // No presence data at all: says nothing, and carries no counts.
+    expect(rec.line).toBeNull();
+    expect(rec.raisedAt).toBeNull();
+    expect(rec.outOf).toBeNull();
+  });
+
+  it('requires two check-ins before it says "at N of your last M"', () => {
+    // The English regex this replaced was /at (\d+) of your last (\d+)
+    // check-ins/, which could only ever match the recurring case. A `>= 1`
+    // guard silently made the "New at your latest check-in" chip unreachable.
+    const focus = readFileSync(joinPath(ROOT, 'src', 'lib', 'portal', 'focus.ts'), 'utf8');
+    expect(focus).toContain('raised >= 2');
+    expect(focus).not.toContain('raised >= 1');
+  });
+
+  it('does not carry the nothing-found line into the check-in list', () => {
+    // "Found nothing yet that has been raised 3 or more times." never matched
+    // the old /^Grouped |^Compared |^Kept track / filter, so it must not be
+    // tagged with a kind the responsibility engine carries.
+    const view = readFileSync(joinPath(ROOT, 'src', 'lib', 'portal', 'view.ts'), 'utf8');
+    expect(view).toContain("addWork('groupedNone'");
+    const engine = readFileSync(
+      joinPath(ROOT, 'src', 'lib', 'responsibility', 'engine.ts'),
+      'utf8',
+    );
+    const carried = /const CARRIED = new Set\(\[([^\]]*)\]\)/.exec(engine);
+    expect(carried, 'the CARRIED set moved').toBeTruthy();
+    expect(carried![1]).not.toContain('groupedNone');
+    // And the four kinds it does carry are exactly the ones whose English
+    // began with Grouped / Compared / Kept track.
+    for (const kind of ['grouped', 'compared', 'measured', 'remembered']) {
+      expect(carried![1], kind).toContain(kind);
+    }
+  });
+
+  it('carries a work line for every kind it tags, and tags one for every line', () => {
+    for (const locale of LOCALES) {
+      const v = home(locale).view;
+      expect(v.workKinds.length, locale).toBe(v.work.length);
+      expect(new Set(v.workKinds).size, `${locale} reused a kind`).toBe(v.workKinds.length);
+    }
+  });
+
+  it('never claims an original suggestion when there is none', () => {
+    // `suggested` falls back to "Headway raised this without a specific
+    // suggestion", so it can never be used as a truthiness test — doing so
+    // produced "The original suggestion still stands: Headway raised this
+    // without a specific suggestion."
+    const story = readFileSync(
+      joinPath(ROOT, 'src', 'components', 'workspace', 'improvement-story.tsx'),
+      'utf8',
+    );
+    expect(story).toContain('a.hasSuggestion');
+    expect(story).not.toMatch(/rest: a\.suggested \?/);
+
+    // And the flag is set from the frozen text, not from the fallback sentence.
+    for (const locale of LOCALES) {
+      for (const a of home(locale, { actions: [action('MEASURED', 'WORSENED')] }).view.actions) {
+        expect(typeof a.hasSuggestion, locale).toBe('boolean');
+        if (a.hasSuggestion) {
+          expect(a.suggested).not.toBe(MESSAGES['insight.action.noSuggestion'][locale] ?? '');
+        }
+      }
+    }
+  });
+
+  it('says the brand one way in every language', () => {
+    // 220 phrases transliterated it and 230 did not. A brand that is spelled
+    // two ways is two brands.
+    const bad: string[] = [];
+    for (const [key, phrase] of Object.entries(MESSAGES)) {
+      for (const written of [phrase.hi, phrase.mr]) {
+        if (!written) continue;
+        if (written.includes('हेडवे')) bad.push(`${key}: transliterated brand`);
+        if (/Headway[ऀ-ॿ]/.test(written)) bad.push(`${key}: brand glued to a Devanagari particle`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it('says "You told us" in the reader’s language, with the owner’s words untouched', () => {
+    const apply = readFileSync(joinPath(ROOT, 'src', 'lib', 'context', 'apply.ts'), 'utf8');
+    expect(apply).toContain("t('insight.youToldUs.priority'");
+    expect(apply).toContain("t('insight.youToldUs.plain'");
+    expect(apply).not.toMatch(/`You told us/);
+    for (const key of [
+      'insight.youToldUs.priority',
+      'insight.youToldUs.focus',
+      'insight.youToldUs.plain',
+      'insight.youToldUs.tried',
+      'insight.youToldUs.answer',
+    ] as const) {
+      expect(MESSAGES[key].hi, key).toBeTruthy();
+      expect(MESSAGES[key].mr, key).toBeTruthy();
+    }
   });
 });

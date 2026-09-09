@@ -187,28 +187,37 @@ export function packEntry(pack: Pack, themeKey: string): TaxonomyEntry | undefin
  * `question` is the pack question an ANSWER answered, when the caller knows
  * it, so the answer reads with what it was an answer to.
  */
-export function youToldUs(item: ContextItem, question?: string | null): string {
+export function youToldUs(
+  item: ContextItem,
+  question?: string | null,
+  translator?: PortalTranslator,
+): string {
+  // The frame is Headway's; the text inside it is the owner's own sentence and
+  // is passed through untouched.
+  const t = translator ?? EN;
   const text = item.text.trim().replace(/\.$/, '');
   switch (item.kind) {
     case 'PRIORITY':
-      return `You told us what matters most right now: ${lowerFirst(text)}.`;
+      return t('insight.youToldUs.priority', { text: lowerFirst(text) });
     case 'FOCUS':
-      return `You told us your current focus: ${lowerFirst(text)}.`;
+      return t('insight.youToldUs.focus', { text: lowerFirst(text) });
     case 'CONSTRAINT': {
-      const consequence =
+      const noun =
         item.constraintKey && item.constraintKey !== 'OTHER'
-          ? ` Headway will not suggest ${CONSTRAINT_NOUNS[item.constraintKey]}.`
-          : '';
-      return `You told us: ${lowerFirst(text)}.${consequence}`;
+          ? (t.soft(`insight.constraint.noun.${item.constraintKey}`) ??
+             CONSTRAINT_NOUNS[item.constraintKey])
+          : null;
+      const consequence = noun ? t('insight.youToldUs.wontSuggest', { noun }) : '';
+      return `${t('insight.youToldUs.plain', { text: lowerFirst(text) })}${consequence}`;
     }
     case 'TRIED':
-      return `You told us you already tried this: ${lowerFirst(text)}.`;
+      return t('insight.youToldUs.tried', { text: lowerFirst(text) });
     case 'ANSWER':
       return question
-        ? `Asked "${question.trim()}", you told us: ${lowerFirst(text)}.`
-        : `You told us: ${text}.`;
+        ? t('insight.youToldUs.answer', { question: question.trim(), text: lowerFirst(text) })
+        : t('insight.youToldUs.plain', { text });
     default:
-      return `You told us: ${text}.`;
+      return t('insight.youToldUs.plain', { text });
   }
 }
 

@@ -1136,8 +1136,8 @@ export const insight = {
   },
   'insight.constraint.blocked': {
     en: 'You told us {noun} is not possible right now. This suggestion needs it, so ask your Headway contact for a version that does not.',
-    hi: 'आपने बताया था कि अभी {noun} मुमकिन नहीं है। इस सलाह के लिए वह ज़रूरी है, तो अपने हेडवे संपर्क से ऐसा तरीक़ा माँगें जिसमें उसकी ज़रूरत न हो।',
-    mr: 'तुम्ही सांगितलं होतं की आता {noun} शक्य नाही. या सल्ल्यासाठी ते आवश्यक आहे, म्हणून तुमच्या हेडवे संपर्काकडून त्याची गरज नसलेला पर्याय मागा.',
+    hi: 'आपने बताया था कि अभी {noun} मुमकिन नहीं है। इस सलाह के लिए वह ज़रूरी है, तो अपने Headway संपर्क से ऐसा तरीक़ा माँगें जिसमें उसकी ज़रूरत न हो।',
+    mr: 'तुम्ही सांगितलं होतं की आता {noun} शक्य नाही. या सल्ल्यासाठी ते आवश्यक आहे, म्हणून तुमच्या Headway संपर्काकडून त्याची गरज नसलेला पर्याय मागा.',
   },
   'insight.constraint.noun.STAFF': {
     en: 'extra staff', hi: 'अतिरिक्त स्टाफ़', mr: 'जास्तीचा स्टाफ',
@@ -1153,5 +1153,42 @@ export const insight = {
   },
   'insight.constraint.noun.OTHER': {
     en: 'something you have ruled out', hi: 'कुछ जो आपने पहले ही मना कर दिया है', mr: 'तुम्ही आधीच नाकारलेली एखादी गोष्ट',
+  },
+  // -------------------------------------------------------------------------
+  // What the owner told Headway, said back to them.
+  //
+  // The FRAME is Headway's words and is translated; the {text} inside it is the
+  // owner's own sentence and is passed through untouched, exactly like a
+  // customer's quote.
+  // -------------------------------------------------------------------------
+  'insight.youToldUs.priority': {
+    en: 'You told us what matters most right now: {text}.',
+    hi: 'आपने हमें बताया था कि अभी सबसे ज़रूरी क्या है: {text}।',
+    mr: 'तुम्ही आम्हाला सांगितलं होतं की आता सर्वात महत्त्वाचं काय आहे: {text}.',
+  },
+  'insight.youToldUs.focus': {
+    en: 'You told us your current focus: {text}.',
+    hi: 'आपने हमें बताया था कि आपका अभी का ध्यान किस पर है: {text}।',
+    mr: 'तुम्ही आम्हाला सांगितलं होतं की तुमचं आताचं लक्ष कशावर आहे: {text}.',
+  },
+  'insight.youToldUs.plain': {
+    en: 'You told us: {text}.',
+    hi: 'आपने हमें बताया था: {text}।',
+    mr: 'तुम्ही आम्हाला सांगितलं होतं: {text}.',
+  },
+  'insight.youToldUs.tried': {
+    en: 'You told us you already tried this: {text}.',
+    hi: 'आपने हमें बताया था कि आप यह पहले ही आज़मा चुके हैं: {text}।',
+    mr: 'तुम्ही आम्हाला सांगितलं होतं की तुम्ही हे आधीच करून पाहिलं आहे: {text}.',
+  },
+  'insight.youToldUs.answer': {
+    en: 'Asked "{question}", you told us: {text}.',
+    hi: '"{question}" पूछने पर आपने हमें बताया था: {text}।',
+    mr: '"{question}" विचारल्यावर तुम्ही आम्हाला सांगितलं होतं: {text}.',
+  },
+  'insight.youToldUs.wontSuggest': {
+    en: ' Headway will not suggest {noun}.',
+    hi: ' Headway {noun} का सुझाव नहीं देगा।',
+    mr: ' Headway {noun} चा सल्ला देणार नाही.',
   },
 } satisfies Namespace;

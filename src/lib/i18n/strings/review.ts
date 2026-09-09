@@ -37,8 +37,8 @@ export const review = {
   // number is the one the engine uses to decide whether to name a topic.
   'review.topics.none': {
     en: 'Nothing came up 3 or more times this month. Once something does, Headway will name it here.',
-    hi: 'इस महीने कोई भी बात 3 या उससे ज़्यादा बार सामने नहीं आई। जब कोई बात इतनी बार आएगी, हेडवे उसका नाम यहाँ लिखेगा।',
-    mr: 'या महिन्यात कोणतीही गोष्ट 3 किंवा जास्त वेळा समोर आली नाही. जेव्हा एखादी गोष्ट इतक्या वेळा येईल, तेव्हा हेडवे तिचं नाव इथे लिहील.',
+    hi: 'इस महीने कोई भी बात 3 या उससे ज़्यादा बार सामने नहीं आई। जब कोई बात इतनी बार आएगी, Headway उसका नाम यहाँ लिखेगा।',
+    mr: 'या महिन्यात कोणतीही गोष्ट 3 किंवा जास्त वेळा समोर आली नाही. जेव्हा एखादी गोष्ट इतक्या वेळा येईल, तेव्हा Headway तिचं नाव इथे लिहील.',
   },
   // On the month page the changes are behind the owner; on the week page they
   // are still running. Two headings, not one heading with a hole in it.

@@ -32,8 +32,8 @@ export const focus = {
   // -------------------------------------------------------------------------
   'focus.headline.reading': {
     en: 'Feedback has arrived. Headway is reading it now.',
-    hi: 'फ़ीडबैक आ चुका है। हेडवे उसे अभी पढ़ रहा है।',
-    mr: 'फीडबॅक आलेला आहे. हेडवे तो आता वाचत आहे.',
+    hi: 'फ़ीडबैक आ चुका है। Headway उसे अभी पढ़ रहा है।',
+    mr: 'फीडबॅक आलेला आहे. Headway तो आता वाचत आहे.',
   },
   'focus.headline.none': {
     en: 'No customer feedback yet.',
@@ -144,8 +144,8 @@ export const focus = {
   },
   'focus.synthesis.watching': {
     en: 'Headway is watching it and will tell you if it needs your attention.',
-    hi: 'हेडवे इस पर नज़र रख रहा है और अगर इस पर आपका ध्यान ज़रूरी हुआ तो आपको बता देगा।',
-    mr: 'हेडवे यावर लक्ष ठेवून आहे आणि याकडे तुमचं लक्ष देण्याची गरज पडली तर तुम्हाला सांगेल.',
+    hi: 'Headway इस पर नज़र रख रहा है और अगर इस पर आपका ध्यान ज़रूरी हुआ तो आपको बता देगा।',
+    mr: 'Headway यावर लक्ष ठेवून आहे आणि याकडे तुमचं लक्ष देण्याची गरज पडली तर तुम्हाला सांगेल.',
   },
   'focus.synthesis.nothingElse': {
     en: 'Nothing else comes up often enough to call it a problem.',
@@ -154,8 +154,8 @@ export const focus = {
   },
   'focus.synthesis.noPattern': {
     en: 'Nothing has come up often enough yet for Headway to call it a pattern.',
-    hi: 'अभी तक कोई बात इतनी बार नहीं आई कि हेडवे उसे पैटर्न कह सके।',
-    mr: 'अजून कोणतीही गोष्ट इतक्या वेळा आलेली नाही की हेडवे तिला पॅटर्न म्हणू शकेल.',
+    hi: 'अभी तक कोई बात इतनी बार नहीं आई कि Headway उसे पैटर्न कह सके।',
+    mr: 'अजून कोणतीही गोष्ट इतक्या वेळा आलेली नाही की Headway तिला पॅटर्न म्हणू शकेल.',
   },
 
   // -------------------------------------------------------------------------
@@ -328,8 +328,8 @@ export const focus = {
   },
   'focus.next.decide': {
     en: 'Decide what to change, and tell your Headway contact.',
-    hi: 'तय करें कि क्या बदलना है, और अपने हेडवे संपर्क को बताएँ।',
-    mr: 'काय बदलायचं ते ठरवा, आणि तुमच्या हेडवे संपर्काला सांगा.',
+    hi: 'तय करें कि क्या बदलना है, और अपने Headway संपर्क को बताएँ।',
+    mr: 'काय बदलायचं ते ठरवा, आणि तुमच्या Headway संपर्काला सांगा.',
   },
   'focus.next.keepDoing': {
     en: 'Nothing to do. Keep doing what customers praise you for: {theme}.',

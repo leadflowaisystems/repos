@@ -130,7 +130,13 @@ function whatToDoNow(t: T, a: PortalAction): { lead: string; rest: string[] } {
         // Was: sentences.filter((s) => /^The original suggestion/.test(s)) —
         // an English prefix test over a sentence that is no longer English.
         // The suggestion is carried on the action itself.
-        rest: a.suggested ? [t('improvements.next.originalSuggestion', { suggestion: a.suggested })] : [],
+        // `a.suggested` is never empty — it falls back to "Headway raised this
+        // without a specific suggestion", which would have produced "The
+        // original suggestion still stands: Headway raised this without a
+        // specific suggestion." So the flag, not the sentence.
+        rest: a.hasSuggestion
+          ? [t('improvements.next.originalSuggestion', { suggestion: a.suggested })]
+          : [],
       };
     case 'IMPROVED':
       return { lead: t('improvements.next.improved'), rest: sentences };

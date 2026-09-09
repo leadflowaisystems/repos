@@ -85,8 +85,8 @@ export const evidence = {
   },
   'evidence.telling.first': {
     en: 'Headway would deal with {theme} first.',
-    hi: 'हेडवे सबसे पहले {theme} पर काम करेगा।',
-    mr: 'हेडवे सर्वात आधी {theme} वर काम करेल.',
+    hi: 'Headway सबसे पहले {theme} पर काम करेगा।',
+    mr: 'Headway सर्वात आधी {theme} वर काम करेल.',
   },
   'evidence.telling.noWeakness': {
     en: 'No complaint has come up often enough to call it a weakness.',
@@ -99,13 +99,13 @@ export const evidence = {
   // -------------------------------------------------------------------------
   'evidence.recurrence.noCheckin': {
     en: 'You have not recorded a check-in yet. Headway cannot tell you what keeps coming back until you do.',
-    hi: 'आपने अभी तक कोई चेक-इन दर्ज नहीं किया है। जब तक आप ऐसा नहीं करते, हेडवे यह नहीं बता सकता कि बार-बार क्या लौटकर आता है।',
-    mr: 'तुम्ही अजून एकही चेक-इन नोंदवलेला नाही. तोपर्यंत हेडवे तुम्हाला काय पुन्हा पुन्हा येतं हे सांगू शकत नाही.',
+    hi: 'आपने अभी तक कोई चेक-इन दर्ज नहीं किया है। जब तक आप ऐसा नहीं करते, Headway यह नहीं बता सकता कि बार-बार क्या लौटकर आता है।',
+    mr: 'तुम्ही अजून एकही चेक-इन नोंदवलेला नाही. तोपर्यंत Headway तुम्हाला काय पुन्हा पुन्हा येतं हे सांगू शकत नाही.',
   },
   'evidence.recurrence.oneCheckin': {
     en: 'You have only one check-in so far. After your next one, Headway can tell you what keeps coming back and what is new.',
-    hi: 'अभी आपके पास सिर्फ़ एक चेक-इन है। अगले चेक-इन के बाद हेडवे बता सकेगा कि बार-बार क्या लौटकर आता है और क्या नया है।',
-    mr: 'सध्या तुमच्याकडे फक्त एकच चेक-इन आहे. पुढच्या चेक-इननंतर हेडवे सांगू शकेल की काय पुन्हा पुन्हा येतं आणि काय नवीन आहे.',
+    hi: 'अभी आपके पास सिर्फ़ एक चेक-इन है। अगले चेक-इन के बाद Headway बता सकेगा कि बार-बार क्या लौटकर आता है और क्या नया है।',
+    mr: 'सध्या तुमच्याकडे फक्त एकच चेक-इन आहे. पुढच्या चेक-इननंतर Headway सांगू शकेल की काय पुन्हा पुन्हा येतं आणि काय नवीन आहे.',
   },
   'evidence.steady.none': {
     en: 'Nothing moved by 2 or more mentions between these check-ins.',
@@ -161,8 +161,8 @@ export const evidence = {
   },
   'evidence.record.noComparison': {
     en: 'Headway has not compared any change with later feedback yet.',
-    hi: 'हेडवे ने अभी तक किसी बदलाव की तुलना बाद के फ़ीडबैक से नहीं की है।',
-    mr: 'हेडवेने अजून कोणत्याही बदलाची तुलना नंतरच्या फीडबॅकशी केलेली नाही.',
+    hi: 'Headway ने अभी तक किसी बदलाव की तुलना बाद के फ़ीडबैक से नहीं की है।',
+    mr: 'Headway ने अजून कोणत्याही बदलाची तुलना नंतरच्या फीडबॅकशी केलेली नाही.',
   },
 
   // -------------------------------------------------------------------------
@@ -241,8 +241,8 @@ export const evidence = {
   // -------------------------------------------------------------------------
   'evidence.found.read': {
     en: 'Headway has read all {entries}: {positive} positive, {mixed} mixed, {neutral} neutral, {negative} negative.',
-    hi: 'हेडवे ने सारे {entries} पढ़ लिए हैं: {positive} सकारात्मक, {mixed} मिला-जुला, {neutral} सामान्य, {negative} नकारात्मक।',
-    mr: 'हेडवेने सर्व {entries} वाचले आहेत: {positive} सकारात्मक, {mixed} संमिश्र, {neutral} सामान्य, {negative} नकारात्मक.',
+    hi: 'Headway ने सारे {entries} पढ़ लिए हैं: {positive} सकारात्मक, {mixed} मिला-जुला, {neutral} सामान्य, {negative} नकारात्मक।',
+    mr: 'Headway ने सर्व {entries} वाचले आहेत: {positive} सकारात्मक, {mixed} संमिश्र, {neutral} सामान्य, {negative} नकारात्मक.',
   },
   'evidence.found.praiseTwo': {
     en: 'Customers praise two things most: your {first}, and your {second}.',
@@ -256,8 +256,8 @@ export const evidence = {
   },
   'evidence.found.attention': {
     en: 'Headway would deal with {theme} first. {count} of {outOf} comments mention it.',
-    hi: 'हेडवे सबसे पहले {theme} पर काम करेगा। {outOf} में से {count} कॉमेंट में इसका ज़िक्र है।',
-    mr: 'हेडवे सर्वात आधी {theme} वर काम करेल. {outOf} पैकी {count} कॉमेंटमध्ये याचा उल्लेख आहे.',
+    hi: 'Headway सबसे पहले {theme} पर काम करेगा। {outOf} में से {count} कॉमेंट में इसका ज़िक्र है।',
+    mr: 'Headway सर्वात आधी {theme} वर काम करेल. {outOf} पैकी {count} कॉमेंटमध्ये याचा उल्लेख आहे.',
   },
   'evidence.found.noPattern': {
     en: 'No complaint is a pattern yet. None has come up {min} or more times.',
@@ -266,13 +266,13 @@ export const evidence = {
   },
   'evidence.found.reply.one': {
     en: '{count} of {entries} needs an answer from you. Headway has written a draft reply where it could do so safely. The ones without a draft need your own words.',
-    hi: '{entries} में से {count} का जवाब आपको देना है। जहाँ हेडवे सुरक्षित तरीक़े से ऐसा कर सका, वहाँ उसने जवाब का ड्राफ़्ट लिख दिया है। जिनमें ड्राफ़्ट नहीं है, उनके लिए आपके अपने शब्द चाहिए।',
-    mr: '{entries}पैकी {count} ना तुमचं उत्तर हवं आहे. जिथे हेडवेला सुरक्षितपणे शक्य होतं तिथे त्याने उत्तराचा ड्राफ्ट लिहिला आहे. ज्यांना ड्राफ्ट नाही त्यांसाठी तुमचे स्वतःचे शब्द हवेत.',
+    hi: '{entries} में से {count} का जवाब आपको देना है। जहाँ Headway सुरक्षित तरीक़े से ऐसा कर सका, वहाँ उसने जवाब का ड्राफ़्ट लिख दिया है। जिनमें ड्राफ़्ट नहीं है, उनके लिए आपके अपने शब्द चाहिए।',
+    mr: '{entries}पैकी {count} ना तुमचं उत्तर हवं आहे. जिथे Headway ला सुरक्षितपणे शक्य होतं तिथे त्याने उत्तराचा ड्राफ्ट लिहिला आहे. ज्यांना ड्राफ्ट नाही त्यांसाठी तुमचे स्वतःचे शब्द हवेत.',
   },
   'evidence.found.reply.other': {
     en: '{count} of {entries} need an answer from you. Headway has written a draft reply where it could do so safely. The ones without a draft need your own words.',
-    hi: '{entries} में से {count} का जवाब आपको देना है। जहाँ हेडवे सुरक्षित तरीक़े से ऐसा कर सका, वहाँ उसने जवाब का ड्राफ़्ट लिख दिया है। जिनमें ड्राफ़्ट नहीं है, उनके लिए आपके अपने शब्द चाहिए।',
-    mr: '{entries}पैकी {count} ना तुमचं उत्तर हवं आहे. जिथे हेडवेला सुरक्षितपणे शक्य होतं तिथे त्याने उत्तराचा ड्राफ्ट लिहिला आहे. ज्यांना ड्राफ्ट नाही त्यांसाठी तुमचे स्वतःचे शब्द हवेत.',
+    hi: '{entries} में से {count} का जवाब आपको देना है। जहाँ Headway सुरक्षित तरीक़े से ऐसा कर सका, वहाँ उसने जवाब का ड्राफ़्ट लिख दिया है। जिनमें ड्राफ़्ट नहीं है, उनके लिए आपके अपने शब्द चाहिए।',
+    mr: '{entries}पैकी {count} ना तुमचं उत्तर हवं आहे. जिथे Headway ला सुरक्षितपणे शक्य होतं तिथे त्याने उत्तराचा ड्राफ्ट लिहिला आहे. ज्यांना ड्राफ्ट नाही त्यांसाठी तुमचे स्वतःचे शब्द हवेत.',
   },
 
   // -------------------------------------------------------------------------
@@ -346,23 +346,23 @@ export const evidence = {
   // why, and it says exactly that in all three languages.
   'evidence.checkin.notCompared.one': {
     en: 'Headway could not compare {count} topic. It had too few mentions at one of the two check-ins.',
-    hi: 'हेडवे {count} विषय की तुलना नहीं कर सका। दोनों में से किसी एक चेक-इन पर उसके ज़िक्र बहुत कम थे।',
-    mr: 'हेडवेला {count} विषयाची तुलना करता आली नाही. दोन चेक-इनपैकी एकावर त्याचे उल्लेख फार कमी होते.',
+    hi: 'Headway {count} विषय की तुलना नहीं कर सका। दोनों में से किसी एक चेक-इन पर उसके ज़िक्र बहुत कम थे।',
+    mr: 'Headway ला {count} विषयाची तुलना करता आली नाही. दोन चेक-इनपैकी एकावर त्याचे उल्लेख फार कमी होते.',
   },
   'evidence.checkin.notCompared.other': {
     en: 'Headway could not compare {count} topics. They had too few mentions at one of the two check-ins.',
-    hi: 'हेडवे {count} विषयों की तुलना नहीं कर सका। दोनों में से किसी एक चेक-इन पर उनके ज़िक्र बहुत कम थे।',
-    mr: 'हेडवेला {count} विषयांची तुलना करता आली नाही. दोन चेक-इनपैकी एकावर त्यांचे उल्लेख फार कमी होते.',
+    hi: 'Headway {count} विषयों की तुलना नहीं कर सका। दोनों में से किसी एक चेक-इन पर उनके ज़िक्र बहुत कम थे।',
+    mr: 'Headway ला {count} विषयांची तुलना करता आली नाही. दोन चेक-इनपैकी एकावर त्यांचे उल्लेख फार कमी होते.',
   },
   'evidence.checkin.steady': {
     en: 'Everything else Headway could compare held steady.',
-    hi: 'हेडवे जिन बाक़ी चीज़ों की तुलना कर सका, वे सब स्थिर रहीं।',
-    mr: 'हेडवेला ज्या इतर गोष्टींची तुलना करता आली, त्या सर्व स्थिर राहिल्या.',
+    hi: 'Headway जिन बाक़ी चीज़ों की तुलना कर सका, वे सब स्थिर रहीं।',
+    mr: 'Headway ला ज्या इतर गोष्टींची तुलना करता आली, त्या सर्व स्थिर राहिल्या.',
   },
   'evidence.checkin.steadyIncludes': {
     en: 'Everything else Headway could compare held steady. This includes your {things}.',
-    hi: 'हेडवे जिन बाक़ी चीज़ों की तुलना कर सका, वे सब स्थिर रहीं। इनमें आपके {things} शामिल हैं।',
-    mr: 'हेडवेला ज्या इतर गोष्टींची तुलना करता आली, त्या सर्व स्थिर राहिल्या. यात तुमच्या {things} चा समावेश आहे.',
+    hi: 'Headway जिन बाक़ी चीज़ों की तुलना कर सका, वे सब स्थिर रहीं। इनमें आपके {things} शामिल हैं।',
+    mr: 'Headway ला ज्या इतर गोष्टींची तुलना करता आली, त्या सर्व स्थिर राहिल्या. यात तुमच्या {things} चा समावेश आहे.',
   },
   'evidence.checkin.title': {
     en: '{month} check-in',
@@ -386,8 +386,8 @@ export const evidence = {
   },
   'evidence.period.all': {
     en: 'This covers everything Headway has read so far.',
-    hi: 'इसमें वह सब कुछ शामिल है जो हेडवे ने अब तक पढ़ा है।',
-    mr: 'यात हेडवेने आतापर्यंत वाचलेलं सर्व काही समाविष्ट आहे.',
+    hi: 'इसमें वह सब कुछ शामिल है जो Headway ने अब तक पढ़ा है।',
+    mr: 'यात Headway ने आतापर्यंत वाचलेलं सर्व काही समाविष्ट आहे.',
   },
 
   // The month a check-in is named after. A word in a title, not a date: the

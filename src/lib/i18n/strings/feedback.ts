@@ -39,13 +39,13 @@ export const feedback = {
   },
   'feedback.intro.reading': {
     en: 'Feedback has come in. Headway is reading it now. This usually takes less than a minute. Reload the page to see what it found.',
-    hi: 'फ़ीडबैक आ गया है। हेडवे उसे अभी पढ़ रहा है। इसमें आम तौर पर एक मिनट से कम लगता है। हेडवे को क्या मिला, यह देखने के लिए पेज दोबारा लोड करें।',
-    mr: 'फीडबॅक आला आहे. हेडवे तो आत्ता वाचत आहे. यासाठी सहसा एका मिनिटापेक्षा कमी वेळ लागतो. हेडवेला काय आढळलं ते पाहण्यासाठी पेज पुन्हा लोड करा.',
+    hi: 'फ़ीडबैक आ गया है। Headway उसे अभी पढ़ रहा है। इसमें आम तौर पर एक मिनट से कम लगता है। Headway को क्या मिला, यह देखने के लिए पेज दोबारा लोड करें।',
+    mr: 'फीडबॅक आला आहे. Headway तो आत्ता वाचत आहे. यासाठी सहसा एका मिनिटापेक्षा कमी वेळ लागतो. Headway ला काय आढळलं ते पाहण्यासाठी पेज पुन्हा लोड करा.',
   },
   'feedback.intro.ready': {
     en: 'Next to each one you can see what Headway found in it.',
-    hi: 'हर फ़ीडबैक के बगल में आप देख सकते हैं कि हेडवे को उसमें क्या मिला।',
-    mr: 'प्रत्येक फीडबॅकच्या बाजूला हेडवेला त्यात काय आढळलं ते तुम्ही पाहू शकता.',
+    hi: 'हर फ़ीडबैक के बगल में आप देख सकते हैं कि Headway को उसमें क्या मिला।',
+    mr: 'प्रत्येक फीडबॅकच्या बाजूला Headway ला त्यात काय आढळलं ते तुम्ही पाहू शकता.',
   },
 
   // -------------------------------------------------------------------------
@@ -55,8 +55,8 @@ export const feedback = {
   // -------------------------------------------------------------------------
   'feedback.funnel.aria': {
     en: 'How Headway read this feedback',
-    hi: 'हेडवे ने यह फ़ीडबैक कैसे पढ़ा',
-    mr: 'हेडवेने हा फीडबॅक कसा वाचला',
+    hi: 'Headway ने यह फ़ीडबैक कैसे पढ़ा',
+    mr: 'Headway ने हा फीडबॅक कसा वाचला',
   },
   'feedback.funnel.read.one': {
     en: 'feedback entry read',
@@ -109,8 +109,8 @@ export const feedback = {
   },
   'feedback.status.read': {
     en: 'read by Headway',
-    hi: 'हेडवे ने पढ़े',
-    mr: 'हेडवेने वाचले',
+    hi: 'Headway ने पढ़े',
+    mr: 'Headway ने वाचले',
   },
   'feedback.status.reading': {
     en: 'being read now',
@@ -147,8 +147,8 @@ export const feedback = {
   // -------------------------------------------------------------------------
   'feedback.found.summary': {
     en: 'What Headway found',
-    hi: 'हेडवे को क्या मिला',
-    mr: 'हेडवेला काय आढळलं',
+    hi: 'Headway को क्या मिला',
+    mr: 'Headway ला काय आढळलं',
   },
   'feedback.found.byRating': {
     en: 'By rating · {count} gave a rating',
@@ -157,8 +157,8 @@ export const feedback = {
   },
   'feedback.found.byTone': {
     en: 'By tone · all {count} read by Headway',
-    hi: 'टोन के हिसाब से · हेडवे ने पढ़े गए सभी {count}',
-    mr: 'टोननुसार · हेडवेने वाचलेले सर्व {count}',
+    hi: 'टोन के हिसाब से · Headway ने पढ़े गए सभी {count}',
+    mr: 'टोननुसार · Headway ने वाचलेले सर्व {count}',
   },
 
   // -------------------------------------------------------------------------
@@ -280,13 +280,13 @@ export const feedback = {
   // -------------------------------------------------------------------------
   'feedback.empty.body': {
     en: 'Every feedback entry appears here exactly as the customer wrote it, next to what Headway found in it.',
-    hi: 'हर फ़ीडबैक यहाँ ठीक वैसे ही दिखता है जैसे ग्राहक ने लिखा था, और उसके बगल में हेडवे को उसमें क्या मिला, यह दिखता है।',
-    mr: 'प्रत्येक फीडबॅक इथे ग्राहकाने जसा लिहिला अगदी तसाच दिसतो, आणि त्याच्या बाजूला हेडवेला त्यात काय आढळलं ते दिसतं.',
+    hi: 'हर फ़ीडबैक यहाँ ठीक वैसे ही दिखता है जैसे ग्राहक ने लिखा था, और उसके बगल में Headway को उसमें क्या मिला, यह दिखता है।',
+    mr: 'प्रत्येक फीडबॅक इथे ग्राहकाने जसा लिहिला अगदी तसाच दिसतो, आणि त्याच्या बाजूला Headway ला त्यात काय आढळलं ते दिसतं.',
   },
   'feedback.evidence.eyebrow': {
     en: 'What Headway based this on',
-    hi: 'हेडवे ने यह किस आधार पर कहा',
-    mr: 'हेडवेने हे कशाच्या आधारावर सांगितलं',
+    hi: 'Headway ने यह किस आधार पर कहा',
+    mr: 'Headway ने हे कशाच्या आधारावर सांगितलं',
   },
   'feedback.evidence.title': {
     en: 'Feedback about {topic}',

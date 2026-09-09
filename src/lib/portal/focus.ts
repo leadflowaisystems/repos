@@ -206,7 +206,12 @@ function outcomeChip(
 function recurrenceChip(signal: PortalSignal, t: PortalTranslator): string | null {
   const raised = signal.recurrenceRaised;
   const outOf = signal.recurrenceOutOf;
-  if (raised !== null && outOf !== null && raised >= 1) {
+  // TWO OR MORE, not one or more. A theme raised at exactly one check-in is
+  // the NEW case, and history.ts records it as raisedAt: 1 — so `>= 1` sent it
+  // down this branch and left "New at your latest check-in" unreachable. The
+  // English regex this replaced could only ever match two or more, which is
+  // the behaviour being preserved.
+  if (raised !== null && outOf !== null && raised >= 2) {
     if (raised === outOf && outOf === 2) return t('focus.chip.recurrence.both');
     return t('focus.chip.recurrence.some', { raised, of: outOf });
   }

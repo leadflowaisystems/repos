@@ -388,6 +388,15 @@ export type PortalAction = {
   suggestedAt: Date;
   /** What RepOS suggested, verbatim from the pack. */
   suggested: string;
+  /**
+   * Whether `suggested` is a real suggestion.
+   *
+   * `suggested` falls back to "Headway raised this without a specific
+   * suggestion", so it is never empty and cannot be used as a truthiness test.
+   * Carried as a flag rather than by comparing the sentence, which would be
+   * the same English-matching mistake in a new place.
+   */
+  hasSuggestion: boolean;
   /** What the owner decided, in their words. Owner context. */
   decision: string;
   decidedAt: Date | null;
@@ -1156,7 +1165,7 @@ export function toSignal(insight: Insight, ctx: ThemeContext): PortalSignal {
   const suggestion = insight.sentiment === 'ISSUE' ? (applied.text ?? insight.recommendation) : null;
   const priorityItem = ownerPriority(ctx.context, insight.themeKey);
   const ownerContext = contextForTheme(ctx.context, insight.themeKey).map((item) =>
-    youToldUs(item, item.kind === 'ANSWER' ? (ask?.question ?? null) : null),
+    youToldUs(item, item.kind === 'ANSWER' ? (ask?.question ?? null) : null, t),
   );
   const answered = answerFor(ctx.context, insight.themeKey);
 
@@ -1225,7 +1234,7 @@ export function toSignal(insight: Insight, ctx: ThemeContext): PortalSignal {
     actionLine,
     outcome,
     tapped: tappedFor(insight, ctx, t, ctx.pack.id),
-    ownerPriority: priorityItem ? youToldUs(priorityItem) : null,
+    ownerPriority: priorityItem ? youToldUs(priorityItem, null, t) : null,
     ownerContext,
     // Asked once. Once the owner has answered, the answer is shown instead.
     question:
@@ -1522,14 +1531,18 @@ export function buildPortalView(input: PortalInput): PortalView {
         : t.plural('insight.work.read', intel.evidence.analysed),
     );
     const grouped = t.plural('insight.work.grouped', patterns);
-    addWork(
-      'grouped',
-      patterns > 0
-        ? quiet > 0
-          ? `${grouped} ${t.plural('insight.work.setAside', quiet)}`
-          : grouped
-        : t('insight.work.nothing', { need: MIN_MENTIONS_TO_NAME }),
-    );
+    // Two different kinds, because the responsibility engine carries one and
+    // not the other. The English filter this replaced tested for a "Grouped …"
+    // prefix, which the nothing-found sentence never had — tagging both
+    // 'grouped' quietly added a line to the check-in list.
+    if (patterns > 0) {
+      addWork(
+        'grouped',
+        quiet > 0 ? `${grouped} ${t.plural('insight.work.setAside', quiet)}` : grouped,
+      );
+    } else {
+      addWork('groupedNone', t('insight.work.nothing', { need: MIN_MENTIONS_TO_NAME }));
+    }
   }
   if (intel.window.available && intel.window.previousCapturedAt && intel.window.currentCapturedAt) {
     // Dates, not labels: a label is whatever was typed at the time.
@@ -1593,6 +1606,12 @@ export function buildPortalView(input: PortalInput): PortalView {
     const a = progress.action;
     const stage = stageFor(a.status);
     const measuredNow = stage === 'CHECKED';
+    const frozen = frozenSuggestion(
+      input.pack,
+      a.provenance.themeKey,
+      a.provenance.recommendationText || null,
+      t,
+    );
     const outcome = outcomeFrom(progress, t, input.pack.id);
     const insightNow =
       [...intel.loved, ...intel.unhappy].find((i) => i.themeKey === a.provenance.themeKey) ?? null;
@@ -1624,13 +1643,8 @@ export function buildPortalView(input: PortalInput): PortalView {
       problemShare: shareText(a.baseline.count, a.baseline.total),
       problemBy: formatDate(a.baseline.capturedAt),
       suggestedAt: a.createdAt,
-      suggested:
-        frozenSuggestion(
-          input.pack,
-          a.provenance.themeKey,
-          a.provenance.recommendationText || null,
-          t,
-        ) ?? t('insight.action.noSuggestion'),
+      suggested: frozen ?? t('insight.action.noSuggestion'),
+      hasSuggestion: frozen !== null,
       decision: a.description.trim(),
       decidedAt: a.decidedAt,
       decisionNote: a.statusNote.trim(),
@@ -1797,6 +1811,7 @@ export function buildPortalView(input: PortalInput): PortalView {
              entryFor(input.pack, 'ISSUE', i.questionKey)?.askOwner?.question ??
              null)
           : null,
+        t,
       ),
       themeKey: i.themeKey,
       recordedAt: i.recordedAt,
