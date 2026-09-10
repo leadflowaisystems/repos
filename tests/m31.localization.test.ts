@@ -192,9 +192,15 @@ describe('choosing a language changes the words', () => {
       // a placeholder-only string, or the brand on its own. "Headway" is a
       // name: it is written the same way in every language, on the printed
       // card and in the wordmark, and translating it would make it a different
-      // brand. With the brand removed there has to be a real word left before
-      // a translation can be demanded.
-      const translatable = phrase.en.replace(/Headway/g, '').trim();
+      // brand. A {placeholder} is not a word either: it is a hole the server
+      // fills with a figure, and its NAME is code that never reaches a reader
+      // — '₹{amount}' is the same string in all three languages. With both
+      // removed there has to be a real word left before a translation can be
+      // demanded.
+      const translatable = phrase.en
+        .replace(/\{[^}]*\}/g, '')
+        .replace(/Headway/g, '')
+        .trim();
       if (!/[a-z]{4}/i.test(translatable)) continue;
       checked += 1;
       expect(devanagari.test(phrase.hi as string), `${key} Hindi is not Devanagari`).toBe(true);
@@ -424,14 +430,17 @@ describe('the translation layer stays out of everything else', () => {
       .filter((e) => e.isDirectory())
       .map((e) => e.name)
       .sort();
-    // The same eight sections as before this pass. Language is a setting on
-    // Account, not a new page, and not a path segment.
+    // Language is a setting on Account, not a new page, and not a path
+    // segment: this pass added none of these. `orders` is M33's ordering
+    // history, which is a page in its own right and arrived with its own
+    // milestone — not with the dictionary.
     expect(routes).toEqual([
       'account',
       'analysis',
       'checkin',
       'improvements',
       'kit',
+      'orders',
       'pulse',
       'review',
       'reviews',

@@ -191,9 +191,10 @@ describe('the workspace navigation', () => {
   const slugs = [...block.matchAll(/slug: '([^']+)'/g)].map((m) => m[1]);
 
   it('has the doors an owner thinks in, in that order', () => {
-    // Five on the shared link; three more once somebody is signed in. M21 added
-    // the print kit (the one physical object in the product, which an owner
-    // previously had to be sent) and the account.
+    // Five on the shared link; four more once somebody is signed in. M21 added
+    // the kit (the one physical object in the product, which an owner
+    // previously had to be sent) and the account; M33 added the orders placed
+    // from the kit, which sits beside it.
     expect(labelKeys).toEqual([
       'nav.section.home',
       'nav.section.customers',
@@ -202,6 +203,7 @@ describe('the workspace navigation', () => {
       'nav.section.checkin',
       'nav.section.team',
       'nav.section.kit',
+      'nav.section.orders',
       'nav.section.account',
     ]);
     expect(labels).toEqual([
@@ -211,7 +213,8 @@ describe('the workspace navigation', () => {
       'Improvements',
       'Check-in',
       'Team',
-      'Print kit',
+      'Kit',
+      'Orders',
       'Account',
     ]);
     // The door reads "Feedback" because what it lists is private customer
@@ -224,8 +227,13 @@ describe('the workspace navigation', () => {
     const extras = [...block.matchAll(/label: '([^']+)', extra: true/g)].map(
       (m) => m[1] as MessageKey,
     );
-    expect(extras).toEqual(['nav.section.team', 'nav.section.kit', 'nav.section.account']);
-    expect(extras.map((key) => says(key))).toEqual(['Team', 'Print kit', 'Account']);
+    expect(extras).toEqual([
+      'nav.section.team',
+      'nav.section.kit',
+      'nav.section.orders',
+      'nav.section.account',
+    ]);
+    expect(extras.map((key) => says(key))).toEqual(['Team', 'Kit', 'Orders', 'Account']);
   });
 
   it('keeps every door on screen: wrapping on a phone, pinned from tablet up, finger-sized', () => {

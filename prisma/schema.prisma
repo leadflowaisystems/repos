@@ -147,6 +147,7 @@ model Client {
   invitations          Invitation[]
   commercial           Commercial?
   continuationRequests ServiceContinuationRequest[]
+  kitOrders            KitOrder[]
 
   @@index([status])
   @@index([vertical])
@@ -192,6 +193,43 @@ model ServiceContinuationRequest {
 
   @@index([clientId, createdAt])
   @@index([status])
+}
+
+/// A business's order for the printed Headway materials (M33).
+///
+/// ONE ROW PER ORDER, and the lines live on it as JSON. There is no second
+/// table because there is nothing to query across orders: the Orders page
+/// lists a business's own orders and shows what each contained. The same
+/// reason `ReviewItem` keeps its themes as JSON rather than a join table.
+///
+/// EVERY NUMBER HERE WAS COMPUTED ON THE SERVER. `itemsJson` holds the priced
+/// lines and `totalInr` the sum, both worked out from the catalogue in
+/// src/lib/kit/catalogue.ts at the moment the order was placed. Nothing in this
+/// table is ever taken from a form.
+model KitOrder {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// 1, 2, 3 … per business, so an owner reads "Order #003" rather than a cuid.
+  number Int
+
+  /// RECEIVED is the only status Headway can honestly claim: an order has been
+  /// recorded and somebody will be in touch. Nothing here tracks printing,
+  /// dispatch or delivery, because none of that exists yet — and a status the
+  /// system cannot actually observe is a promise it cannot keep.
+  status String @default("RECEIVED")
+
+  /// The priced lines: [{ productKey, quantity, unitPriceInr, lineTotalInr }].
+  itemsJson String
+  /// Whole rupees. The sum of the lines, computed server-side.
+  totalInr  Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([clientId, number])
+  @@index([clientId, createdAt])
 }
 
 // ---------------------------------------------------------------------------

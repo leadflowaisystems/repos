@@ -57,9 +57,14 @@ export const nav = {
     mr: 'टीम',
   },
   'nav.section.kit': {
-    en: 'Print kit',
-    hi: 'प्रिंट किट',
-    mr: 'प्रिंट किट',
+    en: 'Kit',
+    hi: 'किट',
+    mr: 'किट',
+  },
+  'nav.section.orders': {
+    en: 'Orders',
+    hi: 'ऑर्डर',
+    mr: 'ऑर्डर',
   },
   'nav.section.account': {
     en: 'Account',

@@ -8,6 +8,8 @@ import { getKitView } from '@/lib/kit/service';
 import { CopyButton } from '@/components/copy-button';
 import { PageIntro, Quiet, Section, StatusStrip } from '@/components/portal/portal-ui';
 import { PRINT_SHEETS } from '@/lib/kit/sheets';
+import { KIT_PRODUCTS } from '@/lib/kit/catalogue';
+import { KitOrderForm, type KitProductView } from '@/components/forms/kit-order-form';
 import { getTranslator } from '@/lib/i18n/request';
 import type { MessageKey } from '@/lib/i18n/strings';
 
@@ -97,6 +99,22 @@ export default async function WorkspaceKitPage({
 
   const ready = Boolean(view.content.feedbackUrl);
   const script = view.content.staffScript;
+  const basePath = `/workspace/${clientId}`;
+
+  // The catalogue, named in the owner's language. The PRICE is here to be READ
+  // and is never sent back: the server prices the order again from its own
+  // list when it arrives, so nothing on this page can decide what anything
+  // costs.
+  const products: KitProductView[] = KIT_PRODUCTS.map((product) => ({
+    key: product.key,
+    name: t(product.nameKey),
+    description: t(product.descriptionKey),
+    alt: t(product.altKey),
+    photo: product.photo,
+    photoWidth: product.photoWidth,
+    photoHeight: product.photoHeight,
+    priceInr: product.priceInr,
+  }));
 
   // The same two masters, with the five sentences an owner reads about each of
   // them in the owner's language. The list, the files, the previews, the sizes
@@ -118,13 +136,27 @@ export default async function WorkspaceKitPage({
   return (
     <div className="max-w-3xl">
       <PageIntro
-        eyebrow={t('kit.intro.eyebrow')}
-        title={t('kit.intro.title')}
-        description={t('kit.intro.description')}
+        eyebrow={t('kit.order.eyebrow')}
+        title={t('kit.order.heading')}
+        description={t('kit.order.intro')}
       />
 
       {ready ? (
         <>
+          {/*
+            THE TWO THINGS A BUSINESS CAN ORDER, and the point of the page.
+            The photographs are of the real printed cards on a real counter —
+            not renders of the PDF, which is what the reprint section further
+            down still shows.
+          */}
+          <div className="mb-10">
+            <KitOrderForm
+              clientId={clientId}
+              products={products}
+              ordersHref={`${basePath}/orders`}
+            />
+          </div>
+
           {/*
             THE STRIP PRINTS THE VALUE FIRST AND THE LABEL AFTER IT, and no
             language can reorder those two. So each half stands on its own —
@@ -152,7 +184,15 @@ export default async function WorkspaceKitPage({
             ]}
           />
 
-          <Section eyebrow={t('kit.sheets.eyebrow')} note={t('kit.sheets.note')}>
+          {/*
+            THE REPRINT ROUTE, KEPT AND DEMOTED (M33). Ordering the printed kit
+            is what this page is for now, but a business that already has the
+            card and wants one more copy must still be able to get one, and the
+            personalised PDF route is the only thing that produces it. So it
+            stays, below the order, worded as what it is. Nothing about the
+            route, the masters or the personalisation changed.
+          */}
+          <Section eyebrow={t('kit.reprint.title')} note={t('kit.reprint.body')}>
             <p className="mb-5 text-[14px] leading-relaxed text-ink-600">
               {t('kit.sheets.intro')}
             </p>
@@ -237,7 +277,12 @@ export default async function WorkspaceKitPage({
           </Section>
 
           <Section eyebrow={t('kit.placement.eyebrow')}>
-            <p className="text-[15px] leading-relaxed text-ink-900">{view.content.placement}</p>
+            {/* The sentence that used to open the page. The top of the page
+                is the order now, but where to stand the card is still the
+                first thing an owner wants told, and this is the section they
+                look in for it. */}
+            <p className="text-[15px] leading-relaxed text-ink-900">{t('kit.placement.seen')}</p>
+            <p className="mt-2 text-[15px] leading-relaxed text-ink-900">{view.content.placement}</p>
             <p className="mt-2 text-[13px] leading-relaxed text-ink-600">
               {t('kit.placement.everyone')}
             </p>

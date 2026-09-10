@@ -221,10 +221,10 @@ describe('the owner’s print kit page', () => {
     expect(page).toContain("source: 'REP_OS_QR'");
     expect(page).toContain("t.plural('kit.status.through', through)");
     expect(MESSAGES['kit.status.through.other'].en).toBe('feedback entries from the card');
-    expect(page).toContain("t('kit.intro.title')");
-    expect(MESSAGES['kit.intro.title'].en).toBe('Your feedback card');
-    expect(page).toContain("t('kit.intro.description')");
-    expect(MESSAGES['kit.intro.description'].en).toContain(
+    expect(page).toContain("t('kit.order.heading')");
+    expect(MESSAGES['kit.order.heading'].en).toBe('Your Feedback Kit');
+    expect(page).toContain("t('kit.placement.seen')");
+    expect(MESSAGES['kit.placement.seen'].en).toContain(
       'Put the card where customers can see it.',
     );
     expect(page).toContain("t('kit.staff.summary')");

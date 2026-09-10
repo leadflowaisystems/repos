@@ -171,21 +171,24 @@ describe('the role the application actually connects as', () => {
               count(*) AS total
          FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relkind = 'r'`,
     );
-    // 19 since M30 added AiUsageDay. Every one of them still has RLS enabled
-    // AND forced — the count is here so a new table cannot be added without
-    // somebody deciding what its policy is. AiUsageDay's decision is that it
-    // holds no customer data, so its policy is permissive and says so.
-    expect(Number(rls[0]?.total)).toBe(19);
-    expect(Number(rls[0]?.enabled)).toBe(19);
-    expect(Number(rls[0]?.forced)).toBe(19);
+    // 20 since M33 added KitOrder (19 since M30 added AiUsageDay). Every one of
+    // them still has RLS enabled AND forced — the count is here so a new table
+    // cannot be added without somebody deciding what its policy is.
+    // AiUsageDay's decision is that it holds no customer data, so its policy is
+    // permissive and says so. KitOrder's is that an order belongs to one
+    // business, so it takes the ordinary tenant policy.
+    expect(Number(rls[0]?.total)).toBe(20);
+    expect(Number(rls[0]?.enabled)).toBe(20);
+    expect(Number(rls[0]?.forced)).toBe(20);
 
     const policies = await owner.$queryRawUnsafe<{ n: bigint }[]>(
       `SELECT count(*) AS n FROM pg_policies WHERE schemaname = 'public'`,
     );
-    // 22 since M30: AiUsageDay adds ai_usage_app, the one deliberately
-    // permissive policy in the schema — it guards a token counter that holds
-    // no customer data, not a per-business table.
-    expect(Number(policies[0]?.n)).toBe(22);
+    // 23 since M33: KitOrder adds one more `tenant_isolation`. (22 since M30,
+    // when AiUsageDay added ai_usage_app, the one deliberately permissive
+    // policy in the schema — it guards a token counter that holds no customer
+    // data, not a per-business table.)
+    expect(Number(policies[0]?.n)).toBe(23);
   });
 
   it('ships the scope the pipeline runs under', async () => {

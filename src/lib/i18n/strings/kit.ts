@@ -25,25 +25,15 @@ export const kit = {
   // -------------------------------------------------------------------------
   // The page itself
   // -------------------------------------------------------------------------
+  // The door is called "Kit" (M33), so the browser tab is too. The three
+  // `kit.intro.*` phrases that used to open this page went with it: the top of
+  // the page is now the two things a business can order, and the sentence
+  // about where to stand the card still opens the "Where to put it" section
+  // below, which is where an owner looks for it.
   'kit.meta.title': {
-    en: 'Print kit',
-    hi: 'प्रिंट किट',
-    mr: 'प्रिंट किट',
-  },
-  'kit.intro.eyebrow': {
-    en: 'Print kit',
-    hi: 'प्रिंट किट',
-    mr: 'प्रिंट किट',
-  },
-  'kit.intro.title': {
-    en: 'Your feedback card',
-    hi: 'आपका फ़ीडबैक कार्ड',
-    mr: 'तुमचं फीडबॅक कार्ड',
-  },
-  'kit.intro.description': {
-    en: 'Put the card where customers can see it. Every scan is a customer telling you how it went.',
-    hi: 'कार्ड वहाँ रखें जहाँ ग्राहक उसे देख सकें। हर स्कैन का मतलब है, एक ग्राहक आपको बता रहा है कि कैसा रहा।',
-    mr: 'कार्ड तिथे ठेवा जिथे ग्राहकांना ते दिसेल. प्रत्येक स्कॅनचा अर्थ आहे, एक ग्राहक तुम्हाला सांगत आहे की कसं झालं.',
+    en: 'Kit',
+    hi: 'किट',
+    mr: 'किट',
   },
 
   // -------------------------------------------------------------------------
@@ -217,6 +207,11 @@ export const kit = {
     hi: 'इसे कहाँ रखें',
     mr: 'हे कुठे ठेवायचं',
   },
+  'kit.placement.seen': {
+    en: 'Put the card where customers can see it. Every scan is a customer telling you how it went.',
+    hi: 'कार्ड वहाँ रखें जहाँ ग्राहक उसे देख सकें। हर स्कैन का मतलब है, एक ग्राहक आपको बता रहा है कि कैसा रहा।',
+    mr: 'कार्ड तिथे ठेवा जिथे ग्राहकांना ते दिसेल. प्रत्येक स्कॅनचा अर्थ आहे, एक ग्राहक तुम्हाला सांगत आहे की कसं झालं.',
+  },
   'kit.placement.everyone': {
     en: 'Offer the card to every customer, the same way, whatever kind of visit they had. Honest answers are what you want.',
     hi: 'कार्ड हर ग्राहक को एक ही तरीक़े से दें, चाहे उनका अनुभव कैसा भी रहा हो। आपको सच्चे जवाब चाहिए।',
@@ -350,4 +345,168 @@ export const kit = {
     hi: 'कार्ड लगा नहीं है — दर्ज करें',
     mr: 'कार्ड लावलेलं नाही — नोंदवा',
   },
+
+  // ---------------------------------------------------------------------------
+  // Ordering the printed kit (M33)
+  //
+  // Two products and one button. The prices live in src/lib/kit/catalogue.ts,
+  // never here and never in the browser: these phrases carry a `{price}` hole
+  // and the server fills it. Nothing in this block promises a delivery date, a
+  // dispatch date or stock, because none of those exist behind it.
+  // ---------------------------------------------------------------------------
+  'kit.order.eyebrow': { en: 'Kit', hi: 'किट', mr: 'किट' },
+  'kit.order.heading': {
+    en: 'Your Feedback Kit',
+    hi: 'आपकी फ़ीडबैक किट',
+    mr: 'तुमची फीडबॅक किट',
+  },
+  'kit.order.intro': {
+    en: 'Choose the format that works best for your business.',
+    hi: 'जो तरीक़ा आपके कारोबार के लिए सबसे सही हो, वह चुनें।',
+    mr: 'तुमच्या व्यवसायासाठी जो प्रकार सर्वात योग्य आहे तो निवडा.',
+  },
+
+  'kit.product.stand.name': {
+    en: '4 × 6 in Card + QR Stand',
+    hi: '4 × 6 इंच कार्ड + QR स्टैंड',
+    mr: '4 × 6 इंच कार्ड + QR स्टँड',
+  },
+  'kit.product.stand.description': {
+    en: 'A personalized 4 × 6 in feedback card with a clear QR stand holder. Ready to place where customers can see it.',
+    hi: 'आपके नाम वाला 4 × 6 इंच फ़ीडबैक कार्ड, साथ में साफ़ QR स्टैंड। जहाँ ग्राहक देख सकें, वहाँ रखने के लिए तैयार।',
+    mr: 'तुमच्या नावाचं 4 × 6 इंच फीडबॅक कार्ड, सोबत पारदर्शक QR स्टँड. ग्राहकांना दिसेल तिथे ठेवायला तयार.',
+  },
+  'kit.product.stand.alt': {
+    en: 'A Headway feedback card standing in a clear acrylic holder on a cafe table.',
+    hi: 'कैफ़े की मेज़ पर साफ़ ऐक्रेलिक स्टैंड में रखा Headway फ़ीडबैक कार्ड।',
+    mr: 'कॅफेच्या टेबलावर पारदर्शक अ‍ॅक्रेलिक स्टँडमध्ये ठेवलेलं Headway फीडबॅक कार्ड.',
+  },
+
+  'kit.product.tent.name': {
+    en: '4 × 6 in Folded Tent Card',
+    hi: '4 × 6 इंच फ़ोल्ड टेंट कार्ड',
+    mr: '4 × 6 इंच फोल्ड टेंट कार्ड',
+  },
+  'kit.product.tent.description': {
+    en: 'A personalized 4 × 6 in feedback card folded into a standing tent for tables and counters.',
+    hi: 'आपके नाम वाला 4 × 6 इंच फ़ीडबैक कार्ड, जो मोड़कर टेबल और काउंटर पर खड़ा हो जाता है।',
+    mr: 'तुमच्या नावाचं 4 × 6 इंच फीडबॅक कार्ड, जे दुमडून टेबल आणि काउंटरवर उभं राहतं.',
+  },
+  'kit.product.tent.alt': {
+    en: 'A Headway feedback card folded into a standing tent on a cafe table.',
+    hi: 'कैफ़े की मेज़ पर मोड़कर खड़ा किया गया Headway फ़ीडबैक कार्ड।',
+    mr: 'कॅफेच्या टेबलावर दुमडून उभं केलेलं Headway फीडबॅक कार्ड.',
+  },
+
+  'kit.price.perPiece': {
+    en: '₹{price} per piece',
+    hi: '₹{price} प्रति नग',
+    mr: '₹{price} प्रति नग',
+  },
+  'kit.amount': { en: '₹{amount}', hi: '₹{amount}', mr: '₹{amount}' },
+  'kit.line.quantityPrice': {
+    en: '{quantity} × ₹{price}',
+    hi: '{quantity} × ₹{price}',
+    mr: '{quantity} × ₹{price}',
+  },
+  'kit.quantity.label': { en: 'Quantity', hi: 'कितने', mr: 'किती' },
+  'kit.quantity.less': {
+    en: 'One less {product}',
+    hi: '{product} एक कम',
+    mr: '{product} एक कमी',
+  },
+  'kit.quantity.more': {
+    en: 'One more {product}',
+    hi: '{product} एक ज़्यादा',
+    mr: '{product} एक जास्त',
+  },
+
+  'kit.quantity.add': { en: 'Add to order', hi: 'ऑर्डर में जोड़ें', mr: 'ऑर्डरमध्ये जोडा' },
+  'kit.quantity.remove': {
+    en: 'Remove {product} from your order',
+    hi: '{product} को ऑर्डर से हटाएँ',
+    mr: '{product} ऑर्डरमधून काढा',
+  },
+  'kit.quantity.removed': {
+    en: 'Not in your order.',
+    hi: 'यह आपके ऑर्डर में नहीं है।',
+    mr: 'हे तुमच्या ऑर्डरमध्ये नाही.',
+  },
+  'kit.summary.title': { en: 'Your order', hi: 'आपका ऑर्डर', mr: 'तुमचा ऑर्डर' },
+  'kit.summary.empty': {
+    en: 'Choose how many you need and your order will appear here.',
+    hi: 'आपको कितने चाहिए वह चुनें, आपका ऑर्डर यहाँ दिखेगा।',
+    mr: 'तुम्हाला किती हवेत ते निवडा, तुमचा ऑर्डर इथे दिसेल.',
+  },
+  'kit.summary.total': { en: 'Total', hi: 'कुल', mr: 'एकूण' },
+  'kit.summary.serverNote': {
+    en: 'Headway works out the total when you order.',
+    hi: 'ऑर्डर करते समय कुल रक़म Headway ख़ुद जोड़ता है।',
+    mr: 'ऑर्डर करताना एकूण रक्कम Headway स्वतः मोजतं.',
+  },
+
+  'kit.order.cta': { en: 'Order now', hi: 'अभी ऑर्डर करें', mr: 'आता ऑर्डर करा' },
+  'kit.order.placing': {
+    en: 'Placing your order…',
+    hi: 'ऑर्डर हो रहा है…',
+    mr: 'ऑर्डर होत आहे…',
+  },
+  'kit.order.placed.title': { en: 'Order placed', hi: 'ऑर्डर हो गया', mr: 'ऑर्डर झाला' },
+  'kit.order.placed.body': {
+    en: "Your order has been received. We'll contact you about the next step.",
+    hi: 'आपका ऑर्डर मिल गया है। अगले क़दम के बारे में हम आपसे बात करेंगे।',
+    mr: 'तुमचा ऑर्डर मिळाला आहे. पुढच्या टप्प्याबद्दल आम्ही तुमच्याशी बोलू.',
+  },
+  'kit.order.seeOrders': {
+    en: 'See your orders',
+    hi: 'अपने ऑर्डर देखें',
+    mr: 'तुमचे ऑर्डर पाहा',
+  },
+  'kit.order.error.empty': {
+    en: 'Choose at least one card before ordering.',
+    hi: 'ऑर्डर करने से पहले कम से कम एक कार्ड चुनें।',
+    mr: 'ऑर्डर करण्यापूर्वी किमान एक कार्ड निवडा.',
+  },
+  'kit.order.error.quantity': {
+    en: 'That quantity cannot be ordered. Use the − and + buttons.',
+    hi: 'यह संख्या ऑर्डर नहीं की जा सकती। − और + बटन इस्तेमाल करें।',
+    mr: 'ही संख्या ऑर्डर करता येत नाही. − आणि + बटणं वापरा.',
+  },
+  'kit.order.error.failed': {
+    en: 'The order could not be placed. Try again in a moment.',
+    hi: 'ऑर्डर नहीं हो सका। थोड़ी देर बाद फिर कोशिश करें।',
+    mr: 'ऑर्डर होऊ शकला नाही. थोड्या वेळाने पुन्हा प्रयत्न करा.',
+  },
+
+  // The reprint route, kept but no longer the point of the page.
+  'kit.reprint.title': {
+    en: 'Need another copy?',
+    hi: 'एक और प्रति चाहिए?',
+    mr: 'आणखी एक प्रत हवी?',
+  },
+  'kit.reprint.body': {
+    en: 'Print your personalized card again.',
+    hi: 'अपना कार्ड फिर से प्रिंट करें।',
+    mr: 'तुमचं कार्ड पुन्हा प्रिंट करा.',
+  },
+
+  // ---- Orders ---------------------------------------------------------------
+  'kit.orders.meta.title': { en: 'Orders', hi: 'ऑर्डर', mr: 'ऑर्डर' },
+  'kit.orders.eyebrow': { en: 'Orders', hi: 'ऑर्डर', mr: 'ऑर्डर' },
+  'kit.orders.heading': { en: 'Your orders', hi: 'आपके ऑर्डर', mr: 'तुमचे ऑर्डर' },
+  'kit.orders.intro': {
+    en: 'Every kit you have ordered, and where it stands.',
+    hi: 'आपने जो भी किट ऑर्डर की है, और वह अभी किस हाल में है।',
+    mr: 'तुम्ही ऑर्डर केलेली प्रत्येक किट, आणि ती सध्या कुठे आहे.',
+  },
+  'kit.orders.empty': {
+    en: 'You have not ordered a kit yet.',
+    hi: 'आपने अभी तक कोई किट ऑर्डर नहीं की है।',
+    mr: 'तुम्ही अजून कोणतीही किट ऑर्डर केलेली नाही.',
+  },
+  'kit.orders.emptyCta': { en: 'Go to your kit', hi: 'अपनी किट देखें', mr: 'तुमची किट पाहा' },
+  'kit.orders.number': { en: 'Order #{number}', hi: 'ऑर्डर #{number}', mr: 'ऑर्डर #{number}' },
+  'kit.orders.pieces.one': { en: '{count} piece', hi: '{count} नग', mr: '{count} नग' },
+  'kit.orders.pieces.other': { en: '{count} pieces', hi: '{count} नग', mr: '{count} नग' },
+  'kit.orders.status.received': { en: 'Received', hi: 'मिल गया', mr: 'मिळाला' },
 } satisfies Namespace;

@@ -595,10 +595,14 @@ describe('the words an owner reads', () => {
     // where customers can see it." and the disclosure is labelled "Guidance for
     // your team".
     const kit = stripComments(read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'kit', 'page.tsx'));
-    expect(kit).toContain("t('kit.intro.title')");
-    expect(MESSAGES['kit.intro.title'].en).toBe('Your feedback card');
-    expect(kit).toContain("t('kit.intro.description')");
-    expect(MESSAGES['kit.intro.description'].en).toContain(
+    // M33 made the top of this page the two things a business can order, so
+    // the heading is the kit rather than the card. The placement sentence did
+    // not go anywhere — it opens "Where to put it", which is where an owner
+    // looks for it.
+    expect(kit).toContain("t('kit.order.heading')");
+    expect(MESSAGES['kit.order.heading'].en).toBe('Your Feedback Kit');
+    expect(kit).toContain("t('kit.placement.seen')");
+    expect(MESSAGES['kit.placement.seen'].en).toContain(
       'Put the card where customers can see it.',
     );
     expect(kit).toContain('PRINT_SHEETS.map');

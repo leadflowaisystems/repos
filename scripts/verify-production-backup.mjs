@@ -79,9 +79,10 @@ log('schema rebuilt from the runbook');
 
 // Foreign keys decide this order. Two names were missing and the script threw
 // rather than restoring: ServiceContinuationRequest (M28) and AiUsageDay (M30).
-// AiUsageDay is last and references nothing — it is a per-day token counter
-// holding no customer data.
-const ORDER = ['User', 'Client', 'Membership', 'Invitation', 'Commercial', 'FeedbackGateway', 'BusinessContext', 'VoiceProfile', 'BusinessPolicy', 'Competitor', 'KitConfig', 'Minute', 'TimeEntry', 'AppSetting', 'Snapshot', 'ReviewItem', 'ImprovementAction', 'ServiceContinuationRequest', 'AiUsageDay'];
+// AiUsageDay references nothing — it is a per-day token counter holding no
+// customer data. KitOrder (M33) references Client and holds no customer data
+// either: a business, how many cards it asked for, and what that came to.
+const ORDER = ['User', 'Client', 'Membership', 'Invitation', 'Commercial', 'FeedbackGateway', 'BusinessContext', 'VoiceProfile', 'BusinessPolicy', 'Competitor', 'KitConfig', 'Minute', 'TimeEntry', 'AppSetting', 'Snapshot', 'ReviewItem', 'ImprovementAction', 'ServiceContinuationRequest', 'AiUsageDay', 'KitOrder'];
 const unknown = Object.keys(manifest.tables).filter((t) => !ORDER.includes(t));
 if (unknown.length) throw new Error(`restore order does not know: ${unknown.join(', ')}`);
 

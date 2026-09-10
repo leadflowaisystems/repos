@@ -132,8 +132,8 @@ DECLARE
   t text;
   tenant_tables text[] := ARRAY[
     'BusinessContext','BusinessPolicy','Competitor','FeedbackGateway',
-    'ImprovementAction','Invitation','KitConfig','Membership','Minute',
-    'ReviewItem','ServiceContinuationRequest','Snapshot','TimeEntry',
+    'ImprovementAction','Invitation','KitConfig','KitOrder','Membership',
+    'Minute','ReviewItem','ServiceContinuationRequest','Snapshot','TimeEntry',
     'VoiceProfile'
   ];
 BEGIN

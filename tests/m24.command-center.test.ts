@@ -434,8 +434,10 @@ describe('the utility pages stay quiet', () => {
     expect(page).toContain("t.plural('kit.status.through', through)");
     expect(MESSAGES['kit.status.through.one'].en).toBe('feedback entry from the card');
     expect(MESSAGES['kit.status.through.other'].en).toBe('feedback entries from the card');
-    expect(page).toContain("title={t('kit.intro.title')}");
-    expect(MESSAGES['kit.intro.title'].en).toBe('Your feedback card');
+    // The heading became the kit in M33, when the page gained an order form.
+    // What came through the card is still counted, and still said the same way.
+    expect(page).toContain("title={t('kit.order.heading')}");
+    expect(MESSAGES['kit.order.heading'].en).toBe('Your Feedback Kit');
   });
 });
 

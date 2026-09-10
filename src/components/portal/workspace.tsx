@@ -33,8 +33,13 @@ import type { MessageKey } from '@/lib/i18n/strings';
  * and old links must keep working.
  *
  * `label` holds the dictionary key rather than the word itself (M31), so the
- * eight doors are named in the owner's language while the eight slugs — which
- * are addresses people have bookmarked and been sent — do not move.
+ * doors are named in the owner's language while the slugs — which are
+ * addresses people have bookmarked and been sent — do not move.
+ *
+ * `orders` sits next to `kit` (M33) because it answers the question the Kit
+ * page raises: I asked for cards, what happened to that. It is a workspace
+ * door only — the shared link has no session, and an order belongs to a
+ * business, not to whoever holds the link.
  */
 const SECTIONS = [
   { slug: '', label: 'nav.section.home', extra: false },
@@ -44,11 +49,12 @@ const SECTIONS = [
   { slug: 'checkin', label: 'nav.section.checkin', extra: false },
   { slug: 'team', label: 'nav.section.team', extra: true },
   { slug: 'kit', label: 'nav.section.kit', extra: true },
+  { slug: 'orders', label: 'nav.section.orders', extra: true },
   { slug: 'account', label: 'nav.section.account', extra: true },
 ] as const satisfies ReadonlyArray<{ slug: string; label: MessageKey; extra: boolean }>;
 
 /**
- * Five doors on the shared link, eight in the workspace. The weekly Pulse and
+ * Five doors on the shared link, nine in the workspace. The weekly Pulse and
  * the monthly Review are still
  * there — same routes, same reports — but they are two windows on the same
  * question Check-in answers ("what changed?"), so they live as a period

@@ -1197,6 +1197,9 @@ describe('V1 hard rules — nothing acts without an operator behind it (M16)', (
     saveReviewLinkAction: 'OWNER',
     saveKitConfigAction: 'OWNER',
     setKitInstalledAction: 'MEMBER',
+    // M33 — ordering the printed kit. OWNER, like the other commercial
+    // actions: this commits the business to a cost, and staff do not do that.
+    placeKitOrderAction: 'OWNER',
     createMinuteAction: 'MEMBER',
     updateMinuteAction: 'MEMBER',
     deleteMinuteAction: 'OWNER',
