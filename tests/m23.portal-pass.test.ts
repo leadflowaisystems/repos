@@ -605,9 +605,12 @@ describe('the words an owner reads', () => {
     expect(MESSAGES['kit.placement.seen'].en).toContain(
       'Put the card where customers can see it.',
     );
-    expect(kit).toContain('PRINT_SHEETS.map');
-    expect(kit).toContain("t('kit.sheets.open')");
-    expect(MESSAGES['kit.sheets.open'].en).toBe('Open to print');
+    // M37 took printing off this page entirely: a business orders its kit, it
+    // does not print it. No sheets, no preview, no download, no /print/ link.
+    expect(kit).not.toContain('PRINT_SHEETS');
+    expect(kit).not.toContain('/print/');
+    expect(kit).not.toContain("t('kit.sheets.download')");
+    expect(kit).not.toContain("t('kit.sheets.open')");
     expect(kit).toContain("t('kit.staff.summary')");
     expect(MESSAGES['kit.staff.summary'].en).toBe('Guidance for your team');
     expect(kit.indexOf('<details')).toBeGreaterThan(0);

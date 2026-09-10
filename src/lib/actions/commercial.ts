@@ -11,9 +11,11 @@ import {
   resumeService,
   saveCommercial,
   saveTrialDefaultDays,
+  setClientTrial,
   startTrial,
   updateOwnerContact,
 } from '@/lib/commercial/service';
+import { formatDate } from '@/lib/format';
 import { failure, optInt, str, success, text, type ActionState } from './shared';
 
 /**
@@ -220,4 +222,43 @@ export async function saveTrialDefaultDaysAction(
 
   revalidatePath('/settings');
   return success(`New trials run for ${result.data.days} days.`);
+}
+
+/**
+ * Set THIS business's trial end, by date or by a number of days (M37).
+ *
+ * ADMIN, like every other commercial state change: how long a business gets is
+ * Headway's decision, never the business's. The browser sends a mode and one
+ * value; the server reads the trial's own start from the row and computes the
+ * one effective end from it.
+ *
+ * It writes two date columns and nothing else — no status, no lock, no
+ * exemption — so a paying or paused business is not dragged back into a trial
+ * by somebody typing a date.
+ */
+export async function setClientTrialAction(
+  _prev: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const gate = await adminGate();
+  if (!gate.ok) return gate.state;
+
+  const clientId = str(form, 'clientId');
+  if (!clientId) return failure('Missing client id.');
+
+  const mode = str(form, 'mode');
+  if (mode !== 'date' && mode !== 'days') {
+    return failure('Some fields need attention.', { mode: 'Choose an end date or a number of days.' });
+  }
+
+  const setting =
+    mode === 'date'
+      ? ({ mode: 'date', endDate: str(form, 'trialEndDate') } as const)
+      : ({ mode: 'days', days: str(form, 'trialDays') } as const);
+
+  const result = await setClientTrial(prisma, clientId, setting);
+  if (!result.ok) return failure(result.message, result.errors);
+
+  revalidateCommercial(clientId);
+  return success(`Trial now ends ${formatDate(result.data.trialEndsAt)}.`);
 }

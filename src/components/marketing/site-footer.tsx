@@ -17,6 +17,11 @@ export function SiteFooter() {
             <p className="mt-4 max-w-md text-[15px] leading-relaxed text-ink-300">
               Customer intelligence and improvement for businesses that care about getting better.
             </p>
+            {/* One line, not a section (M37). The portal itself is translated;
+                this is only so a prospect knows before they ask. */}
+            <p className="mt-3 text-[13px] text-ink-400">
+              Available in English, Hindi and Marathi.
+            </p>
           </div>
           <nav aria-label="Footer">
             <ul className="grid grid-cols-2 gap-x-8 gap-y-1">

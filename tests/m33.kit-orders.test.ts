@@ -421,29 +421,31 @@ describe('18. the QR is the same QR', () => {
   });
 });
 
-describe('19. the personalised print routes still work', () => {
-  it('keeps both approved masters and the routes that serve them', () => {
+describe('19. the personalised print routes are the operator’s alone (M37)', () => {
+  it('keeps both approved masters and the route that serves them', () => {
+    // The masters and the route are untouched. What changed is who may reach
+    // them: printing is Headway's job, and this page is a business's.
     expect(PRINT_SHEETS).toHaveLength(2);
-    expect(KIT_PAGE).toContain('PRINT_SHEETS.map');
-    expect(KIT_PAGE).toContain('/print/sheet/${clientId}/${sheet.key}');
-    expect(KIT_PAGE).toContain("t('kit.sheets.download')");
-    expect(KIT_PAGE).toContain("t('kit.sheets.open')");
+    const route = read(
+      'src', 'app', '(print)', 'print', 'sheet', '[clientId]', '[sheet]', 'route.ts',
+    );
+    expect(route).toContain('PRINT_SHEETS.find((s) => s.key === key)');
+    expect(route).toContain('personaliseSheet');
   });
 
-  it('keeps reprinting available, worded as the secondary thing it now is', () => {
-    expect(says('kit.reprint.title')).toBe('Need another copy?');
-    expect(says('kit.reprint.body')).toBe('Print your personalized card again.');
-    expect(KIT_PAGE).toContain("<Section eyebrow={t('kit.reprint.title')} note={t('kit.reprint.body')}>");
+  it('offers a business no way to print, download or open its own card', () => {
+    expect(KIT_PAGE).not.toContain('PRINT_SHEETS');
+    expect(KIT_PAGE).not.toContain('/print/');
+    expect(KIT_PAGE).not.toContain("t('kit.sheets.download')");
+    expect(KIT_PAGE).not.toContain("t('kit.sheets.open')");
+    expect(KIT_PAGE).not.toContain('sheet.preview');
   });
 
-  it('puts the order above the reprint, because that is now the point', () => {
+  it('leads with the order, which is the whole of the page now', () => {
     const order = KIT_PAGE.indexOf('<KitOrderForm');
-    const reprint = KIT_PAGE.indexOf("<Section eyebrow={t('kit.reprint.title')}");
     expect(order).toBeGreaterThan(0);
-    expect(reprint).toBeGreaterThan(order);
-    // And the strip of figures still sits between them, where it was.
+    // The strip of figures still sits under it, where it was.
     expect(KIT_PAGE.indexOf('<StatusStrip')).toBeGreaterThan(order);
-    expect(KIT_PAGE.indexOf('<StatusStrip')).toBeLessThan(reprint);
   });
 });
 

@@ -5,47 +5,47 @@ import { Button, Notice } from '@/components/ui';
 import { SubmitButton } from '@/components/forms/submit-button';
 import {
   deleteKitOrderAction,
-  markKitOrderDeliveredAction,
+  markKitOrderCompletedAction,
 } from '@/lib/actions/kit';
 import { IDLE } from '@/lib/actions/shared';
 
 /**
- * THE OPERATOR'S TWO CONTROLS ON ONE ORDER (M36).
+ * THE OPERATOR'S TWO CONTROLS ON ONE ORDER (M36, reworded M37).
  *
- * Marking it sent, and removing it. Both post nothing but the order's id: the
- * timestamp is the server's clock, the person is the session, and the
+ * Marking it finished, and removing it. Both post nothing but the order's id:
+ * the timestamp is the server's clock, the person is the session, and the
  * permission is re-established server-side by an admin gate. A browser that
  * posted a date, a name or a status would be posting fields nothing reads.
  */
 
 /**
- * "Order delivered" — a one-way tick.
+ * "Order completed" — a one-way tick.
  *
- * Once an order has been sent it stays sent, so this becomes a statement
- * rather than a control. There is no untick: unsending is not a thing that
+ * Once an order is finished it stays finished, so this becomes a statement
+ * rather than a control. There is no untick: un-finishing is not a thing that
  * happens, and offering it would invite somebody to erase a fact by accident.
  */
-export function OrderDeliveredControl({
+export function OrderCompletedControl({
   orderId,
-  deliveredOn,
-  deliveredByName,
+  completedOn,
+  completedByName,
 }: {
   orderId: string;
-  /** Already-formatted date, or null if it has not been sent. */
-  deliveredOn: string | null;
-  deliveredByName: string | null;
+  /** Already-formatted date, or null if it is not finished yet. */
+  completedOn: string | null;
+  completedByName: string | null;
 }) {
-  const [state, action, pending] = useActionState(markKitOrderDeliveredAction, IDLE);
+  const [state, action, pending] = useActionState(markKitOrderCompletedAction, IDLE);
 
-  if (deliveredOn) {
+  if (completedOn) {
     return (
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[13px]">
         <span className="font-medium text-ink-900">
-          <span aria-hidden>☑</span> Order delivered
+          <span aria-hidden>☑</span> Order completed
         </span>
         <span className="text-ink-500">
-          Delivered {deliveredOn}
-          {deliveredByName ? ` by ${deliveredByName}` : ''}
+          Completed {completedOn}
+          {completedByName ? ` by ${completedByName}` : ''}
         </span>
       </div>
     );
@@ -56,7 +56,7 @@ export function OrderDeliveredControl({
       <input type="hidden" name="orderId" value={orderId} />
       <div className="flex flex-wrap items-center gap-3">
         <SubmitButton variant="primary">
-          {pending ? 'Saving…' : 'Mark order delivered'}
+          {pending ? 'Saving…' : 'Mark order completed'}
         </SubmitButton>
         <span className="text-[12px] text-ink-500">
           Records the date and your name. It does not mark the order received —

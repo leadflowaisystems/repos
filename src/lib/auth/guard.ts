@@ -45,6 +45,34 @@ export async function requireOperator(): Promise<Actor> {
   return actor;
 }
 
+/**
+ * A print route handler's own gate (M37).
+ *
+ * A LAYOUT DOES NOT WRAP A ROUTE HANDLER. `src/app/(print)/layout.tsx` calls
+ * `requireOperator()` and its comment claims that makes the whole group
+ * operator-only — which is true of the two print PAGES beside it and false of
+ * the two `route.ts` handlers, because Next.js runs layouts for pages only. So
+ * the handlers carry their own gate, and this is it.
+ *
+ * OPERATOR ONLY, deliberately. A personalised sheet carries the business's own
+ * feedback token inside a QR, and handing that file over is Headway's to do,
+ * not the business's to help itself to. Until M37 these two handlers gated on
+ * `tenantGateFor(clientId, 'MEMBER')`, which a business owner passes — so any
+ * owner who kept the URL could pull their own PDF straight from it.
+ *
+ * Answers a bare `false`, so the caller can return the same 404 a business
+ * that does not exist gets. "Not yours" and "not real" must look identical.
+ */
+export async function printGate(
+  clientId: string,
+): Promise<{ ok: true; actor: Actor } | { ok: false }> {
+  const id = typeof clientId === 'string' ? clientId.trim() : '';
+  if (id.length === 0) return { ok: false };
+  const actor = await currentActor(prisma);
+  if (!actor || !actor.isPlatformAdmin) return { ok: false };
+  return { ok: true, actor };
+}
+
 /** The same check without the redirect, for pages that render a signed-out state. */
 export async function isOperator(): Promise<boolean> {
   const actor = await currentActor(prisma);

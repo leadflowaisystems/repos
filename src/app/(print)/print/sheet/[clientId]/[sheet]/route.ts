@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { tenantGateFor } from '@/lib/auth/guard';
+import { printGate } from '@/lib/auth/guard';
 import { getKitView } from '@/lib/kit/service';
 import { requestOrigin } from '@/lib/gateway/origin';
 import { PRINT_SHEETS, type PrintSheet } from '@/lib/kit/sheets';
@@ -24,10 +24,12 @@ export const runtime = 'nodejs';
  * `?download=1` returns the identical bytes as an attachment. That is the only
  * difference between the owner's Open and their Download.
  *
- * AUTHORIZATION. The client id in the URL is a request, not a permission. The
- * gate answers it, and Row Level Security answers it again underneath — a
- * business somebody does not belong to is a 404, the same answer as a business
- * that does not exist.
+ * AUTHORIZATION. OPERATOR ONLY (M37). The client id in the URL is a request,
+ * not a permission, and the answer to it is now "are you Headway staff" rather
+ * than "do you belong to this business" — a printed sheet carries the
+ * business's own feedback token in its QR, and handing that file over is
+ * Headway's to do. Anyone else gets a 404, the same answer as a business that
+ * does not exist. Row Level Security answers underneath as well.
  */
 
 /** The masters, read once per process rather than once per download. */
@@ -53,7 +55,11 @@ export async function GET(
   const sheet = PRINT_SHEETS.find((s) => s.key === key);
   if (!sheet) return new NextResponse('Not found', { status: 404 });
 
-  const gate = await tenantGateFor(clientId, 'MEMBER');
+  // OPERATOR ONLY (M37). This used to be a member-level tenant gate, which a
+  // business owner passes — so an owner with the URL could fetch their own
+  // personalised sheet. A layout does not wrap a route handler, so the
+  // `requireOperator()` in (print)/layout.tsx never ran here. It does now.
+  const gate = await printGate(clientId);
   if (!gate.ok) return new NextResponse('Not found', { status: 404 });
 
   const view = await getKitView(prisma, clientId, { requestOrigin: await requestOrigin() });

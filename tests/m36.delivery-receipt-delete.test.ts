@@ -159,7 +159,7 @@ const place = (clientId: string, quantities: Record<string, string>) => {
 };
 
 const deliver = (fields: Record<string, string>) =>
-  actions.markKitOrderDeliveredAction(shared.IDLE, form(fields));
+  actions.markKitOrderCompletedAction(shared.IDLE, form(fields));
 const acknowledge = (fields: Record<string, string>) =>
   actions.acknowledgeKitOrderReceivedAction(shared.IDLE, form(fields));
 const remove = (fields: Record<string, string>) =>
@@ -183,8 +183,8 @@ const raw = (id: string) =>
     where: { id },
     select: {
       status: true,
-      deliveredAt: true,
-      deliveredByUserId: true,
+      completedAt: true,
+      completedByUserId: true,
       receivedAt: true,
       receivedByUserId: true,
       totalInr: true,
@@ -297,7 +297,7 @@ describe('5. the approved artwork is untouched', () => {
 
   it('changes nothing about how a master is personalised', () => {
     const personalise = read('src', 'lib', 'kit', 'personalise.ts');
-    expect(personalise).not.toContain('deliveredAt');
+    expect(personalise).not.toContain('completedAt');
     expect(personalise).not.toContain('KitOrder');
   });
 });
@@ -311,7 +311,7 @@ describe('6 & 7. the client detail shows what was ordered, or nothing at all', (
     session = { id: AUTH.operator };
     expect(await orders.latestKitOrder(app, seeded.alphaClient)).toBeNull();
     const list = new Map((await clients.listClients(app)).map((r) => [r.id, r]));
-    expect(list.get(seeded.alphaClient)?.kitOrderCount).toBe(0);
+    expect(list.get(seeded.alphaClient)?.openKitOrderCount).toBe(0);
   });
 
   it('shows the one order a business has placed', async () => {
@@ -394,21 +394,21 @@ describe('12. KIT ORDERED stays derived from the rows', () => {
     const placed = await anOrder();
     session = { id: AUTH.operator };
     const before = new Map((await clients.listClients(app)).map((r) => [r.id, r]));
-    expect(before.get(seeded.alphaClient)?.kitOrderCount).toBe(1);
+    expect(before.get(seeded.alphaClient)?.openKitOrderCount).toBe(1);
 
     await owner.kitOrder.delete({ where: { id: placed.id } });
 
     session = { id: AUTH.operator };
     const after = new Map((await clients.listClients(app)).map((r) => [r.id, r]));
-    expect(after.get(seeded.alphaClient)?.kitOrderCount).toBe(0);
+    expect(after.get(seeded.alphaClient)?.openKitOrderCount).toBe(0);
   });
 
   it('has no stored boolean anywhere to drift from the rows', () => {
     const schema = read('prisma', 'schema.prisma');
     expect(schema).not.toContain('hasOrderedKit');
-    expect(schema).not.toMatch(/kitOrderCount\s+Int/);
+    expect(schema).not.toMatch(/openKitOrderCount\s+Int/);
     expect(code(read('src', 'lib', 'clients', 'service.ts'))).toContain(
-      'kitOrderCount: row._count.kitOrders',
+      'openKitOrderCount: row._count.kitOrders',
     );
   });
 });
@@ -427,10 +427,10 @@ describe('13, 14 & 15. an operator marks an order delivered', () => {
 
     const row = await raw(placed.id);
     expect(row?.status).toBe('DELIVERED');
-    expect(row?.deliveredByUserId).toBe(seeded.operatorId);
-    expect(row?.deliveredAt).toBeInstanceOf(Date);
-    expect(row!.deliveredAt!.getTime()).toBeGreaterThanOrEqual(before.getTime() - 1000);
-    expect(row!.deliveredAt!.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
+    expect(row?.completedByUserId).toBe(seeded.operatorId);
+    expect(row?.completedAt).toBeInstanceOf(Date);
+    expect(row!.completedAt!.getTime()).toBeGreaterThanOrEqual(before.getTime() - 1000);
+    expect(row!.completedAt!.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
   });
 
   it('ignores a date and a person posted by the browser', async () => {
@@ -442,18 +442,18 @@ describe('13, 14 & 15. an operator marks an order delivered', () => {
       (
         await deliver({
           orderId: placed.id,
-          deliveredAt: forged.toISOString(),
+          completedAt: forged.toISOString(),
           deliveredBy: seeded.alphaUserId,
-          deliveredByUserId: seeded.alphaUserId,
+          completedByUserId: seeded.alphaUserId,
           status: 'Shipped',
         })
       ).ok,
     ).toBe(true);
 
     const row = await raw(placed.id);
-    expect(row?.deliveredAt?.getTime()).not.toBe(forged.getTime());
-    expect(row!.deliveredAt!.getFullYear()).toBeGreaterThan(2020);
-    expect(row?.deliveredByUserId).toBe(seeded.operatorId);
+    expect(row?.completedAt?.getTime()).not.toBe(forged.getTime());
+    expect(row!.completedAt!.getFullYear()).toBeGreaterThan(2020);
+    expect(row?.completedByUserId).toBe(seeded.operatorId);
     expect(row?.status).toBe('DELIVERED');
   });
 
@@ -472,7 +472,7 @@ describe('13, 14 & 15. an operator marks an order delivered', () => {
     session = { id: AUTH.operator };
     await deliver({ orderId: placed.id });
     const order = await orders.getKitOrder(app, placed.id);
-    expect(order?.deliveredByName).toBe('Ops Person');
+    expect(order?.completedByName).toBe('Ops Person');
   });
 });
 
@@ -485,20 +485,20 @@ describe('16 & 17. a business cannot mark its own order delivered', () => {
 
     const row = await raw(placed.id);
     expect(row?.status).toBe('RECEIVED');
-    expect(row?.deliveredAt).toBeNull();
+    expect(row?.completedAt).toBeNull();
   });
 
   it('refuses a stranger too', async () => {
     const placed = await anOrder();
     session = null;
     expect((await deliver({ orderId: placed.id })).ok).toBe(false);
-    expect((await raw(placed.id))?.deliveredAt).toBeNull();
+    expect((await raw(placed.id))?.completedAt).toBeNull();
   });
 
   it('hides the receipt control until the order has been delivered', () => {
     const page = code(read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'orders', 'page.tsx'));
-    expect(page).toContain('{order.deliveredAt ? (');
-    const guarded = page.slice(page.indexOf('{order.deliveredAt ? ('));
+    expect(page).toContain('{order.completedAt ? (');
+    const guarded = page.slice(page.indexOf('{order.completedAt ? ('));
     expect(guarded).toContain('<KitOrderReceiptForm');
     // The only place the form appears is inside that guard.
     expect(page.split('<KitOrderReceiptForm')).toHaveLength(2);
@@ -555,15 +555,15 @@ describe('18, 19 & 20. a business confirms its own delivered order', () => {
     const placed = await anOrder();
     session = { id: AUTH.operator };
     await deliver({ orderId: placed.id });
-    const deliveredAt = (await raw(placed.id))!.deliveredAt;
+    const completedAt = (await raw(placed.id))!.completedAt;
 
     session = { id: AUTH.alpha };
     await acknowledge({ clientId: seeded.alphaClient, orderId: placed.id });
 
     const row = await raw(placed.id);
     expect(row?.status).toBe('DELIVERED');
-    expect(row?.deliveredAt?.getTime()).toBe(deliveredAt?.getTime());
-    expect(row?.deliveredByUserId).toBe(seeded.operatorId);
+    expect(row?.completedAt?.getTime()).toBe(completedAt?.getTime());
+    expect(row?.completedByUserId).toBe(seeded.operatorId);
   });
 });
 
@@ -694,13 +694,13 @@ describe('24, 26 & 27. an operator deletes an order', () => {
     await expect(remove({ orderId: both[0]!.id })).rejects.toThrow(/NEXT_REDIRECT/);
     session = { id: AUTH.operator };
     let list = new Map((await clients.listClients(app)).map((r) => [r.id, r]));
-    expect(list.get(seeded.alphaClient)?.kitOrderCount).toBe(1);
+    expect(list.get(seeded.alphaClient)?.openKitOrderCount).toBe(1);
 
     session = { id: AUTH.operator };
     await expect(remove({ orderId: both[1]!.id })).rejects.toThrow(/NEXT_REDIRECT/);
     session = { id: AUTH.operator };
     list = new Map((await clients.listClients(app)).map((r) => [r.id, r]));
-    expect(list.get(seeded.alphaClient)?.kitOrderCount).toBe(0);
+    expect(list.get(seeded.alphaClient)?.openKitOrderCount).toBe(0);
   });
 });
 
@@ -766,7 +766,7 @@ describe('28. deleting an order touches nothing else', () => {
     const owning = [...schema.matchAll(/^\s*\w+\s+KitOrder\??\s+@relation\([^)]*fields:/gm)];
     expect(owning).toEqual([]);
     const backRefs = [...schema.matchAll(/^\s*(\w+)\s+KitOrder\[\]/gm)].map((m) => m[1]);
-    expect(backRefs.sort()).toEqual(['kitOrders', 'kitOrdersDelivered', 'kitOrdersReceived']);
+    expect(backRefs.sort()).toEqual(['kitOrders', 'kitOrdersCompleted', 'kitOrdersReceived']);
   });
 });
 

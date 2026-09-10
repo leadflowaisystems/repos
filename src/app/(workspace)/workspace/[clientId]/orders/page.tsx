@@ -6,7 +6,7 @@ import { formatDate } from '@/lib/format';
 import { kitProduct } from '@/lib/kit/catalogue';
 import {
   listKitOrders,
-  ORDER_STATUS_DELIVERED,
+  ORDER_STATUS_COMPLETED,
   ORDER_STATUS_RECEIVED,
 } from '@/lib/kit/orders';
 import { KitOrderReceiptForm } from '@/components/forms/kit-receipt-form';
@@ -88,7 +88,7 @@ export default async function WorkspaceOrdersPage({
                     one status this system writes prints as itself rather than
                     as a blank — a row nobody expected is still a row. */}
                 <span className="rounded-full bg-good-50 px-3 py-1 text-[12px] font-semibold text-good-700">
-                  {order.status === ORDER_STATUS_DELIVERED
+                  {order.status === ORDER_STATUS_COMPLETED
                     ? t('kit.orders.status.delivered')
                     : order.status === ORDER_STATUS_RECEIVED
                       ? t('kit.orders.status.received')
@@ -136,10 +136,10 @@ export default async function WorkspaceOrdersPage({
                 so before that there is nothing here to tick. The control says
                 one fact and carries no price, no total and no status.
               */}
-              {order.deliveredAt ? (
+              {order.completedAt ? (
                 <div className="mt-4 border-t border-ink-200 pt-4">
                   <p className="text-[13px] leading-relaxed text-ink-500">
-                    {t('kit.orders.sentOn', { date: formatDate(order.deliveredAt) })}
+                    {t('kit.orders.sentOn', { date: formatDate(order.completedAt) })}
                   </p>
                   <KitOrderReceiptForm
                     clientId={clientId}

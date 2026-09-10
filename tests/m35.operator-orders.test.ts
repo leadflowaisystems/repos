@@ -396,8 +396,8 @@ describe('7. the KIT ORDERED badge is untouched', () => {
     await seedOrders();
     session = { id: AUTH.operator };
     const list = new Map((await clients.listClients(app)).map((row) => [row.id, row]));
-    expect(list.get(seeded.alphaClient)?.kitOrderCount).toBe(1);
-    expect(list.get(seeded.betaClient)?.kitOrderCount).toBe(1);
+    expect(list.get(seeded.alphaClient)?.openKitOrderCount).toBe(1);
+    expect(list.get(seeded.betaClient)?.openKitOrderCount).toBe(1);
   });
 
   it('is still zero for a business that has not ordered', async () => {
@@ -405,8 +405,8 @@ describe('7. the KIT ORDERED badge is untouched', () => {
     await place(orderForm(seeded.alphaClient, { 'card-qr-stand': '1' }));
     session = { id: AUTH.operator };
     const list = new Map((await clients.listClients(app)).map((row) => [row.id, row]));
-    expect(list.get(seeded.alphaClient)?.kitOrderCount).toBe(1);
-    expect(list.get(seeded.betaClient)?.kitOrderCount).toBe(0);
+    expect(list.get(seeded.alphaClient)?.openKitOrderCount).toBe(1);
+    expect(list.get(seeded.betaClient)?.openKitOrderCount).toBe(0);
   });
 
   it('still renders from the same condition, in both operator places', () => {
@@ -416,7 +416,7 @@ describe('7. the KIT ORDERED badge is untouched', () => {
       join(root, 'src', 'app', '(app)', 'clients', '[id]', 'layout.tsx'),
       'utf8',
     );
-    expect(list).toContain('{client.kitOrderCount > 0 ? (');
+    expect(list).toContain('{client.openKitOrderCount > 0 ? (');
     expect(list).toContain('<Badge tone="brand">Kit ordered</Badge>');
     expect(layout).toContain('{client._count.kitOrders > 0 ? (');
     expect(layout).toContain('<Badge tone="brand">Kit ordered</Badge>');

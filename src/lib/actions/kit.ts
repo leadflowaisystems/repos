@@ -9,7 +9,7 @@ import { KIT_PRODUCTS } from '@/lib/kit/catalogue';
 import {
   acknowledgeKitOrderReceived,
   deleteKitOrder,
-  markKitOrderDelivered,
+  markKitOrderCompleted,
   placeKitOrder,
 } from '@/lib/kit/orders';
 import { getTranslator } from '@/lib/i18n/request';
@@ -140,10 +140,10 @@ export async function placeKitOrderAction(
  *
  * THE BROWSER SUPPLIES ONE THING: which order. Not the timestamp, not who did
  * it, not the status. The clock is the server's and the operator is the
- * session's, so a posted `deliveredAt`, `deliveredBy` or `status` is not read
+ * session's, so a posted `completedAt`, `completedBy` or `status` is not read
  * and cannot be read — the service takes no such parameter.
  */
-export async function markKitOrderDeliveredAction(
+export async function markKitOrderCompletedAction(
   _prev: ActionState,
   form: FormData,
 ): Promise<ActionState> {
@@ -153,7 +153,7 @@ export async function markKitOrderDeliveredAction(
   const orderId = str(form, 'orderId');
   if (!orderId) return failure('Missing order id.');
 
-  const result = await markKitOrderDelivered(prisma, orderId, gate.actor.userId);
+  const result = await markKitOrderCompleted(prisma, orderId, gate.actor.userId);
   if (!result.ok) return failure(result.message, result.errors);
 
   revalidateOrder(result.data.clientId, orderId);

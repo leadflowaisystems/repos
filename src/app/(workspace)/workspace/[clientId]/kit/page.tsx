@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { prisma } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
@@ -7,11 +6,9 @@ import { requestOrigin } from '@/lib/gateway/origin';
 import { getKitView } from '@/lib/kit/service';
 import { CopyButton } from '@/components/copy-button';
 import { PageIntro, Quiet, Section, StatusStrip } from '@/components/portal/portal-ui';
-import { PRINT_SHEETS } from '@/lib/kit/sheets';
 import { KIT_PRODUCTS } from '@/lib/kit/catalogue';
 import { KitOrderForm, type KitProductView } from '@/components/forms/kit-order-form';
 import { getTranslator } from '@/lib/i18n/request';
-import type { MessageKey } from '@/lib/i18n/strings';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,63 +18,23 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * THE PRINT KIT, IN THE OWNER'S OWN WORKSPACE (M21, trimmed in M23, put onto
- * the approved print masters in M29, translated in M31).
+ * THE KIT, IN THE OWNER'S OWN WORKSPACE (M21, trimmed in M23, put onto the
+ * approved print masters in M29, translated in M31, made an ordering page in
+ * M33, and closed to printing in M37).
  *
- * TWO SHEETS, AND ONLY TWO. Both are the signed-off Headway artwork:
+ * A BUSINESS ORDERS ITS KIT. IT DOES NOT PRINT IT.
  *
- *   1. 4 × 6 in insert card — A4, two cards, for an acrylic stand
- *   2. Legal joined pair    — Legal, two pairs, folds to a tent or cuts to two
+ * Until M37 this page also offered the personalised PDF — a preview, a
+ * Download and an Open to print — so an owner could take the artwork and get
+ * it printed themselves. That is not what this product sells. Headway prints
+ * the cards and sends them; the owner chooses a format, a quantity and a
+ * price, and that is the whole of their side.
  *
- * Nothing on this page draws or re-renders them. The download route opens the
- * approved PDF, swaps in this business's name and its own QR, and leaves every
- * other byte of the file alone — so what a print shop receives is the artwork
- * somebody said yes to, with the right business on it.
- *
- * WHY THE PREVIEW IS AN IMAGE. It used to be an iframe pointing at the PDF
- * route, and that never rendered: `next.config.ts` sets
- * `Content-Security-Policy: frame-ancestors 'none'` on every response, which
- * blocks framing even from the same origin, so the owner saw an empty box. The
- * previews here are stills of the two masters, so they show the layout rather
- * than this business's own card — which is what the note under the list says.
+ * So the sheets, the previews and both links are gone from here, and the
+ * routes behind them are operator-only (see `printGate` in
+ * src/lib/auth/guard.ts). The masters, the personalisation and the operator's
+ * own print page are untouched — this page simply no longer reaches them.
  */
-
-/**
- * The words for each sheet, one set of phrases per sheet in the list.
- *
- * `PRINT_SHEETS` describes the two masters — which file, which preview, what
- * size — and that description is the same in every language. What an owner
- * READS about each sheet is not, so the sentences live in the dictionary and
- * the list is joined to them here by the sheet's own key. Nothing about the
- * files, the paths or the order moves.
- *
- * A sheet with no entry falls back to the English already carried on the list,
- * so adding a third master can never render an empty card.
- */
-type SheetPhrases = {
-  label: MessageKey;
-  note: MessageKey;
-  what: MessageKey;
-  finish: MessageKey;
-  spec: MessageKey;
-};
-
-const SHEET_PHRASES: Record<string, SheetPhrases> = {
-  'insert-4x6': {
-    label: 'kit.sheets.insert.label',
-    note: 'kit.sheets.insert.note',
-    what: 'kit.sheets.insert.what',
-    finish: 'kit.sheets.insert.finish',
-    spec: 'kit.sheets.insert.spec',
-  },
-  'pair-legal': {
-    label: 'kit.sheets.pair.label',
-    note: 'kit.sheets.pair.note',
-    what: 'kit.sheets.pair.what',
-    finish: 'kit.sheets.pair.finish',
-    spec: 'kit.sheets.pair.spec',
-  },
-};
 
 export default async function WorkspaceKitPage({
   params,
@@ -92,7 +49,7 @@ export default async function WorkspaceKitPage({
   const [view, through] = await Promise.all([
     getKitView(prisma, clientId, { requestOrigin: await requestOrigin() }),
     // How much has actually come through the card: the one figure that says
-    // whether the system is working, and the reason to print another.
+    // whether the system is working, and the reason to order more.
     prisma.reviewItem.count({ where: { clientId, source: 'REP_OS_QR' } }),
   ]);
   if (!view) notFound();
@@ -116,23 +73,6 @@ export default async function WorkspaceKitPage({
     priceInr: product.priceInr,
   }));
 
-  // The same two masters, with the five sentences an owner reads about each of
-  // them in the owner's language. The list, the files, the previews, the sizes
-  // and the order are `PRINT_SHEETS` untouched; a sheet with no phrases keeps
-  // the English already on the list.
-  const sheets = PRINT_SHEETS.map((sheet) => {
-    const phrases = SHEET_PHRASES[sheet.key];
-    if (!phrases) return sheet;
-    return {
-      ...sheet,
-      label: t(phrases.label),
-      sheetNote: t(phrases.note),
-      what: t(phrases.what),
-      finish: t(phrases.finish),
-      spec: t(phrases.spec),
-    };
-  });
-
   return (
     <div className="max-w-3xl">
       <PageIntro
@@ -145,9 +85,7 @@ export default async function WorkspaceKitPage({
         <>
           {/*
             THE TWO THINGS A BUSINESS CAN ORDER, and the point of the page.
-            The photographs are of the real printed cards on a real counter —
-            not renders of the PDF, which is what the reprint section further
-            down still shows.
+            The photographs are of the real printed cards on a real counter.
           */}
           <div className="mb-10">
             <KitOrderForm
@@ -185,77 +123,11 @@ export default async function WorkspaceKitPage({
           />
 
           {/*
-            THE REPRINT ROUTE, KEPT AND DEMOTED (M33). Ordering the printed kit
-            is what this page is for now, but a business that already has the
-            card and wants one more copy must still be able to get one, and the
-            personalised PDF route is the only thing that produces it. So it
-            stays, below the order, worded as what it is. Nothing about the
-            route, the masters or the personalisation changed.
-          */}
-          <Section eyebrow={t('kit.reprint.title')} note={t('kit.reprint.body')}>
-            <p className="mb-5 text-[14px] leading-relaxed text-ink-600">
-              {t('kit.sheets.intro')}
-            </p>
-
-            <ul className="space-y-5">
-              {sheets.map((sheet) => (
-                <li
-                  key={sheet.key}
-                  className="overflow-hidden rounded-xl border border-ink-200 bg-white"
-                >
-                  <div className="flex flex-col gap-5 p-4 sm:flex-row sm:p-5">
-                    <a
-                      href={`/print/sheet/${clientId}/${sheet.key}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block shrink-0 self-start overflow-hidden rounded-lg border border-ink-200 bg-ink-50 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none sm:w-[176px]"
-                    >
-                      <Image
-                        src={sheet.preview}
-                        alt={t('kit.sheets.previewAlt', { sheet: sheet.label })}
-                        width={sheet.previewWidth}
-                        height={sheet.previewHeight}
-                        className="block h-auto w-full"
-                      />
-                    </a>
-
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[16px] leading-snug font-semibold tracking-tight text-ink-900">
-                        {sheet.label}
-                      </p>
-                      <p className="mt-0.5 text-[12px] text-ink-500">{sheet.sheetNote}</p>
-                      <p className="mt-2 text-[14px] leading-relaxed text-ink-800">{sheet.what}</p>
-                      <p className="mt-2 text-[13px] leading-relaxed text-ink-600">{sheet.finish}</p>
-                      <p className="mt-2 text-[12px] leading-relaxed text-ink-500">{sheet.spec}</p>
-
-                      <div className="mt-4 flex flex-wrap gap-3">
-                        <a
-                          href={`/print/sheet/${clientId}/${sheet.key}?download=1`}
-                          className="inline-flex min-h-12 items-center justify-center rounded-xl bg-ink-900 px-5 text-[15px] font-semibold text-white hover:bg-ink-800 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none"
-                        >
-                          {t('kit.sheets.download')}
-                        </a>
-                        <a
-                          href={`/print/sheet/${clientId}/${sheet.key}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex min-h-12 items-center justify-center rounded-xl border border-ink-300 bg-white px-5 text-[15px] font-medium text-ink-900 hover:bg-ink-50 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none"
-                        >
-                          {t('kit.sheets.open')}
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </Section>
-
-          {/*
-            THE PREVIEWS ARE STILLS OF THE MASTERS, so the picture on this page
-            still shows the placeholder name and code. The file does not. Said
-            once, under the list — an owner who scans the picture instead of the
-            print and lands somewhere odd should not have to work out why.
+            WHERE THE CARD'S QR POINTS (M37). The sentence above this used to
+            explain the preview pictures and the file an owner downloaded.
+            Neither exists on this page any more — printing is Headway's job,
+            not the owner's — so what is left is the one thing they still need:
+            the address their code opens, and a way to copy it.
           */}
           <Section eyebrow={t('kit.file.eyebrow')}>
             <p className="text-[15px] leading-relaxed text-ink-900">{t('kit.file.body')}</p>

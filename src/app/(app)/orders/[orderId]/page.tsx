@@ -10,16 +10,16 @@ import {
 } from '@/components/ui';
 import {
   DeleteOrderControl,
-  OrderDeliveredControl,
+  OrderCompletedControl,
 } from '@/components/forms/kit-order-controls';
 import { prisma } from '@/lib/db';
 import { formatDate, formatDateTime, formatNumber, formatRupees } from '@/lib/format';
 import { kitProduct } from '@/lib/kit/catalogue';
-import { getKitOrder, ORDER_STATUS_DELIVERED, ORDER_STATUS_RECEIVED } from '@/lib/kit/orders';
+import { getKitOrder, ORDER_STATUS_COMPLETED, ORDER_STATUS_RECEIVED } from '@/lib/kit/orders';
 
 /** The two statuses, as an operator reads them. Nothing between them exists. */
 function statusLabel(status: string): string {
-  if (status === ORDER_STATUS_DELIVERED) return 'Delivered';
+  if (status === ORDER_STATUS_COMPLETED) return 'Completed';
   if (status === ORDER_STATUS_RECEIVED) return 'Received';
   return status;
 }
@@ -62,7 +62,7 @@ export default async function OperatorOrderPage({
         description={`Placed ${formatDate(order.placedAt)}.`}
         actions={
           <>
-            <Badge tone={order.status === ORDER_STATUS_DELIVERED ? 'good' : 'brand'}>
+            <Badge tone={order.status === ORDER_STATUS_COMPLETED ? 'good' : 'brand'}>
               {statusLabel(order.status)}
             </Badge>
             <LinkButton href={`/clients/${order.clientId}`}>Open client</LinkButton>
@@ -133,9 +133,9 @@ export default async function OperatorOrderPage({
               <DataRow label="Placed">{formatDateTime(order.placedAt)}</DataRow>
               <DataRow label="Total">{formatRupees(order.totalInr)}</DataRow>
               <DataRow label="Status">{statusLabel(order.status)}</DataRow>
-              <DataRow label="Delivered">
-                {order.deliveredAt
-                  ? `${formatDateTime(order.deliveredAt)}${order.deliveredByName ? ` by ${order.deliveredByName}` : ''}`
+              <DataRow label="Completed">
+                {order.completedAt
+                  ? `${formatDateTime(order.completedAt)}${order.completedByName ? ` by ${order.completedByName}` : ''}`
                   : 'Not yet'}
               </DataRow>
               {/* The client's own confirmation, which is a different fact from
@@ -151,21 +151,21 @@ export default async function OperatorOrderPage({
         </Card>
         <Card>
           <CardHeader
-            title="Delivery"
-            description="Mark this once the printed kit is on its way to the client."
+            title="Completion"
+            description="Mark this once you have finished this physical order and handed it over."
           />
           <CardBody>
-            <OrderDeliveredControl
+            <OrderCompletedControl
               orderId={order.id}
-              deliveredOn={order.deliveredAt ? formatDate(order.deliveredAt) : null}
-              deliveredByName={order.deliveredByName}
+              completedOn={order.completedAt ? formatDate(order.completedAt) : null}
+              completedByName={order.completedByName}
             />
             <p className="mt-3 text-[12px] leading-relaxed text-ink-500">
               {order.receivedAt
                 ? `The client confirmed it arrived on ${formatDate(order.receivedAt)}.`
-                : order.deliveredAt
+                : order.completedAt
                   ? 'The client has not confirmed it arrived yet. Only they can do that.'
-                  : 'The client cannot confirm receipt until this is marked delivered.'}
+                  : 'The client cannot confirm receipt until this is marked completed.'}
             </p>
           </CardBody>
         </Card>

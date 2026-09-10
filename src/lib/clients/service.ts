@@ -318,15 +318,16 @@ export type ClientListRow = {
   snapshotCount: number;
   lastSnapshotAt: Date | null;
   /**
-   * How many printed kits this business has ordered (M34).
+   * How many printed kits this business has ordered that NOBODY HAS FINISHED
+   * YET (M34, narrowed in M37).
    *
    * Counted from its own `KitOrder` rows, never stored on the client and never
-   * sent up from a browser. The operator's list needs one thing from it — has
-   * this business ordered anything at all — but the count is what the database
-   * can answer cheaply, and it is worth more on the detail page than a boolean
-   * would be.
+   * sent up from a browser. It counts only orders with no completion on them,
+   * because the badge it feeds is a piece of outstanding work rather than a
+   * history: once every order is finished the badge should go, and the orders
+   * themselves stay exactly where they are.
    */
-  kitOrderCount: number;
+  openKitOrderCount: number;
   /**
    * M28 - the raw facts the lifecycle needs. Carried rather than interpreted,
    * so the list and the workspace reach the same verdict through the same pure
@@ -377,8 +378,11 @@ export async function listClients(
       serviceExemption: true,
       paymentRequestedAt: true,
       // Counted in the same query as the snapshots, so the list still costs
-      // one round trip however many businesses are on it.
-      _count: { select: { snapshots: true, kitOrders: true } },
+      // one round trip however many businesses are on it. Filtered to the
+      // unfinished ones: a finished order is not outstanding work.
+      _count: {
+        select: { snapshots: true, kitOrders: { where: { completedAt: null } } },
+      },
       snapshots: {
         orderBy: { capturedAt: 'desc' },
         take: 1,
@@ -399,7 +403,7 @@ export async function listClients(
     archivedAt: row.archivedAt,
     snapshotCount: row._count.snapshots,
     lastSnapshotAt: row.snapshots[0]?.capturedAt ?? null,
-    kitOrderCount: row._count.kitOrders,
+    openKitOrderCount: row._count.kitOrders,
     subscriptionStatus: row.subscriptionStatus,
     trialStartsAt: row.trialStartsAt,
     trialEndsAt: row.trialEndsAt,

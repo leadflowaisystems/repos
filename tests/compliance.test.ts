@@ -1205,7 +1205,7 @@ describe('V1 hard rules — nothing acts without an operator behind it (M16)', (
     // record, so both are ADMIN. Confirming the kit ARRIVED is the business's
     // claim about its own counter, so that one is theirs — OWNER, gated
     // against their own client id.
-    markKitOrderDeliveredAction: 'ADMIN',
+    markKitOrderCompletedAction: 'ADMIN',
     deleteKitOrderAction: 'ADMIN',
     acknowledgeKitOrderReceivedAction: 'OWNER',
     createMinuteAction: 'MEMBER',
@@ -1230,6 +1230,9 @@ describe('V1 hard rules — nothing acts without an operator behind it (M16)', (
     updateOwnerContactAction: 'OWNER',
     startTrialAction: 'ADMIN',
     extendTrialAction: 'ADMIN',
+    // M37 — this one business's trial end, by date or by days. ADMIN like the
+    // rest: how long a business gets is Headway's decision, not theirs.
+    setClientTrialAction: 'ADMIN',
     convertToActiveAction: 'ADMIN',
     pauseServiceAction: 'ADMIN',
     resumeServiceAction: 'ADMIN',

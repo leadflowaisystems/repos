@@ -384,8 +384,14 @@ describe('the download route', () => {
     'utf8',
   );
 
-  it('is gated like every other per-client surface', () => {
-    expect(route).toContain("await tenantGateFor(clientId, 'MEMBER')");
+  it('is operator-only, not merely tenant-scoped (M37)', () => {
+    // It used to be `tenantGateFor(clientId, 'MEMBER')`, which a business owner
+    // passes — so an owner with the URL could pull their own sheet. A layout
+    // does not wrap a route handler, so the requireOperator() in the group
+    // layout never ran here. `printGate` is that check, in the handler.
+    expect(route).toContain('await printGate(clientId)');
+    expect(route).not.toContain("tenantGateFor(clientId, 'MEMBER')");
+    expect(route).toMatch(/if \(!gate\.ok\) return new NextResponse\('Not found', \{ status: 404 \}\)/);
   });
 
   it('serves only the two known sheets', () => {

@@ -272,12 +272,14 @@ export default async function ClientsPage({
                             {titleCase(client.status)}
                           </Badge>
                         )}
-                        {/* M34 — this business has asked for the printed kit.
-                            Gold, which is Headway's own emphasis and not one
-                            of the two alarms: it is a thing to notice, not a
-                            thing that has gone wrong. Counted from the
-                            business's own KitOrder rows. */}
-                        {client.kitOrderCount > 0 ? (
+                        {/* M34 — this business has asked for the printed kit
+                            and nobody has finished the order yet. Gold, which
+                            is Headway's own emphasis and not one of the two
+                            alarms: it is a thing to notice, not a thing that
+                            has gone wrong. Counted from the business's own
+                            KitOrder rows, and gone once they are all done
+                            (M37) — the orders themselves stay. */}
+                        {client.openKitOrderCount > 0 ? (
                           <Badge tone="brand">Kit ordered</Badge>
                         ) : null}
                       </div>

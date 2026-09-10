@@ -432,6 +432,98 @@ export async function startTrial(
 }
 
 /**
+ * THIS ONE BUSINESS'S TRIAL, SET BY HAND (M37).
+ *
+ * Two ways to say the same thing, and the operator picks one:
+ *
+ *   'date' - the trial ends on this day.
+ *   'days' - the trial runs this many days from where it started.
+ *
+ * BOTH WRITE ONE COLUMN. There is a single effective end, `trialEndsAt`, and
+ * these are two ways of computing it - never two values that could disagree.
+ *
+ * IT CHANGES NOTHING ELSE. Not the subscription status, not the lock, not the
+ * exemption, not the pause, not the continuation request. A business that is
+ * paying or paused stays paying or paused; the dates simply are not what its
+ * lifecycle reads. That is deliberate: an operator setting a date should not
+ * silently drag a business back into a trial it had left.
+ *
+ * THE GLOBAL DEFAULT IS UNTOUCHED. `trial.default_days` decides how long a NEW
+ * trial runs; this decides when THIS one ends, and neither reads the other.
+ *
+ * A DATE MEANS THE END OF THAT DAY WHERE THE BUSINESS IS. Headway prints its
+ * dates in Asia/Kolkata, so "30 Sep" stored as midnight UTC would print as
+ * 30 Sep and expire at half past five that morning. The end of 30 Sep in IST
+ * is what an operator means, so that is what is stored.
+ */
+const IST_OFFSET_MINUTES = 330;
+
+export type TrialSetting =
+  | { mode: 'date'; endDate: string }
+  | { mode: 'days'; days: string };
+
+/** The last instant of `YYYY-MM-DD` in Asia/Kolkata, or null if unparseable. */
+export function endOfDayIst(date: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(date ?? '').trim());
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  // A day that rolls over never existed (31 February), and Date.UTC would
+  // silently accept it.
+  const check = new Date(Date.UTC(year, month - 1, day));
+  if (
+    check.getUTCFullYear() !== year ||
+    check.getUTCMonth() !== month - 1 ||
+    check.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  const startOfNextDayUtc = Date.UTC(year, month - 1, day + 1);
+  return new Date(startOfNextDayUtc - IST_OFFSET_MINUTES * 60_000 - 1);
+}
+
+export async function setClientTrial(
+  db: PrismaClient,
+  clientId: string,
+  setting: TrialSetting,
+  options: { now?: Date } = {},
+): Promise<ServiceResult<{ clientId: string; trialEndsAt: Date }>> {
+  const now = options.now ?? new Date();
+
+  const client = await db.client.findFirst({
+    where: { id: clientId },
+    select: { id: true, trialStartsAt: true },
+  });
+  if (!client) return err('That business no longer exists.');
+
+  // The trial keeps the start it already had. Only a business that has never
+  // had one starts today, because a length has to be measured from somewhere.
+  const trialStartsAt = client.trialStartsAt ?? now;
+
+  let trialEndsAt: Date;
+  if (setting.mode === 'date') {
+    const end = endOfDayIst(setting.endDate);
+    if (!end) {
+      return err('Some fields need attention.', { trialEndDate: 'Pick a date.' });
+    }
+    trialEndsAt = end;
+  } else {
+    const days = normaliseTrialDays(setting.days);
+    if (days === null) {
+      return err('Some fields need attention.', {
+        trialDays: `Use a whole number of days between 1 and ${MAX_TRIAL_DAYS}.`,
+      });
+    }
+    trialEndsAt = new Date(trialStartsAt.getTime() + days * DAY);
+  }
+
+  const result = await setSubscription(db, clientId, { trialStartsAt, trialEndsAt }, { now });
+  if (!result.ok) return result;
+  return ok({ clientId, trialEndsAt });
+}
+
+/**
  * Pushes the trial end out, from wherever it stands.
  *
  * From the existing end date when there is one, so extending twice adds twice —

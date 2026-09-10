@@ -230,14 +230,21 @@ model KitOrder {
   /// Whole rupees. The sum of the lines, computed server-side.
   totalInr  Int
 
-  /// WHEN THE OPERATOR SENT IT, AND WHO SENT IT (M36).
+  /// WHEN THE OPERATOR FINISHED THIS ORDER, AND WHO FINISHED IT (M36, renamed
+  /// in M37).
   ///
   /// Written only by `app`-side code behind an admin gate, from the server's
-  /// own clock and the signed-in operator. Nothing about delivery is ever read
-  /// off a form.
-  deliveredAt       DateTime?
-  deliveredByUserId String?
-  deliveredBy       User?     @relation("KitOrderDeliveredBy", fields: [deliveredByUserId], references: [id], onDelete: SetNull)
+  /// own clock and the signed-in operator. Nothing about completion is ever
+  /// read off a form.
+  ///
+  /// THE COLUMNS ARE STILL CALLED `deliveredAt` AND `deliveredByUserId`. M36
+  /// shipped them under that name; M37 renamed the idea to "completed", which
+  /// is what an operator actually asserts — the order is finished and handed
+  /// over. `@map` keeps the application honest without a migration that would
+  /// rewrite a live table to change a word.
+  completedAt       DateTime? @map("deliveredAt")
+  completedByUserId String?   @map("deliveredByUserId")
+  completedBy       User?     @relation("KitOrderCompletedBy", fields: [completedByUserId], references: [id], onDelete: SetNull)
 
   /// WHEN THE BUSINESS SAID IT ARRIVED, AND WHO SAID SO (M36).
   ///
@@ -310,10 +317,10 @@ model User {
   memberships Membership[]
   invitesSent Invitation[] @relation("InvitedBy")
 
-  /// Printed kits this person marked sent, or confirmed as arrived (M36).
+  /// Printed kits this person finished, or confirmed as arrived (M36).
   /// Back-relations only; both sides are SetNull, so removing a person leaves
   /// the order intact with the name simply gone.
-  kitOrdersDelivered KitOrder[] @relation("KitOrderDeliveredBy")
+  kitOrdersCompleted KitOrder[] @relation("KitOrderCompletedBy")
   kitOrdersReceived  KitOrder[] @relation("KitOrderReceivedBy")
 
   @@index([isPlatformAdmin])

@@ -26,6 +26,7 @@ import { ImprovementActionsPanel } from "@/components/forms/improvement-actions"
 import { evidenceLine } from "@/lib/improve/model";
 import { OwnerHandoverPanel } from "@/components/forms/owner-handover";
 import { CommercialPanel } from "@/components/forms/commercial-panel";
+import { TrialSettingsForm } from "@/components/forms/trial-settings";
 import {
   EXTEND_TRIAL_DAYS,
   continuationStatus,
@@ -33,6 +34,7 @@ import {
   getCommercial,
   getTrialDefaultDays,
 } from "@/lib/commercial/service";
+import { toDateInputValue } from "@/lib/format";
 import { getLifecycle } from "@/lib/lifecycle/access";
 import { operatorLabel } from "@/lib/lifecycle/service";
 import { pendingRequestFor } from "@/lib/continuation/service";
@@ -82,6 +84,18 @@ export default async function ClientOverviewPage({
     getLifecycle(prisma, id, { viewerIsPlatformAdmin: false }),
     pendingRequestFor(prisma, id),
   ]);
+
+  // How long this trial currently runs, in whole days, so the operator's days
+  // field opens on the length that is already set rather than on a blank.
+  const trialLengthDays =
+    account?.trialStartsAt && account?.trialEndsAt
+      ? Math.max(
+          1,
+          Math.round(
+            (account.trialEndsAt.getTime() - account.trialStartsAt.getTime()) / 86_400_000,
+          ),
+        )
+      : null;
 
   // The most recent kit this business asked for, or nothing (M36). One order,
   // not a history — the whole list is the operator's Orders page, and dumping
@@ -299,8 +313,8 @@ export default async function ClientOverviewPage({
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Badge tone={latestOrder.deliveredAt ? 'good' : 'brand'}>
-                {latestOrder.deliveredAt ? 'Delivered' : 'Received'}
+              <Badge tone={latestOrder.completedAt ? 'good' : 'brand'}>
+                {latestOrder.completedAt ? 'Delivered' : 'Received'}
               </Badge>
               {latestOrder.receivedAt ? (
                 <span className="text-[12px] text-ink-500">
@@ -384,6 +398,23 @@ export default async function ClientOverviewPage({
                 paid: commercial.paidAt ? formatDate(commercial.paidAt) : null,
               }}
             />
+
+            {/*
+              ---- This one business's trial (M37) ----
+
+              Either a day it ends or a number of days it runs, and the
+              operator picks one. It writes the two trial dates and nothing
+              else: not the status, not the lock, not the exemption. The
+              default length for NEW trials lives in Settings and is untouched.
+            */}
+            <div className="mt-6 border-t border-ink-200 pt-5">
+              <TrialSettingsForm
+                clientId={client.id}
+                trialEndsAt={toDateInputValue(account.trialEndsAt)}
+                trialDays={trialLengthDays}
+                inTrial={account.state === 'TRIAL'}
+              />
+            </div>
           </CardBody>
         </Card>
       ) : null}

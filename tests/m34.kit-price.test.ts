@@ -191,7 +191,7 @@ describe('5. a price change does not reach back', () => {
       expect(
         [
           'clientId', 'number', 'status', 'itemsJson', 'totalInr', 'createdAt', 'updatedAt',
-          'deliveredAt', 'deliveredByUserId', 'receivedAt', 'receivedByUserId',
+          'completedAt', 'completedByUserId', 'receivedAt', 'receivedByUserId',
         ],
         `unexpected written field ${field}`,
       ).toContain(field);
@@ -205,20 +205,22 @@ describe('5. a price change does not reach back', () => {
 
 describe('6 & 7. the clients list badges a business that has ordered', () => {
   it('shows the badge only when the count is above zero', () => {
-    expect(CLIENTS_LIST).toContain('{client.kitOrderCount > 0 ? (');
+    expect(CLIENTS_LIST).toContain('{client.openKitOrderCount > 0 ? (');
     expect(CLIENTS_LIST).toContain('<Badge tone="brand">Kit ordered</Badge>');
     // `: null` — nothing at all for a business that has not ordered.
-    const badge = CLIENTS_LIST.slice(CLIENTS_LIST.indexOf('client.kitOrderCount > 0'));
+    const badge = CLIENTS_LIST.slice(CLIENTS_LIST.indexOf('client.openKitOrderCount > 0'));
     expect(badge.slice(0, 220)).toContain(': null');
   });
 
   it('reads the count from the business’s own rows, not from a stored flag', () => {
-    expect(CLIENTS_SERVICE).toContain('_count: { select: { snapshots: true, kitOrders: true } }');
-    expect(CLIENTS_SERVICE).toContain('kitOrderCount: row._count.kitOrders');
-    expect(CLIENTS_SERVICE).toContain('kitOrderCount: number;');
+    // M37: filtered to the orders nobody has finished, because the badge is
+    // outstanding work rather than a history.
+    expect(CLIENTS_SERVICE).toContain('kitOrders: { where: { completedAt: null } }');
+    expect(CLIENTS_SERVICE).toContain('openKitOrderCount: row._count.kitOrders');
+    expect(CLIENTS_SERVICE).toContain('openKitOrderCount: number;');
     // No column on Client, no cache, no second source of truth.
     expect(read('prisma', 'schema.prisma')).not.toContain('hasOrderedKit');
-    expect(read('prisma', 'schema.prisma')).not.toMatch(/kitOrderCount\s+Int/);
+    expect(read('prisma', 'schema.prisma')).not.toMatch(/openKitOrderCount\s+Int/);
   });
 
   it('is gold: worth noticing, and not one of the two alarms', () => {
@@ -233,7 +235,9 @@ describe('6 & 7. the clients list badges a business that has ordered', () => {
 
 describe('8. the client-detail header carries the same badge', () => {
   it('shows it from the same kind of count', () => {
-    expect(CLIENT_LAYOUT).toContain('_count: { select: { kitOrders: true } }');
+    expect(CLIENT_LAYOUT).toContain(
+      '_count: { select: { kitOrders: { where: { completedAt: null } } } }',
+    );
     expect(CLIENT_LAYOUT).toContain('{client._count.kitOrders > 0 ? (');
     expect(CLIENT_LAYOUT).toContain('<Badge tone="brand">Kit ordered</Badge>');
   });

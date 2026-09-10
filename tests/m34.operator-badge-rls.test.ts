@@ -162,7 +162,7 @@ describe('6. a business that has ordered comes back with a count', () => {
     expect((await place(orderForm(seeded.alphaClient, { 'card-qr-stand': '2' }))).ok).toBe(true);
 
     const list = await operatorList();
-    expect(list.get(seeded.alphaClient)?.kitOrderCount).toBe(1);
+    expect(list.get(seeded.alphaClient)?.openKitOrderCount).toBe(1);
   });
 
   it('counts three orders as three, so the badge cannot depend on there being one', async () => {
@@ -172,15 +172,15 @@ describe('6. a business that has ordered comes back with a count', () => {
     await place(orderForm(seeded.alphaClient, { 'card-qr-stand': '5', 'folded-tent': '5' }));
 
     const list = await operatorList();
-    expect(list.get(seeded.alphaClient)?.kitOrderCount).toBe(3);
+    expect(list.get(seeded.alphaClient)?.openKitOrderCount).toBe(3);
   });
 });
 
 describe('7. a business that has not ordered comes back with zero', () => {
   it('is zero before anything is ordered', async () => {
     const list = await operatorList();
-    expect(list.get(seeded.alphaClient)?.kitOrderCount).toBe(0);
-    expect(list.get(seeded.betaClient)?.kitOrderCount).toBe(0);
+    expect(list.get(seeded.alphaClient)?.openKitOrderCount).toBe(0);
+    expect(list.get(seeded.betaClient)?.openKitOrderCount).toBe(0);
   });
 
   it('is still zero for the business that did not order', async () => {
@@ -188,17 +188,17 @@ describe('7. a business that has not ordered comes back with zero', () => {
     await place(orderForm(seeded.alphaClient, { 'card-qr-stand': '1' }));
 
     const list = await operatorList();
-    expect(list.get(seeded.alphaClient)?.kitOrderCount).toBe(1);
-    expect(list.get(seeded.betaClient)?.kitOrderCount).toBe(0);
+    expect(list.get(seeded.alphaClient)?.openKitOrderCount).toBe(1);
+    expect(list.get(seeded.betaClient)?.openKitOrderCount).toBe(0);
   });
 
   it('goes back to zero if the order is removed, because it is a count and not a flag', async () => {
     session = { id: AUTH.alpha };
     await place(orderForm(seeded.alphaClient, { 'card-qr-stand': '1' }));
-    expect((await operatorList()).get(seeded.alphaClient)?.kitOrderCount).toBe(1);
+    expect((await operatorList()).get(seeded.alphaClient)?.openKitOrderCount).toBe(1);
 
     await owner.kitOrder.deleteMany({ where: { clientId: seeded.alphaClient } });
-    expect((await operatorList()).get(seeded.alphaClient)?.kitOrderCount).toBe(0);
+    expect((await operatorList()).get(seeded.alphaClient)?.openKitOrderCount).toBe(0);
   });
 });
 
@@ -221,8 +221,8 @@ describe('8. the client-detail header gets the same answer', () => {
     await place(orderForm(seeded.betaClient, { 'folded-tent': '3' }));
 
     const list = await operatorList();
-    expect(await detailCount(seeded.betaClient)).toBe(list.get(seeded.betaClient)?.kitOrderCount);
-    expect(await detailCount(seeded.alphaClient)).toBe(list.get(seeded.alphaClient)?.kitOrderCount);
+    expect(await detailCount(seeded.betaClient)).toBe(list.get(seeded.betaClient)?.openKitOrderCount);
+    expect(await detailCount(seeded.alphaClient)).toBe(list.get(seeded.alphaClient)?.openKitOrderCount);
   });
 });
 
@@ -239,8 +239,8 @@ describe('9. an order cannot raise another business’s badge', () => {
     await place(orderForm(seeded.betaClient, { 'folded-tent': '1' }));
 
     const list = await operatorList();
-    expect(list.get(seeded.alphaClient)?.kitOrderCount).toBe(1);
-    expect(list.get(seeded.betaClient)?.kitOrderCount).toBe(2);
+    expect(list.get(seeded.alphaClient)?.openKitOrderCount).toBe(1);
+    expect(list.get(seeded.betaClient)?.openKitOrderCount).toBe(2);
   });
 
   it('cannot be raised by ordering against somebody else’s id', async () => {
@@ -250,8 +250,8 @@ describe('9. an order cannot raise another business’s badge', () => {
     expect((await place(orderForm(seeded.alphaClient, { 'card-qr-stand': '9' }))).ok).toBe(false);
 
     const list = await operatorList();
-    expect(list.get(seeded.alphaClient)?.kitOrderCount).toBe(0);
-    expect(list.get(seeded.betaClient)?.kitOrderCount).toBe(0);
+    expect(list.get(seeded.alphaClient)?.openKitOrderCount).toBe(0);
+    expect(list.get(seeded.betaClient)?.openKitOrderCount).toBe(0);
   });
 
   it('shows a business its own count and not the other’s, even signed in as them', async () => {
@@ -263,7 +263,7 @@ describe('9. an order cannot raise another business’s badge', () => {
     session = { id: AUTH.alpha };
     const asAlpha = await clients.listClients(app);
     expect(asAlpha.map((row) => row.id)).toEqual([seeded.alphaClient]);
-    expect(asAlpha[0]?.kitOrderCount).toBe(1);
+    expect(asAlpha[0]?.openKitOrderCount).toBe(1);
   });
 });
 
@@ -280,8 +280,8 @@ describe('the operator sees every business’s count without being a member of a
 
     const list = await operatorList();
     expect([...list.keys()].sort()).toEqual([seeded.alphaClient, seeded.betaClient].sort());
-    expect(list.get(seeded.alphaClient)?.kitOrderCount).toBe(1);
-    expect(list.get(seeded.betaClient)?.kitOrderCount).toBe(0);
+    expect(list.get(seeded.alphaClient)?.openKitOrderCount).toBe(1);
+    expect(list.get(seeded.betaClient)?.openKitOrderCount).toBe(0);
   });
 });
 
@@ -365,6 +365,6 @@ describe('5. an order placed at the old price still says the old price', () => {
 
   it('counts the old order towards the operator’s badge like any other', async () => {
     await storeHistoricalOrder(seeded.alphaClient);
-    expect((await operatorList()).get(seeded.alphaClient)?.kitOrderCount).toBe(1);
+    expect((await operatorList()).get(seeded.alphaClient)?.openKitOrderCount).toBe(1);
   });
 });

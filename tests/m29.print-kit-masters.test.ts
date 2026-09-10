@@ -62,7 +62,7 @@ describe('the print kit offers exactly two sheets', () => {
     // Every PDF the page can reach comes from the list.
     const hrefs = [...page.matchAll(/["'](\/print-kit\/[^"']+)["']/g)].map((m) => m[1]);
     expect(hrefs).toHaveLength(0); // the paths live in the list, not in the markup
-    expect(page).toContain('PRINT_SHEETS.map');
+    expect(page).not.toContain('PRINT_SHEETS');
     expect(page).not.toContain('/print/tent/');
     expect(page).not.toContain('/print/kit/');
   });
@@ -173,21 +173,28 @@ describe('each sheet is the paper size its design was cut for', () => {
  */
 describe('the owner’s print kit page', () => {
   const page = read('src', 'app', '(workspace)', 'workspace', '[clientId]', 'kit', 'page.tsx');
+  // Printing lives on the operator's page now (M37); the client has none.
+  const operatorKit = read('src', 'app', '(app)', 'clients', '[id]', 'kit', 'page.tsx');
 
-  it('gives every sheet a preview, a download and a way to open it', () => {
-    expect(page).toContain("t('kit.sheets.download')");
+  it('gives the operator a print action for each format, and the client none', () => {
+    expect(page).not.toContain("t('kit.sheets.download')");
     expect(MESSAGES['kit.sheets.download'].en).toBe('Download');
-    expect(page).toContain("t('kit.sheets.open')");
+    expect(page).not.toContain("t('kit.sheets.open')");
     expect(MESSAGES['kit.sheets.open'].en).toBe('Open to print');
-    expect(page).toContain('src={sheet.preview}');
+    expect(page).not.toContain('sheet.preview');
+    // The operator still has both, one per approved format.
+    expect(operatorKit).toContain('Print this format');
+    expect(operatorKit).toContain('Download PDF');
   });
 
-  it('serves every sheet through the personalising route, never the raw master', () => {
+  it('serves every format through the personalising route, never the raw master', () => {
     // The master carries YOUR BUSINESS NAME and a placeholder code. Linking it
     // directly is the one mistake that would hand an owner a batch of cards
     // that scan to an example address.
-    expect(page).toContain('href={`/print/sheet/${clientId}/${sheet.key}`}');
-    expect(page).toContain('href={`/print/sheet/${clientId}/${sheet.key}?download=1`}');
+    // On the OPERATOR page now; the client page links to no print route.
+    expect(operatorKit).toContain('href={`/print/sheet/${id}/${sheet.key}`}');
+    expect(operatorKit).toContain('href={`/print/sheet/${id}/${sheet.key}?download=1`}');
+    expect(page).not.toContain('/print/sheet/');
     expect(page).not.toContain('href={sheet.file}');
     expect(page).not.toContain('download={sheet.downloadAs}');
   });
@@ -199,15 +206,17 @@ describe('the owner’s print kit page', () => {
     expect(page).not.toContain('<iframe');
   });
 
-  it('says the preview is the layout, not this business’s own card', () => {
-    // The previews are stills of the masters, so the picture still shows the
-    // placeholder name and code while the file does not. An owner who scans the
-    // picture and lands on an example address should not have to work out why.
+  it('tells the owner where their card’s QR points, and nothing about a file', () => {
+    // M37 removed the previews and the download from this page, so the old
+    // sentence about "the pictures above" and "the file you download" was
+    // describing things that are no longer here. What an owner still needs is
+    // the address their printed code opens, and a way to copy it.
     expect(page).toContain("t('kit.file.body')");
-    expect(MESSAGES['kit.file.body'].en).toContain(
-      'The pictures above show the layout, not your own card.',
-    );
-    expect(MESSAGES['kit.file.body'].en).toMatch(/scan a\s+printed card, not the picture/);
+    expect(MESSAGES['kit.file.body'].en).toContain('Every card Headway prints for you');
+    expect(MESSAGES['kit.file.body'].en).toContain('scan a printed card');
+    for (const gone of ['pictures above', 'file you download', 'download']) {
+      expect(MESSAGES['kit.file.body'].en.toLowerCase()).not.toContain(gone);
+    }
     expect(page).toContain('view.content.feedbackUrl');
     expect(page).toContain('CopyButton');
   });

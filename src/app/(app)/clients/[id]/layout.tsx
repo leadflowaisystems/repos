@@ -37,9 +37,10 @@ export default async function ClientLayout({
       status: true,
       plan: true,
       archivedAt: true,
-      // M34 — has this business ordered the printed kit? Counted from its own
-      // KitOrder rows, in the query that was already being made.
-      _count: { select: { kitOrders: true } },
+      // M34 — has this business got a printed kit on order that nobody has
+      // finished yet? Counted from its own KitOrder rows, in the query that was
+      // already being made, and filtered in M37 to the unfinished ones.
+      _count: { select: { kitOrders: { where: { completedAt: null } } } },
     },
   });
 

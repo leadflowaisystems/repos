@@ -61,10 +61,13 @@ export const kit = {
     hi: 'रोका गया है',
     mr: 'थांबवलं आहे',
   },
+  // M37: the owner does not print anything, so this no longer says "print
+  // kit". What is Ready is the card itself — Headway has everything it needs
+  // to print one for this business.
   'kit.status.print.label': {
-    en: 'print kit',
-    hi: 'प्रिंट किट',
-    mr: 'प्रिंट किट',
+    en: 'your card',
+    hi: 'आपका कार्ड',
+    mr: 'तुमचं कार्ड',
   },
   'kit.status.print.value': {
     en: 'Ready',
@@ -179,9 +182,9 @@ export const kit = {
     mr: 'तुम्हाला काय मिळेल',
   },
   'kit.file.body': {
-    en: 'The pictures above show the layout, not your own card. The file you download has your business name on it, and its QR opens your feedback page. To check the QR, scan a printed card, not the picture on this page.',
-    hi: 'ऊपर की तस्वीरें सिर्फ़ लेआउट दिखाती हैं, आपका अपना कार्ड नहीं। आप जो फ़ाइल डाउनलोड करेंगे उस पर आपके बिज़नेस का नाम होगा, और उसका QR आपका फ़ीडबैक पेज खोलता है। QR जाँचना हो तो छपा हुआ कार्ड स्कैन करें, इस पेज की तस्वीर नहीं।',
-    mr: 'वरची चित्रं फक्त लेआउट दाखवतात, तुमचं स्वतःचं कार्ड नाही. तुम्ही जी फाइल डाउनलोड कराल तिच्यावर तुमच्या व्यवसायाचं नाव असेल, आणि तिचा QR तुमचं फीडबॅक पेज उघडतो. QR तपासायचा असेल तर छापलेलं कार्ड स्कॅन करा, या पेजवरचं चित्र नाही.',
+    en: 'Every card Headway prints for you carries your business name, and its QR opens the page below. To check it, scan a printed card.',
+    hi: 'Headway आपके लिए जो भी कार्ड छापता है उस पर आपके बिज़नेस का नाम होता है, और उसका QR नीचे वाला पेज खोलता है। जाँचना हो तो छपा हुआ कार्ड स्कैन करें।',
+    mr: 'Headway तुमच्यासाठी जे कार्ड छापतं त्यावर तुमच्या व्यवसायाचं नाव असतं, आणि त्याचा QR खालचं पेज उघडतो. तपासायचं असेल तर छापलेलं कार्ड स्कॅन करा.',
   },
   'kit.file.qrTarget': {
     en: 'Where the QR takes customers',

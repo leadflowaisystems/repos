@@ -27,7 +27,7 @@ import { EN, type PortalTranslator } from '@/lib/i18n/translator';
  * to read: a status the system cannot observe is a promise it cannot keep.
  */
 export const ORDER_STATUS_RECEIVED = 'RECEIVED';
-export const ORDER_STATUS_DELIVERED = 'DELIVERED';
+export const ORDER_STATUS_COMPLETED = 'DELIVERED';
 
 export type KitOrder = {
   id: string;
@@ -39,8 +39,8 @@ export type KitOrder = {
   totalInr: number;
   placedAt: Date;
   /** When an operator said they sent it, and who. Null until they do (M36). */
-  deliveredAt: Date | null;
-  deliveredByName: string | null;
+  completedAt: Date | null;
+  completedByName: string | null;
   /**
    * When the business said it arrived, and who said so.
    *
@@ -89,9 +89,9 @@ type Row = {
   itemsJson: string;
   totalInr: number;
   createdAt: Date;
-  deliveredAt: Date | null;
+  completedAt: Date | null;
   receivedAt: Date | null;
-  deliveredBy?: Actor;
+  completedBy?: Actor;
   receivedBy?: Actor;
 };
 
@@ -104,9 +104,9 @@ const ORDER_SELECT = {
   itemsJson: true,
   totalInr: true,
   createdAt: true,
-  deliveredAt: true,
+  completedAt: true,
   receivedAt: true,
-  deliveredBy: { select: { name: true, email: true } },
+  completedBy: { select: { name: true, email: true } },
   receivedBy: { select: { name: true, email: true } },
 } as const;
 
@@ -119,8 +119,8 @@ function toOrder(row: Row): KitOrder {
     lines: linesFrom(row.itemsJson),
     totalInr: row.totalInr,
     placedAt: row.createdAt,
-    deliveredAt: row.deliveredAt,
-    deliveredByName: whoDid(row.deliveredBy ?? null),
+    completedAt: row.completedAt,
+    completedByName: whoDid(row.completedBy ?? null),
     receivedAt: row.receivedAt,
     receivedByName: whoDid(row.receivedBy ?? null),
   };
@@ -282,13 +282,13 @@ export async function latestKitOrder(
  *
  * `userId` is the signed-in operator, established by the action's admin gate.
  * `now` is the server's clock. NEITHER IS EVER READ FROM A FORM — a browser
- * that posts a deliveredAt, a deliveredBy or a status changes nothing, because
+ * that posts a completedAt, a completedBy or a status changes nothing, because
  * this function takes none of them.
  *
  * It does not touch `receivedAt`. Somebody sending a thing is not the same as
  * somebody receiving it, and this function has no business claiming the second.
  */
-export async function markKitOrderDelivered(
+export async function markKitOrderCompleted(
   db: PrismaClient,
   orderId: string,
   userId: string,
@@ -300,9 +300,9 @@ export async function markKitOrderDelivered(
   const row = await db.kitOrder.update({
     where: { id: orderId },
     data: {
-      status: ORDER_STATUS_DELIVERED,
-      deliveredAt: options.now ?? new Date(),
-      deliveredByUserId: userId,
+      status: ORDER_STATUS_COMPLETED,
+      completedAt: options.now ?? new Date(),
+      completedByUserId: userId,
     },
     select: ORDER_SELECT,
   });
@@ -334,16 +334,16 @@ export async function acknowledgeKitOrderReceived(
 ): Promise<ServiceResult<KitOrder>> {
   const existing = await db.kitOrder.findFirst({
     where: { id: orderId, clientId },
-    select: { id: true, deliveredAt: true, receivedAt: true },
+    select: { id: true, completedAt: true, receivedAt: true },
   });
   if (!existing) return { ok: false, message: 'That order no longer exists.', errors: {} };
-  if (!existing.deliveredAt) {
+  if (!existing.completedAt) {
     return { ok: false, message: 'That order has not been sent yet.', errors: {} };
   }
   if (existing.receivedAt) return { ok: true, data: (await needOrder(db, orderId))! };
 
   const updated = await db.kitOrder.updateMany({
-    where: { id: orderId, clientId, deliveredAt: { not: null } },
+    where: { id: orderId, clientId, completedAt: { not: null } },
     data: { receivedAt: options.now ?? new Date(), receivedByUserId: userId },
   });
   if (updated.count === 0) {
