@@ -1,15 +1,20 @@
 'use server';
 
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { saveKitConfig, saveReviewLink, setKitInstalled } from '@/lib/kit/service';
 import { KIT_PRODUCTS } from '@/lib/kit/catalogue';
-import { placeKitOrder } from '@/lib/kit/orders';
+import {
+  acknowledgeKitOrderReceived,
+  deleteKitOrder,
+  markKitOrderDelivered,
+  placeKitOrder,
+} from '@/lib/kit/orders';
 import { getTranslator } from '@/lib/i18n/request';
 import { bool, failure, str, success, type ActionState } from './shared';
-import { tenantGate } from '@/lib/auth/guard';
+import { adminGate, tenantGate } from '@/lib/auth/guard';
 
 /**
  * Feedback kit actions.
@@ -125,4 +130,102 @@ export async function placeKitOrderAction(
     errors: {},
     data: { orderNumber: String(result.data.number) },
   };
+}
+
+/**
+ * An operator marks an order as sent (M36).
+ *
+ * ADMIN. Delivery is a claim only Headway can make about its own dispatch, so
+ * it opens with `adminGate()` and nothing about a client is read before it.
+ *
+ * THE BROWSER SUPPLIES ONE THING: which order. Not the timestamp, not who did
+ * it, not the status. The clock is the server's and the operator is the
+ * session's, so a posted `deliveredAt`, `deliveredBy` or `status` is not read
+ * and cannot be read — the service takes no such parameter.
+ */
+export async function markKitOrderDeliveredAction(
+  _prev: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const gate = await adminGate();
+  if (!gate.ok) return gate.state;
+
+  const orderId = str(form, 'orderId');
+  if (!orderId) return failure('Missing order id.');
+
+  const result = await markKitOrderDelivered(prisma, orderId, gate.actor.userId);
+  if (!result.ok) return failure(result.message, result.errors);
+
+  revalidateOrder(result.data.clientId, orderId);
+  return success('Marked delivered.');
+}
+
+/**
+ * A business confirms the kit arrived (M36).
+ *
+ * OWNER, and gated against the business's OWN id: `tenantGate` establishes
+ * which client this caller may act for, and that id is passed into the service
+ * as part of the WHERE — so acknowledging another business's order id updates
+ * nothing.
+ *
+ * A business can say one thing here and one thing only: that it arrived. It
+ * cannot set the date, cannot name the person, cannot touch the status, the
+ * prices, the lines or the total, and cannot claim delivery on Headway's
+ * behalf. None of those are parameters of anything this calls.
+ */
+export async function acknowledgeKitOrderReceivedAction(
+  _prev: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const gate = await tenantGate(form, 'OWNER');
+  if (!gate.ok) return gate.state;
+  const { clientId } = gate;
+
+  const orderId = str(form, 'orderId');
+  const t = await getTranslator();
+  if (!orderId) return failure(t('kit.receipt.error'));
+
+  const result = await acknowledgeKitOrderReceived(prisma, clientId, orderId, gate.actor.userId);
+  if (!result.ok) return failure(t('kit.receipt.error'));
+
+  revalidateOrder(clientId, orderId);
+  return { ok: true, message: t('kit.receipt.done'), errors: {} };
+}
+
+/**
+ * An operator deletes an order (M36).
+ *
+ * ADMIN, and only ADMIN. A business cannot delete its own order and cannot
+ * delete anybody else's: this action refuses everyone who is not platform
+ * staff before it reads a single field, and there is no client-facing route
+ * that reaches it.
+ *
+ * The confirmation the operator clicks through is in the component. This is
+ * the server half, and it re-establishes the permission rather than trusting
+ * that the confirmation happened.
+ */
+export async function deleteKitOrderAction(
+  _prev: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const gate = await adminGate();
+  if (!gate.ok) return gate.state;
+
+  const orderId = str(form, 'orderId');
+  if (!orderId) return failure('Missing order id.');
+
+  const result = await deleteKitOrder(prisma, orderId);
+  if (!result.ok) return failure(result.message, result.errors);
+
+  revalidateOrder(result.data.clientId, orderId);
+  redirect('/orders?deleted=1');
+}
+
+/** Every screen an order appears on, after it changes. */
+function revalidateOrder(clientId: string, orderId: string) {
+  revalidatePath('/orders');
+  revalidatePath(`/orders/${orderId}`);
+  revalidatePath(`/clients/${clientId}`);
+  revalidatePath(`/workspace/${clientId}/orders`);
+  revalidatePath(`/workspace/${clientId}/kit`);
 }

@@ -165,9 +165,36 @@ describe('5. a price change does not reach back', () => {
     expect(ORDERS_PAGE).not.toContain('priceOrder');
   });
 
-  it('has nothing anywhere that back-fills an existing order', () => {
-    for (const source of [ORDERS_SERVICE, code(read('src', 'lib', 'actions', 'kit.ts'))]) {
-      expect(source).not.toMatch(/kitOrder\.(update|updateMany|upsert)/);
+  it('never writes money onto an order that already exists', () => {
+    // M36 gave an order two more things that can change after it is placed —
+    // that it was sent, and that it arrived. So the rule is no longer "never
+    // update an order"; it is that no update may touch what it COST. Every
+    // `data:` block on an existing order is checked for the money fields.
+    const sources = [ORDERS_SERVICE, code(read('src', 'lib', 'actions', 'kit.ts'))];
+    const offenders: string[] = [];
+    for (const source of sources) {
+      for (const match of source.matchAll(
+        /kitOrder\.(update|updateMany|upsert)\(\{([\s\S]*?)\n\s*\}\)/g,
+      )) {
+        const body = match[2] ?? '';
+        for (const money of ['itemsJson', 'totalInr', 'unitPriceInr', 'lineTotalInr', 'number:']) {
+          if (body.includes(money)) offenders.push(`${match[1]} writes ${money}`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+    // And the updates that DO exist write only the four M36 columns.
+    const written = [...ORDERS_SERVICE.matchAll(/data: \{([^}]*)\}/g)]
+      .flatMap((m) => [...(m[1] ?? '').matchAll(/(\w+):/g)].map((f) => f[1]))
+      .filter((f) => f !== 'set');
+    for (const field of written) {
+      expect(
+        [
+          'clientId', 'number', 'status', 'itemsJson', 'totalInr', 'createdAt', 'updatedAt',
+          'deliveredAt', 'deliveredByUserId', 'receivedAt', 'receivedByUserId',
+        ],
+        `unexpected written field ${field}`,
+      ).toContain(field);
     }
   });
 });

@@ -11,10 +11,12 @@ import {
 } from "@/components/client-detail-secondary";
 import { getClientDetailPrimary } from "@/lib/clients/detail";
 import {
+  Badge,
   Card,
   CardBody,
   CardHeader,
   DataRow,
+  LinkButton,
   Notice,
   Stat,
 } from "@/components/ui";
@@ -34,6 +36,8 @@ import {
 import { getLifecycle } from "@/lib/lifecycle/access";
 import { operatorLabel } from "@/lib/lifecycle/service";
 import { pendingRequestFor } from "@/lib/continuation/service";
+import { kitProduct } from "@/lib/kit/catalogue";
+import { latestKitOrder } from "@/lib/kit/orders";
 import { prisma } from "@/lib/db";
 import { getPackOrFallback } from "@/lib/packs";
 import {
@@ -78,6 +82,11 @@ export default async function ClientOverviewPage({
     getLifecycle(prisma, id, { viewerIsPlatformAdmin: false }),
     pendingRequestFor(prisma, id),
   ]);
+
+  // The most recent kit this business asked for, or nothing (M36). One order,
+  // not a history — the whole list is the operator's Orders page, and dumping
+  // it into a client header would bury the thing they came here for.
+  const latestOrder = await latestKitOrder(prisma, id);
 
   // The action panel renders strings, not Dates: every figure and date is
   // formatted once here so the client component adds no arithmetic of its own.
@@ -236,6 +245,78 @@ export default async function ClientOverviewPage({
           <MinutesRecordedStat clientId={id} commsLanguage={commsLanguage} />
         </Suspense>
       </div>
+
+      {/*
+        ---- What this business has actually ordered (M36) ----
+
+        The KIT ORDERED badge in the header says THAT they ordered. This says
+        WHAT. Every figure is read off the stored order, never recomputed from
+        today's catalogue, so an order placed at the old price still shows the
+        old price.
+      */}
+      {latestOrder ? (
+        <Card>
+          <CardHeader
+            title="Kit ordered"
+            description="The most recent order from this client."
+            action={<LinkButton href="/orders">View all orders</LinkButton>}
+          />
+          <CardBody>
+            <p className="text-[13px] text-ink-500">
+              Latest order · {formatDate(latestOrder.placedAt)} · Order #
+              {String(latestOrder.number).padStart(3, '0')}
+            </p>
+
+            <ul className="mt-3 divide-y divide-ink-100 border-y border-ink-100">
+              {latestOrder.lines.map((line) => {
+                const product = kitProduct(line.productKey);
+                return (
+                  <li
+                    key={line.productKey}
+                    className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 py-2.5"
+                  >
+                    <span className="text-[13px] font-medium text-ink-900">
+                      {product ? product.shortName : line.productKey}
+                    </span>
+                    <span className="text-[13px] text-ink-500 tabular-nums">
+                      {formatNumber(line.quantity)}
+                      {line.quantity === 1 ? ' piece' : ' pieces'} ·{' '}
+                      {formatRupees(line.unitPriceInr)}
+                    </span>
+                    <span className="w-full text-right text-[13px] font-semibold text-ink-900 tabular-nums sm:w-auto">
+                      {formatRupees(line.lineTotalInr)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 pt-3">
+              <span className="text-[13px] font-semibold text-ink-900">Total</span>
+              <span className="text-[15px] font-semibold text-ink-900 tabular-nums">
+                {formatRupees(latestOrder.totalInr)}
+              </span>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Badge tone={latestOrder.deliveredAt ? 'good' : 'brand'}>
+                {latestOrder.deliveredAt ? 'Delivered' : 'Received'}
+              </Badge>
+              {latestOrder.receivedAt ? (
+                <span className="text-[12px] text-ink-500">
+                  Client confirmed it arrived {formatDate(latestOrder.receivedAt)}.
+                </span>
+              ) : null}
+              <LinkButton
+                href={`/orders/${latestOrder.id}`}
+                className="px-2.5 py-1 text-[12px]"
+              >
+                Open this order
+              </LinkButton>
+            </div>
+          </CardBody>
+        </Card>
+      ) : null}
 
       {remaining.length === 0 ? (
         <Notice tone="good">

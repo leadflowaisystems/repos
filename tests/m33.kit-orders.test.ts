@@ -354,10 +354,17 @@ describe('the Orders page shows date, items, quantities, total and status', () =
     expect(ORDERS_PAGE).toContain('order.totalInr');
   });
 
-  it('claims only the one status the system can actually observe', () => {
+  it('claims only the statuses the system can actually observe', () => {
+    // Two since M36: Headway has the request, and an operator says they sent
+    // it. Both are things a person actually asserts. There is still no
+    // Shipped, no Preparing and no Out for delivery, because there is no
+    // courier to ask.
     const statuses = Object.keys(MESSAGES).filter((k) => k.startsWith('kit.orders.status.'));
-    expect(statuses).toEqual(['kit.orders.status.received']);
-    for (const invented of ['Shipped', 'Delivered', 'Preparing', 'Out for delivery']) {
+    expect(statuses.sort()).toEqual([
+      'kit.orders.status.delivered',
+      'kit.orders.status.received',
+    ]);
+    for (const invented of ['Shipped', 'Preparing', 'Out for delivery', 'Dispatched']) {
       expect(ORDERS_PAGE).not.toContain(invented);
     }
   });

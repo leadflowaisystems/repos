@@ -1200,6 +1200,14 @@ describe('V1 hard rules — nothing acts without an operator behind it (M16)', (
     // M33 — ordering the printed kit. OWNER, like the other commercial
     // actions: this commits the business to a cost, and staff do not do that.
     placeKitOrderAction: 'OWNER',
+    // M36 — the two halves of getting a kit into a shop. Delivery is Headway's
+    // own claim about its own dispatch, and deleting an order is destroying a
+    // record, so both are ADMIN. Confirming the kit ARRIVED is the business's
+    // claim about its own counter, so that one is theirs — OWNER, gated
+    // against their own client id.
+    markKitOrderDeliveredAction: 'ADMIN',
+    deleteKitOrderAction: 'ADMIN',
+    acknowledgeKitOrderReceivedAction: 'OWNER',
     createMinuteAction: 'MEMBER',
     updateMinuteAction: 'MEMBER',
     deleteMinuteAction: 'OWNER',

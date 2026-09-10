@@ -449,12 +449,19 @@ describe('the orders table answers to the same policies as every other', () => {
       `SELECT column_name FROM information_schema.columns
         WHERE table_schema = 'public' AND table_name = 'KitOrder' ORDER BY 1`,
     );
+    // M36 added four: when it was sent and by whom, when it arrived and who
+    // said so. Two timestamps and two references to a Headway account — still
+    // no feedback, no customer text, no contact detail.
     expect(columns.map((c) => c.column_name)).toEqual([
       'clientId',
       'createdAt',
+      'deliveredAt',
+      'deliveredByUserId',
       'id',
       'itemsJson',
       'number',
+      'receivedAt',
+      'receivedByUserId',
       'status',
       'totalInr',
       'updatedAt',

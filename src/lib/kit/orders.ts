@@ -19,8 +19,15 @@ import { EN, type PortalTranslator } from '@/lib/i18n/translator';
  * same rule the tenant gates are built on.
  */
 
-/** The only status the system can honestly claim about an order today. */
+/**
+ * The two statuses, and there are only two (M36).
+ *
+ * RECEIVED — Headway has the request. DELIVERED — an operator says they sent
+ * it. Nothing between, because there is no courier to ask and no printer queue
+ * to read: a status the system cannot observe is a promise it cannot keep.
+ */
 export const ORDER_STATUS_RECEIVED = 'RECEIVED';
+export const ORDER_STATUS_DELIVERED = 'DELIVERED';
 
 export type KitOrder = {
   id: string;
@@ -31,7 +38,25 @@ export type KitOrder = {
   lines: KitOrderLine[];
   totalInr: number;
   placedAt: Date;
+  /** When an operator said they sent it, and who. Null until they do (M36). */
+  deliveredAt: Date | null;
+  deliveredByName: string | null;
+  /**
+   * When the business said it arrived, and who said so.
+   *
+   * A SEPARATE FACT FROM DELIVERY. Neither is inferred from the other: an
+   * operator marking an order delivered does not make it received, and a
+   * business confirming receipt does not make it delivered.
+   */
+  receivedAt: Date | null;
+  receivedByName: string | null;
 };
+
+/** A person's name for a record of what they did, falling back to the address. */
+function whoDid(user: { name: string | null; email: string } | null): string | null {
+  if (!user) return null;
+  return user.name?.trim() || user.email;
+}
 
 /** Parses the stored lines back, defensively: a bad row is an empty order. */
 function linesFrom(json: string): KitOrderLine[] {
@@ -54,6 +79,8 @@ function linesFrom(json: string): KitOrderLine[] {
   }
 }
 
+type Actor = { name: string | null; email: string } | null;
+
 type Row = {
   id: string;
   clientId: string;
@@ -62,7 +89,26 @@ type Row = {
   itemsJson: string;
   totalInr: number;
   createdAt: Date;
+  deliveredAt: Date | null;
+  receivedAt: Date | null;
+  deliveredBy?: Actor;
+  receivedBy?: Actor;
 };
+
+/** Everything an order is, on every read path. One list, so none can drift. */
+const ORDER_SELECT = {
+  id: true,
+  clientId: true,
+  number: true,
+  status: true,
+  itemsJson: true,
+  totalInr: true,
+  createdAt: true,
+  deliveredAt: true,
+  receivedAt: true,
+  deliveredBy: { select: { name: true, email: true } },
+  receivedBy: { select: { name: true, email: true } },
+} as const;
 
 function toOrder(row: Row): KitOrder {
   return {
@@ -73,6 +119,10 @@ function toOrder(row: Row): KitOrder {
     lines: linesFrom(row.itemsJson),
     totalInr: row.totalInr,
     placedAt: row.createdAt,
+    deliveredAt: row.deliveredAt,
+    deliveredByName: whoDid(row.deliveredBy ?? null),
+    receivedAt: row.receivedAt,
+    receivedByName: whoDid(row.receivedBy ?? null),
   };
 }
 
@@ -89,15 +139,7 @@ export async function listKitOrders(db: PrismaClient, clientId: string): Promise
   const rows = await db.kitOrder.findMany({
     where: { clientId },
     orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      clientId: true,
-      number: true,
-      status: true,
-      itemsJson: true,
-      totalInr: true,
-      createdAt: true,
-    },
+    select: ORDER_SELECT,
   });
   return rows.map(toOrder);
 }
@@ -115,16 +157,7 @@ export function orderedQuantity(order: KitOrder, productKey: string): number {
   return order.lines.find((line) => line.productKey === productKey)?.quantity ?? 0;
 }
 
-const WITH_BUSINESS = {
-  id: true,
-  clientId: true,
-  number: true,
-  status: true,
-  itemsJson: true,
-  totalInr: true,
-  createdAt: true,
-  client: { select: { businessName: true } },
-} as const;
+const WITH_BUSINESS = { ...ORDER_SELECT, client: { select: { businessName: true } } } as const;
 
 /**
  * Every order the caller is allowed to see, newest first (M35).
@@ -219,18 +252,143 @@ export async function placeKitOrder(
       totalInr: priced.totalInr,
       ...(options.now ? { createdAt: options.now, updatedAt: options.now } : {}),
     },
-    select: {
-      id: true,
-      clientId: true,
-      number: true,
-      status: true,
-      itemsJson: true,
-      totalInr: true,
-      createdAt: true,
-    },
+    select: ORDER_SELECT,
   });
 
   return { ok: true, data: toOrder(row) };
+}
+
+/**
+ * The latest order a business placed, or null (M36).
+ *
+ * For the operator's client page, which shows the most recent order rather
+ * than a history — the full list lives on the Orders page. Scoped by client id
+ * and by the policy underneath it, like every other read here.
+ */
+export async function latestKitOrder(
+  db: PrismaClient,
+  clientId: string,
+): Promise<KitOrder | null> {
+  const row = await db.kitOrder.findFirst({
+    where: { clientId },
+    orderBy: { createdAt: 'desc' },
+    select: ORDER_SELECT,
+  });
+  return row ? toOrder(row) : null;
+}
+
+/**
+ * An operator says they have sent this order (M36).
+ *
+ * `userId` is the signed-in operator, established by the action's admin gate.
+ * `now` is the server's clock. NEITHER IS EVER READ FROM A FORM — a browser
+ * that posts a deliveredAt, a deliveredBy or a status changes nothing, because
+ * this function takes none of them.
+ *
+ * It does not touch `receivedAt`. Somebody sending a thing is not the same as
+ * somebody receiving it, and this function has no business claiming the second.
+ */
+export async function markKitOrderDelivered(
+  db: PrismaClient,
+  orderId: string,
+  userId: string,
+  options: { now?: Date } = {},
+): Promise<ServiceResult<KitOrder>> {
+  const existing = await db.kitOrder.findUnique({ where: { id: orderId }, select: { id: true } });
+  if (!existing) return { ok: false, message: 'That order no longer exists.', errors: {} };
+
+  const row = await db.kitOrder.update({
+    where: { id: orderId },
+    data: {
+      status: ORDER_STATUS_DELIVERED,
+      deliveredAt: options.now ?? new Date(),
+      deliveredByUserId: userId,
+    },
+    select: ORDER_SELECT,
+  });
+  return { ok: true, data: toOrder(row) };
+}
+
+/**
+ * A business says the kit arrived (M36).
+ *
+ * `clientId` is the one the caller's tenant gate approved, and it is part of
+ * the WHERE — so a business acknowledging somebody else's order id updates no
+ * rows rather than theirs. `userId` and `now` come from the session and the
+ * server's clock.
+ *
+ * ONLY AFTER DELIVERY. A business cannot confirm the arrival of something
+ * nobody has said they sent, so an order that is not delivered is refused
+ * rather than quietly acknowledged.
+ *
+ * It changes NOTHING else: not the status, not the prices, not the lines, not
+ * the total, not who delivered it or when. The only column this writes that
+ * did not exist before the business clicked is their own confirmation.
+ */
+export async function acknowledgeKitOrderReceived(
+  db: PrismaClient,
+  clientId: string,
+  orderId: string,
+  userId: string,
+  options: { now?: Date } = {},
+): Promise<ServiceResult<KitOrder>> {
+  const existing = await db.kitOrder.findFirst({
+    where: { id: orderId, clientId },
+    select: { id: true, deliveredAt: true, receivedAt: true },
+  });
+  if (!existing) return { ok: false, message: 'That order no longer exists.', errors: {} };
+  if (!existing.deliveredAt) {
+    return { ok: false, message: 'That order has not been sent yet.', errors: {} };
+  }
+  if (existing.receivedAt) return { ok: true, data: (await needOrder(db, orderId))! };
+
+  const updated = await db.kitOrder.updateMany({
+    where: { id: orderId, clientId, deliveredAt: { not: null } },
+    data: { receivedAt: options.now ?? new Date(), receivedByUserId: userId },
+  });
+  if (updated.count === 0) {
+    return { ok: false, message: 'That order could not be confirmed.', errors: {} };
+  }
+  return { ok: true, data: (await needOrder(db, orderId))! };
+}
+
+/** Reads one order back after a write, by id alone. */
+async function needOrder(db: PrismaClient, id: string): Promise<KitOrder | null> {
+  const row = await db.kitOrder.findUnique({ where: { id }, select: ORDER_SELECT });
+  return row ? toOrder(row) : null;
+}
+
+/**
+ * An operator deletes an order (M36).
+ *
+ * A HARD DELETE, which is this project's convention for removing a record
+ * outright — the same as `deleteMinute` and `purgeClient`. There is no
+ * `deletedAt` anywhere in this schema and no audit table to write to, so
+ * inventing either here would be building a subsystem of one.
+ *
+ * NOTHING ELSE GOES WITH IT. `KitOrder` is referenced by nothing: no feedback,
+ * no snapshot, no improvement action and no gateway points at an order, and
+ * the only foreign keys ON it point outward, at the Client and at the two
+ * people who handled it. So there is no cascade to reason about — removing the
+ * row removes the order and nothing besides.
+ *
+ * The caller's admin gate has already established that this is platform staff.
+ */
+export async function deleteKitOrder(
+  db: PrismaClient,
+  orderId: string,
+): Promise<ServiceResult<{ id: string; clientId: string }>> {
+  const existing = await db.kitOrder.findUnique({
+    where: { id: orderId },
+    select: { id: true, clientId: true },
+  });
+  if (!existing) return { ok: false, message: 'That order no longer exists.', errors: {} };
+
+  const removed = await db.kitOrder.deleteMany({ where: { id: orderId } });
+  if (removed.count === 0) {
+    return { ok: false, message: 'That order could not be deleted.', errors: {} };
+  }
+  return { ok: true, data: existing };
 }
 
 /** The catalogue as the page needs it. Exported so one list feeds both. */

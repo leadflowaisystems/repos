@@ -508,5 +508,33 @@ export const kit = {
   'kit.orders.number': { en: 'Order #{number}', hi: 'ऑर्डर #{number}', mr: 'ऑर्डर #{number}' },
   'kit.orders.pieces.one': { en: '{count} piece', hi: '{count} नग', mr: '{count} नग' },
   'kit.orders.pieces.other': { en: '{count} pieces', hi: '{count} नग', mr: '{count} नग' },
+  // ---- Delivery and receipt (M36) -------------------------------------------
+  //
+  // Two different facts said by two different people. Headway says it sent the
+  // kit; the business says it arrived. Neither sentence claims the other.
+  'kit.orders.status.delivered': { en: 'Delivered', hi: 'भेज दिया', mr: 'पाठवला' },
+  'kit.orders.sentOn': {
+    en: 'Headway sent this on {date}.',
+    hi: 'Headway ने यह {date} को भेजा।',
+    mr: 'Headway ने हे {date} रोजी पाठवलं.',
+  },
+  'kit.receipt.cta': { en: 'Order received', hi: 'ऑर्डर मिल गया', mr: 'ऑर्डर मिळाला' },
+  'kit.receipt.hint': {
+    en: 'Tick this once the cards are actually in your hands.',
+    hi: 'जब कार्ड सचमुच आपके हाथ में आ जाएँ, तब यह टिक करें।',
+    mr: 'कार्डं खरोखर तुमच्या हातात आल्यावरच हे टिक करा.',
+  },
+  'kit.receipt.saving': { en: 'Saving…', hi: 'सेव हो रहा है…', mr: 'सेव्ह होत आहे…' },
+  'kit.receipt.done': { en: 'Order received', hi: 'ऑर्डर मिल गया', mr: 'ऑर्डर मिळाला' },
+  'kit.receipt.doneOn': {
+    en: 'Received {date}',
+    hi: '{date} को मिला',
+    mr: '{date} रोजी मिळाला',
+  },
+  'kit.receipt.error': {
+    en: 'That could not be confirmed. Try again in a moment.',
+    hi: 'यह पक्का नहीं हो सका। थोड़ी देर बाद फिर कोशिश करें।',
+    mr: 'हे निश्चित होऊ शकलं नाही. थोड्या वेळाने पुन्हा प्रयत्न करा.',
+  },
   'kit.orders.status.received': { en: 'Received', hi: 'मिल गया', mr: 'मिळाला' },
 } satisfies Namespace;

@@ -4,7 +4,12 @@ import { prisma } from '@/lib/db';
 import { requireOpenWorkspace } from '@/lib/lifecycle/access';
 import { formatDate } from '@/lib/format';
 import { kitProduct } from '@/lib/kit/catalogue';
-import { listKitOrders, ORDER_STATUS_RECEIVED } from '@/lib/kit/orders';
+import {
+  listKitOrders,
+  ORDER_STATUS_DELIVERED,
+  ORDER_STATUS_RECEIVED,
+} from '@/lib/kit/orders';
+import { KitOrderReceiptForm } from '@/components/forms/kit-receipt-form';
 import { PageIntro, Quiet, Section } from '@/components/portal/portal-ui';
 import { getTranslator } from '@/lib/i18n/request';
 
@@ -83,9 +88,11 @@ export default async function WorkspaceOrdersPage({
                     one status this system writes prints as itself rather than
                     as a blank — a row nobody expected is still a row. */}
                 <span className="rounded-full bg-good-50 px-3 py-1 text-[12px] font-semibold text-good-700">
-                  {order.status === ORDER_STATUS_RECEIVED
-                    ? t('kit.orders.status.received')
-                    : order.status}
+                  {order.status === ORDER_STATUS_DELIVERED
+                    ? t('kit.orders.status.delivered')
+                    : order.status === ORDER_STATUS_RECEIVED
+                      ? t('kit.orders.status.received')
+                      : order.status}
                 </span>
               </div>
               <p className="mt-0.5 text-[13px] text-ink-500">{formatDate(order.placedAt)}</p>
@@ -120,6 +127,27 @@ export default async function WorkspaceOrdersPage({
                   {money(order.totalInr)}
                 </span>
               </div>
+
+              {/*
+                SAYING IT ARRIVED (M36).
+
+                Only once Headway has said it sent the thing — a shop cannot
+                confirm the arrival of something nobody claims to have posted,
+                so before that there is nothing here to tick. The control says
+                one fact and carries no price, no total and no status.
+              */}
+              {order.deliveredAt ? (
+                <div className="mt-4 border-t border-ink-200 pt-4">
+                  <p className="text-[13px] leading-relaxed text-ink-500">
+                    {t('kit.orders.sentOn', { date: formatDate(order.deliveredAt) })}
+                  </p>
+                  <KitOrderReceiptForm
+                    clientId={clientId}
+                    orderId={order.id}
+                    receivedOn={order.receivedAt ? formatDate(order.receivedAt) : null}
+                  />
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>

@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import clsx from 'clsx';
-import { Badge, Card, CardBody, CardHeader, Notice } from '@/components/ui';
-import { CopyButton, PrintKitButton } from '@/components/copy-button';
+import { Badge, Card, CardBody, CardHeader, LinkButton, Notice } from '@/components/ui';
+import Image from 'next/image';
+import { CopyButton } from '@/components/copy-button';
 import {
   KitInstalledToggle,
   KitSettingsForm,
@@ -9,10 +10,29 @@ import {
 } from '@/components/forms/kit-forms';
 import { prisma } from '@/lib/db';
 import { getKitView } from '@/lib/kit/service';
+import { KIT_PRODUCTS } from '@/lib/kit/catalogue';
+import { PRINT_SHEETS } from '@/lib/kit/sheets';
 import { requestOrigin } from '@/lib/gateway/origin';
 import { formatDate } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * The operator's words for the two formats.
+ *
+ * Plain strings, not dictionary keys: the operator console is not translated.
+ * They are keyed by the catalogue's own product key, so the two lists cannot
+ * drift apart without a type error.
+ */
+const PRODUCT_TITLE: Record<string, string> = {
+  'card-qr-stand': '4 × 6 in Card + QR Stand',
+  'folded-tent': '4 × 6 in Folded Tent Card',
+};
+
+const PRODUCT_BLURB: Record<string, string> = {
+  'card-qr-stand': 'Personalized 4 × 6 in feedback card for a QR stand holder.',
+  'folded-tent': 'Personalized 4 × 6 in feedback card that folds into a table tent.',
+};
 
 /**
  * ONE kit page for every vertical.
@@ -31,7 +51,28 @@ export default async function KitPage({
   if (!kit) notFound();
 
   const { content, readiness, qr } = kit;
-  const printHref = `/print/kit/${id}`;
+
+  /**
+   * THE TWO APPROVED FORMATS, AND THE MASTER EACH ONE PRINTS FROM (M36).
+   *
+   * Both are the same signed-off Headway card. `insert-4x6` is the A4 sheet
+   * whose own description says "for an acrylic stand"; `pair-legal` is the
+   * Legal sheet that scores and folds into a standing tent. Nothing here draws
+   * or re-renders anything — each link opens the existing personalised print
+   * route, which fills this business's name and its own QR into the approved
+   * PDF and leaves every other byte alone.
+   *
+   * A format with no sheet behind it is not rendered rather than rendered
+   * broken, so this cannot invent a third option by accident.
+   */
+  const FORMAT_SHEET: Record<string, string> = {
+    'card-qr-stand': 'insert-4x6',
+    'folded-tent': 'pair-legal',
+  };
+  const formats = KIT_PRODUCTS.flatMap((product) => {
+    const sheet = PRINT_SHEETS.find((s) => s.key === FORMAT_SHEET[product.key]);
+    return sheet ? [{ product, sheet }] : [];
+  });
 
   return (
     <div className="space-y-6">
@@ -58,7 +99,6 @@ export default async function KitPage({
 
           {readiness.ready ? (
             <div className="flex flex-wrap items-center gap-2">
-              <PrintKitButton href={printHref} />
               <CopyButton value={content.feedbackUrl ?? ''} label="Copy feedback link" />
               <KitInstalledToggle
                 clientId={id}
@@ -68,6 +108,68 @@ export default async function KitPage({
           ) : null}
         </CardBody>
       </Card>
+
+      {/*
+        ---- The two formats: the primary presentation (M36) ----
+
+        This used to be one button opening a generic browser-print page. The
+        physical kit has exactly two approved formats, and the operator picks
+        the one the shop asked for. Each card shows the real photographed
+        product and prints from the approved master for that format.
+      */}
+      {readiness.ready ? (
+        <Card>
+          <CardHeader
+            title="Print this client's kit"
+            description="Two formats, both the approved card. Each print carries this client's name and their own QR."
+          />
+          <CardBody>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {formats.map(({ product, sheet }) => (
+                <article
+                  key={product.key}
+                  className="flex flex-col overflow-hidden rounded-xl border border-ink-200 bg-white"
+                >
+                  <Image
+                    src={product.photo}
+                    alt={product.shortName}
+                    width={product.photoWidth}
+                    height={product.photoHeight}
+                    sizes="(min-width: 640px) 50vw, 100vw"
+                    className="aspect-[4/3] w-full bg-ink-50 object-cover"
+                  />
+                  <div className="flex flex-1 flex-col p-4">
+                    <p className="text-[15px] font-semibold tracking-tight text-ink-900">
+                      {PRODUCT_TITLE[product.key]}
+                    </p>
+                    <p className="mt-1.5 text-[13px] leading-relaxed text-ink-600">
+                      {PRODUCT_BLURB[product.key]}
+                    </p>
+                    <p className="mt-2 text-[12px] text-ink-500">{sheet.sheetNote}</p>
+                    <div className="mt-auto flex flex-wrap gap-2 pt-4">
+                      <LinkButton
+                        href={`/print/sheet/${id}/${sheet.key}`}
+                        variant="primary"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Print this format
+                      </LinkButton>
+                      <LinkButton href={`/print/sheet/${id}/${sheet.key}?download=1`}>
+                        Download PDF
+                      </LinkButton>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <p className="mt-4 text-[12px] leading-relaxed text-ink-500">
+              Printing is not ordering. Nothing here records that this client
+              asked for a kit — that is the Orders page.
+            </p>
+          </CardBody>
+        </Card>
+      ) : null}
 
       {/* ---- What is actually in the way, if anything ---- */}
       {!readiness.ready ? (

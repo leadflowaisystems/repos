@@ -8,10 +8,21 @@ import {
   LinkButton,
   PageHeader,
 } from '@/components/ui';
+import {
+  DeleteOrderControl,
+  OrderDeliveredControl,
+} from '@/components/forms/kit-order-controls';
 import { prisma } from '@/lib/db';
 import { formatDate, formatDateTime, formatNumber, formatRupees } from '@/lib/format';
 import { kitProduct } from '@/lib/kit/catalogue';
-import { getKitOrder, ORDER_STATUS_RECEIVED } from '@/lib/kit/orders';
+import { getKitOrder, ORDER_STATUS_DELIVERED, ORDER_STATUS_RECEIVED } from '@/lib/kit/orders';
+
+/** The two statuses, as an operator reads them. Nothing between them exists. */
+function statusLabel(status: string): string {
+  if (status === ORDER_STATUS_DELIVERED) return 'Delivered';
+  if (status === ORDER_STATUS_RECEIVED) return 'Received';
+  return status;
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -51,8 +62,8 @@ export default async function OperatorOrderPage({
         description={`Placed ${formatDate(order.placedAt)}.`}
         actions={
           <>
-            <Badge tone={order.status === ORDER_STATUS_RECEIVED ? 'brand' : 'neutral'}>
-              {order.status === ORDER_STATUS_RECEIVED ? 'Received' : order.status}
+            <Badge tone={order.status === ORDER_STATUS_DELIVERED ? 'good' : 'brand'}>
+              {statusLabel(order.status)}
             </Badge>
             <LinkButton href={`/clients/${order.clientId}`}>Open client</LinkButton>
             <LinkButton href="/orders">All orders</LinkButton>
@@ -121,10 +132,56 @@ export default async function OperatorOrderPage({
               <DataRow label="Order number">{number}</DataRow>
               <DataRow label="Placed">{formatDateTime(order.placedAt)}</DataRow>
               <DataRow label="Total">{formatRupees(order.totalInr)}</DataRow>
-              <DataRow label="Status">
-                {order.status === ORDER_STATUS_RECEIVED ? 'Received' : order.status}
+              <DataRow label="Status">{statusLabel(order.status)}</DataRow>
+              <DataRow label="Delivered">
+                {order.deliveredAt
+                  ? `${formatDateTime(order.deliveredAt)}${order.deliveredByName ? ` by ${order.deliveredByName}` : ''}`
+                  : 'Not yet'}
+              </DataRow>
+              {/* The client's own confirmation, which is a different fact from
+                  delivery and is theirs to give. Shown here so an operator can
+                  see whether it actually arrived, never set here. */}
+              <DataRow label="Client confirmed receipt">
+                {order.receivedAt
+                  ? `${formatDateTime(order.receivedAt)}${order.receivedByName ? ` by ${order.receivedByName}` : ''}`
+                  : 'Not yet'}
               </DataRow>
             </dl>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardHeader
+            title="Delivery"
+            description="Mark this once the printed kit is on its way to the client."
+          />
+          <CardBody>
+            <OrderDeliveredControl
+              orderId={order.id}
+              deliveredOn={order.deliveredAt ? formatDate(order.deliveredAt) : null}
+              deliveredByName={order.deliveredByName}
+            />
+            <p className="mt-3 text-[12px] leading-relaxed text-ink-500">
+              {order.receivedAt
+                ? `The client confirmed it arrived on ${formatDate(order.receivedAt)}.`
+                : order.deliveredAt
+                  ? 'The client has not confirmed it arrived yet. Only they can do that.'
+                  : 'The client cannot confirm receipt until this is marked delivered.'}
+            </p>
+          </CardBody>
+        </Card>
+
+        {/*
+          Destructive, and deliberately last and quiet. Two taps, with Cancel
+          first, and the permission re-checked on the server whatever the
+          browser claims happened here.
+        */}
+        <Card>
+          <CardHeader
+            title="Delete order"
+            description="Removes this order entirely. Nothing else about the client is touched."
+          />
+          <CardBody>
+            <DeleteOrderControl orderId={order.id} orderNumber={number} />
           </CardBody>
         </Card>
       </div>

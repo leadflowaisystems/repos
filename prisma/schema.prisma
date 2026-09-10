@@ -214,16 +214,41 @@ model KitOrder {
   /// 1, 2, 3 … per business, so an owner reads "Order #003" rather than a cuid.
   number Int
 
-  /// RECEIVED is the only status Headway can honestly claim: an order has been
-  /// recorded and somebody will be in touch. Nothing here tracks printing,
-  /// dispatch or delivery, because none of that exists yet — and a status the
-  /// system cannot actually observe is a promise it cannot keep.
+  /// RECEIVED or DELIVERED, and nothing else (M36).
+  ///
+  /// RECEIVED means Headway has the request. DELIVERED means an operator says
+  /// they have sent it. There is no Shipped, no Preparing and no Out for
+  /// delivery, because there is no courier to ask — a status the system cannot
+  /// observe is a promise it cannot keep.
+  ///
+  /// The business confirming the kit ARRIVED is a different fact and does not
+  /// live here; see `receivedAt` below.
   status String @default("RECEIVED")
 
   /// The priced lines: [{ productKey, quantity, unitPriceInr, lineTotalInr }].
   itemsJson String
   /// Whole rupees. The sum of the lines, computed server-side.
   totalInr  Int
+
+  /// WHEN THE OPERATOR SENT IT, AND WHO SENT IT (M36).
+  ///
+  /// Written only by `app`-side code behind an admin gate, from the server's
+  /// own clock and the signed-in operator. Nothing about delivery is ever read
+  /// off a form.
+  deliveredAt       DateTime?
+  deliveredByUserId String?
+  deliveredBy       User?     @relation("KitOrderDeliveredBy", fields: [deliveredByUserId], references: [id], onDelete: SetNull)
+
+  /// WHEN THE BUSINESS SAID IT ARRIVED, AND WHO SAID SO (M36).
+  ///
+  /// A SEPARATE FACT FROM DELIVERY, deliberately. "I sent it" and "it arrived"
+  /// are two different claims by two different people, and one must never be
+  /// inferred from the other: an operator marking an order delivered does not
+  /// make it received, and a business confirming receipt does not make it
+  /// delivered. Both are nullable because both may simply not have happened.
+  receivedAt       DateTime?
+  receivedByUserId String?
+  receivedBy       User?     @relation("KitOrderReceivedBy", fields: [receivedByUserId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -284,6 +309,12 @@ model User {
 
   memberships Membership[]
   invitesSent Invitation[] @relation("InvitedBy")
+
+  /// Printed kits this person marked sent, or confirmed as arrived (M36).
+  /// Back-relations only; both sides are SetNull, so removing a person leaves
+  /// the order intact with the name simply gone.
+  kitOrdersDelivered KitOrder[] @relation("KitOrderDeliveredBy")
+  kitOrdersReceived  KitOrder[] @relation("KitOrderReceivedBy")
 
   @@index([isPlatformAdmin])
   @@index([status])
