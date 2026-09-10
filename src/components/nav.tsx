@@ -6,9 +6,16 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { HeadwayWordmark } from '@/components/brand';
 
+/**
+ * Orders sits under Clients (M35) because it is work waiting to be done for
+ * one of them — closer in kind to the client list than to Minutes, which is a
+ * log of what already happened. Settings stays last: it is the one
+ * configuration door among working doors.
+ */
 const ITEMS = [
   { href: '/', label: 'Dashboard' },
   { href: '/clients', label: 'Clients' },
+  { href: '/orders', label: 'Orders' },
   { href: '/minutes', label: 'Minutes' },
   { href: '/settings', label: 'Settings' },
 ] as const;

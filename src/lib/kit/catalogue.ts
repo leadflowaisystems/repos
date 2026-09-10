@@ -45,6 +45,15 @@ export type KitProduct = {
   descriptionKey: MessageKey;
   /** Alt text, for somebody who cannot see the photograph. */
   altKey: MessageKey;
+  /**
+   * The operator's shorthand for this product (M35).
+   *
+   * The operator console is not translated and its orders table needs a column
+   * heading, so the size prefix a business reads on the Kit page is dropped
+   * here. Same product, working shorthand — never shown to a business, which is
+   * why it is a plain string and not a dictionary key.
+   */
+  shortName: string;
 };
 
 export const KIT_PRODUCTS: readonly KitProduct[] = [
@@ -57,6 +66,7 @@ export const KIT_PRODUCTS: readonly KitProduct[] = [
     nameKey: 'kit.product.stand.name',
     descriptionKey: 'kit.product.stand.description',
     altKey: 'kit.product.stand.alt',
+    shortName: 'Card + QR Stand',
   },
   {
     key: 'folded-tent',
@@ -67,6 +77,7 @@ export const KIT_PRODUCTS: readonly KitProduct[] = [
     nameKey: 'kit.product.tent.name',
     descriptionKey: 'kit.product.tent.description',
     altKey: 'kit.product.tent.alt',
+    shortName: 'Folded Tent Card',
   },
 ] as const;
 

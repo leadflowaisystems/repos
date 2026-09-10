@@ -102,6 +102,74 @@ export async function listKitOrders(db: PrismaClient, clientId: string): Promise
   return rows.map(toOrder);
 }
 
+/**
+ * An order as the OPERATOR reads it: with the business's name on it (M35).
+ *
+ * A business already knows whose order it is looking at. An operator is looking
+ * at everybody's, so the name is the first thing they need.
+ */
+export type KitOrderForOperator = KitOrder & { businessName: string };
+
+/** How many of one product an order was for. Zero if it was not on the order. */
+export function orderedQuantity(order: KitOrder, productKey: string): number {
+  return order.lines.find((line) => line.productKey === productKey)?.quantity ?? 0;
+}
+
+const WITH_BUSINESS = {
+  id: true,
+  clientId: true,
+  number: true,
+  status: true,
+  itemsJson: true,
+  totalInr: true,
+  createdAt: true,
+  client: { select: { businessName: true } },
+} as const;
+
+/**
+ * Every order the caller is allowed to see, newest first (M35).
+ *
+ * THERE IS NO `clientId` FILTER HERE, AND THAT IS THE POINT. The scope is the
+ * `tenant_isolation` policy on `KitOrder`, which restricts every row to
+ * `app.accessible_client_ids()`. For platform staff that is every business, so
+ * the operator's page lists everything; for anybody else it is their own
+ * businesses and nothing more. The same query, asked by two people, answers
+ * differently — which is the only way this can be right, because a filter in
+ * TypeScript would be one somebody could later forget.
+ *
+ * Archived businesses are INCLUDED. An order is a thing somebody still has to
+ * print and send; archiving the business afterwards does not undo it, and a
+ * list that quietly dropped it would be hiding work rather than finishing it.
+ */
+export async function listAllKitOrders(
+  db: PrismaClient,
+  options: { limit?: number } = {},
+): Promise<KitOrderForOperator[]> {
+  const rows = await db.kitOrder.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: options.limit ?? 200,
+    select: WITH_BUSINESS,
+  });
+  return rows.map((row) => ({ ...toOrder(row), businessName: row.client.businessName }));
+}
+
+/**
+ * One order, by its id, for the operator's detail page (M35).
+ *
+ * Again no `clientId` in the query: an order the caller may not see is not
+ * found rather than forbidden, because the policy removes the row before this
+ * code ever sees it. So an operator guessing at ids learns nothing, and neither
+ * does anybody else.
+ */
+export async function getKitOrder(
+  db: PrismaClient,
+  id: string,
+): Promise<KitOrderForOperator | null> {
+  const row = await db.kitOrder.findUnique({ where: { id }, select: WITH_BUSINESS });
+  if (!row) return null;
+  return { ...toOrder(row), businessName: row.client.businessName };
+}
+
 export type PlaceOrderInput = {
   /** Product key -> quantity, exactly as the form sent it. Assumed hostile. */
   quantities: Record<string, unknown>;
