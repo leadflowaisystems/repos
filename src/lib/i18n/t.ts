@@ -84,10 +84,23 @@ export function resolve(
  * made to download Hindi and Marathi as well, and that the fallback has already
  * been applied on the server — the browser receives finished strings and needs
  * no dictionary logic at all.
+ *
+ * `prefixes` limits it to the namespaces a given tree can actually reach.
+ * Without it the sign-in page — one email field, one password field, seen by
+ * somebody who is not signed in and is often on a phone — carried all 1663
+ * phrases, including every vertical's taxonomy and every sentence the
+ * server-side builders write. None of that can be read by a client component,
+ * and a page that has to arrive before anyone can sign in is the worst place
+ * to spend a hundred kilobytes.
  */
-export function flattenFor(messages: Namespace, locale: Locale): Record<string, string> {
+export function flattenFor(
+  messages: Namespace,
+  locale: Locale,
+  prefixes?: readonly string[],
+): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [key, phrase] of Object.entries(messages)) {
+    if (prefixes && !prefixes.some((p) => key.startsWith(p))) continue;
     const written = locale === DEFAULT_LOCALE ? phrase.en : phrase[locale];
     out[key] = written ?? phrase.en;
   }

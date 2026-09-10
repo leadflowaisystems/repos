@@ -29,6 +29,23 @@ export const viewport: Viewport = {
  * owner who chose Marathi and then signed out would otherwise be met in English
  * at the one screen they cannot skip.
  */
+/**
+ * The only namespaces a client component under this layout can reach.
+ *
+ * `(auth)` renders exactly two translated client components — the sign-in and
+ * setup forms in `components/forms/account-forms.tsx` (common.form.*) and the
+ * invitation form in `components/forms/team-forms.tsx` (team.*). Everything
+ * else in the dictionary is either portal chrome or, in the case of the four
+ * largest namespaces, sentences the SERVER-side builders write and no browser
+ * ever reads.
+ *
+ * Sending the whole dictionary here put ~130KB of it into the sign-in page —
+ * a page an unauthenticated visitor has to finish downloading before they can
+ * type anything, very often on a phone. `tests/m32.auth-payload.test.ts` keeps
+ * this list honest: it fails if either form starts using a key outside it.
+ */
+const AUTH_NAMESPACES = ['common.', 'team.'] as const;
+
 export default async function AuthRootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -37,7 +54,7 @@ export default async function AuthRootLayout({
   return (
     <html lang={LOCALE_HTML_LANG[locale]}>
       <body className="min-h-dvh bg-ink-50">
-        <LocaleProvider locale={locale} strings={flattenFor(MESSAGES, locale)}>
+        <LocaleProvider locale={locale} strings={flattenFor(MESSAGES, locale, AUTH_NAMESPACES)}>
           <div className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center px-5 py-12">
             {children}
           </div>
