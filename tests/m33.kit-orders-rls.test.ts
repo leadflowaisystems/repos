@@ -155,7 +155,7 @@ describe('10. an order is stored against the business that placed it', () => {
     expect(rows[0]?.clientId).toBe(seeded.alphaClient);
     expect(rows[0]?.number).toBe(1);
     expect(rows[0]?.status).toBe('RECEIVED');
-    expect(rows[0]?.totalInr).toBe(350);
+    expect(rows[0]?.totalInr).toBe(2 * 99 + 3 * 49);
   });
 
   it('ignores a client id the browser chose for itself', async () => {
@@ -187,10 +187,10 @@ describe('11. a business reads its own orders back', () => {
     const mine = await orders.listKitOrders(app, seeded.alphaClient);
     expect(mine).toHaveLength(1);
     expect(mine[0]?.clientId).toBe(seeded.alphaClient);
-    expect(mine[0]?.totalInr).toBe(350);
+    expect(mine[0]?.totalInr).toBe(345);
     expect(mine[0]?.lines).toEqual([
-      { productKey: 'card-qr-stand', quantity: 2, unitPriceInr: 100, lineTotalInr: 200 },
-      { productKey: 'folded-tent', quantity: 3, unitPriceInr: 50, lineTotalInr: 150 },
+      { productKey: 'card-qr-stand', quantity: 2, unitPriceInr: 99, lineTotalInr: 198 },
+      { productKey: 'folded-tent', quantity: 3, unitPriceInr: 49, lineTotalInr: 147 },
     ]);
   });
 });
@@ -218,7 +218,7 @@ describe('12. a business cannot see another business’s orders', () => {
     const seen = await app.kitOrder.findMany({ select: { clientId: true, totalInr: true } });
     expect(seen).toHaveLength(1);
     expect(seen[0]?.clientId).toBe(seeded.alphaClient);
-    expect(seen[0]?.totalInr).toBe(200);
+    expect(seen[0]?.totalInr).toBe(2 * 99);
 
     // Both rows do exist. Alpha simply cannot reach the other one.
     expect(await allRows()).toHaveLength(2);
@@ -281,9 +281,9 @@ describe('13. the server controls the price', () => {
     const rows = await allRows();
     const lines = JSON.parse(rows[0]?.itemsJson ?? '[]');
     expect(lines).toEqual([
-      { productKey: 'card-qr-stand', quantity: 2, unitPriceInr: 100, lineTotalInr: 200 },
+      { productKey: 'card-qr-stand', quantity: 2, unitPriceInr: 99, lineTotalInr: 198 },
     ]);
-    expect(rows[0]?.totalInr).toBe(200);
+    expect(rows[0]?.totalInr).toBe(198);
   });
 
   it('ignores a product the browser invented, and records nothing at all', async () => {
@@ -309,7 +309,7 @@ describe('14. the browser cannot alter the total', () => {
       ),
     );
     expect(result.ok).toBe(true);
-    expect((await allRows())[0]?.totalInr).toBe(350);
+    expect((await allRows())[0]?.totalInr).toBe(345);
   });
 
   it('refuses a quantity of zero on every line rather than storing an empty order', async () => {
@@ -345,7 +345,7 @@ describe('14. the browser cannot alter the total', () => {
 
     const lines = JSON.parse((await allRows())[0]?.itemsJson ?? '[]');
     expect(lines).toEqual([
-      { productKey: 'folded-tent', quantity: 4, unitPriceInr: 50, lineTotalInr: 200 },
+      { productKey: 'folded-tent', quantity: 4, unitPriceInr: 49, lineTotalInr: 196 },
     ]);
   });
 });
@@ -396,7 +396,8 @@ describe('16. a new order appears in the history', () => {
 
     const mine = await orders.listKitOrders(app, seeded.alphaClient);
     expect(mine.map((order) => order.number)).toEqual([2, 1]);
-    expect(mine.map((order) => order.totalInr)).toEqual([100, 100]);
+    // Newest first: two tents, then one stand.
+    expect(mine.map((order) => order.totalInr)).toEqual([2 * 49, 99]);
     expect(mine.every((order) => order.status === 'RECEIVED')).toBe(true);
   });
 

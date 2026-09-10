@@ -318,6 +318,16 @@ export type ClientListRow = {
   snapshotCount: number;
   lastSnapshotAt: Date | null;
   /**
+   * How many printed kits this business has ordered (M34).
+   *
+   * Counted from its own `KitOrder` rows, never stored on the client and never
+   * sent up from a browser. The operator's list needs one thing from it — has
+   * this business ordered anything at all — but the count is what the database
+   * can answer cheaply, and it is worth more on the detail page than a boolean
+   * would be.
+   */
+  kitOrderCount: number;
+  /**
    * M28 - the raw facts the lifecycle needs. Carried rather than interpreted,
    * so the list and the workspace reach the same verdict through the same pure
    * function instead of two lists of rules that drift.
@@ -366,7 +376,9 @@ export async function listClients(
       accessOverrideAt: true,
       serviceExemption: true,
       paymentRequestedAt: true,
-      _count: { select: { snapshots: true } },
+      // Counted in the same query as the snapshots, so the list still costs
+      // one round trip however many businesses are on it.
+      _count: { select: { snapshots: true, kitOrders: true } },
       snapshots: {
         orderBy: { capturedAt: 'desc' },
         take: 1,
@@ -387,6 +399,7 @@ export async function listClients(
     archivedAt: row.archivedAt,
     snapshotCount: row._count.snapshots,
     lastSnapshotAt: row.snapshots[0]?.capturedAt ?? null,
+    kitOrderCount: row._count.kitOrders,
     subscriptionStatus: row.subscriptionStatus,
     trialStartsAt: row.trialStartsAt,
     trialEndsAt: row.trialEndsAt,

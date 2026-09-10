@@ -131,9 +131,11 @@ describe('3. the product names are the ones agreed', () => {
 });
 
 describe('4. the prices are the ones agreed', () => {
-  it('charges ₹100 for the stand and ₹50 for the tent', () => {
-    expect(kitProduct('card-qr-stand')?.priceInr).toBe(100);
-    expect(kitProduct('folded-tent')?.priceInr).toBe(50);
+  it('charges ₹99 for the stand and ₹49 for the tent', () => {
+    // M34 moved these from ₹100 and ₹50. Orders already placed keep the price
+    // they were placed at — see "a price change does not reach back" below.
+    expect(kitProduct('card-qr-stand')?.priceInr).toBe(99);
+    expect(kitProduct('folded-tent')?.priceInr).toBe(49);
   });
 
   it('keeps money in whole rupees, so no float ever touches it', () => {
@@ -218,15 +220,15 @@ describe('7. changing a quantity changes the amount', () => {
     expect(priced.ok).toBe(true);
     if (!priced.ok) return;
     expect(priced.lines).toEqual([
-      { productKey: 'card-qr-stand', quantity: 2, unitPriceInr: 100, lineTotalInr: 200 },
-      { productKey: 'folded-tent', quantity: 3, unitPriceInr: 50, lineTotalInr: 150 },
+      { productKey: 'card-qr-stand', quantity: 2, unitPriceInr: 99, lineTotalInr: 198 },
+      { productKey: 'folded-tent', quantity: 3, unitPriceInr: 49, lineTotalInr: 147 },
     ]);
-    expect(priced.totalInr).toBe(350);
+    expect(priced.totalInr).toBe(345);
   });
 
   it('adds the lines up rather than trusting any single figure', () => {
     const priced = priceOrder({ 'card-qr-stand': 7, 'folded-tent': 11 });
-    expect(priced.ok && priced.totalInr).toBe(7 * 100 + 11 * 50);
+    expect(priced.ok && priced.totalInr).toBe(7 * 99 + 11 * 49);
   });
 
   it('recomputes the reading on screen from the same two numbers', () => {

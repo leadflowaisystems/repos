@@ -262,13 +262,25 @@ export default async function ClientsPage({
                       {verticalLabel(client.vertical)}
                     </td>
                     <td className="px-5 py-3">
-                      {client.archivedAt ? (
-                        <Badge tone="neutral">Archived</Badge>
-                      ) : (
-                        <Badge tone={STATUS_TONE[client.status] ?? 'neutral'}>
-                          {titleCase(client.status)}
-                        </Badge>
-                      )}
+                      {/* Badges wrap inside the cell rather than widening it,
+                          so the second one cannot push the table sideways. */}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {client.archivedAt ? (
+                          <Badge tone="neutral">Archived</Badge>
+                        ) : (
+                          <Badge tone={STATUS_TONE[client.status] ?? 'neutral'}>
+                            {titleCase(client.status)}
+                          </Badge>
+                        )}
+                        {/* M34 — this business has asked for the printed kit.
+                            Gold, which is Headway's own emphasis and not one
+                            of the two alarms: it is a thing to notice, not a
+                            thing that has gone wrong. Counted from the
+                            business's own KitOrder rows. */}
+                        {client.kitOrderCount > 0 ? (
+                          <Badge tone="brand">Kit ordered</Badge>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-5 py-3">
                       <Badge tone={SERVICE_TONE[lifecycle.state] ?? 'neutral'}>

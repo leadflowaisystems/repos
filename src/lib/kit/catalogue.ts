@@ -16,6 +16,14 @@ import type { MessageKey } from '@/lib/i18n/strings';
  * PRICES ARE WHOLE RUPEES. Every amount in this product is a whole rupee
  * (`avgCustomerValueInr` on a Client is the same), there is no tax line and no
  * discount, so an integer is the honest type. No floating point touches money.
+ *
+ * CHANGING A PRICE HERE CHANGES WHAT THE NEXT ORDER COSTS, AND NOTHING ELSE.
+ * An order that has already been placed carries its own prices: `placeKitOrder`
+ * copies the figures below onto the row at the moment of ordering, and every
+ * read path takes them back off that row rather than looking them up again. So
+ * an order placed at ₹100 still reads ₹100 on the Orders page after this list
+ * says ₹99, which is the only honest thing for a record of what somebody
+ * agreed to pay. There is no back-fill, and there must never be one.
  */
 
 export type KitProductKey = 'card-qr-stand' | 'folded-tent';
@@ -42,7 +50,7 @@ export type KitProduct = {
 export const KIT_PRODUCTS: readonly KitProduct[] = [
   {
     key: 'card-qr-stand',
-    priceInr: 100,
+    priceInr: 99,
     photo: '/kit/card-qr-stand.webp',
     photoWidth: 1312,
     photoHeight: 1199,
@@ -52,7 +60,7 @@ export const KIT_PRODUCTS: readonly KitProduct[] = [
   },
   {
     key: 'folded-tent',
-    priceInr: 50,
+    priceInr: 49,
     photo: '/kit/folded-tent-card.webp',
     photoWidth: 1312,
     photoHeight: 1199,

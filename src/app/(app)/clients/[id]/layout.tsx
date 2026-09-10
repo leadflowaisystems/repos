@@ -37,6 +37,9 @@ export default async function ClientLayout({
       status: true,
       plan: true,
       archivedAt: true,
+      // M34 — has this business ordered the printed kit? Counted from its own
+      // KitOrder rows, in the query that was already being made.
+      _count: { select: { kitOrders: true } },
     },
   });
 
@@ -63,6 +66,13 @@ export default async function ClientLayout({
               {titleCase(client.status)}
             </Badge>
             <Badge>{titleCase(client.plan)}</Badge>
+            {/* M34 — the same badge the clients list shows, in the same gold,
+                so the operator recognises it in both places. It sits in the
+                layout rather than the overview page so it is still on screen
+                when they are three tabs deep in this business. */}
+            {client._count.kitOrders > 0 ? (
+              <Badge tone="brand">Kit ordered</Badge>
+            ) : null}
             <LinkButton href={`/clients/${client.id}/edit`}>Edit details</LinkButton>
           </>
         }
