@@ -255,6 +255,45 @@ policies, and the `app` schema holds **20** functions with
 `public-gateway.sql` applied, 18 without.
 
 
+**A database from before M38 needs one more policy, and this file carries it.**
+The Team page joins Membership to User for each member's name and email, and
+`user_self_or_admin` — the only policy on `User` — let a person read one row
+of it: their own. For an owner who is not Headway staff and whose business has
+a second member, the join answered nothing and Prisma threw (the relation is
+required), so the page failed. It never showed to a platform admin, who reads
+every row. Either of these puts it right; the first is the incremental one:
+
+```bash
+# See "Applying SQL to production" below.
+psql -X -1 -v ON_ERROR_STOP=1 -c "SET lock_timeout = '5s'" -f prisma/m38/migration.sql   # 1
+# or re-apply the whole file, which now carries the same function and policy:
+psql -X -1 -v ON_ERROR_STOP=1 -c "SET lock_timeout = '5s'" -f prisma/m20/rls.sql
+```
+
+Order does not matter against the deployed code: the Team query is unchanged,
+so the policy fixes the live build the moment it lands. Verify it landed:
+
+```sql
+SELECT count(*) FROM pg_policies
+ WHERE schemaname = 'public' AND tablename = 'User'
+   AND policyname = 'user_colleague_read';   -- must be 1
+```
+
+The file gained one function and one policy:
+
+* `app.colleague_user_ids` — the ids of everyone holding a membership, active
+  or suspended, in a business where the CALLER holds an active one. SECURITY
+  DEFINER like `app.owned_client_ids`; keyed on `app.current_user_id()` alone,
+  so a pipeline run and a signed-out connection get nobody.
+* `user_colleague_read` — SELECT only, on `User`: a person may read the rows
+  of their colleagues. Writing a User row is still `user_self_or_admin`, and
+  the column grants below it are untouched. Asserted as `repos_app` in
+  `tests/m38.team-rls.test.ts`: owner with two members, ordinary member,
+  unrelated tenant, platform admin, no identity.
+
+Afterwards there are **20** tables with RLS enabled and forced, **24**
+policies, and the `app` schema holds one more function than before.
+
 ## Applying SQL to production
 
 **Never `npx prisma db execute` against production. It aims at the wrong

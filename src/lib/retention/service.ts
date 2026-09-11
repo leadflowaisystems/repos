@@ -4,6 +4,7 @@ import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
 import { evidenceDateOf } from '@/lib/improve/service';
 import { loadFeedbackLedger } from '@/lib/feedback/ledger';
 import { currentUserId, isMissingDbFunction, withRlsContext } from '@/lib/db';
+import { EN, type PortalTranslator } from '@/lib/i18n/translator';
 
 /**
  * SINCE YOU WERE LAST HERE (M21).
@@ -171,14 +172,20 @@ export async function sinceLastVisit(
   return nothingHappened ? null : summary;
 }
 
-/** How the gap reads in a heading. Never a countdown, never a nudge. */
-export function sinceLabel(daysAgo: number): string {
-  if (daysAgo <= 0) return 'Since your visit earlier today';
-  if (daysAgo === 1) return 'Since yesterday';
-  if (daysAgo < 7) return `Since your last visit, ${daysAgo} days ago`;
-  if (daysAgo < 14) return 'Since your last visit, a week ago';
-  if (daysAgo < 60) return `Since your last visit, ${Math.round(daysAgo / 7)} weeks ago`;
-  return `Since your last visit, ${Math.round(daysAgo / 30)} months ago`;
+/**
+ * How the gap reads in a heading. Never a countdown, never a nudge.
+ *
+ * In the owner's language, from the dictionary (M38). English unless a
+ * translator is handed over — the same rule as `statusLabel` — so the
+ * operator console, which is not localized, still reads English here.
+ */
+export function sinceLabel(daysAgo: number, t: PortalTranslator = EN): string {
+  if (daysAgo <= 0) return t('pulse.since.heading.today');
+  if (daysAgo === 1) return t('pulse.since.heading.yesterday');
+  if (daysAgo < 7) return t.plural('pulse.since.heading.days', daysAgo);
+  if (daysAgo < 14) return t('pulse.since.heading.week');
+  if (daysAgo < 60) return t.plural('pulse.since.heading.weeks', Math.round(daysAgo / 7));
+  return t.plural('pulse.since.heading.months', Math.round(daysAgo / 30));
 }
 
 /**

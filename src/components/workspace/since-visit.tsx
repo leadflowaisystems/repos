@@ -69,7 +69,7 @@ export async function SinceVisit({
   return (
     <section className="mb-8 max-w-3xl border-l-2 border-brand-400 pl-4">
       <h2 className="text-[11px] font-medium tracking-widest text-ink-500 uppercase">
-        {sinceLabel(since.daysAgo)}
+        {sinceLabel(since.daysAgo, t)}
       </h2>
 
       {arrived ? (

@@ -184,11 +184,13 @@ describe('the role the application actually connects as', () => {
     const policies = await owner.$queryRawUnsafe<{ n: bigint }[]>(
       `SELECT count(*) AS n FROM pg_policies WHERE schemaname = 'public'`,
     );
-    // 23 since M33: KitOrder adds one more `tenant_isolation`. (22 since M30,
-    // when AiUsageDay added ai_usage_app, the one deliberately permissive
-    // policy in the schema — it guards a token counter that holds no customer
-    // data, not a per-business table.)
-    expect(Number(policies[0]?.n)).toBe(23);
+    // 24 since M38: `user_colleague_read`, the SELECT-only policy that lets a
+    // person see the people they share a business with (23 since M33, when
+    // KitOrder added one more `tenant_isolation`; 22 since M30, when
+    // AiUsageDay added ai_usage_app, the one deliberately permissive policy in
+    // the schema — it guards a token counter that holds no customer data, not
+    // a per-business table.)
+    expect(Number(policies[0]?.n)).toBe(24);
   });
 
   it('ships the scope the pipeline runs under', async () => {

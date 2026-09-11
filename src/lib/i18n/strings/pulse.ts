@@ -162,6 +162,58 @@ export const pulse = {
   // happened while the owner was away, and there is nothing here that would
   // still be true tomorrow if they did not come back.
   // -------------------------------------------------------------------------
+
+  // The heading: how long the gap was, as a person would say it. Never a
+  // countdown, never a nudge. Whole sentences, one per size of gap, because
+  // "{count} days ago" sits at the end of the English and in the middle of
+  // the Hindi and the Marathi. The number is computed on the server and
+  // dropped in as a placeholder, so it is the same figure in every language.
+  'pulse.since.heading.today': {
+    en: 'Since your visit earlier today',
+    hi: 'आज पहले आपके आने के बाद से',
+    mr: 'आज आधी तुम्ही आल्यानंतर',
+  },
+  'pulse.since.heading.yesterday': {
+    en: 'Since yesterday',
+    hi: 'कल से',
+    mr: 'कालपासून',
+  },
+  'pulse.since.heading.days.one': {
+    en: 'Since your last visit, {count} day ago',
+    hi: 'आपके पिछली बार आने के बाद से, {count} दिन पहले',
+    mr: 'तुम्ही मागच्या वेळी आल्यानंतर, {count} दिवसापूर्वी',
+  },
+  'pulse.since.heading.days.other': {
+    en: 'Since your last visit, {count} days ago',
+    hi: 'आपके पिछली बार आने के बाद से, {count} दिन पहले',
+    mr: 'तुम्ही मागच्या वेळी आल्यानंतर, {count} दिवसांपूर्वी',
+  },
+  'pulse.since.heading.week': {
+    en: 'Since your last visit, a week ago',
+    hi: 'आपके पिछली बार आने के बाद से, एक हफ़्ते पहले',
+    mr: 'तुम्ही मागच्या वेळी आल्यानंतर, एका आठवड्यापूर्वी',
+  },
+  'pulse.since.heading.weeks.one': {
+    en: 'Since your last visit, {count} week ago',
+    hi: 'आपके पिछली बार आने के बाद से, {count} हफ़्ते पहले',
+    mr: 'तुम्ही मागच्या वेळी आल्यानंतर, {count} आठवड्यापूर्वी',
+  },
+  'pulse.since.heading.weeks.other': {
+    en: 'Since your last visit, {count} weeks ago',
+    hi: 'आपके पिछली बार आने के बाद से, {count} हफ़्ते पहले',
+    mr: 'तुम्ही मागच्या वेळी आल्यानंतर, {count} आठवड्यांपूर्वी',
+  },
+  'pulse.since.heading.months.one': {
+    en: 'Since your last visit, {count} month ago',
+    hi: 'आपके पिछली बार आने के बाद से, {count} महीने पहले',
+    mr: 'तुम्ही मागच्या वेळी आल्यानंतर, {count} महिन्यापूर्वी',
+  },
+  'pulse.since.heading.months.other': {
+    en: 'Since your last visit, {count} months ago',
+    hi: 'आपके पिछली बार आने के बाद से, {count} महीने पहले',
+    mr: 'तुम्ही मागच्या वेळी आल्यानंतर, {count} महिन्यांपूर्वी',
+  },
+
   'pulse.since.arrived.read.one': {
     en: '{count} feedback entry came in. Headway has read it.',
     hi: '{count} फ़ीडबैक आया। Headway ने उसे पढ़ लिया है।',

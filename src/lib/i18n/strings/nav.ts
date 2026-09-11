@@ -72,6 +72,16 @@ export const nav = {
     mr: 'अकाउंट',
   },
 
+  // --- ending the session ----------------------------------------------------
+  // The one control in the header that is not a door. Read by the workspace's
+  // sign-out button; the operator console renders the same button with its
+  // English default, because the console is not localized by design.
+  'nav.signOut': {
+    en: 'Sign out',
+    hi: 'साइन आउट',
+    mr: 'साइन आउट',
+  },
+
   // --- the bar that closes every page ---------------------------------------
   'nav.footer.tagline': {
     en: 'Customers lead the way.',

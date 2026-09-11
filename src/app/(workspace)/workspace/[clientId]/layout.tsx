@@ -78,7 +78,7 @@ export default async function WorkspaceLayout({
         verticalLabel={verticalLabel(client.vertical)}
         showExtras
         locked={locked}
-        signOut={<SignOutButton variant="inline" />}
+        signOut={<SignOutButton variant="inline" label={t('nav.signOut')} />}
       />
       {paused ? (
         <p className="mb-6 border-l-2 border-warn-600 bg-warn-50 px-4 py-3 text-[14px] leading-relaxed text-ink-800">

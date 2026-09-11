@@ -375,6 +375,13 @@ describe('an invitation says what it is for, to the person it names', () => {
     await team.acceptInviteViaResolver(app, spent, seeded.invitedId);
     expect(await team.invitationPreview(app, spent, seeded.invitedId)).toBeNull();
 
+    // Accepting made them a member, and since M38 an owner can SEE that —
+    // so inviting the same address again is refused as "already on this
+    // team" (before M38 the duplicate check could not read a colleague's row
+    // and quietly let a second invitation through). The next two cases need
+    // a person who is not a member, so the membership is taken back first.
+    await owner.membership.deleteMany({ where: { userId: seeded.invitedId } });
+
     const revoked = await invite();
     await owner.invitation.updateMany({
       where: { acceptedAt: null },

@@ -220,6 +220,46 @@ CREATE POLICY user_self_or_admin ON public."User"
     AND (app.is_platform_admin() OR NOT "isPlatformAdmin")
   );
 
+-- M38: a person may READ the people they share a business with.
+--
+-- `user_self_or_admin` is the whole rule for writing and was the whole rule
+-- for reading too, which broke the one screen that shows colleagues: the Team
+-- page joins Membership to User for each member's name and email, and for
+-- every colleague the join answered nothing — Prisma treats the relation as
+-- required and threw. Every business a platform admin opens has the admin in
+-- it, so this only showed for a real owner with a real second member.
+--
+-- The ids of everyone holding a membership, active or suspended, in a
+-- business where the CALLER holds an ACTIVE one. SECURITY DEFINER like
+-- `app.owned_client_ids()`, so the policy does not re-enter Membership's own
+-- policies to answer; keyed on `app.current_user_id()` alone, so a pipeline
+-- run (which names a client, not a person) and a signed-out connection get
+-- nobody. Read only: UPDATE and INSERT keep the policy above, and the column
+-- grants below it, exactly as they are. See prisma/m38/migration.sql.
+CREATE OR REPLACE FUNCTION app.colleague_user_ids()
+  RETURNS SETOF text
+  LANGUAGE sql
+  STABLE
+  SECURITY DEFINER
+  SET search_path = pg_catalog, public
+AS $$
+  SELECT m."userId"
+  FROM public."Membership" m
+  WHERE m."clientId" IN (
+    SELECT mine."clientId"
+    FROM public."Membership" mine
+    WHERE mine."userId" = app.current_user_id()
+      AND mine.status = 'ACTIVE'
+  )
+$$;
+
+REVOKE ALL ON FUNCTION app.colleague_user_ids() FROM PUBLIC;
+
+DROP POLICY IF EXISTS user_colleague_read ON public."User";
+CREATE POLICY user_colleague_read ON public."User"
+  FOR SELECT
+  USING (id IN (SELECT app.colleague_user_ids()));
+
 -- Promotion and suspension happen here and nowhere else. SECURITY DEFINER, so
 -- it runs with the owner's rights - and its first act is to check the caller
 -- actually is an administrator.
@@ -957,6 +997,7 @@ GRANT  EXECUTE ON FUNCTION app.set_service_access(text, text, text) TO repos_app
 
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA app TO repos_app;
 GRANT EXECUTE ON FUNCTION app.user_id_for_auth(text) TO repos_app;
+GRANT EXECUTE ON FUNCTION app.colleague_user_ids() TO repos_app;
 GRANT EXECUTE ON FUNCTION app.accept_invitation(text, text, text) TO repos_app;
 GRANT EXECUTE ON FUNCTION app.provision_user(text, text, text, text) TO repos_app;
 GRANT EXECUTE ON FUNCTION app.create_client(text, text, boolean, text, text, text) TO repos_app;
