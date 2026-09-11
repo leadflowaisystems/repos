@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/components/portal/link';
 import clsx from 'clsx';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';

@@ -1,7 +1,6 @@
 'use client';
 
-import Image from 'next/image';
-import Link from 'next/link';
+import { Link } from '@/components/portal/link';
 import { useActionState, useState } from 'react';
 import { placeKitOrderAction } from '@/lib/actions/kit';
 import { IDLE } from '@/lib/actions/shared';
@@ -40,6 +39,8 @@ export type KitProductView = {
   description: string;
   alt: string;
   photo: string;
+  /** The photograph at several widths; see `KitProduct.photoSrcSet`. */
+  photoSrcSet: string;
   photoWidth: number;
   photoHeight: number;
   priceInr: number;
@@ -173,12 +174,21 @@ export function KitOrderForm({
               {/* The real printed card on a real counter, photographed. Not a
                   render of the PDF — that is what the reprint section below
                   still shows, and the difference is the point. */}
-              <Image
+              {/* A plain <img>, on purpose. `next/image` runs unoptimized in
+                  this app (see next.config.ts) and so sends one 1312 px file
+                  with no `srcset`; this lets the browser pick the 720 or 960
+                  px copy for the width it is actually drawing. Lazy, because
+                  the cards sit below the intro on a phone. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src={product.photo}
+                srcSet={product.photoSrcSet}
+                sizes="(min-width: 640px) 50vw, 100vw"
                 alt={product.alt}
                 width={product.photoWidth}
                 height={product.photoHeight}
-                sizes="(min-width: 640px) 50vw, 100vw"
+                loading="lazy"
+                decoding="async"
                 className="aspect-[4/3] w-full bg-ink-50 object-cover"
               />
               <div className="flex flex-1 flex-col p-5">

@@ -41,6 +41,17 @@ export type KitProduct = {
    */
   photoWidth: number;
   photoHeight: number;
+  /**
+   * The same photograph at the widths a screen actually draws it (perf pass).
+   *
+   * `next.config.ts` sets `images.unoptimized`, so `next/image` sends the one
+   * file it is given and writes no `srcset`. The one file was 1312 px wide and
+   * ~180 KB, drawn at 370-470 px: 354 KB of picture for two cards, on every
+   * visit to the page, on a phone. These are the same files resized once, by
+   * hand, and kept beside the master. Widest last, so a browser that asks for
+   * the sharpest still gets the master.
+   */
+  photoSrcSet: string;
   nameKey: MessageKey;
   descriptionKey: MessageKey;
   /** Alt text, for somebody who cannot see the photograph. */
@@ -63,6 +74,7 @@ export const KIT_PRODUCTS: readonly KitProduct[] = [
     photo: '/kit/card-qr-stand.webp',
     photoWidth: 1312,
     photoHeight: 1199,
+    photoSrcSet: '/kit/card-qr-stand-720.webp 720w, /kit/card-qr-stand-960.webp 960w, /kit/card-qr-stand.webp 1312w',
     nameKey: 'kit.product.stand.name',
     descriptionKey: 'kit.product.stand.description',
     altKey: 'kit.product.stand.alt',
@@ -74,6 +86,7 @@ export const KIT_PRODUCTS: readonly KitProduct[] = [
     photo: '/kit/folded-tent-card.webp',
     photoWidth: 1312,
     photoHeight: 1199,
+    photoSrcSet: '/kit/folded-tent-card-720.webp 720w, /kit/folded-tent-card-960.webp 960w, /kit/folded-tent-card.webp 1312w',
     nameKey: 'kit.product.tent.name',
     descriptionKey: 'kit.product.tent.description',
     altKey: 'kit.product.tent.alt',

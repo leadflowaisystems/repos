@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
 import { oncePerRequest } from '@/lib/request-cache';
+import { analysedRows, loadFeedbackLedger } from '@/lib/feedback/ledger';
 import { readStructured } from '@/lib/feedback/structured';
 import {
   analysisStateOf,
@@ -412,10 +413,9 @@ export async function getAnalysisCoverage(
   db: PrismaClient,
   clientId: string,
 ): Promise<AnalysisCoverage> {
-  const rows = await db.reviewItem.findMany({
-    where: { clientId },
-    select: { analysisStatus: true, analysisVersion: true, sentiment: true, updatedAt: true },
-  });
+  // Every row of this client's, from the one read the page shares. Same rows
+  // the dedicated query returned; the columns below are all this counts.
+  const rows = await loadFeedbackLedger(db, clientId);
 
   const sentimentCounts: Record<Sentiment, number> = { ...EMPTY_SENTIMENT };
   const now = new Date();
@@ -510,17 +510,14 @@ export async function getThemeSummary(
 ): Promise<ThemeSummary> {
   return oncePerRequest(`themes:${clientId}:${vertical}`, async () => {
   const pack = getPackOrFallback(vertical);
-  const rows = await db.reviewItem.findMany({
-    where: { clientId, analysisStatus: 'ANALYSED' },
-    select: { id: true, themesJson: true },
-  });
+  // One read for the whole page (see feedback/ledger.ts), filtered here with
+  // the predicate the dedicated query used to send: the analysed rows.
+  const ledger = await loadFeedbackLedger(db, clientId);
+  const rows = analysedRows(ledger);
   // Deliberately every row, not only the analysed ones. A customer who rated
   // five things and typed nothing has no words to analyse, and dropping them
   // here would throw away the majority of what the gateway collects.
-  const structured = await db.reviewItem.findMany({
-    where: { clientId },
-    select: { dimensionsJson: true, signalsJson: true },
-  });
+  const structured = ledger;
   return { ...summariseThemeRows(rows, pack), dimensions: summariseDimensions(structured, pack) };
   });
 }

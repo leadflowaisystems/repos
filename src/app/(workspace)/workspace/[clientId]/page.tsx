@@ -4,7 +4,7 @@ import { PortalHome } from '@/components/workspace/home';
 import { sinceLastVisit } from '@/lib/retention/service';
 import { formatLongDate } from '@/lib/commercial/service';
 import { getTranslator } from '@/lib/i18n/request';
-import Link from 'next/link';
+import { Link } from '@/components/portal/link';
 
 export const dynamic = 'force-dynamic';
 

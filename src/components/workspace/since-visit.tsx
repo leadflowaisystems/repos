@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/components/portal/link';
 import { getTranslator } from '@/lib/i18n/request';
 import type { MessageKey } from '@/lib/i18n/strings';
 import type { Translator } from '@/lib/i18n/t';

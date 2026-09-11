@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
 import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
+import { loadFeedbackLedger } from '@/lib/feedback/ledger';
 import { getReplyCoverage } from '@/lib/feedback/replies';
 import { evidenceDateOf } from '@/lib/improve/service';
 import { findPortalClient, loadCore } from '@/lib/portal/service';
@@ -72,24 +73,17 @@ export async function getResponsibility(
   if (!client) return null;
   const now = options.now ?? new Date();
 
-  const [core, rows, replies, gateway, archived] = await Promise.all([
+  // The feedback rows come from the one read the page shares (see
+  // feedback/ledger.ts): every row of this client's, as before. The archived
+  // flag rides on the client row already in hand rather than a fifth query.
+  const [core, rows, replies, gateway] = await Promise.all([
     loadCore(db, client, now, options.t),
-    db.reviewItem.findMany({
-      where: { clientId: client.id },
-      select: {
-        reviewDate: true,
-        createdAt: true,
-        analysisStatus: true,
-        analysisVersion: true,
-        source: true,
-      },
-    }),
+    loadFeedbackLedger(db, client.id),
     getReplyCoverage(db, client.id),
     db.feedbackGateway.findUnique({
       where: { clientId: client.id },
       select: { enabled: true },
     }),
-    db.client.findUnique({ where: { id: client.id }, select: { archivedAt: true } }),
   ]);
 
   const view = buildPortalView(core);
@@ -106,7 +100,7 @@ export async function getResponsibility(
     feedbackSince: feedbackSince(rows, since),
     needsYourWords: replies.needsYou,
     gateway: gatewayState,
-    archived: archived?.archivedAt !== null && archived?.archivedAt !== undefined,
+    archived: client.archivedAt !== null,
     now,
     t: options.t,
   });

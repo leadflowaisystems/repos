@@ -68,6 +68,7 @@ export default async function WorkspaceKitPage({
     description: t(product.descriptionKey),
     alt: t(product.altKey),
     photo: product.photo,
+    photoSrcSet: product.photoSrcSet,
     photoWidth: product.photoWidth,
     photoHeight: product.photoHeight,
     priceInr: product.priceInr,

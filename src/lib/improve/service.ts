@@ -4,6 +4,7 @@ import { formatDate } from '@/lib/format';
 import { getPackOrFallback, type Pack } from '@/lib/packs';
 import { createMinute } from '@/lib/minutes/service';
 import { loadIntelligence } from '@/lib/intelligence/service';
+import { analysedRows, loadFeedbackLedger } from '@/lib/feedback/ledger';
 import type { ClientIntelligence, Insight, IntelligenceSignal } from '@/lib/intelligence/engine';
 import {
   ACTION_VERSION,
@@ -617,12 +618,11 @@ export async function listActionsWithProgress(
   db: PrismaClient,
   clientId: string,
 ): Promise<ActionProgress[]> {
+  // The analysed rows, from the one read the page shares (see
+  // feedback/ledger.ts): the same predicate the dedicated query sent.
   const [actions, rows] = await Promise.all([
     listClientActions(db, clientId),
-    db.reviewItem.findMany({
-      where: { clientId, analysisStatus: 'ANALYSED' },
-      select: { reviewDate: true, createdAt: true, analysedAt: true },
-    }),
+    loadFeedbackLedger(db, clientId).then(analysedRows),
   ]);
 
   return actions.map((action) => {

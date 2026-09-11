@@ -110,14 +110,17 @@ describe('the sign-in page carries only the words it can use', () => {
     expect(scopedBytes).toBeLessThan(30_000);
   });
 
-  it('still sends the whole dictionary to the workspace, which needs it', () => {
-    // The scoping is deliberate and local to `(auth)`. The portal's client
-    // components read across many namespaces, so nothing was taken from them.
+  it('and the workspace applies the same discipline to its own tree', () => {
+    // The scoping started here and reached the workspace in the performance
+    // pass: its client components read a handful of namespaces too, and the
+    // whole dictionary was 137-250 KB on every first load and every language
+    // switch. `tests/perf.workspace-payload.test.ts` keeps that list honest.
     const workspace = readFileSync(
       joinPath(ROOT, 'src', 'app', '(workspace)', 'layout.tsx'),
       'utf8',
     );
-    expect(workspace).toContain('flattenFor(MESSAGES, locale)');
+    expect(workspace).toContain('flattenFor(MESSAGES, locale, WORKSPACE_NAMESPACES)');
+    expect(workspace).not.toMatch(/flattenFor\(MESSAGES, locale\)/);
   });
 
   it('keeps the sign-in page reachable without a session', () => {

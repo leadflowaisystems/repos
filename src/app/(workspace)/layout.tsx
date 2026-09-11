@@ -44,7 +44,40 @@ export const viewport: Viewport = {
  * to the interactive parts, which cannot read a cookie for themselves. Only the
  * chosen language crosses to the browser — an owner reading English never
  * downloads Hindi and Marathi.
+ *
+ * AND ONLY THE WORDS A BROWSER CAN READ. The dictionary is 1,700 phrases, and
+ * almost all of them are read on the server: the generated sentences, every
+ * vertical's taxonomy, the page headings. The interactive parts — the
+ * navigation, the forms, the loading and error states — reach a few
+ * namespaces. Handing over the whole dictionary put 137 KB of English, or
+ * 250 KB of Hindi or Marathi, into every first load and into every language
+ * switch, for words no client component could ask for. The same discipline
+ * the sign-in page applies (`AUTH_NAMESPACES`), applied here.
+ * `tests/perf.workspace-payload.test.ts` keeps the list honest: it fails if
+ * a client component in this tree starts using a key outside it, which is
+ * the failure that would otherwise put a raw key on an owner's screen.
  */
+const WORKSPACE_NAMESPACES = [
+  // The header, its nine doors and the footer.
+  'nav.',
+  // The loading and error states, which are client components.
+  'errors.',
+  // The forms: continuing with Headway and asking to extend access.
+  'common.form.',
+  // Choosing the language, on Account.
+  'account.language.',
+  // Ordering the printed kit and saying it arrived.
+  'kit.amount',
+  'kit.line.',
+  'kit.order.',
+  'kit.price.',
+  'kit.quantity.',
+  'kit.receipt.',
+  'kit.summary.',
+  // Inviting and managing the team.
+  'team.',
+] as const;
+
 export default async function WorkspaceRootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -53,7 +86,7 @@ export default async function WorkspaceRootLayout({
   return (
     <html lang={LOCALE_HTML_LANG[locale]}>
       <body className="min-h-dvh bg-ink-50">
-        <LocaleProvider locale={locale} strings={flattenFor(MESSAGES, locale)}>
+        <LocaleProvider locale={locale} strings={flattenFor(MESSAGES, locale, WORKSPACE_NAMESPACES)}>
           <div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 sm:py-8">{children}</div>
         </LocaleProvider>
       </body>

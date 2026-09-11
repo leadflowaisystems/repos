@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/components/portal/link';
 import clsx from 'clsx';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
@@ -137,7 +137,8 @@ export async function PortalCheckin({
   // Was: a regex over the English of `movementLine`. The view now says so with
   // a flag, so rewording the sentence cannot silently switch the pulse off.
   const compared = view.compared;
-  const pulse = checkinPulse(r, bundle.view, compared);
+  // In the owner's language: the sentence was staying English in Hindi.
+  const pulse = checkinPulse(r, bundle.view, compared, t);
   // The page's own intro already names the two check-ins compared.
   const since = {
     ...r,

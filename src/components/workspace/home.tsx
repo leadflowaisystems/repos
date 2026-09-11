@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/components/portal/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { getResponsibility } from '@/lib/responsibility/service';

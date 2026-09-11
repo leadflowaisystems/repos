@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/components/portal/link';
 import { notFound, redirect } from 'next/navigation';
 import { WorkspaceFooter, WorkspaceHeader } from '@/components/portal/workspace';
 import { SignOutButton } from '@/components/sign-out';

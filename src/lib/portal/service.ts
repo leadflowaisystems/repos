@@ -7,6 +7,8 @@ import { countClientFeedback, getFeedbackStats, listClientFeedback } from '@/lib
 import { getAnalysisCoverage } from '@/lib/feedback/analysis';
 import { listSnapshots, loadHealthSnapshots } from '@/lib/snapshots/service';
 import { getContextSet } from '@/lib/context/service';
+import { analysedRows, loadFeedbackLedger } from '@/lib/feedback/ledger';
+import { oncePerRequest } from '@/lib/request-cache';
 import { buildPortalView, type PortalInput, type PortalView } from './view';
 import { EMPTY_EVIDENCE, buildEvidenceIndex, type EvidenceIndex } from './evidence';
 import {
@@ -34,14 +36,24 @@ import type { PortalTranslator } from '@/lib/i18n/translator';
  * workspace can never reach another owner's data.
  */
 
-type ClientRow = { id: string; businessName: string; vertical: string };
+type ClientRow = { id: string; businessName: string; vertical: string; archivedAt: Date | null };
 
-async function findClient(db: PrismaClient, clientId: string): Promise<ClientRow | null> {
-  // Archived clients keep their workspace: the data is still theirs.
-  return db.client.findFirst({
-    where: { id: clientId },
-    select: { id: true, businessName: true, vertical: true },
-  });
+/**
+ * The client row, read once per request.
+ *
+ * Every loader on a page starts by asking for it — the view, the
+ * responsibility bundle and the evidence index each did, so one screen read
+ * the same three columns three times. Request-scoped, keyed on the id: two
+ * businesses never share an entry and nothing outlives the response.
+ */
+function findClient(db: PrismaClient, clientId: string): Promise<ClientRow | null> {
+  return oncePerRequest(`portal-client:${clientId}`, () =>
+    // Archived clients keep their workspace: the data is still theirs.
+    db.client.findFirst({
+      where: { id: clientId },
+      select: { id: true, businessName: true, vertical: true, archivedAt: true },
+    }),
+  );
 }
 
 /** The same lookup, for the responsibility layer (M15), which rests on this core. */
@@ -54,7 +66,29 @@ export type Core = PortalInput & { checkins: Awaited<ReturnType<typeof listSnaps
  * exported so the responsibility layer (M15) is built on this exact load
  * rather than a second one that could drift.
  */
-export async function loadCore(
+export function loadCore(
+  db: PrismaClient,
+  client: ClientRow,
+  now: Date,
+  t?: PortalTranslator,
+): Promise<Core> {
+  // Customers and Check-in each ask for this twice in one render — once for
+  // their own view and once through the responsibility bundle — and every
+  // page asks the responsibility layer, which asks again. Measured: the
+  // improvement loop and the check-in list were read twice per screen. Keyed
+  // the way `loadIntelligence` is keyed, on the business and the language:
+  // `now` differs between the two callers by the milliseconds between their
+  // `new Date()` calls, and everything here buckets by week and month, so no
+  // reachable difference in `now` within one request can change the answer.
+  //
+  // Never called from a server action before a write, so the copy the
+  // re-render reads is never from before that write. Keep it that way.
+  return oncePerRequest(`portal-core:${client.id}:${t?.locale ?? 'en'}`, () =>
+    loadCoreUncached(db, client, now, t),
+  );
+}
+
+async function loadCoreUncached(
   db: PrismaClient,
   client: ClientRow,
   now: Date,
@@ -212,19 +246,9 @@ export async function getReviewsView(
 export async function getEvidenceIndex(db: PrismaClient, clientId: string): Promise<EvidenceIndex> {
   const client = await findClient(db, clientId);
   if (!client) return EMPTY_EVIDENCE;
-  const rows = await db.reviewItem.findMany({
-    where: { clientId: client.id, analysisStatus: 'ANALYSED' },
-    select: {
-      id: true,
-      text: true,
-      stars: true,
-      reviewDate: true,
-      createdAt: true,
-      source: true,
-      themesJson: true,
-    },
-    orderBy: [{ reviewDate: 'desc' }, { createdAt: 'desc' }],
-  });
+  // The analysed rows, newest evidence first, from the one read the page
+  // shares (see feedback/ledger.ts) — the ledger is already in this order.
+  const rows = analysedRows(await loadFeedbackLedger(db, client.id));
   return buildEvidenceIndex(rows);
 }
 

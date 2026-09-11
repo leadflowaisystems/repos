@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
 import { oncePerRequest } from '@/lib/request-cache';
+import { loadFeedbackLedger } from '@/lib/feedback/ledger';
 import { z } from 'zod';
 import {
   aggregate,
@@ -147,7 +148,11 @@ export async function loadHealthSnapshots(
   clientId: string,
 ): Promise<StoredSnapshot[]> {
   return oncePerRequest(`snapshots:${clientId}`, async () => {
-  const [rows, arrived] = await Promise.all([
+  // The feedback comes from the one read the page shares (see
+  // feedback/ledger.ts) rather than from a nested relation plus a second scan:
+  // a row pasted into a check-in carries that check-in's id, and a row that
+  // arrived on its own carries none. Same rows, same split, one read.
+  const [rows, ledger] = await Promise.all([
     db.snapshot.findMany({
       where: { clientId },
       orderBy: { capturedAt: 'desc' },
@@ -162,29 +167,18 @@ export async function loadHealthSnapshots(
         daysSinceLastPost: true,
         photoRecencyDays: true,
         generatedAt: true,
-        reviews: {
-          select: {
-            sentiment: true,
-            issueTags: true,
-            praiseTags: true,
-            stars: true,
-            reviewDate: true,
-          },
-        },
       },
     }),
-    db.reviewItem.findMany({
-      where: { clientId, snapshotId: null },
-      select: {
-        sentiment: true,
-        issueTags: true,
-        praiseTags: true,
-        stars: true,
-        reviewDate: true,
-        createdAt: true,
-      },
-    }),
+    loadFeedbackLedger(db, clientId),
   ]);
+  const arrived = ledger.filter((item) => item.snapshotId === null);
+  const pasted = new Map<string, StoredFeedback[]>();
+  for (const item of ledger) {
+    if (item.snapshotId === null) continue;
+    const list = pasted.get(item.snapshotId) ?? [];
+    list.push(toStoredFeedback(item));
+    pasted.set(item.snapshotId, list);
+  }
 
   // Oldest first, so each check-in's window starts where the last one ended.
   const oldestFirst = [...rows].sort(
@@ -221,7 +215,7 @@ export async function loadHealthSnapshots(
     daysSinceLastPost: row.daysSinceLastPost,
     photoRecencyDays: row.photoRecencyDays,
     generatedAt: row.generatedAt,
-    feedback: [...row.reviews.map(toStoredFeedback), ...(windowed.get(row.id) ?? [])],
+    feedback: [...(pasted.get(row.id) ?? []), ...(windowed.get(row.id) ?? [])],
   }));
   });
 }

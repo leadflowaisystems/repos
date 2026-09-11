@@ -2,6 +2,7 @@ import { after } from 'next/server';
 import type { PrismaClient } from '@prisma/client';
 import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
 import { evidenceDateOf } from '@/lib/improve/service';
+import { loadFeedbackLedger } from '@/lib/feedback/ledger';
 import { currentUserId, isMissingDbFunction, withRlsContext } from '@/lib/db';
 
 /**
@@ -137,15 +138,9 @@ export async function sinceLastVisit(
 
   const now = options.now ?? new Date();
   const [rows, measured, done] = await Promise.all([
-    db.reviewItem.findMany({
-      where: { clientId },
-      select: {
-        reviewDate: true,
-        createdAt: true,
-        analysisStatus: true,
-        analysisVersion: true,
-      },
-    }),
+    // Every row of this client's, from the one read Home shares (see
+    // feedback/ledger.ts). The same rows the dedicated query returned.
+    loadFeedbackLedger(db, clientId),
     db.improvementAction.findMany({
       where: { clientId, measuredAt: { gt: since }, result: { not: null } },
       orderBy: { measuredAt: 'desc' },

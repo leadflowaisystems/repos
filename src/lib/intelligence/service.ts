@@ -2,6 +2,7 @@ import type { PrismaClient } from '@prisma/client';
 import { oncePerRequest } from '@/lib/request-cache';
 import { getPackOrFallback, type Pack } from '@/lib/packs';
 import { getThemeSummary, type ThemeSummary } from '@/lib/feedback/analysis';
+import { loadFeedbackLedger } from '@/lib/feedback/ledger';
 import { getClientHealth } from '@/lib/snapshots/service';
 import type { Pulse } from '@/lib/health/health';
 import {
@@ -109,7 +110,9 @@ async function loadIntelligenceUncached(
 
   const [themes, totalFeedback, health, recentlyDone] = await Promise.all([
     getThemeSummary(db, client.id, client.vertical),
-    db.reviewItem.count({ where: { clientId: client.id } }),
+    // The same count the dedicated query returned — every row of this
+    // client's — read off the one load the page already shares.
+    loadFeedbackLedger(db, client.id).then((rows) => rows.length),
     getClientHealth(db, client.id, client.vertical, now, t),
     loadRecentSteps(db, client.id, now),
   ]);

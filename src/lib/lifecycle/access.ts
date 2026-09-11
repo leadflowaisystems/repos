@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import type { PrismaClient } from '@prisma/client';
 import { prisma } from '@/lib/db';
+import { oncePerRequest } from '@/lib/request-cache';
 import { currentActor } from '@/lib/auth/authorize';
 import { tenantGateFor, type TenantLevel } from '@/lib/auth/guard';
 import type { Actor, Role } from '@/lib/tenancy/service';
@@ -57,10 +58,18 @@ export async function getLifecycle(
   clientId: string,
   options: { now?: Date; viewerIsPlatformAdmin?: boolean } = {},
 ): Promise<Lifecycle | null> {
-  const client = await db.client.findFirst({
-    where: { id: clientId },
-    select: LIFECYCLE_SELECT,
-  });
+  // The shell reads this row to decide what chrome to draw and the page reads
+  // it again to decide whether to open, in the same request. The ROW is read
+  // once; the decision is still made per caller, with its own `now` and its
+  // own view of who is asking. Request-scoped, so nothing outlives the
+  // response and no other business's row is ever in reach. The action gate
+  // (`isLockedOut`) deliberately keeps its own read: it runs before a write.
+  const client = await oncePerRequest(`lifecycle-row:${clientId}`, () =>
+    db.client.findFirst({
+      where: { id: clientId },
+      select: LIFECYCLE_SELECT,
+    }),
+  );
   if (!client) return null;
   return describeLifecycle({
     ...client,

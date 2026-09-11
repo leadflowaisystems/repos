@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/components/portal/link';
 import clsx from 'clsx';
 import type { Quote } from '@/lib/portal/evidence';
 import type { FocusProof, ProofPopulation } from '@/lib/portal/focus';

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/components/portal/link';
 import clsx from 'clsx';
 import type { Focus } from '@/lib/portal/focus';
 import type { PortalFact, PortalMood } from '@/lib/portal/view';

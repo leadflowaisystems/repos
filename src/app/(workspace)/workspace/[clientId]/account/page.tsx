@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { Link } from '@/components/portal/link';
 import { notFound, redirect } from 'next/navigation';
 import { currentActor } from '@/lib/auth/authorize';
 import { prisma } from '@/lib/db';
@@ -77,7 +77,7 @@ function serviceFacts(account: AccountState, lifecycle: Lifecycle, t: T): Fact[]
 
   if (lifecycle.state === 'DEMO_EXEMPT') {
     facts.push({ label: t('account.service.label'), value: t('account.service.demo') });
-    facts.push({ label: t('account.service.status'), value: statusLabel(lifecycle) });
+    facts.push({ label: t('account.service.status'), value: statusLabel(lifecycle, t) });
     return facts;
   }
 
@@ -94,7 +94,7 @@ function serviceFacts(account: AccountState, lifecycle: Lifecycle, t: T): Fact[]
         value: formatDate(account.serviceResumedAt),
       });
     }
-    facts.push({ label: t('account.service.status'), value: statusLabel(lifecycle) });
+    facts.push({ label: t('account.service.status'), value: statusLabel(lifecycle, t) });
     return facts;
   }
 
@@ -124,7 +124,7 @@ function serviceFacts(account: AccountState, lifecycle: Lifecycle, t: T): Fact[]
           : t.plural('account.service.daysLeft', days),
     });
   }
-  facts.push({ label: t('account.service.status'), value: statusLabel(lifecycle) });
+  facts.push({ label: t('account.service.status'), value: statusLabel(lifecycle, t) });
   return facts;
 }
 
@@ -235,18 +235,24 @@ export default async function WorkspaceAccountPage({
   }
   const { lifecycle, role } = access;
 
+  // The language first, because the account's own headline and its dates are
+  // written by `describeAccount` in the language it is handed — and it was
+  // not being handed one, so "Headway is active" stayed English above a page
+  // that had otherwise switched to Hindi.
+  const [locale, t] = await Promise.all([getLocale(), getTranslator()]);
   const [account, bundle, pending] = await Promise.all([
-    getAccountState(prisma, clientId),
-    getResponsibility(prisma, clientId, { t: await getTranslator() }),
+    getAccountState(prisma, clientId, { t }),
+    getResponsibility(prisma, clientId, { t }),
     pendingRequestFor(prisma, clientId),
   ]);
   if (!account) notFound();
 
-  const [locale, t] = await Promise.all([getLocale(), getTranslator()]);
-
   const basePath = `/workspace/${clientId}`;
   const isOwner = role === 'BUSINESS_OWNER';
-  const activity = bundle ? activityFacts(bundle.view, bundle.responsibility, basePath) : [];
+  // Both writers below take the language as their last argument and were
+  // being called without it, so the status and the activity labels stayed
+  // English on a page that had otherwise switched.
+  const activity = bundle ? activityFacts(bundle.view, bundle.responsibility, basePath, t) : [];
   const locked = lifecycle.workspaceLocked;
   const onTrial = lifecycle.state === 'ACTIVE_TRIAL' || lifecycle.state === 'TRIAL_EXPIRED';
   const stopped = account.phase === 'PAUSED' || account.phase === 'CLOSED';

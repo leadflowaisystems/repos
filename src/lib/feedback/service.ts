@@ -7,6 +7,7 @@ import { analysisStateOf, type AnalysisState } from '@/lib/feedback/state';
 import { readDimensions, readStructured } from '@/lib/feedback/structured';
 import { parseJson } from '@/lib/format';
 import { fingerprintFeedback } from './fingerprint';
+import { loadFeedbackLedger } from './ledger';
 import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
 import { DRAFT_VERSION } from '@/lib/reply/draft';
 import type { NormalizedTheme } from '@/lib/analysis/normalize';
@@ -708,20 +709,9 @@ export async function getFeedbackStats(
   db: PrismaClient,
   clientId: string,
 ): Promise<FeedbackStats> {
-  const rows = await db.reviewItem.findMany({
-    where: { clientId },
-    select: {
-      stars: true,
-      source: true,
-      redacted: true,
-      analysedAt: true,
-      analysisStatus: true,
-      analysisVersion: true,
-      updatedAt: true,
-      reviewDate: true,
-      createdAt: true,
-    },
-  });
+  // Every row of this client's, from the one read the page shares (see
+  // ./ledger.ts). The same rows the dedicated query returned.
+  const rows = await loadFeedbackLedger(db, clientId);
   const now = new Date();
 
   const ratingCounts: Record<string, number> = {

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/components/portal/link';
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/db';
 import { requireOpenWorkspace } from '@/lib/lifecycle/access';

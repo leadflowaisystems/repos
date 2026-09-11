@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/components/portal/link';
 import clsx from 'clsx';
 import type { PortalSignal } from '@/lib/portal/view';
 import { quotesFor, type EvidenceIndex } from '@/lib/portal/evidence';

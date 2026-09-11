@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/components/portal/link';
 import { useParams } from 'next/navigation';
 import { useT } from '@/components/portal/locale-provider';
 

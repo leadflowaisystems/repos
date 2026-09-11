@@ -1,8 +1,9 @@
 'use client';
 
-import Link from 'next/link';
+import { useLinkStatus } from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
+import { Link } from '@/components/portal/link';
 import { HeadwayWordmark } from '@/components/brand';
 import { useT } from '@/components/portal/locale-provider';
 import type { MessageKey } from '@/lib/i18n/strings';
@@ -62,6 +63,38 @@ const SECTIONS = [
  * scroll past on a phone. Landing on either keeps Check-in highlighted.
  */
 const CHECKIN_FAMILY = new Set(['checkin', 'pulse', 'review']);
+
+/**
+ * The word on a tab, and whether that tab has been pressed.
+ *
+ * A workspace page is rendered on the server when it is asked for, and until
+ * the answer arrives nothing on screen changed — so a tap on a slow connection
+ * looked like a tap that did nothing, and the natural reaction was to tap
+ * again, which asked the server for the same page twice. `useLinkStatus` is
+ * Next's own word for "this link's navigation is in flight": the tab dims and
+ * its underline appears the moment it is pressed, before any request has
+ * answered, and returns to normal when the page lands. It has to live in a
+ * component INSIDE the link, which is why the label is its own component.
+ */
+function TabLabel({ label, active }: { label: string; active: boolean }) {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      data-pending={pending ? 'true' : undefined}
+      className={clsx(
+        'inline-flex min-h-11 items-center border-b-2 px-2.5 text-[13px] whitespace-nowrap transition-colors sm:px-3',
+        active
+          ? 'border-ink-900 font-semibold text-ink-900'
+          : pending
+            ? 'border-ink-400 text-ink-800'
+            : 'border-transparent text-ink-500 group-hover:border-ink-300 group-hover:text-ink-800',
+        pending && !active && 'animate-pulse',
+      )}
+    >
+      {label}
+    </span>
+  );
+}
 
 export function WorkspaceHeader({
   basePath,
@@ -132,14 +165,11 @@ export function WorkspaceHeader({
                 <Link
                   href={s.slug ? `${base}/${s.slug}` : base}
                   aria-current={active ? 'page' : undefined}
-                  className={clsx(
-                    '-mb-px inline-flex min-h-11 items-center border-b-2 px-2.5 text-[13px] whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none sm:px-3',
-                    active
-                      ? 'border-ink-900 font-semibold text-ink-900'
-                      : 'border-transparent text-ink-500 hover:border-ink-300 hover:text-ink-800',
-                  )}
+                  // The negative margin stays on the anchor so its box, and the
+                  // focus ring drawn around it, still enclose the underline.
+                  className="group -mb-px inline-flex focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none"
                 >
-                  {t(s.label)}
+                  <TabLabel label={t(s.label)} active={active} />
                 </Link>
               </li>
             );

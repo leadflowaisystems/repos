@@ -620,7 +620,9 @@ describe('the Account page answers the seven questions', () => {
     expect(code).toContain('lifecycle.trialStartsAt');
     expect(code).toContain('lifecycle.trialEndsAt');
     expect(code).toContain('lifecycle.daysRemaining');
-    expect(code).toContain('statusLabel(lifecycle)');
+    // In the owner's language: the translator was missing here until the
+    // performance pass, which left the status English on a Hindi page.
+    expect(code).toContain('statusLabel(lifecycle, t)');
     // The ambiguous phrase M28 removed must not come back.
     expect(code).not.toContain('-day trial');
     // And no arithmetic of its own: the page never subtracts two dates.

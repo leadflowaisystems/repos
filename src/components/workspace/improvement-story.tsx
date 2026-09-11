@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/components/portal/link';
 import clsx from 'clsx';
 import type { PortalAction } from '@/lib/portal/view';
 import { populationFrom } from '@/lib/portal/focus';

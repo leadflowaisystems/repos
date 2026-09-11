@@ -2,6 +2,7 @@ import type { PrismaClient } from '@prisma/client';
 import { getPackOrFallback, type Pack } from '@/lib/packs';
 import { parseJson } from '@/lib/format';
 import { hasReplyChannel } from '@/lib/feedback/service';
+import { loadFeedbackLedger } from '@/lib/feedback/ledger';
 import { aiStatus } from '@/lib/ai';
 import { aiBudget, recordAiUsage } from '@/lib/ai/budget';
 import { draftReplyWithAi } from '@/lib/ai/draft-reply';
@@ -650,18 +651,9 @@ export async function getReplyCoverage(
   db: PrismaClient,
   clientId: string,
 ): Promise<ReplyCoverage> {
-  const rows = await db.reviewItem.findMany({
-    where: { clientId },
-    select: {
-      analysisStatus: true,
-      analysisVersion: true,
-      triageVersion: true,
-      responseAction: true,
-      draftStatus: true,
-      draftVersion: true,
-      handledAt: true,
-    },
-  });
+  // Every row of this client's, from the one read the page shares (see
+  // feedback/ledger.ts). The same rows the dedicated query returned.
+  const rows = await loadFeedbackLedger(db, clientId);
   return replyCoverageOf(rows);
 }
 

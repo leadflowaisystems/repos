@@ -1628,7 +1628,9 @@ describe('V1 hard rules — a business needs no Google to be served (M17)', () =
     const snapshots = EXECUTABLE.find(
       ({ file }) => file === 'src/lib/snapshots/service.ts',
     );
-    expect(snapshots?.code).toMatch(/snapshotId: null/);
+    // Either shape: the dedicated query it used to send, or the same split
+    // applied to the one read every page shares (feedback/ledger.ts).
+    expect(snapshots?.code).toMatch(/snapshotId: null|snapshotId === null/);
     expect(snapshots?.code).toMatch(/windowed/);
   });
 });
