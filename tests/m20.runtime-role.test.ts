@@ -171,26 +171,33 @@ describe('the role the application actually connects as', () => {
               count(*) AS total
          FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relkind = 'r'`,
     );
-    // 20 since M33 added KitOrder (19 since M30 added AiUsageDay). Every one of
-    // them still has RLS enabled AND forced — the count is here so a new table
-    // cannot be added without somebody deciding what its policy is.
-    // AiUsageDay's decision is that it holds no customer data, so its policy is
-    // permissive and says so. KitOrder's is that an order belongs to one
-    // business, so it takes the ordinary tenant policy.
-    expect(Number(rls[0]?.total)).toBe(20);
-    expect(Number(rls[0]?.enabled)).toBe(20);
-    expect(Number(rls[0]?.forced)).toBe(20);
+    // 21 since M39 added AccountAccess (20 since M33 added KitOrder; 19 since
+    // M30 added AiUsageDay). Every one of them still has RLS enabled AND
+    // forced — the count is here so a new table cannot be added without
+    // somebody deciding what its policy is. AiUsageDay's decision is that it
+    // holds no customer data, so its policy is permissive and says so.
+    // KitOrder's is that an order belongs to one business, so it takes the
+    // ordinary tenant policy. AccountAccess's is narrower than either: see
+    // the three bespoke policies below.
+    expect(Number(rls[0]?.total)).toBe(21);
+    expect(Number(rls[0]?.enabled)).toBe(21);
+    expect(Number(rls[0]?.forced)).toBe(21);
 
     const policies = await owner.$queryRawUnsafe<{ n: bigint }[]>(
       `SELECT count(*) AS n FROM pg_policies WHERE schemaname = 'public'`,
     );
-    // 24 since M38: `user_colleague_read`, the SELECT-only policy that lets a
-    // person see the people they share a business with (23 since M33, when
-    // KitOrder added one more `tenant_isolation`; 22 since M30, when
+    // 27 since M39: three new policies on AccountAccess
+    // (account_access_admin_all, account_access_self_read,
+    // account_access_self_update) — kept out of the generic tenant_isolation
+    // loop on purpose, the same reason Membership and Invitation are, so a
+    // plain BUSINESS_STAFF member cannot write another person's temporary
+    // credential (24 since M38: `user_colleague_read`, the SELECT-only policy
+    // that lets a person see the people they share a business with; 23 since
+    // M33, when KitOrder added one more `tenant_isolation`; 22 since M30, when
     // AiUsageDay added ai_usage_app, the one deliberately permissive policy in
     // the schema — it guards a token counter that holds no customer data, not
     // a per-business table.)
-    expect(Number(policies[0]?.n)).toBe(24);
+    expect(Number(policies[0]?.n)).toBe(27);
   });
 
   it('ships the scope the pipeline runs under', async () => {

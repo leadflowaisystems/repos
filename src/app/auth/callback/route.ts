@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { supabaseServerClient } from '@/lib/auth/supabase';
-import { provisionUser } from '@/lib/tenancy/service';
+import { IdentityConflictError, provisionUser } from '@/lib/tenancy/service';
 import { landingPathFor } from '@/lib/onboarding/service';
 import { safeNextPath } from '@/lib/auth/redirect';
 import { loadActor } from '@/lib/tenancy/service';
@@ -59,10 +59,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/login?expired=1', origin));
   }
 
-  await provisionUser(prisma, {
-    providerId: data.user.id,
-    email: data.user.email,
-  });
+  // Same refusal as the sign-up and sign-in actions: an identity conflict is
+  // a real, anticipated condition, so it lands on the same "start over"
+  // redirect every other failure on this route already uses, rather than an
+  // unhandled exception.
+  try {
+    await provisionUser(prisma, {
+      providerId: data.user.id,
+      email: data.user.email,
+    });
+  } catch (error) {
+    if (error instanceof IdentityConflictError) {
+      return NextResponse.redirect(new URL('/login?expired=1', origin));
+    }
+    throw error;
+  }
 
   // A recovery link asks for /reset-password and must go there even though the
   // person now holds a session. Otherwise send them where their memberships say.

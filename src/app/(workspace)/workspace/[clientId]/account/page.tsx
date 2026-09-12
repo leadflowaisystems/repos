@@ -15,6 +15,8 @@ import { Callout, PageIntro, Quiet, Section } from '@/components/portal/portal-u
 import { ExtendAccessForm } from '@/components/forms/extend-access-form';
 import { ContinueWithHeadwayForm } from '@/components/forms/continue-form';
 import { LanguageForm } from '@/components/forms/language-form';
+import { AccountSetupForm } from '@/components/forms/account-setup-form';
+import { getAccountAccessForUser } from '@/lib/account-access/service';
 import { getLocale, getTranslator } from '@/lib/i18n/request';
 
 export const dynamic = 'force-dynamic';
@@ -240,10 +242,11 @@ export default async function WorkspaceAccountPage({
   // not being handed one, so "Headway is active" stayed English above a page
   // that had otherwise switched to Hindi.
   const [locale, t] = await Promise.all([getLocale(), getTranslator()]);
-  const [account, bundle, pending] = await Promise.all([
+  const [account, bundle, pending, accountAccess] = await Promise.all([
     getAccountState(prisma, clientId, { t }),
     getResponsibility(prisma, clientId, { t }),
     pendingRequestFor(prisma, clientId),
+    getAccountAccessForUser(prisma, access.actor.userId),
   ]);
   if (!account) notFound();
 
@@ -277,6 +280,20 @@ export default async function WorkspaceAccountPage({
           ) : null}
         </>
       )}
+
+      {/* Temporary access, first — before even the lock message, because
+          finishing setup is not a commercial concern and should never wait
+          on one. Gone for good the moment status moves past
+          TEMPORARY_ACTIVE; nothing here ever runs twice. */}
+      {accountAccess?.status === 'TEMPORARY_ACTIVE' ? (
+        <Section eyebrow={t('account.setup.eyebrow')}>
+          <AccountSetupForm clientId={clientId} />
+        </Section>
+      ) : accountAccess?.status === 'SETUP_COMPLETE' ? (
+        <div className="mb-8">
+          <Quiet>{t('account.setup.done')}</Quiet>
+        </div>
+      ) : null}
 
       {/* The lock, said once, where it can be acted on. */}
       {locked && isOwner ? (

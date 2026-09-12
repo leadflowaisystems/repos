@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import {
   InviteForm,
   MembershipControls,
@@ -50,7 +51,15 @@ export default async function TeamPage({
   params: Promise<{ clientId: string }>;
 }) {
   const { clientId } = await params;
-  await requireOpenWorkspace(clientId, 'OWNER');
+  const { actor } = await requireOpenWorkspace(clientId, 'OWNER');
+
+  // Hidden from the client-facing portal for the pilot: email/team
+  // invitations are not being used, so this no longer opens onto a business
+  // owner or a click away. Nothing here is deleted — Membership, Invitation,
+  // RBAC and this page's own backend are untouched, and platform staff still
+  // reach it directly, since an admin doing operator work here is not "the
+  // client-facing portal" the pilot is hiding this from.
+  if (!actor.isPlatformAdmin) redirect(`/workspace/${clientId}`);
 
   const t = await getTranslator();
   const team = await getTeam(prisma, clientId);

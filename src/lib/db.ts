@@ -174,6 +174,22 @@ export function isMissingDbFunction(error: unknown): boolean {
   return text.includes('42883') || text.includes('3F000');
 }
 
+/**
+ * "Postgres refused this as a unique-constraint violation."
+ *
+ * 23505 covers two distinct situations that both need the same treatment at
+ * the call site: `app.provision_user`'s own deliberate refusal when an email
+ * is already bound to a different Supabase identity (it raises this exact
+ * SQLSTATE on purpose, see prisma/m20/rls.sql), and the plain race where two
+ * concurrent signups for the same brand-new email both pass its "not found"
+ * checks and one loses at the `INSERT`. Matching the code rather than either
+ * message catches both with one check — see IdentityConflictError in
+ * src/lib/tenancy/service.ts, the only place this is used.
+ */
+export function isIdentityConflict(error: unknown): boolean {
+  return String(error).includes('23505');
+}
+
 /** The statement every protected query runs behind. */
 export function setContextSql(userId: string | null) {
   return base.$executeRaw`SELECT set_config('app.user_id', ${userId ?? ''}, TRUE)`;

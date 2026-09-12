@@ -1003,3 +1003,65 @@ GRANT EXECUTE ON FUNCTION app.provision_user(text, text, text, text) TO repos_ap
 GRANT EXECUTE ON FUNCTION app.create_client(text, text, boolean, text, text, text) TO repos_app;
 GRANT EXECUTE ON FUNCTION app.set_client_commercials(text, text, text, text) TO repos_app;
 GRANT EXECUTE ON FUNCTION app.trial_default_days() TO repos_app;
+
+-- ---------------------------------------------------------------------------
+-- M39 — AccountAccess: the pilot's temporary-login record.
+--
+-- Deliberately NOT in the generic `tenant_tables` loop near the top of this
+-- file. That loop's policy is `FOR ALL` to every accessible member, which is
+-- right for ordinary business data (Minute, Competitor, ReviewItem, ...) and
+-- wrong here: it would let a plain BUSINESS_STAFF member flip another
+-- person's `status`, `disabledAt` or `disabledByUserId` at the RLS layer,
+-- bypassing the application's own "admins create/disable, only the bound
+-- owner completes their own setup" rule entirely. Membership and Invitation
+-- solve the identical problem the identical way — pulled out of that same
+-- loop into their own owner-only policies, a few hundred lines up.
+--
+-- Three policies, one per legitimate reader/writer:
+--
+--   account_access_admin_all   Platform staff: full access, any row.
+--   account_access_self_read   The bound owner reads their own row and
+--                              nothing else's.
+--   account_access_self_update The bound owner may update their own row —
+--                              narrowed to almost nothing by the column
+--                              grant below, since the only self-service
+--                              write that ever happens is the setup action
+--                              moving status to SETUP_COMPLETE.
+--
+-- No SECURITY DEFINER function needed: admin-generate and owner-setup are
+-- two separate service functions writing disjoint column sets, so a plain
+-- column grant is the right amount of rigor, the same reasoning already
+-- applied to Client's `plan`/`status` split.
+--
+-- Column grants make `id`, `clientId`, `userId`, `loginId`, `createdAt` and
+-- `createdByUserId` permanently immutable at the database layer after the
+-- row is inserted — nobody, including an admin, updates them again.
+--
+-- Afterwards the table/policy counts the runtime-role test pins move from
+-- 20/20/20 tables and 24 policies to 21/21/21 and 27.
+
+ALTER TABLE public."AccountAccess" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public."AccountAccess" FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS account_access_admin_all ON public."AccountAccess";
+DROP POLICY IF EXISTS account_access_self_read ON public."AccountAccess";
+DROP POLICY IF EXISTS account_access_self_update ON public."AccountAccess";
+
+CREATE POLICY account_access_admin_all ON public."AccountAccess"
+  FOR ALL
+  USING (app.is_platform_admin())
+  WITH CHECK (app.is_platform_admin());
+
+CREATE POLICY account_access_self_read ON public."AccountAccess"
+  FOR SELECT
+  USING ("userId" = app.current_user_id());
+
+CREATE POLICY account_access_self_update ON public."AccountAccess"
+  FOR UPDATE
+  USING ("userId" = app.current_user_id())
+  WITH CHECK ("userId" = app.current_user_id());
+
+REVOKE ALL ON public."AccountAccess" FROM repos_app;
+GRANT SELECT, INSERT ON public."AccountAccess" TO repos_app;
+GRANT UPDATE ("status", "setupCompletedAt", "disabledAt", "disabledByUserId", "updatedAt")
+  ON public."AccountAccess" TO repos_app;

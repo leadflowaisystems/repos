@@ -459,7 +459,6 @@ describe('20. the rest of the portal is where it was', () => {
       'reviews',
       'improvements',
       'checkin',
-      'team',
       'kit',
       'orders',
       'account',

@@ -64,8 +64,9 @@ const WORKSPACE_NAMESPACES = [
   'errors.',
   // The forms: continuing with Headway and asking to extend access.
   'common.form.',
-  // Choosing the language, on Account.
+  // Choosing the language, and setting up a temporary account, on Account.
   'account.language.',
+  'account.setup.',
   // Ordering the printed kit and saying it arrived.
   'kit.amount',
   'kit.line.',

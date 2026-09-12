@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import { isMissingDbFunction, withRlsContext } from '@/lib/db';
+import { isIdentityConflict, isMissingDbFunction, withRlsContext } from '@/lib/db';
 
 /**
  * TENANT RESOLUTION (M20).
@@ -34,6 +34,24 @@ export type ActorMembership = {
   role: string;
   status: string;
 };
+
+/**
+ * "That email is already somebody else's account."
+ *
+ * Thrown by `provisionUser` instead of letting a raw Postgres unique
+ * violation escape — see `isIdentityConflict` in `@/lib/db` for the two
+ * distinct situations this covers. Every caller catches it and answers with
+ * whatever generic failure message it already gives for other refusals: the
+ * point is that this never becomes a distinct "that email already has an
+ * account" message anywhere, which would tell a stranger something RepOS
+ * otherwise never discloses.
+ */
+export class IdentityConflictError extends Error {
+  constructor(message = 'That email belongs to a different account.') {
+    super(message);
+    this.name = 'IdentityConflictError';
+  }
+}
 
 /** Everything a request may know about who is asking. Loaded once, then read. */
 export type Actor = {
@@ -160,6 +178,13 @@ export async function provisionUser(
     if (!row) throw new Error('provision_user returned no identity');
     return { userId: row.user_id, created: row.was_created };
   } catch (error) {
+    // `app.provision_user` can raise 23505 two ways: its own deliberate
+    // refusal when this email is already bound to a different identity, and
+    // the plain race of two concurrent calls for the same brand-new email
+    // both passing its "not found" checks before one loses at the INSERT.
+    // Either way the caller gets a named, catchable error instead of a raw
+    // Prisma exception — see IdentityConflictError's own comment.
+    if (isIdentityConflict(error)) throw new IdentityConflictError();
     if (!isMissingDbFunction(error)) throw error;
   }
 

@@ -48,7 +48,10 @@ const SECTIONS = [
   { slug: 'reviews', label: 'nav.section.feedback', extra: false },
   { slug: 'improvements', label: 'nav.section.improvements', extra: false },
   { slug: 'checkin', label: 'nav.section.checkin', extra: false },
-  { slug: 'team', label: 'nav.section.team', extra: true },
+  // 'team' is deliberately absent for the pilot: email/team invitations are
+  // not being used, so the door is hidden rather than opened onto a broken
+  // invite flow. The route, the backend and the operator's own access to it
+  // are untouched — see src/app/(workspace)/workspace/[clientId]/team/page.tsx.
   { slug: 'kit', label: 'nav.section.kit', extra: true },
   { slug: 'orders', label: 'nav.section.orders', extra: true },
   { slug: 'account', label: 'nav.section.account', extra: true },

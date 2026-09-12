@@ -6,7 +6,12 @@ import { currentActor } from '@/lib/auth/authorize';
 import { supabaseConfig, supabaseServerClient } from '@/lib/auth/supabase';
 import { completeOnboarding, landingPathFor } from '@/lib/onboarding/service';
 import { authRedirectUrl, callbackFor, safeNextPath } from '@/lib/auth/redirect';
-import { bumpSessionVersion, loadActor, provisionUser } from '@/lib/tenancy/service';
+import {
+  bumpSessionVersion,
+  IdentityConflictError,
+  loadActor,
+  provisionUser,
+} from '@/lib/tenancy/service';
 import { failure, str, type ActionState } from './shared';
 
 /**
@@ -77,7 +82,18 @@ export async function signUpAction(_prev: ActionState, form: FormData): Promise<
   // The RepOS user is created from the identity Supabase just verified, never
   // from the form. Nothing here can set isPlatformAdmin — provisionUser does
   // not write that column at all, and the database will not let it.
-  await provisionUser(prisma, { providerId: data.user.id, email });
+  //
+  // provisionUser can refuse this exact email as already belonging to a
+  // different identity — a real, anticipated condition, not a crash. The
+  // same generic message every other signup failure gets, on purpose:
+  // telling this form apart from "that account could not be created" would
+  // let it be used to ask whether a given address already has an account.
+  try {
+    await provisionUser(prisma, { providerId: data.user.id, email });
+  } catch (error) {
+    if (error instanceof IdentityConflictError) return failure(SIGN_UP_FAILED);
+    throw error;
+  }
 
   // A project that requires email confirmation returns a user with no session.
   // Saying so is safe: the person is holding the address in question.
@@ -98,7 +114,16 @@ export async function signInAction(_prev: ActionState, form: FormData): Promise<
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error || !data.user) return failure(SIGN_IN_FAILED);
 
-  const { userId } = await provisionUser(prisma, { providerId: data.user.id, email });
+  // Same refusal as signUpAction, and for the same reason: an identity
+  // conflict here is a real, anticipated condition, not a crash, and it must
+  // read exactly like every other sign-in failure.
+  let userId: string;
+  try {
+    ({ userId } = await provisionUser(prisma, { providerId: data.user.id, email }));
+  } catch (error) {
+    if (error instanceof IdentityConflictError) return failure(SIGN_IN_FAILED);
+    throw error;
+  }
   const actor = await loadActor(prisma, data.user.id);
 
   // A suspended account authenticates with Supabase and still gets nowhere.

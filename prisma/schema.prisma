@@ -148,6 +148,7 @@ model Client {
   commercial           Commercial?
   continuationRequests ServiceContinuationRequest[]
   kitOrders            KitOrder[]
+  accountAccess        AccountAccess?
 
   @@index([status])
   @@index([vertical])
@@ -323,6 +324,14 @@ model User {
   kitOrdersCompleted KitOrder[] @relation("KitOrderCompletedBy")
   kitOrdersReceived  KitOrder[] @relation("KitOrderReceivedBy")
 
+  /// M39 - the temporary access this person signs in with, if this row IS
+  /// that temporary identity (owner side), plus back-relations for having
+  /// generated or disabled someone else's (both SetNull, same reasoning as
+  /// the KitOrder relations above).
+  accountAccessOwned    AccountAccess? @relation("AccountAccessOwner")
+  accountAccessCreated  AccountAccess[] @relation("AccountAccessCreatedBy")
+  accountAccessDisabled AccountAccess[] @relation("AccountAccessDisabledBy")
+
   @@index([isPlatformAdmin])
   @@index([status])
 }
@@ -426,6 +435,69 @@ model Invitation {
 
   @@index([clientId, acceptedAt])
   @@index([email])
+}
+
+/// A temporary, admin-issued login for the pilot onboarding flow (M39).
+///
+/// Solves a narrower problem than Invitation: there, the OWNER'S OWN email
+/// receives a link and accepting it binds an EXISTING or self-created
+/// identity to a membership. Here, the admin hands over the kit before any
+/// email exchange happens at all, so the identity itself has to be minted
+/// up front — a real Supabase Auth user with a generated login id and
+/// password, pre-confirmed through the Supabase admin API so the owner can
+/// sign in immediately, on their own device, with no email round trip.
+///
+/// ONE ROW PER CLIENT, and it never grows a second identity for that
+/// client: `userId` is created once, in the same transaction as this row,
+/// and every later state change (setup completed, disabled) updates this
+/// same row and leaves `User`/`Membership` untouched. Disabling this row
+/// must never disable the User or Membership it names — see
+/// `disabledAt`/`disabledByUserId` below, which record that THIS temporary
+/// login stopped working, not that the account did.
+///
+/// The password is never here, in any form. It lives only in Supabase
+/// Auth's own storage, exactly like every other account's password; this
+/// table exists to say WHETHER a client's owner has completed their own
+/// setup, not to verify anything. `loginId` is not a secret either — it is
+/// the equivalent of a username, permanently visible to the admin so it can
+/// be handed over again if the printed copy is lost.
+model AccountAccess {
+  id       String @id @default(cuid())
+  clientId String @unique
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// The one User row this temporary login authenticates as. Created in the
+  /// same transaction as this row and never repointed at another user.
+  userId String @unique
+  user   User   @relation("AccountAccessOwner", fields: [userId], references: [id], onDelete: Cascade)
+
+  /// The human-facing login id AND the literal email address on the
+  /// synthetic Supabase identity — never a real person's address. Shown to
+  /// the admin indefinitely; not a secret.
+  loginId String @unique
+
+  /// TEMPORARY_ACTIVE | SETUP_COMPLETE | DISABLED. Moves forward only: setup
+  /// cannot be undone once completed, and disabling is final for this
+  /// temporary login (a fresh one is a separate, later decision, not a
+  /// re-open of this row).
+  status String @default("TEMPORARY_ACTIVE")
+
+  createdAt       DateTime @default(now())
+  /// The admin who generated this temporary login. SetNull: removing that
+  /// admin's own account must not erase which client this row belongs to.
+  createdByUserId String?
+  createdBy       User?    @relation("AccountAccessCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  /// When the owner replaced the temporary password with their own.
+  setupCompletedAt DateTime?
+
+  /// When an admin turned this temporary login off, and who did it. Null for
+  /// both unless status is DISABLED.
+  disabledAt       DateTime?
+  disabledByUserId String?
+  disabledBy       User?     @relation("AccountAccessDisabledBy", fields: [disabledByUserId], references: [id], onDelete: SetNull)
+
+  updatedAt DateTime @updatedAt
 }
 
 // ---------------------------------------------------------------------------

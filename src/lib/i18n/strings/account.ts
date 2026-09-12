@@ -328,4 +328,39 @@ export const account = {
     hi: 'फ़ोन',
     mr: 'फोन',
   },
+
+  // -------------------------------------------------------------------------
+  // Setting up a temporary account (M39)
+  //
+  // Shown only to a person who signed in with an admin-issued temporary
+  // credential and has not yet replaced it. The login id itself never
+  // changes here — only the password does — so the closing note says that
+  // plainly rather than letting someone assume typing a new email moves
+  // them to it.
+  // -------------------------------------------------------------------------
+  'account.setup.eyebrow': {
+    en: 'Set up your account',
+    hi: 'अपना अकाउंट सेट करें',
+    mr: 'तुमचं अकाउंट सेट करा',
+  },
+  'account.setup.intro': {
+    en: 'Your account is using temporary access. Set up your account to continue.',
+    hi: 'आपका अकाउंट अभी अस्थायी ऐक्सेस पर चल रहा है। जारी रखने के लिए अपना अकाउंट सेट करें।',
+    mr: 'तुमचं अकाउंट सध्या तात्पुरत्या ॲक्सेसवर चालू आहे. पुढे सुरू ठेवण्यासाठी तुमचं अकाउंट सेट करा.',
+  },
+  'account.setup.confirmPassword': {
+    en: 'Retype password',
+    hi: 'पासवर्ड दोबारा लिखें',
+    mr: 'पासवर्ड पुन्हा लिहा',
+  },
+  'account.setup.loginIdNote': {
+    en: 'You will keep signing in with the same login id shown on your kit — only your password changes here.',
+    hi: 'आप अपनी किट पर लिखी उसी लॉगिन आईडी से साइन इन करते रहेंगे — यहाँ सिर्फ़ आपका पासवर्ड बदलता है।',
+    mr: 'तुम्ही तुमच्या किटवर लिहिलेल्या त्याच लॉगिन आयडीने साइन इन करत राहाल — इथे फक्त तुमचा पासवर्ड बदलतो.',
+  },
+  'account.setup.done': {
+    en: 'Your account is set up.',
+    hi: 'आपका अकाउंट सेट हो गया है।',
+    mr: 'तुमचं अकाउंट सेट झालं आहे.',
+  },
 } satisfies Namespace;

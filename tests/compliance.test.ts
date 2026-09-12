@@ -1222,6 +1222,18 @@ describe('V1 hard rules — nothing acts without an operator behind it (M16)', (
     revokeInviteAction: 'OWNER',
     setMembershipAction: 'OWNER',
     completeOnboardingAction: 'MEMBER',
+    // M39 - the pilot's temporary-credential handover. Generating and
+    // disabling are the platform's decision, like every other
+    // whole-installation action, so both are ADMIN. Completing setup is
+    // OWNER: by the time it is reachable the actor already holds a real,
+    // ACTIVE BUSINESS_OWNER membership on this client (created eagerly by
+    // generateTempAccess), and the finer-grained "is this actually the bound
+    // temporary-access user, and is it still TEMPORARY_ACTIVE" check is the
+    // action's own, layered on top the same way setMembershipAction layers
+    // its "last owner" rule on top of its own OWNER gate.
+    generateTempAccessAction: 'ADMIN',
+    disableTempAccessAction: 'ADMIN',
+    completeAccountSetupAction: 'OWNER',
     // M21/M23 - the commercial side. Every state change is the platform's, so
     // all of them are ADMIN; the two exceptions are the owner's own: asking to
     // continue with Headway, and keeping their contact details right. Each

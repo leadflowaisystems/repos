@@ -25,6 +25,8 @@ import { ResponsibilityPanel } from "@/components/responsibility-panel";
 import { ImprovementActionsPanel } from "@/components/forms/improvement-actions";
 import { evidenceLine } from "@/lib/improve/model";
 import { OwnerHandoverPanel } from "@/components/forms/owner-handover";
+import { AccountAccessPanel } from "@/components/forms/account-access-panel";
+import { getAccountAccess } from "@/lib/account-access/service";
 import { CommercialPanel } from "@/components/forms/commercial-panel";
 import { TrialSettingsForm } from "@/components/forms/trial-settings";
 import {
@@ -75,15 +77,17 @@ export default async function ClientOverviewPage({
   // The commercial side. `getCommercial` returns the empty record for anybody
   // whose connection the Commercial policy refuses, so this page is safe to
   // render even if it ever escaped the operator console it lives in.
-  const [account, commercial, defaultTrialDays, lifecycle, continuation] = await Promise.all([
-    getAccountState(prisma, id),
-    getCommercial(prisma, id),
-    getTrialDefaultDays(prisma),
-    // Judged as the business stands, not as staff would experience it: the
-    // operator is looking at somebody else's account.
-    getLifecycle(prisma, id, { viewerIsPlatformAdmin: false }),
-    pendingRequestFor(prisma, id),
-  ]);
+  const [account, commercial, defaultTrialDays, lifecycle, continuation, accountAccess] =
+    await Promise.all([
+      getAccountState(prisma, id),
+      getCommercial(prisma, id),
+      getTrialDefaultDays(prisma),
+      // Judged as the business stands, not as staff would experience it: the
+      // operator is looking at somebody else's account.
+      getLifecycle(prisma, id, { viewerIsPlatformAdmin: false }),
+      pendingRequestFor(prisma, id),
+      getAccountAccess(prisma, id),
+    ]);
 
   // How long this trial currently runs, in whole days, so the operator's days
   // field opens on the length that is already set rather than on a blank.
@@ -426,6 +430,16 @@ export default async function ClientOverviewPage({
         />
         <CardBody>
           <OwnerHandoverPanel clientId={client.id} sent={setup.ownerLinkSent} />
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="Account access"
+          description="For the pilot: a temporary login the owner can use immediately, without an email invite. Hand it over with the physical kit."
+        />
+        <CardBody>
+          <AccountAccessPanel clientId={client.id} access={accountAccess} />
         </CardBody>
       </Card>
 

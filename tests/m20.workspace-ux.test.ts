@@ -194,14 +194,16 @@ describe('the workspace navigation', () => {
     // Five on the shared link; four more once somebody is signed in. M21 added
     // the kit (the one physical object in the product, which an owner
     // previously had to be sent) and the account; M33 added the orders placed
-    // from the kit, which sits beside it.
+    // from the kit, which sits beside it. M39 removed Team for the pilot:
+    // email/team invitations are not being used, so the door is hidden rather
+    // than opened onto a broken invite flow — the route and its backend are
+    // untouched, see src/app/(workspace)/workspace/[clientId]/team/page.tsx.
     expect(labelKeys).toEqual([
       'nav.section.home',
       'nav.section.customers',
       'nav.section.feedback',
       'nav.section.improvements',
       'nav.section.checkin',
-      'nav.section.team',
       'nav.section.kit',
       'nav.section.orders',
       'nav.section.account',
@@ -212,7 +214,6 @@ describe('the workspace navigation', () => {
       'Feedback',
       'Improvements',
       'Check-in',
-      'Team',
       'Kit',
       'Orders',
       'Account',
@@ -228,12 +229,11 @@ describe('the workspace navigation', () => {
       (m) => m[1] as MessageKey,
     );
     expect(extras).toEqual([
-      'nav.section.team',
       'nav.section.kit',
       'nav.section.orders',
       'nav.section.account',
     ]);
-    expect(extras.map((key) => says(key))).toEqual(['Team', 'Kit', 'Orders', 'Account']);
+    expect(extras.map((key) => says(key))).toEqual(['Kit', 'Orders', 'Account']);
   });
 
   it('keeps every door on screen: wrapping on a phone, pinned from tablet up, finger-sized', () => {
