@@ -5,6 +5,8 @@ import {
   PolicyForm,
   VoiceForm,
 } from '@/components/forms/profile-forms';
+import { AccountAccessPanel } from '@/components/forms/account-access-panel';
+import { getAccountAccess } from '@/lib/account-access/service';
 import { prisma } from '@/lib/db';
 import { getPackOrFallback } from '@/lib/packs';
 import { toDateInputValue } from '@/lib/format';
@@ -17,14 +19,17 @@ export default async function ClientProfilePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const client = await prisma.client.findUnique({
-    where: { id },
-    include: {
-      voiceProfile: true,
-      policy: true,
-      competitors: { orderBy: { sortIndex: 'asc' } },
-    },
-  });
+  const [client, accountAccess] = await Promise.all([
+    prisma.client.findUnique({
+      where: { id },
+      include: {
+        voiceProfile: true,
+        policy: true,
+        competitors: { orderBy: { sortIndex: 'asc' } },
+      },
+    }),
+    getAccountAccess(prisma, id),
+  ]);
   if (!client) notFound();
 
   const pack = getPackOrFallback(client.vertical);
@@ -33,6 +38,16 @@ export default async function ClientProfilePage({
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader
+          title="Account access"
+          description="For the pilot: a temporary login the owner can use immediately, without an email invite. Hand it over with the physical kit."
+        />
+        <CardBody>
+          <AccountAccessPanel clientId={client.id} access={accountAccess} />
+        </CardBody>
+      </Card>
+
       <Card>
         <CardHeader
           title={`Playbook: ${pack.label}`}
