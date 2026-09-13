@@ -48,8 +48,15 @@ function DisableForm({ clientId }: { clientId: string }) {
   );
 }
 
-function GenerateForm({ clientId }: { clientId: string }) {
-  const [state, action] = useActionState(generateTempAccessAction, IDLE);
+function GenerateForm({
+  clientId,
+  state,
+  action,
+}: {
+  clientId: string;
+  state: ActionState;
+  action: (formData: FormData) => void;
+}) {
   return (
     <form action={action}>
       <input type="hidden" name="clientId" value={clientId} />
@@ -57,31 +64,51 @@ function GenerateForm({ clientId }: { clientId: string }) {
         Generate temporary access
       </SubmitButton>
       <Notice state={state} />
-      {state.data?.loginId && state.data?.password ? (
-        <div className="mt-3 rounded-xl border border-ink-200 bg-ink-50 p-3">
-          <p className="text-[12px] font-medium tracking-wide text-ink-500 uppercase">
-            Shown once — copy these now
-          </p>
-          <dl className="mt-2 space-y-1.5 text-[13px]">
-            <div className="flex items-baseline justify-between gap-3">
-              <dt className="text-ink-500">Login ID</dt>
-              <dd className="font-mono text-ink-900">{state.data.loginId}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-3">
-              <dt className="text-ink-500">Temporary password</dt>
-              <dd className="font-mono text-ink-900">{state.data.password}</dd>
-            </div>
-          </dl>
-          <div className="mt-2.5">
-            <CopyButton
-              value={`Login ID: ${state.data.loginId}\nTemporary password: ${state.data.password}`}
-              label="Copy credentials"
-              copiedLabel="Copied"
-            />
-          </div>
-        </div>
-      ) : null}
     </form>
+  );
+}
+
+/**
+ * The one-time result, shown in place of everything else in this panel.
+ *
+ * Deliberately NOT nested inside `GenerateForm`: the parent Server Component
+ * re-renders right after a Server Action resolves (built into Next.js, not
+ * scheduled by anything in this file), and by then `access` is no longer
+ * null — the row this same action just created. If this were gated on
+ * `!access`, that refresh would switch `AccountAccessPanel` to its other
+ * branch before — or the instant after — the password ever painted, and a
+ * value that exists nowhere else, ever, would be gone unread. Keying on the
+ * action's own returned data instead means it wins that race either way, and
+ * a real page reload (the only thing that resets `useActionState`) is what
+ * makes it disappear, not a server-triggered refresh of a sibling prop.
+ */
+function GeneratedCredentials({ state }: { state: ActionState }) {
+  return (
+    <div>
+      <Notice state={state} />
+      <div className="mt-3 rounded-xl border border-ink-200 bg-ink-50 p-3">
+        <p className="text-[12px] font-medium tracking-wide text-ink-500 uppercase">
+          Shown once — copy these now
+        </p>
+        <dl className="mt-2 space-y-1.5 text-[13px]">
+          <div className="flex items-baseline justify-between gap-3">
+            <dt className="text-ink-500">Login ID</dt>
+            <dd className="font-mono text-ink-900">{state.data!.loginId}</dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-3">
+            <dt className="text-ink-500">Temporary password</dt>
+            <dd className="font-mono text-ink-900">{state.data!.password}</dd>
+          </div>
+        </dl>
+        <div className="mt-2.5">
+          <CopyButton
+            value={`Login ID: ${state.data!.loginId}\nTemporary password: ${state.data!.password}`}
+            label="Copy credentials"
+            copiedLabel="Copied"
+          />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -98,6 +125,22 @@ export function AccountAccessPanel({
   clientId: string;
   access: { loginId: string; status: string } | null;
 }) {
+  const [generateState, generateAction] = useActionState(generateTempAccessAction, IDLE);
+
+  // Checked before `access`, not after: see GeneratedCredentials' own comment
+  // for why the server-refreshed prop cannot be trusted to decide this first.
+  // Matched against `clientId` too: this component does not remount on an
+  // in-app navigation straight from one client's Profile tab to another's, so
+  // without that check a still-mounted stale result could show client A's
+  // credentials on client B's page.
+  if (
+    generateState.data?.clientId === clientId &&
+    generateState.data?.loginId &&
+    generateState.data?.password
+  ) {
+    return <GeneratedCredentials state={generateState} />;
+  }
+
   if (!access) {
     return (
       <div>
@@ -107,7 +150,7 @@ export function AccountAccessPanel({
           own account from there.
         </p>
         <div className="mt-3">
-          <GenerateForm clientId={clientId} />
+          <GenerateForm clientId={clientId} state={generateState} action={generateAction} />
         </div>
       </div>
     );

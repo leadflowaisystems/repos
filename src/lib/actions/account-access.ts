@@ -46,7 +46,11 @@ export async function generateTempAccessAction(
     ok: true,
     message: 'Temporary access created. Copy these credentials now — the password will not be shown again.',
     errors: {},
-    data: { loginId: result.data.loginId, password: result.data.password },
+    // clientId rides along so the panel can tell "just generated for THIS
+    // client" apart from stale state left over from a different one — see
+    // AccountAccessPanel, which never remounts on an in-app navigation
+    // between two clients' Profile tabs.
+    data: { clientId, loginId: result.data.loginId, password: result.data.password },
   };
 }
 
