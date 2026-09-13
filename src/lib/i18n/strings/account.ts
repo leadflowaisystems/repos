@@ -333,10 +333,10 @@ export const account = {
   // Setting up a temporary account (M39)
   //
   // Shown only to a person who signed in with an admin-issued temporary
-  // credential and has not yet replaced it. The login id itself never
-  // changes here — only the password does — so the closing note says that
-  // plainly rather than letting someone assume typing a new email moves
-  // them to it.
+  // credential and has not yet replaced it. Filling in the email field
+  // really does move their login to it — see setPermanentCredentials — so
+  // the closing note says that plainly, and says just as plainly what
+  // leaving it blank keeps instead: the login id printed on the kit.
   // -------------------------------------------------------------------------
   'account.setup.eyebrow': {
     en: 'Set up your account',
@@ -354,9 +354,9 @@ export const account = {
     mr: 'पासवर्ड पुन्हा लिहा',
   },
   'account.setup.loginIdNote': {
-    en: 'You will keep signing in with the same login id shown on your kit — only your password changes here.',
-    hi: 'आप अपनी किट पर लिखी उसी लॉगिन आईडी से साइन इन करते रहेंगे — यहाँ सिर्फ़ आपका पासवर्ड बदलता है।',
-    mr: 'तुम्ही तुमच्या किटवर लिहिलेल्या त्याच लॉगिन आयडीने साइन इन करत राहाल — इथे फक्त तुमचा पासवर्ड बदलतो.',
+    en: 'Enter an email above and you will sign in with it from now on. Leave it blank and you will keep signing in with the login id shown on your kit.',
+    hi: 'अगर आप ऊपर ईमेल लिखते हैं, तो अब से आप उसी ईमेल से साइन इन करेंगे। इसे खाली छोड़ने पर आप अपनी किट पर लिखी लॉगिन आईडी से साइन इन करते रहेंगे।',
+    mr: 'वर ईमेल लिहिल्यास, आता तुम्ही त्याच ईमेलने साइन इन कराल. रिकामं ठेवल्यास तुम्ही तुमच्या किटवर लिहिलेल्या लॉगिन आयडीने साइन इन करत राहाल.',
   },
   'account.setup.done': {
     en: 'Your account is set up.',

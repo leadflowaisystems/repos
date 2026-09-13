@@ -209,7 +209,7 @@ export async function completeAccountSetup(
   clientId: string,
   input: AccountSetupInput,
   options: { now?: Date } = {},
-): Promise<ServiceResult<{ clientId: string }>> {
+): Promise<ServiceResult<{ clientId: string; email: string | null }>> {
   const access = await db.accountAccess.findUnique({
     where: { userId: actorUserId },
     select: { clientId: true, status: true },
@@ -233,6 +233,23 @@ export async function completeAccountSetup(
   const data = parsed.data;
   const now = options.now ?? new Date();
 
+  // Normalised the same way provisionUser normalises every other email this
+  // product ever stores, and checked against RepOS's OWN table before
+  // anything commits: this is the one email this form can turn straight into
+  // a working Supabase login with no confirmation link (see
+  // setPermanentCredentials), so a collision has to be caught here, as a
+  // plain field error, rather than surfacing later as a sign-in that mysteriously
+  // never completes.
+  const newEmail = data.email ? data.email.toLowerCase() : null;
+  if (newEmail) {
+    const collision = await db.user.findUnique({ where: { email: newEmail }, select: { id: true } });
+    if (collision && collision.id !== actorUserId) {
+      return err('Some fields need attention.', {
+        email: 'That email is already in use by another account.',
+      });
+    }
+  }
+
   await withRlsContext(db, async (tx) => {
     await tx.client.update({
       where: { id: clientId },
@@ -249,7 +266,7 @@ export async function completeAccountSetup(
   });
   await bumpSessionVersion(db, actorUserId);
 
-  return ok({ clientId });
+  return ok({ clientId, email: newEmail });
 }
 
 // ---------------------------------------------------------------------------

@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { adminGate, tenantGate } from '@/lib/auth/guard';
-import { supabaseServerClient } from '@/lib/auth/supabase';
+import { setPermanentCredentials } from '@/lib/auth/supabase-admin';
 import {
   completeAccountSetup,
   disableTempAccess,
@@ -96,12 +96,27 @@ export async function completeAccountSetupAction(
   // ORDER MATTERS, same rule updatePasswordAction already follows: the
   // reversible writes (contact fields, AccountAccess status, the session
   // bump) have already committed inside completeAccountSetup. Supabase owns
-  // the password and cannot join that transaction, so it moves last — if
+  // the identity and cannot join that transaction, so it moves last — if
   // this fails, the account is still fully set up except for the one field,
   // and the person can simply try setting the password again.
-  const supabase = await supabaseServerClient();
-  const { error } = await supabase.auth.updateUser({ password });
-  if (error) {
+  //
+  // The admin module, not the signed-in session's own client: this is the
+  // one call that also sets the LOGIN EMAIL (when one was given), and
+  // finishing that with no confirmation link needs the service-role path —
+  // see setPermanentCredentials for why that is safe here specifically.
+  const user = await prisma.user.findUnique({
+    where: { id: actor.userId },
+    select: { authProviderId: true },
+  });
+  if (!user?.authProviderId) {
+    return failure('Your details were saved, but the password could not be set. Try again.');
+  }
+  const credentials = await setPermanentCredentials(
+    user.authProviderId,
+    password,
+    result.data.email ?? undefined,
+  );
+  if (!credentials.ok) {
     return failure('Your details were saved, but the password could not be set. Try again.');
   }
 

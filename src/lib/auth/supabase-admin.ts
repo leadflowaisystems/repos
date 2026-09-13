@@ -102,6 +102,39 @@ export async function randomizeIdentityPassword(authUserId: string): Promise<voi
 }
 
 /**
+ * Finishing setup: the owner's own password, and their own login email when
+ * they gave one, on the SAME identity `createTempIdentity` minted.
+ *
+ * The anon-key `supabase.auth.updateUser({ email })` a signed-in session can
+ * call itself was deliberately not used for the email half: this project
+ * requires confirming an email change before it takes effect, which would
+ * leave the owner's newly-typed address pending a link on an inbox nobody
+ * checks mid-handover — the same reliability problem the temporary identity
+ * exists to route around in the first place. `email_confirm: true` is safe
+ * here for the same reason it is on `createTempIdentity`: this identity is
+ * already bound, by the AccountAccess row that gated this call, to the one
+ * Membership the person completing the form has been signed in as all
+ * along — there is no other claimant's ownership this is bypassing.
+ *
+ * Returns a message rather than throwing on failure: the one expected case
+ * (the address is already some other Supabase identity's) is a normal form
+ * rejection, not a server error.
+ */
+export async function setPermanentCredentials(
+  authUserId: string,
+  password: string,
+  email?: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const supabase = adminClient();
+  const { error } = await supabase.auth.admin.updateUserById(authUserId, {
+    password,
+    ...(email ? { email, email_confirm: true } : {}),
+  });
+  if (error) return { ok: false, message: error.message };
+  return { ok: true };
+}
+
+/**
  * Best-effort cleanup for a temporary identity that was created but whose
  * accompanying User/Membership/AccountAccess rows then failed to write.
  * Deliberately swallows its own failure: the caller is already on an error
