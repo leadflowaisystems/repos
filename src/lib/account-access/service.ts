@@ -194,22 +194,32 @@ export type AccountSetupInput = {
   confirmPassword: string;
 };
 
+export type AccountSetupValidated = {
+  clientId: string;
+  name: string;
+  phone: string;
+  email: string | null;
+};
+
 /**
- * Everything about completing setup EXCEPT the Supabase password change.
+ * Everything about completing setup EXCEPT the Supabase identity change —
+ * and nothing here writes anything.
  *
- * The caller (the server action) makes the Supabase call itself, and does so
- * LAST, after this has already committed — the same ordering discipline
- * `updatePasswordAction` documents and follows: the reversible writes go
- * first, the one step that cannot join this transaction goes after
- * everything reversible has already succeeded.
+ * Split from the commit step (`finalizeAccountSetup`) so the caller can put
+ * the one step that cannot join a Prisma transaction — handing the password,
+ * and this same email, to Supabase — BETWEEN validation and commit, and
+ * commit only once Supabase has actually accepted it. Writing
+ * AccountAccess = SETUP_COMPLETE before that answer is back would leave
+ * exactly the state this split exists to prevent: a database that says
+ * setup is finished while the only password that still works is the
+ * temporary one nobody can retrieve again.
  */
-export async function completeAccountSetup(
+export async function validateAccountSetup(
   db: PrismaClient,
   actorUserId: string,
   clientId: string,
   input: AccountSetupInput,
-  options: { now?: Date } = {},
-): Promise<ServiceResult<{ clientId: string; email: string | null }>> {
+): Promise<ServiceResult<AccountSetupValidated>> {
   const access = await db.accountAccess.findUnique({
     where: { userId: actorUserId },
     select: { clientId: true, status: true },
@@ -231,15 +241,17 @@ export async function completeAccountSetup(
     return err('Some fields need attention.', errors);
   }
   const data = parsed.data;
-  const now = options.now ?? new Date();
 
   // Normalised the same way provisionUser normalises every other email this
-  // product ever stores, and checked against RepOS's OWN table before
-  // anything commits: this is the one email this form can turn straight into
-  // a working Supabase login with no confirmation link (see
-  // setPermanentCredentials), so a collision has to be caught here, as a
-  // plain field error, rather than surfacing later as a sign-in that mysteriously
-  // never completes.
+  // product ever stores, and checked against RepOS's OWN table: this is the
+  // one email this form can turn straight into a working Supabase login with
+  // no confirmation link (see setPermanentCredentials), so a collision RepOS
+  // already knows about is caught here, as a plain field error, rather than
+  // surfacing later as a sign-in that mysteriously never completes. Supabase's
+  // own `auth.users` can still refuse a narrower case this table does not
+  // know about — an address some abandoned, never-provisioned identity
+  // already claimed — which is exactly why the commit step below still waits
+  // on Supabase's own answer rather than trusting this check alone.
   const newEmail = data.email ? data.email.toLowerCase() : null;
   if (newEmail) {
     const collision = await db.user.findUnique({ where: { email: newEmail }, select: { id: true } });
@@ -250,13 +262,30 @@ export async function completeAccountSetup(
     }
   }
 
+  return ok({ clientId, name: data.name ?? '', phone: data.phone ?? '', email: newEmail });
+}
+
+/**
+ * The commit step — called ONLY after Supabase has already accepted the new
+ * password (and email, when there is one) on the SAME identity. Never
+ * before, and never on a path that might still fail: everything here is
+ * exactly what `updatePasswordAction` already established as safe to do
+ * once the credential itself is settled.
+ */
+export async function finalizeAccountSetup(
+  db: PrismaClient,
+  actorUserId: string,
+  fields: AccountSetupValidated,
+  options: { now?: Date } = {},
+): Promise<void> {
+  const now = options.now ?? new Date();
   await withRlsContext(db, async (tx) => {
     await tx.client.update({
-      where: { id: clientId },
+      where: { id: fields.clientId },
       data: {
-        ownerName: data.name || null,
-        ownerPhone: data.phone || null,
-        ownerEmail: data.email || null,
+        ownerName: fields.name || null,
+        ownerPhone: fields.phone || null,
+        ownerEmail: fields.email || null,
       },
     });
     await tx.accountAccess.update({
@@ -265,8 +294,6 @@ export async function completeAccountSetup(
     });
   });
   await bumpSessionVersion(db, actorUserId);
-
-  return ok({ clientId, email: newEmail });
 }
 
 // ---------------------------------------------------------------------------

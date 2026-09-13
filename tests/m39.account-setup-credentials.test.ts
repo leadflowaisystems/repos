@@ -1,37 +1,37 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { PrismaClient } from '@prisma/client';
 import { createTestDb, resetDb } from './helpers/test-db';
-import { completeAccountSetup } from '@/lib/account-access/service';
+import { finalizeAccountSetup, validateAccountSetup } from '@/lib/account-access/service';
 
 /**
- * THE EMAIL TYPED DURING SETUP BECOMES THE PERMANENT LOGIN (M39 follow-up).
+ * THE EMAIL TYPED DURING SETUP BECOMES THE PERMANENT LOGIN (M39 follow-up),
+ * AND NOTHING COMMITS UNTIL SUPABASE HAS ALREADY ACCEPTED IT.
  *
- * `completeAccountSetup` used to write a submitted email only onto
- * `Client.ownerEmail` (contact info) and never touch the Supabase identity's
- * login email at all — the synthetic Login ID stayed the permanent
- * identifier forever, by original design. In production this meant an owner
- * who typed their own email and a new password during setup could not sign
- * back in with either afterwards: `auth.users.email` had never moved, so
- * Supabase matched neither.
+ * `completeAccountSetup` used to do both the validation AND the database
+ * commit in one call, before the caller ever touched Supabase — so a
+ * Supabase-side rejection (an email already claimed, a password policy this
+ * project enforces that RepOS's own zod schema does not know about) arrived
+ * AFTER `AccountAccess` already said SETUP_COMPLETE. That is the exact state
+ * that must never be reachable: a database that claims setup finished while
+ * the temporary password is still the only one that works, and the person
+ * locked out of retrying because `validateAccountSetup`/`finalizeAccountSetup`
+ * (like the function they replaced) only ever act on a row that is still
+ * TEMPORARY_ACTIVE.
  *
- * Changed: a non-blank email is now checked against RepOS's own `User` table
- * BEFORE anything commits (this file), and handed to
- * `setPermanentCredentials` — the one module allowed to touch
- * `SUPABASE_SERVICE_ROLE_KEY` — alongside the password
- * (`tests/m39.account-setup-action.test.ts`), so the identity Supabase
- * actually verifies against moves too.
- *
- * This file is the service layer only: real database, no Supabase at all —
- * `completeAccountSetup` itself never calls it. Connected as the schema
- * owner, like every other non-RLS-specific service test; the collision check
- * added here is a business rule, not a policy question.
+ * Split in two for exactly that reason: `validateAccountSetup` reads and
+ * checks, and writes nothing at all; `finalizeAccountSetup` is the commit,
+ * meant to be called only once the caller's own Supabase update has already
+ * succeeded (`tests/m39.account-setup-action.test.ts` is the file that
+ * proves the action actually orders it that way). This file is the service
+ * layer only — real database, no Supabase at all, since neither function
+ * here ever calls it.
  */
 
 const ADMIN = 'admin1';
 const OWNER = 'owner1';
 const OTHER = 'other1';
 
-describe('completeAccountSetup', () => {
+describe('validateAccountSetup / finalizeAccountSetup', () => {
   let db: PrismaClient;
   let clientId: string;
 
@@ -72,8 +72,8 @@ describe('completeAccountSetup', () => {
     });
   });
 
-  function setup(email: string) {
-    return completeAccountSetup(db, OWNER, clientId, {
+  function validate(email: string) {
+    return validateAccountSetup(db, OWNER, clientId, {
       name: '',
       phone: '',
       email,
@@ -82,39 +82,71 @@ describe('completeAccountSetup', () => {
     });
   }
 
-  it('leaves the login untouched when no email is given, and still completes setup', async () => {
-    const result = await setup('');
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.data.email).toBeNull();
+  describe('validateAccountSetup', () => {
+    it('never writes anything, success or failure', async () => {
+      await validate('fresh-owner@example.com');
+      await validate('already-taken@example.com');
 
-    const access = await db.accountAccess.findUnique({ where: { userId: OWNER } });
-    expect(access?.status).toBe('SETUP_COMPLETE');
+      const access = await db.accountAccess.findUnique({ where: { userId: OWNER } });
+      expect(access?.status).toBe('TEMPORARY_ACTIVE');
+      expect(access?.setupCompletedAt).toBeNull();
+      const client = await db.client.findUnique({ where: { id: clientId } });
+      expect(client?.ownerEmail).toBeNull();
+    });
+
+    it('accepts a blank email and returns null', async () => {
+      const result = await validate('');
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.data.email).toBeNull();
+    });
+
+    it('accepts a fresh email, normalised to lower case', async () => {
+      const result = await validate('New-Owner@Example.com');
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.data.email).toBe('new-owner@example.com');
+    });
+
+    it('refuses an email already bound to a different account', async () => {
+      const result = await validate('already-taken@example.com');
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.errors.email).toBeTruthy();
+    });
+
+    it('does not reject the address the actor already owns (the exclusion is not dead code)', async () => {
+      const result = await validate('xyz12345@access.headway.local');
+      expect(result.ok).toBe(true);
+    });
+
+    it('refuses once AccountAccess has already moved past TEMPORARY_ACTIVE', async () => {
+      await db.accountAccess.update({ where: { userId: OWNER }, data: { status: 'SETUP_COMPLETE' } });
+      const result = await validate('someone@example.com');
+      expect(result.ok).toBe(false);
+    });
   });
 
-  it('accepts a fresh email, normalised to lower case, and completes setup', async () => {
-    const result = await setup('New-Owner@Example.com');
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.data.email).toBe('new-owner@example.com');
+  describe('finalizeAccountSetup', () => {
+    it('commits the contact fields and flips AccountAccess to SETUP_COMPLETE', async () => {
+      await finalizeAccountSetup(db, OWNER, {
+        clientId,
+        name: 'Priya',
+        phone: '9876543210',
+        email: 'new-owner@example.com',
+      });
 
-    const access = await db.accountAccess.findUnique({ where: { userId: OWNER } });
-    expect(access?.status).toBe('SETUP_COMPLETE');
-  });
+      const access = await db.accountAccess.findUnique({ where: { userId: OWNER } });
+      expect(access?.status).toBe('SETUP_COMPLETE');
+      expect(access?.setupCompletedAt).not.toBeNull();
 
-  it("refuses an email already bound to a different account, and leaves TEMPORARY_ACTIVE untouched", async () => {
-    const result = await setup('already-taken@example.com');
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.errors.email).toBeTruthy();
+      const client = await db.client.findUnique({ where: { id: clientId } });
+      expect(client?.ownerName).toBe('Priya');
+      expect(client?.ownerEmail).toBe('new-owner@example.com');
+    });
 
-    // The point of the check: a rejected email must not have flipped the
-    // row, or the owner is permanently locked out of retrying —
-    // completeAccountSetup only ever accepts a row that is still
-    // TEMPORARY_ACTIVE.
-    const access = await db.accountAccess.findUnique({ where: { userId: OWNER } });
-    expect(access?.status).toBe('TEMPORARY_ACTIVE');
-  });
+    it('leaves ownerEmail null when no email was given', async () => {
+      await finalizeAccountSetup(db, OWNER, { clientId, name: '', phone: '', email: null });
 
-  it('does not reject the address the actor already owns (the exclusion is not dead code)', async () => {
-    const result = await setup('xyz12345@access.headway.local');
-    expect(result.ok).toBe(true);
+      const client = await db.client.findUnique({ where: { id: clientId } });
+      expect(client?.ownerEmail).toBeNull();
+    });
   });
 });

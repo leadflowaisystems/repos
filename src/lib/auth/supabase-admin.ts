@@ -130,7 +130,21 @@ export async function setPermanentCredentials(
     password,
     ...(email ? { email, email_confirm: true } : {}),
   });
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    // Never swallowed: this is the ONE signal that says why a real Supabase
+    // rejection happened (an email already claimed elsewhere, a password
+    // policy this project enforces server-side that RepOS's own zod schema
+    // does not know about, and so on). Message/code/status only — never the
+    // key, never the password, never anything this call was asked to set.
+    console.error('setPermanentCredentials: Supabase Auth admin update failed', {
+      authUserId,
+      hadEmail: Boolean(email),
+      code: error.code,
+      status: error.status,
+      message: error.message,
+    });
+    return { ok: false, message: error.message };
+  }
   return { ok: true };
 }
 

@@ -6,9 +6,10 @@ import { prisma } from '@/lib/db';
 import { adminGate, tenantGate } from '@/lib/auth/guard';
 import { setPermanentCredentials } from '@/lib/auth/supabase-admin';
 import {
-  completeAccountSetup,
   disableTempAccess,
+  finalizeAccountSetup,
   generateTempAccess,
+  validateAccountSetup,
 } from '@/lib/account-access/service';
 import { failure, str, success, type ActionState } from './shared';
 
@@ -21,7 +22,7 @@ import { failure, str, success, type ActionState } from './shared';
  * actor already holds a real, ACTIVE BUSINESS_OWNER membership on this
  * client (created eagerly by `generateTempAccess`), and the finer-grained
  * "is this actually the bound temporary-access user, and is it still
- * TEMPORARY_ACTIVE" check happens inside `completeAccountSetup` itself.
+ * TEMPORARY_ACTIVE" check happens inside `validateAccountSetup` itself.
  */
 
 function revalidateClient(clientId: string) {
@@ -84,21 +85,23 @@ export async function completeAccountSetupAction(
   const password = str(form, 'password');
   const confirmPassword = str(form, 'confirmPassword');
 
-  const result = await completeAccountSetup(prisma, actor.userId, clientId, {
+  const validated = await validateAccountSetup(prisma, actor.userId, clientId, {
     name: str(form, 'name'),
     phone: str(form, 'phone'),
     email: str(form, 'email'),
     password,
     confirmPassword,
   });
-  if (!result.ok) return failure(result.message, result.errors);
+  if (!validated.ok) return failure(validated.message, validated.errors);
 
-  // ORDER MATTERS, same rule updatePasswordAction already follows: the
-  // reversible writes (contact fields, AccountAccess status, the session
-  // bump) have already committed inside completeAccountSetup. Supabase owns
-  // the identity and cannot join that transaction, so it moves last — if
-  // this fails, the account is still fully set up except for the one field,
-  // and the person can simply try setting the password again.
+  // ORDER MATTERS — the other way round from how this used to run. Supabase
+  // owns the identity and cannot join a Prisma transaction, so it goes
+  // FIRST, before anything in RepOS's own database moves: nothing has been
+  // written yet at this point, so a rejection here is simply reported and
+  // this form can be tried again exactly as it stands. Committing
+  // AccountAccess = SETUP_COMPLETE ahead of Supabase's own answer was the
+  // earlier bug — it let the database say setup had finished while the
+  // temporary password was still the only one that worked.
   //
   // The admin module, not the signed-in session's own client: this is the
   // one call that also sets the LOGIN EMAIL (when one was given), and
@@ -109,16 +112,21 @@ export async function completeAccountSetupAction(
     select: { authProviderId: true },
   });
   if (!user?.authProviderId) {
-    return failure('Your details were saved, but the password could not be set. Try again.');
+    return failure('Something is wrong with this account. Contact support before trying again.');
   }
   const credentials = await setPermanentCredentials(
     user.authProviderId,
     password,
-    result.data.email ?? undefined,
+    validated.data.email ?? undefined,
   );
   if (!credentials.ok) {
-    return failure('Your details were saved, but the password could not be set. Try again.');
+    // Nothing has been written — this is not a partial success, and the
+    // form can be resubmitted as-is (setPermanentCredentials already logged
+    // the real Supabase reason server-side).
+    return failure('Your password could not be set. Nothing was changed — try again.');
   }
+
+  await finalizeAccountSetup(prisma, actor.userId, validated.data);
 
   redirect('/login');
 }
