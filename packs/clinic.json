@@ -625,6 +625,20 @@
             "key": "order_skipped",
             "label": "Others were taken before me"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "on_time",
+            "label": "Seen on time"
+          },
+          {
+            "key": "short_wait",
+            "label": "Hardly any wait"
+          },
+          {
+            "key": "comfortable_wait",
+            "label": "Comfortable place to wait"
+          }
         ]
       },
       {
@@ -649,6 +663,20 @@
           {
             "key": "billing",
             "label": "Billing was not explained"
+          }
+        ],
+        "positiveSignals": [
+          {
+            "key": "helpful",
+            "label": "Helpful and clear"
+          },
+          {
+            "key": "friendly",
+            "label": "Friendly at the desk"
+          },
+          {
+            "key": "answered_questions",
+            "label": "Answered all my questions"
           }
         ]
       },
@@ -675,6 +703,20 @@
             "key": "followup_unclear",
             "label": "Unclear what to do next"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "explained_well",
+            "label": "Explained things clearly"
+          },
+          {
+            "key": "felt_heard",
+            "label": "Felt properly listened to"
+          },
+          {
+            "key": "unhurried",
+            "label": "Never felt rushed"
+          }
         ]
       },
       {
@@ -700,6 +742,20 @@
             "key": "time_confusion",
             "label": "Confusion about the time"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "easy_booking",
+            "label": "Easy to book"
+          },
+          {
+            "key": "confirmed_promptly",
+            "label": "Confirmed quickly"
+          },
+          {
+            "key": "slot_as_booked",
+            "label": "Got the slot I wanted"
+          }
         ]
       },
       {
@@ -720,6 +776,20 @@
           {
             "key": "consult_room",
             "label": "The consulting room"
+          }
+        ],
+        "positiveSignals": [
+          {
+            "key": "waiting_area_clean",
+            "label": "Waiting area was clean"
+          },
+          {
+            "key": "washroom_clean",
+            "label": "Washroom was clean"
+          },
+          {
+            "key": "consult_room_clean",
+            "label": "Consulting room was spotless"
           }
         ]
       }

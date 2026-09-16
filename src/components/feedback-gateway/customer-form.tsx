@@ -15,15 +15,19 @@ import type { PackDimension } from '@/lib/packs';
  * Built on one belief: almost nobody writes, and the ones who do are not a
  * representative sample. So the fastest path through this form asks for taps
  * and never for words — an overall rating, a rating for each part of the
- * business the vertical cares about, and a specific or two if something was
- * off. About a minute, no keyboard, and the business still learns which part
- * of the visit was the problem.
+ * business the vertical cares about, and a specific or two either way. About
+ * a minute, no keyboard, and the business still learns which part of the
+ * visit was the problem, and which parts to keep doing.
  *
  * Three screens, counted so the customer can see the end from the start:
- * tap, tap, tell us. The open box on the last screen asks a question shaped
- * by what was tapped — what to keep after a good visit, what would have
- * helped after a poor one, both after a mixed one — because "anything else?"
- * is the question nobody answers. That is the only thing the ratings change.
+ * tap, tap, tell us. Two things the ratings shape. Per dimension: a 5 asks
+ * what was loved, a 4 asks what was liked and — compactly, collapsed by
+ * default — what would have made it a 5, and 1-3 asks what to improve. Same
+ * two taxonomies either side of every dimension, never a new one per rating.
+ * And the open box on the last screen asks a question shaped by the visit as
+ * a whole — what to keep after a good one, what would have helped after a
+ * poor one, both after a mixed one — because "anything else?" is the
+ * question nobody answers.
  *
  * Two things this form deliberately does not do. It does not treat a low
  * rating differently from a high one on the way out: the same thank-you and
@@ -170,7 +174,7 @@ export function CustomerFeedbackForm({
                   key={dimension.key}
                   dimension={dimension}
                   rating={rating}
-                  signalsNote={copy.signalsNote}
+                  copy={copy}
                   onChange={(value) =>
                     setRatings((prev) => ({ ...prev, [dimension.key]: value }))
                   }
@@ -276,33 +280,44 @@ function StepCount({ step, total }: { step: number; total: number }) {
 /**
  * One of the vertical's questions.
  *
- * The follow-up is worded by the pack rather than here — "What would have
- * made it better?" for a kitchen, "What did not turn out as you wanted?" for
- * a salon.
- *
- * IT APPEARS AT EVERY RATING, and that is a deliberate correction. The
- * specifics used to be shown only at three stars or below, so a customer who
- * tapped four or five was given a sentence and nothing to tap. That threw
+ * IT APPEARS AT EVERY RATING, and that stays a deliberate correction (M30).
+ * The specifics used to be shown only at three stars or below, so a customer
+ * who tapped four or five was given a sentence and nothing to tap. That threw
  * away the most valuable thing this product collects — "the food was
  * excellent, but we waited forty minutes" — and it quietly taught the
- * business that happy customers have nothing to say, which is false. A high
- * rating now gets the pack's good line first, acknowledging what went well,
- * and then the same optional list. Nothing about it is leading: the note says
- * "or none", and tapping nothing is a complete answer.
+ * business that happy customers have nothing to say, which is false.
+ *
+ * WHICH SET of specifics differs by band, and that is the whole of what the
+ * rating changes here (final experience pass). A 5 offers the pack's
+ * positive taxonomy under "what did you love?". A 4 offers the same positive
+ * list under "what did you like?", plus a collapsed, optional disclosure onto
+ * the pack's existing improvement taxonomy — "what could make it a 5?" — so a
+ * near-perfect visit can still name the one thing without the form feeling
+ * like a complaint form. A 1-3 offers the improvement taxonomy directly under
+ * "what could we improve?". Both lists stay optional and non-leading: the
+ * note under either says "or none", and tapping nothing is a complete answer.
  */
+type Band = 'love' | 'like' | 'improve';
+
+function bandOf(rating: number): Band {
+  if (rating === 5) return 'love';
+  if (rating > NEEDS_DETAIL_AT) return 'like';
+  return 'improve';
+}
+
 function DimensionRow({
   dimension,
   rating,
-  signalsNote,
+  copy,
   onChange,
 }: {
   dimension: PackDimension;
   rating: number | null;
-  signalsNote: string;
+  copy: GatewayCopy;
   onChange: (value: number) => void;
 }) {
   const rated = rating !== null;
-  const high = rated && rating > NEEDS_DETAIL_AT;
+  const band: Band | null = rated ? bandOf(rating) : null;
 
   return (
     <fieldset className="py-4">
@@ -315,47 +330,141 @@ function DimensionRow({
         size="small"
       />
 
-      {/* The good news first, in the vertical's own words. Only a high rating
-          earns this line — it acknowledges what went well before anything
-          asks what did not. */}
-      {high && dimension.goodPrompt ? (
-        <p className="mt-3 text-[13px] text-ink-700">{dimension.goodPrompt}</p>
+      {/* 5 and 4 share the same positive list, under a headline that differs
+          by one word — "loved" versus "liked" — because a 4 is not a 5 with
+          a complaint, it is a good visit with one thing short of great. */}
+      {band === 'love' || band === 'like' ? (
+        <div className="mt-3">
+          <p className="text-[13px] font-medium text-ink-800">
+            {band === 'love' ? copy.loveHeadline : copy.likeHeadline}
+          </p>
+          {dimension.goodPrompt ? (
+            <p className="mt-0.5 text-[12px] text-ink-500">{dimension.goodPrompt}</p>
+          ) : null}
+          {dimension.positiveSignals.length > 0 ? (
+            <>
+              <p className="mt-2 text-[12px] text-ink-500">{copy.signalsNote}</p>
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                {dimension.positiveSignals.map((signal) => (
+                  <SignalChip
+                    key={signal.key}
+                    value={signal.key}
+                    label={signal.label}
+                    tone="green"
+                  />
+                ))}
+              </div>
+            </>
+          ) : null}
+
+          {band === 'like' && dimension.signals.length > 0 ? (
+            <Make5Disclosure dimension={dimension} label={copy.make5Label} note={copy.make5Note} />
+          ) : null}
+        </div>
       ) : null}
 
-      {/* THE SPECIFICS, OFFERED AT EVERY RATING.
-          These used to appear only at 3 stars or below, which meant a customer
-          who tapped 4 or 5 was shown a sentence and given nothing to tap. That
-          quietly threw away the most useful thing this product collects: "the
-          food was excellent, but we waited forty minutes". A happy customer
-          has specifics too, and they are the same specifics — so this is the
-          pack's own signal list either way, never a new taxonomy.
-          It stays optional and non-leading: the note says "or none", and
-          tapping nothing is a complete answer. */}
-      {rated && dimension.signals.length > 0 ? (
+      {/* 1-3 goes straight to the same improvement taxonomy a 4 can reach by
+          choice — never a separate "unhappy customer" vocabulary. */}
+      {band === 'improve' ? (
         <div className="mt-3">
-          <p className="text-[13px] text-ink-600">{dimension.improvePrompt}</p>
-          <p className="mt-0.5 text-[12px] text-ink-500">{signalsNote}</p>
-          <div className="mt-2.5 flex flex-wrap gap-2">
-            {dimension.signals.map((signal) => (
-              <SignalChip key={signal.key} value={signal.key} label={signal.label} />
-            ))}
-          </div>
+          <p className="text-[13px] font-medium text-ink-800">{copy.improveHeadline}</p>
+          {dimension.improvePrompt ? (
+            <p className="mt-0.5 text-[12px] text-ink-500">{dimension.improvePrompt}</p>
+          ) : null}
+          {dimension.signals.length > 0 ? (
+            <>
+              <p className="mt-2 text-[12px] text-ink-500">{copy.signalsNote}</p>
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                {dimension.signals.map((signal) => (
+                  <SignalChip key={signal.key} value={signal.key} label={signal.label} tone="red" />
+                ))}
+              </div>
+            </>
+          ) : null}
         </div>
       ) : null}
     </fieldset>
   );
 }
 
+/**
+ * The compact, optional second step at 4 stars (final experience pass).
+ *
+ * Collapsed by default so a near-perfect visit stays a quick tap, not a
+ * second complaint form. Opening it reaches the same improvement taxonomy a
+ * 1-3 star rating shows directly — no separate "almost" vocabulary.
+ */
+function Make5Disclosure({
+  dimension,
+  label,
+  note,
+}: {
+  dimension: PackDimension;
+  label: string;
+  note: string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className="inline-flex min-h-11 items-center text-[13px] font-medium text-warn-700 underline underline-offset-4 hover:text-warn-600"
+      >
+        {label}
+      </button>
+      {open ? (
+        <div className="mt-1">
+          <p className="text-[12px] text-ink-500">{note}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {dimension.signals.map((signal) => (
+              <SignalChip key={signal.key} value={signal.key} label={signal.label} tone="amber" />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Selected-state contrast, not raw brand colour: a chip has to read as
+ * on/off at a glance, so the tap state jumps a full step (50/200 -> 700)
+ * rather than nudging one shade.
+ */
+const CHIP_TONE = {
+  green: {
+    off: 'border-good-200 bg-good-50 text-good-700 hover:border-good-600',
+    on: 'border-good-700 bg-good-700 text-white',
+  },
+  amber: {
+    off: 'border-warn-200 bg-warn-50 text-warn-700 hover:border-warn-600',
+    on: 'border-warn-700 bg-warn-700 text-white',
+  },
+  red: {
+    off: 'border-bad-200 bg-bad-50 text-bad-700 hover:border-bad-600',
+    on: 'border-bad-700 bg-bad-700 text-white',
+  },
+} as const;
+
 /** A tappable specific. A checkbox, so it works without JavaScript too. */
-function SignalChip({ value, label }: { value: string; label: string }) {
+function SignalChip({
+  value,
+  label,
+  tone,
+}: {
+  value: string;
+  label: string;
+  tone: keyof typeof CHIP_TONE;
+}) {
   const [on, setOn] = useState(false);
+  const style = CHIP_TONE[tone];
   return (
     <label
       className={clsx(
-        'inline-flex min-h-11 cursor-pointer items-center rounded-full border px-4 text-[14px] transition-colors select-none',
-        on
-          ? 'border-ink-900 bg-ink-900 text-white'
-          : 'border-ink-300 bg-white text-ink-700 hover:border-ink-400',
+        'inline-flex min-h-11 cursor-pointer items-center rounded-full border px-4 text-[14px] font-medium transition-colors select-none',
+        on ? style.on : style.off,
       )}
     >
       <input

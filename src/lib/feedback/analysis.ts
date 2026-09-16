@@ -486,6 +486,8 @@ export type DimensionSummaryRow = {
   average: number | null;
   /** The specifics customers tapped, most-picked first. */
   signals: Array<{ key: string; label: string; count: number }>;
+  /** The positive specifics customers tapped, most-picked first (final experience pass). */
+  positiveSignals: Array<{ key: string; label: string; count: number }>;
 };
 
 export type ThemeSummary = {
@@ -562,6 +564,14 @@ export function summariseDimensions(
       low: bucket?.low ?? 0,
       average: bucket && bucket.rated > 0 ? Math.round((bucket.sum / bucket.rated) * 10) / 10 : null,
       signals: dimension.signals
+        .map((signal) => ({
+          key: signal.key,
+          label: signal.label,
+          count: signalCounts.get(signal.key) ?? 0,
+        }))
+        .filter((signal) => signal.count > 0)
+        .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)),
+      positiveSignals: dimension.positiveSignals
         .map((signal) => ({
           key: signal.key,
           label: signal.label,

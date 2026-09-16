@@ -39,6 +39,16 @@ export type GatewayCopy = {
   dimensionsNote: string;
   /** Above the specifics offered after a rating. Never called a complaint. */
   signalsNote: string;
+  /** Headline above the tappable specifics at 5 stars (final experience pass). */
+  loveHeadline: string;
+  /** Headline above the tappable specifics at 4 stars. */
+  likeHeadline: string;
+  /** Headline above the tappable specifics at 1-3 stars. */
+  improveHeadline: string;
+  /** The compact, collapsed-by-default toggle offered only at 4 stars. */
+  make5Label: string;
+  /** Above the improvement specifics once that toggle is opened. */
+  make5Note: string;
   /** The open box when nothing was rated: last and plainly optional. */
   textHeadline: string;
   textNote: string;
@@ -104,6 +114,11 @@ export function buildGatewayCopy(pack: Pack, businessName: string): GatewayCopy 
     dimensionsHeadline: 'How did these go?',
     dimensionsNote: 'Tap a rating. Skip anything that did not apply.',
     signalsNote: 'Pick any that fit — or none.',
+    loveHeadline: 'What did you love?',
+    likeHeadline: 'What did you like?',
+    improveHeadline: 'What could we improve?',
+    make5Label: 'What could make it a 5?',
+    make5Note: 'Pick any that fit — or none. Totally optional.',
     textHeadline: 'Anything else?',
     textNote: 'Optional. A line or two is plenty.',
     askKeep: pick(g?.keepPrompt, 'What should we keep doing?'),

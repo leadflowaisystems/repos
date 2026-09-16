@@ -380,7 +380,13 @@ export type FeedbackRow = {
    * operator reads labels rather than keys. Empty for a pasted review and for
    * anything stored before M19.
    */
-  answers: Array<{ key: string; label: string; rating: number; signals: string[] }>;
+  answers: Array<{
+    key: string;
+    label: string;
+    rating: number;
+    signals: string[];
+    positiveSignals: string[];
+  }>;
 };
 
 const PREVIEW_LENGTH = 150;
@@ -430,6 +436,9 @@ function answersFor(
       label: dimension.label,
       rating,
       signals: dimension.signals.filter((s) => tapped.has(s.key)).map((s) => s.label),
+      positiveSignals: dimension.positiveSignals
+        .filter((s) => tapped.has(s.key))
+        .map((s) => s.label),
     });
   }
   return out;

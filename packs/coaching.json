@@ -515,6 +515,20 @@
             "key": "material",
             "label": "Study material not useful"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "clear_explanations",
+            "label": "Explains clearly"
+          },
+          {
+            "key": "good_pace",
+            "label": "Right pace for me"
+          },
+          {
+            "key": "doubts_cleared",
+            "label": "Doubts cleared properly"
+          }
         ]
       },
       {
@@ -540,6 +554,20 @@
             "key": "substitute",
             "label": "Substitute took the class"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "supportive",
+            "label": "Supportive and approachable"
+          },
+          {
+            "key": "consistent",
+            "label": "Same teacher throughout"
+          },
+          {
+            "key": "individual_attention",
+            "label": "Gave individual attention"
+          }
         ]
       },
       {
@@ -564,6 +592,20 @@
           {
             "key": "no_test_feedback",
             "label": "No feedback after tests"
+          }
+        ],
+        "positiveSignals": [
+          {
+            "key": "kept_informed",
+            "label": "Kept us informed"
+          },
+          {
+            "key": "quick_replies",
+            "label": "Replied quickly"
+          },
+          {
+            "key": "clear_updates",
+            "label": "Clear progress updates"
           }
         ]
       },
@@ -594,6 +636,20 @@
             "key": "safety",
             "label": "Safety or supervision"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "comfortable_room",
+            "label": "Comfortable classroom"
+          },
+          {
+            "key": "well_kept",
+            "label": "Well kept space"
+          },
+          {
+            "key": "good_batch_size",
+            "label": "Batch size felt right"
+          }
         ]
       },
       {
@@ -618,6 +674,20 @@
           {
             "key": "results",
             "label": "Results were not what was promised"
+          }
+        ],
+        "positiveSignals": [
+          {
+            "key": "fair_fee",
+            "label": "Fee felt fair"
+          },
+          {
+            "key": "worth_it",
+            "label": "Worth what we paid"
+          },
+          {
+            "key": "clear_terms",
+            "label": "Fee terms were clear"
           }
         ]
       }

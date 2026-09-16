@@ -93,6 +93,19 @@ const packDimensionSchema = z.object({
   signals: z
     .array(z.object({ key: z.string().min(1), label: z.string().min(1) }))
     .default([]),
+  /**
+   * Tappable specifics offered after a high rating (final experience pass).
+   *
+   * The positive counterpart to `signals`: a 5-star customer picks what they
+   * loved instead of typing it, and a 4-star one sees the same list before
+   * being offered `signals` again, compactly, as "what could make it a 5?".
+   * A separate array rather than a flag on `signals`, because the two are
+   * offered under different questions and styled differently, and a pack
+   * without praise-worthy specifics yet still loads with this empty.
+   */
+  positiveSignals: z
+    .array(z.object({ key: z.string().min(1), label: z.string().min(1) }))
+    .default([]),
 });
 
 const packSchema = z.object({

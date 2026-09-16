@@ -552,6 +552,20 @@
             "key": "weights_missing",
             "label": "Weights missing or misplaced"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "well_maintained",
+            "label": "Well maintained"
+          },
+          {
+            "key": "good_variety",
+            "label": "Good variety of equipment"
+          },
+          {
+            "key": "always_available",
+            "label": "Machines were available"
+          }
         ]
       },
       {
@@ -576,6 +590,20 @@
           {
             "key": "floor",
             "label": "The floor area"
+          }
+        ],
+        "positiveSignals": [
+          {
+            "key": "equipment_wiped",
+            "label": "Equipment was wiped down"
+          },
+          {
+            "key": "washroom_clean",
+            "label": "Washroom was clean"
+          },
+          {
+            "key": "changing_room_clean",
+            "label": "Changing room was clean"
           }
         ]
       },
@@ -602,6 +630,20 @@
             "key": "sales_pressure",
             "label": "Pushed to buy something"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "good_guidance",
+            "label": "Great guidance on form"
+          },
+          {
+            "key": "motivating",
+            "label": "Motivating and encouraging"
+          },
+          {
+            "key": "always_around",
+            "label": "Always around when needed"
+          }
         ]
       },
       {
@@ -626,6 +668,20 @@
           {
             "key": "classes_full",
             "label": "Classes were full"
+          }
+        ],
+        "positiveSignals": [
+          {
+            "key": "never_crowded",
+            "label": "Never felt crowded"
+          },
+          {
+            "key": "machines_available",
+            "label": "Machines were free when I needed them"
+          },
+          {
+            "key": "easy_at_peak",
+            "label": "Fine even at busy times"
           }
         ]
       },
@@ -655,6 +711,20 @@
           {
             "key": "parking",
             "label": "Parking"
+          }
+        ],
+        "positiveSignals": [
+          {
+            "key": "comfortable_temp",
+            "label": "Comfortable temperature"
+          },
+          {
+            "key": "good_lockers",
+            "label": "Lockers worked well"
+          },
+          {
+            "key": "clean_showers",
+            "label": "Showers were clean"
           }
         ]
       }

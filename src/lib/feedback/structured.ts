@@ -69,6 +69,9 @@ export function parseStructured(dimensions: PackDimension[], raw: {
     for (const signal of dimension.signals) {
       if (rawSignals.has(signal.key) && signals.length < MAX_SIGNALS) signals.push(signal.key);
     }
+    for (const signal of dimension.positiveSignals) {
+      if (rawSignals.has(signal.key) && signals.length < MAX_SIGNALS) signals.push(signal.key);
+    }
   }
 
   return { dimensions: ratings, signals };

@@ -495,6 +495,20 @@
             "key": "revisions",
             "label": "Changes were refused"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "matched_samples",
+            "label": "Matched the samples shown"
+          },
+          {
+            "key": "stunning_work",
+            "label": "Absolutely stunning work"
+          },
+          {
+            "key": "captured_everything",
+            "label": "Captured everything we wanted"
+          }
         ]
       },
       {
@@ -519,6 +533,20 @@
           {
             "key": "unclear_scope",
             "label": "Never clear what was included"
+          }
+        ],
+        "positiveSignals": [
+          {
+            "key": "kept_updated",
+            "label": "Kept us updated throughout"
+          },
+          {
+            "key": "always_reachable",
+            "label": "Always easy to reach"
+          },
+          {
+            "key": "clear_scope",
+            "label": "Clear about what was included"
           }
         ]
       },
@@ -545,6 +573,20 @@
             "key": "setup_late",
             "label": "Setup was not ready"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "arrived_on_time",
+            "label": "Arrived right on time"
+          },
+          {
+            "key": "delivered_on_time",
+            "label": "Delivered on time"
+          },
+          {
+            "key": "ready_early",
+            "label": "Set up ahead of time"
+          }
         ]
       },
       {
@@ -570,6 +612,20 @@
             "key": "no_lead",
             "label": "Nobody seemed in charge"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "promised_team",
+            "label": "The team we were promised"
+          },
+          {
+            "key": "professional",
+            "label": "Calm and professional"
+          },
+          {
+            "key": "well_led",
+            "label": "Clearly someone in charge"
+          }
         ]
       },
       {
@@ -594,6 +650,20 @@
           {
             "key": "not_included",
             "label": "Things I assumed were included"
+          }
+        ],
+        "positiveSignals": [
+          {
+            "key": "fair_price",
+            "label": "Price felt fair"
+          },
+          {
+            "key": "no_hidden_costs",
+            "label": "No hidden costs"
+          },
+          {
+            "key": "worth_it",
+            "label": "Worth every rupee"
           }
         ]
       }

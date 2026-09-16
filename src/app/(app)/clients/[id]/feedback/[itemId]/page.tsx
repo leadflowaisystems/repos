@@ -137,6 +137,11 @@ export default async function FeedbackItemPage({
                 >
                   <dt className="text-[14px] text-ink-700">{answer.label}</dt>
                   <dd className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    {answer.positiveSignals.length > 0 ? (
+                      <span className="text-[13px] text-good-700">
+                        {answer.positiveSignals.join(' · ')}
+                      </span>
+                    ) : null}
                     {answer.signals.length > 0 ? (
                       <span className="text-[13px] text-ink-500">
                         {answer.signals.join(' · ')}

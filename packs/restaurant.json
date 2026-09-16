@@ -636,6 +636,24 @@
             "key": "spice_level",
             "label": "Spice level was wrong"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "great_taste",
+            "label": "Loved the taste"
+          },
+          {
+            "key": "served_hot",
+            "label": "Served hot"
+          },
+          {
+            "key": "generous_portion",
+            "label": "Generous portion"
+          },
+          {
+            "key": "tasted_fresh",
+            "label": "Tasted fresh"
+          }
         ]
       },
       {
@@ -660,6 +678,24 @@
           {
             "key": "manner",
             "label": "Rude or dismissive"
+          }
+        ],
+        "positiveSignals": [
+          {
+            "key": "attentive",
+            "label": "Attentive service"
+          },
+          {
+            "key": "not_rushed",
+            "label": "Never felt rushed"
+          },
+          {
+            "key": "order_right",
+            "label": "Got our order right"
+          },
+          {
+            "key": "warm",
+            "label": "Friendly and warm"
           }
         ]
       },
@@ -686,6 +722,24 @@
             "key": "for_bill",
             "label": "For the bill"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "quick_seated",
+            "label": "Seated quickly"
+          },
+          {
+            "key": "quick_order",
+            "label": "Order taken quickly"
+          },
+          {
+            "key": "quick_food",
+            "label": "Food came quickly"
+          },
+          {
+            "key": "quick_bill",
+            "label": "Bill came quickly"
+          }
         ]
       },
       {
@@ -711,6 +765,24 @@
             "key": "seating_area",
             "label": "The seating area"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "table_clean",
+            "label": "Table was clean"
+          },
+          {
+            "key": "washroom_clean",
+            "label": "Washroom was clean"
+          },
+          {
+            "key": "crockery_clean",
+            "label": "Plates and glasses were spotless"
+          },
+          {
+            "key": "seating_clean",
+            "label": "Seating area was tidy"
+          }
         ]
       },
       {
@@ -735,6 +807,24 @@
           {
             "key": "extra_charges",
             "label": "Charges I was not told about"
+          }
+        ],
+        "positiveSignals": [
+          {
+            "key": "fair_prices",
+            "label": "Prices felt fair"
+          },
+          {
+            "key": "good_portion_price",
+            "label": "Good portion for the price"
+          },
+          {
+            "key": "bill_as_expected",
+            "label": "Bill matched what we expected"
+          },
+          {
+            "key": "no_surprises",
+            "label": "No surprise charges"
           }
         ]
       }

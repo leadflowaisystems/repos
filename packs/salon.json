@@ -591,6 +591,20 @@
             "key": "products",
             "label": "Products did not suit me"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "loved_result",
+            "label": "Loved how it turned out"
+          },
+          {
+            "key": "exactly_what_asked",
+            "label": "Exactly what I asked for"
+          },
+          {
+            "key": "lasted_well",
+            "label": "Lasted really well"
+          }
         ]
       },
       {
@@ -615,6 +629,20 @@
           {
             "key": "pushed_extras",
             "label": "Pushed extra services"
+          }
+        ],
+        "positiveSignals": [
+          {
+            "key": "listened_well",
+            "label": "Listened to what I wanted"
+          },
+          {
+            "key": "friendly",
+            "label": "Friendly and welcoming"
+          },
+          {
+            "key": "skilled",
+            "label": "Clearly knew what they were doing"
           }
         ]
       },
@@ -641,6 +669,20 @@
             "key": "unreachable",
             "label": "Could not reach anyone to book"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "seen_on_time",
+            "label": "Seen right on time"
+          },
+          {
+            "key": "no_wait",
+            "label": "Hardly any wait"
+          },
+          {
+            "key": "quick_booking",
+            "label": "Easy to get a slot"
+          }
         ]
       },
       {
@@ -666,6 +708,20 @@
             "key": "station",
             "label": "The station or chair"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "tools_clean",
+            "label": "Tools looked freshly sanitised"
+          },
+          {
+            "key": "fresh_towels",
+            "label": "Fresh towels and linen"
+          },
+          {
+            "key": "salon_clean",
+            "label": "Salon felt spotless"
+          }
         ]
       },
       {
@@ -690,6 +746,20 @@
           {
             "key": "extras_added",
             "label": "Extras added to the bill"
+          }
+        ],
+        "positiveSignals": [
+          {
+            "key": "fair_price",
+            "label": "Price felt fair"
+          },
+          {
+            "key": "as_quoted",
+            "label": "Charged exactly as quoted"
+          },
+          {
+            "key": "worth_it",
+            "label": "Worth every rupee"
           }
         ]
       }

@@ -4,7 +4,7 @@ import type { PrismaClient } from '@prisma/client';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createClient } from '@/lib/clients/service';
 import { ensureGateway, submitCustomerFeedback } from '@/lib/gateway/service';
-import { getPackOrFallback } from '@/lib/packs';
+import { getPackOrFallback, listPacks } from '@/lib/packs';
 import { createTestDb, resetDb, validClientInput } from './helpers/test-db';
 
 /**
@@ -18,6 +18,14 @@ import { createTestDb, resetDb, validClientInput } from './helpers/test-db';
  * That is now fixed, and these tests hold it fixed from both ends: the form
  * offers the options at every rating, and the server stores them at every
  * rating. Neither half is much use without the other.
+ *
+ * THE POSITIVE TAXONOMY (final experience pass) is the next step, not a
+ * reversal: every dimension gained a `positiveSignals` counterpart to its
+ * `signals`, and which one the form shows is the whole of what a rating now
+ * changes — 5 and 4 offer the positive list, 1-3 the improvement one, and a 4
+ * can also reach the improvement list through a compact, collapsed disclosure.
+ * Both lists post through the same field, validate against the same pack, and
+ * land in the same `signalsJson` column: two taxonomies, one pipe.
  *
  * WHAT MUST NOT COME BACK. Nothing here may become review gating. A high
  * rating is not routed anywhere different, is not offered a public review any
@@ -96,29 +104,45 @@ function firstSignal(): { dimensionKey: string; signalKey: string } {
 // The form offers the options at every rating
 // ---------------------------------------------------------------------------
 
-describe('the specifics are offered at every rating', () => {
-  it('gates the signal chips on HAVING rated, not on rating badly', () => {
-    // The whole change, in one line. `low` was the gate and it is gone.
+describe('the specifics are offered at every rating, grouped by band', () => {
+  it('gates the tag sections on HAVING rated, not on rating badly', () => {
+    // The whole M30 change, still in force: no gate keyed off a low rating.
     expect(form).toContain('const rated = rating !== null;');
-    expect(form).toContain('{rated && dimension.signals.length > 0 ? (');
-    expect(form).not.toContain('{low && dimension.signals.length > 0 ? (');
+    expect(form).not.toMatch(/\{low\s*&&/);
   });
 
-  it('still shows a high rating the pack’s own good line first', () => {
-    // A four or five star customer is acknowledged before anything asks what
-    // could be better. The order matters; the presence of both is the point.
-    expect(form).toContain('{high && dimension.goodPrompt ? (');
-    const goodAt = form.indexOf('{high && dimension.goodPrompt ? (');
-    const chipsAt = form.indexOf('{rated && dimension.signals.length > 0 ? (');
-    expect(goodAt).toBeGreaterThan(0);
-    expect(chipsAt).toBeGreaterThan(goodAt);
+  it('splits the taxonomy into three bands, not a high/low binary', () => {
+    // Five gets its own band: a 5 is not just "another high rating" once a 4
+    // has somewhere else to go (the compact disclosure below).
+    expect(form).toContain("if (rating === 5) return 'love';");
+    expect(form).toContain("if (rating > NEEDS_DETAIL_AT) return 'like';");
+    expect(form).toContain("return 'improve';");
+  });
+
+  it('shows the positive taxonomy for love and like, the improvement one for improve — never a mix', () => {
+    expect(form).toContain('dimension.positiveSignals.map((signal) => (');
+    expect(form).toContain('tone="green"');
+    expect(form).toContain('tone="red"');
+    const greenAt = form.indexOf('tone="green"');
+    const redAt = form.indexOf('tone="red"');
+    expect(greenAt).toBeGreaterThan(0);
+    expect(redAt).toBeGreaterThan(greenAt);
+  });
+
+  it('offers the improvement taxonomy at 4 stars only, compactly, collapsed by default', () => {
+    // A 4 can reach the same list a 1-3 sees directly, but only by choosing
+    // to open it — never the first thing on screen.
+    expect(form).toContain("band === 'like' && dimension.signals.length > 0");
+    expect(form).toContain('function Make5Disclosure');
+    expect(form).toContain('const [open, setOpen] = useState(false);');
+    expect(form).toContain('tone="amber"');
   });
 
   it('keeps the options optional and non-leading at every rating', () => {
     // "Pick any that fit — or none." Tapping nothing is a complete answer, so
     // offering the list to a happy customer cannot read as fishing for faults.
     expect(copy).toContain("signalsNote: 'Pick any that fit — or none.'");
-    expect(form).toContain('{signalsNote}');
+    expect(form).toContain('{copy.signalsNote}');
   });
 
   it('asks the open question in words that suit how it went', () => {
@@ -201,6 +225,84 @@ describe('a customer at any rating can be heard', () => {
     expect(row.text).toContain('bill took a while');
     expect(row.signalsJson ?? '').toContain(signalKey);
     expect(row.source).toBe('REP_OS_QR');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The positive taxonomy: a new counterpart, not a new pipe
+// ---------------------------------------------------------------------------
+
+describe('the positive taxonomy (final experience pass)', () => {
+  function firstPositiveSignal(): { dimensionKey: string; signalKey: string } {
+    const pack = getPackOrFallback('restaurant');
+    const dimension = pack.gateway?.dimensions?.[0];
+    if (!dimension?.positiveSignals?.[0]) {
+      throw new Error('the restaurant pack has no positive signals');
+    }
+    return { dimensionKey: dimension.key, signalKey: dimension.positiveSignals[0].key };
+  }
+
+  it('stores a positive specific exactly as an issue specific is stored', async () => {
+    const { clientId, token } = await restaurant();
+    const { dimensionKey, signalKey } = firstPositiveSignal();
+
+    const result = await submit(token, {
+      stars: 5,
+      dimensions: { [dimensionKey]: 5 },
+      signals: [signalKey],
+    });
+
+    expect(result.ok).toBe(true);
+    const row = await db.reviewItem.findFirstOrThrow({ where: { clientId } });
+    expect(row.signalsJson ?? '').toContain(signalKey);
+  });
+
+  it('drops a positive-looking key that is not in this vertical’s taxonomy', async () => {
+    const { clientId, token } = await restaurant();
+    const result = await submit(token, {
+      stars: 5,
+      dimensions: { food: 5 },
+      signals: ['not_a_real_positive_key'],
+    });
+    expect(result.ok).toBe(true);
+    const row = await db.reviewItem.findFirstOrThrow({ where: { clientId } });
+    expect(row.signalsJson ?? '').not.toContain('not_a_real_positive_key');
+  });
+
+  it('supports a mixed submission: loved one part, flagged another', async () => {
+    // The point of rating each part independently — a 5-star dish and a
+    // 2-star wait are both true at once, and both have to survive the trip.
+    const pack = getPackOrFallback('restaurant');
+    const food = pack.gateway!.dimensions.find((d) => d.key === 'food')!;
+    const waiting = pack.gateway!.dimensions.find((d) => d.key === 'waiting')!;
+    const lovedTag = food.positiveSignals[0]!.key;
+    const issueTag = waiting.signals[0]!.key;
+
+    const { clientId, token } = await restaurant();
+    const result = await submit(token, {
+      stars: 4,
+      dimensions: { food: 5, waiting: 2 },
+      signals: [lovedTag, issueTag],
+    });
+
+    expect(result.ok).toBe(true);
+    const row = await db.reviewItem.findFirstOrThrow({ where: { clientId } });
+    expect(row.signalsJson ?? '').toContain(lovedTag);
+    expect(row.signalsJson ?? '').toContain(issueTag);
+  });
+
+  it('every vertical pack carries positive specifics for every dimension it asks about', () => {
+    // Content coverage, not behaviour: a dimension with an empty
+    // positiveSignals list would show a love/like headline with nothing
+    // underneath it to tap.
+    for (const pack of listPacks()) {
+      for (const dimension of pack.gateway?.dimensions ?? []) {
+        expect(
+          dimension.positiveSignals.length,
+          `${pack.id}/${dimension.key} has no positive specifics`,
+        ).toBeGreaterThan(0);
+      }
+    }
   });
 });
 

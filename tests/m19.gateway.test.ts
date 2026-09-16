@@ -114,6 +114,14 @@ describe('what every vertical asks', () => {
       for (const dimension of dimensions) {
         const signalKeys = dimension.signals.map((s) => s.key);
         expect(new Set(signalKeys).size, `${pack.id}/${dimension.key}`).toBe(signalKeys.length);
+        const positiveKeys = dimension.positiveSignals.map((s) => s.key);
+        expect(new Set(positiveKeys).size, `${pack.id}/${dimension.key}`).toBe(
+          positiveKeys.length,
+        );
+        // The two taxonomies share one storage column (final experience pass),
+        // so a key reused across them would make a stored tap ambiguous.
+        const overlap = signalKeys.filter((key) => positiveKeys.includes(key));
+        expect(overlap, `${pack.id}/${dimension.key}`).toEqual([]);
       }
     }
   });
@@ -128,6 +136,7 @@ describe('what every vertical asks', () => {
       for (const dimension of pack.gateway?.dimensions ?? []) {
         surfaces.push(dimension.label, dimension.improvePrompt, dimension.goodPrompt);
         for (const signal of dimension.signals) surfaces.push(signal.label);
+        for (const signal of dimension.positiveSignals) surfaces.push(signal.label);
       }
       for (const line of surfaces) {
         expect(banned.test(line), `${pack.id}: ${line}`).toBe(false);
@@ -151,6 +160,9 @@ describe('what every vertical asks', () => {
       for (const dimension of pack.gateway?.dimensions ?? []) {
         expect(banned.test(dimension.improvePrompt), `${pack.id}/${dimension.key}`).toBe(false);
         for (const signal of dimension.signals) {
+          expect(banned.test(signal.label), `${pack.id}/${signal.key}`).toBe(false);
+        }
+        for (const signal of dimension.positiveSignals) {
           expect(banned.test(signal.label), `${pack.id}/${signal.key}`).toBe(false);
         }
       }
@@ -445,8 +457,14 @@ describe('what the operator sees of a wordless customer', () => {
 
     const item = await getFeedbackItem(db, clientId, stored.id);
     expect(item?.answers).toEqual([
-      { key: 'food', label: 'Food and drink', rating: 4, signals: [] },
-      { key: 'waiting', label: 'Waiting', rating: 1, signals: ['For the food'] },
+      { key: 'food', label: 'Food and drink', rating: 4, signals: [], positiveSignals: [] },
+      {
+        key: 'waiting',
+        label: 'Waiting',
+        rating: 1,
+        signals: ['For the food'],
+        positiveSignals: [],
+      },
     ]);
   });
 

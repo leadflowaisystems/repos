@@ -478,6 +478,20 @@
             "key": "changed_hands",
             "label": "Kept being passed to someone else"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "quick_replies",
+            "label": "Replied quickly"
+          },
+          {
+            "key": "always_reachable",
+            "label": "Always reachable"
+          },
+          {
+            "key": "kept_updated",
+            "label": "Kept me updated throughout"
+          }
         ]
       },
       {
@@ -502,6 +516,20 @@
           {
             "key": "token_terms",
             "label": "Token amount terms"
+          }
+        ],
+        "positiveSignals": [
+          {
+            "key": "upfront_costs",
+            "label": "Costs were upfront"
+          },
+          {
+            "key": "no_pressure",
+            "label": "No pressure to decide"
+          },
+          {
+            "key": "fair_brokerage",
+            "label": "Brokerage felt fair"
           }
         ]
       },
@@ -528,6 +556,20 @@
             "key": "wrong_budget",
             "label": "Outside what I asked for"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "matched_brief",
+            "label": "Matched what we asked for"
+          },
+          {
+            "key": "accurate_listings",
+            "label": "Listings matched reality"
+          },
+          {
+            "key": "good_shortlist",
+            "label": "Well-matched shortlist"
+          }
         ]
       },
       {
@@ -553,6 +595,20 @@
             "key": "no_answers",
             "label": "Questions went unanswered"
           }
+        ],
+        "positiveSignals": [
+          {
+            "key": "on_time_visits",
+            "label": "Turned up on time"
+          },
+          {
+            "key": "knowledgeable",
+            "label": "Knew the property well"
+          },
+          {
+            "key": "answered_everything",
+            "label": "Answered every question"
+          }
         ]
       },
       {
@@ -577,6 +633,20 @@
           {
             "key": "after_deal",
             "label": "Support stopped after the deal"
+          }
+        ],
+        "positiveSignals": [
+          {
+            "key": "smooth_paperwork",
+            "label": "Paperwork went smoothly"
+          },
+          {
+            "key": "helped_with_docs",
+            "label": "Helped with the documentation"
+          },
+          {
+            "key": "no_delays",
+            "label": "No delays at all"
           }
         ]
       }
