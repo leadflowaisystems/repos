@@ -101,6 +101,34 @@ export async function randomizeIdentityPassword(authUserId: string): Promise<voi
   if (error) throw new Error(error.message);
 }
 
+export type CredentialFailure = 'EMAIL_TAKEN' | 'WEAK_PASSWORD' | 'NOT_CONFIGURED' | 'UNKNOWN';
+
+export type SetCredentialsResult =
+  | { ok: true }
+  | { ok: false; reason: CredentialFailure; message: string };
+
+/**
+ * Which of Supabase's refusals this was, in RepOS's own terms.
+ *
+ * Both named cases are things the person filling in the form can fix
+ * themselves, which is the whole reason for telling them apart: "try again"
+ * is false advice for either one, because retrying the same email or the same
+ * password can never succeed. Matched on `code` first — the stable signal —
+ * with a message match behind it, because GoTrue has not always sent a code
+ * for these, and a version that stops doing so should degrade to the right
+ * answer rather than to UNKNOWN.
+ */
+function classify(code: string | undefined, message: string): CredentialFailure {
+  const text = message.toLowerCase();
+  if (code === 'email_exists') return 'EMAIL_TAKEN';
+  if (code === 'weak_password') return 'WEAK_PASSWORD';
+  if (text.includes('already been registered') || text.includes('already registered')) {
+    return 'EMAIL_TAKEN';
+  }
+  if (text.includes('password')) return 'WEAK_PASSWORD';
+  return 'UNKNOWN';
+}
+
 /**
  * Finishing setup: the owner's own password, and their own login email when
  * they gave one, on the SAME identity `createTempIdentity` minted.
@@ -116,15 +144,26 @@ export async function randomizeIdentityPassword(authUserId: string): Promise<voi
  * Membership the person completing the form has been signed in as all
  * along — there is no other claimant's ownership this is bypassing.
  *
- * Returns a message rather than throwing on failure: the one expected case
- * (the address is already some other Supabase identity's) is a normal form
- * rejection, not a server error.
+ * Returns a classified refusal rather than throwing on failure: the expected
+ * cases (the address is already some other Supabase identity's, the password
+ * is weaker than this project's own policy) are normal form rejections, not
+ * server errors, and the caller turns each into the field error that lets the
+ * owner actually fix it.
  */
 export async function setPermanentCredentials(
   authUserId: string,
   password: string,
   email?: string,
-): Promise<{ ok: true } | { ok: false; message: string }> {
+): Promise<SetCredentialsResult> {
+  // This used to throw straight out of the server action when the project was
+  // unconfigured, which reached the owner as a blank framework error with the
+  // reason visible only in a log. It is a refusal like any other.
+  const config = adminConfig();
+  if (!config.ok) {
+    console.error('setPermanentCredentials: admin API not configured', { reason: config.reason });
+    return { ok: false, reason: 'NOT_CONFIGURED', message: config.reason };
+  }
+
   const supabase = adminClient();
   const { error } = await supabase.auth.admin.updateUserById(authUserId, {
     password,
@@ -143,7 +182,7 @@ export async function setPermanentCredentials(
       status: error.status,
       message: error.message,
     });
-    return { ok: false, message: error.message };
+    return { ok: false, reason: classify(error.code, error.message), message: error.message };
   }
   return { ok: true };
 }

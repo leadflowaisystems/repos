@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { adminGate, tenantGate } from '@/lib/auth/guard';
 import { setPermanentCredentials } from '@/lib/auth/supabase-admin';
+import { loginAfterSetup } from '@/lib/auth/setup-notice';
 import {
   disableTempAccess,
   finalizeAccountSetup,
@@ -120,13 +121,34 @@ export async function completeAccountSetupAction(
     validated.data.email ?? undefined,
   );
   if (!credentials.ok) {
-    // Nothing has been written — this is not a partial success, and the
-    // form can be resubmitted as-is (setPermanentCredentials already logged
-    // the real Supabase reason server-side).
+    // Nothing has been written — this is not a partial success. But "try
+    // again" is only honest advice when trying again could actually work,
+    // and for the two refusals Supabase names it cannot: the same email is
+    // still taken and the same password is still too weak on the next
+    // attempt. Those come back as field errors the owner can act on, which
+    // is the difference between a form that can be completed and a dead end.
+    // The real Supabase reason is logged server-side either way.
+    if (credentials.reason === 'EMAIL_TAKEN') {
+      return failure('Some fields need attention.', {
+        email: 'That email is already in use by another account.',
+      });
+    }
+    if (credentials.reason === 'WEAK_PASSWORD') {
+      return failure('Some fields need attention.', {
+        // Supabase's own wording states the requirement this project actually
+        // enforces, which RepOS's zod schema does not know. It describes a
+        // policy, never a credential.
+        password: credentials.message || 'Choose a longer, less predictable password.',
+      });
+    }
+    if (credentials.reason === 'NOT_CONFIGURED') {
+      // An installation fault, not something this owner can fix by retyping.
+      return failure('Account setup is unavailable right now. Please contact support.');
+    }
     return failure('Your password could not be set. Nothing was changed — try again.');
   }
 
   await finalizeAccountSetup(prisma, actor.userId, validated.data);
 
-  redirect('/login');
+  redirect(loginAfterSetup(validated.data.email !== null));
 }

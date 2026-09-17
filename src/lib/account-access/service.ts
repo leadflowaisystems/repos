@@ -288,6 +288,30 @@ export async function finalizeAccountSetup(
         ownerEmail: fields.email || null,
       },
     });
+    // THE LOGIN IDENTITY MOVED, SO RepOS'S RECORD OF IT HAS TO MOVE TOO.
+    //
+    // Writing only Client.ownerEmail left User.email still holding the
+    // synthetic `…@access.headway.local` login id forever, which is wrong in
+    // its own right and actively harmful in one specific way: the collision
+    // guard in validateAccountSetup above asks THIS table whether an address
+    // is already spoken for. A stale row means that guard cannot see an
+    // address this product itself handed out, so the next owner to type it
+    // passes RepOS's check and is refused by Supabase instead — arriving as
+    // a failure the form could not explain. Sign-in never depended on this
+    // column (loadActor resolves by authProviderId), which is why the flow
+    // still worked and the drift stayed invisible.
+    //
+    // Only when an email was actually given: a blank one leaves the existing
+    // login identity alone, exactly as the form promises.
+    if (fields.email) {
+      await tx.user.update({
+        where: { id: actorUserId },
+        // Confirmed on the provider in the same breath — setPermanentCredentials
+        // passes email_confirm — so recording it as verified here is a fact,
+        // not an assumption.
+        data: { email: fields.email, emailVerifiedAt: now },
+      });
+    }
     await tx.accountAccess.update({
       where: { userId: actorUserId },
       data: { status: 'SETUP_COMPLETE', setupCompletedAt: now },

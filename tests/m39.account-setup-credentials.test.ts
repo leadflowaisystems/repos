@@ -148,5 +148,76 @@ describe('validateAccountSetup / finalizeAccountSetup', () => {
       const client = await db.client.findUnique({ where: { id: clientId } });
       expect(client?.ownerEmail).toBeNull();
     });
+
+    /**
+     * THE LOGIN IDENTITY HAS TO MOVE ON RepOS'S SIDE TOO.
+     *
+     * Supabase gets the new address (setPermanentCredentials, with
+     * email_confirm) and Client.ownerEmail got it here — but User.email used
+     * to keep the synthetic `…@access.headway.local` login id forever. Sign-in
+     * never noticed, because loadActor resolves by authProviderId, so the
+     * drift was invisible while still breaking the collision guard below.
+     */
+    it('moves the login email onto the User row, not only onto the Client', async () => {
+      await finalizeAccountSetup(db, OWNER, {
+        clientId,
+        name: '',
+        phone: '',
+        email: 'new-owner@example.com',
+      });
+
+      const user = await db.user.findUnique({ where: { id: OWNER } });
+      expect(user?.email).toBe('new-owner@example.com');
+      expect(user?.emailVerifiedAt).not.toBeNull();
+    });
+
+    it('leaves the existing login identity untouched when no email was given', async () => {
+      await finalizeAccountSetup(db, OWNER, { clientId, name: '', phone: '', email: null });
+
+      const user = await db.user.findUnique({ where: { id: OWNER } });
+      expect(user?.email).toBe('xyz12345@access.headway.local');
+    });
+
+    it('makes the address visible to the collision guard for the next owner', async () => {
+      // The consequence of the stale row, stated as behaviour: without the
+      // User.email write, the address this product just handed out is
+      // invisible to validateAccountSetup, so the next owner passes RepOS's
+      // own check and is refused by Supabase instead — as a failure the form
+      // could not explain.
+      await finalizeAccountSetup(db, OWNER, {
+        clientId,
+        name: '',
+        phone: '',
+        email: 'new-owner@example.com',
+      });
+
+      const second = await db.client.create({
+        data: { businessName: 'Beta Spa', vertical: 'salon', status: 'ACTIVE' },
+        select: { id: true },
+      });
+      await db.membership.create({
+        data: { userId: OTHER, clientId: second.id, role: 'BUSINESS_OWNER', status: 'ACTIVE' },
+      });
+      await db.accountAccess.create({
+        data: {
+          clientId: second.id,
+          userId: OTHER,
+          loginId: 'pqr67890@access.headway.local',
+          status: 'TEMPORARY_ACTIVE',
+          createdByUserId: ADMIN,
+        },
+      });
+
+      const result = await validateAccountSetup(db, OTHER, second.id, {
+        name: '',
+        phone: '',
+        email: 'new-owner@example.com',
+        password: 'another-password',
+        confirmPassword: 'another-password',
+      });
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.errors.email).toBeTruthy();
+    });
   });
 });

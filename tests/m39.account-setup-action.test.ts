@@ -123,12 +123,18 @@ describe('completeAccountSetupAction', () => {
     expect(outcome).toBe('redirected');
     expect(setPermanentCredentialsMock).toHaveBeenCalledWith('auth-owner-1', 'a-new-password', 'new-owner@example.com');
     expect(finalizeAccountSetupMock).toHaveBeenCalledWith(expect.anything(), 'owner1', VALID);
-    expect(calls).toEqual(['redirect:/login']);
+    // Lands on sign-in carrying the flag for the confirmation, never the
+    // sentence and never anything the owner typed.
+    expect(calls).toEqual(['redirect:/login?setup=complete']);
   });
 
   it('never finalizes, and reports a clean failure, when Supabase rejects the update', async () => {
     validateAccountSetupMock.mockResolvedValueOnce({ ok: true, data: VALID });
-    setPermanentCredentialsMock.mockResolvedValueOnce({ ok: false, message: 'email already registered' });
+    setPermanentCredentialsMock.mockResolvedValueOnce({
+      ok: false,
+      reason: 'UNKNOWN',
+      message: 'something nobody has a mapping for',
+    });
 
     const outcome = await run({
       email: 'New-Owner@Example.com',
@@ -144,6 +150,81 @@ describe('completeAccountSetupAction', () => {
     expect((outcome as { message: string }).message).not.toMatch(/saved/i);
   });
 
+  /**
+   * THE DEAD END THIS EXISTS TO CLOSE.
+   *
+   * Both refusals below used to arrive as one sentence ending "try again",
+   * which is advice that cannot work: the same address is still taken and the
+   * same password is still too weak on the next attempt. Each now lands on
+   * the field that is actually wrong, so the form can be completed instead of
+   * looped. Neither may finalize, and neither may redirect.
+   */
+  describe('a refusal the owner can act on reaches the field that is wrong', () => {
+    it('puts an already-registered address on the email field', async () => {
+      validateAccountSetupMock.mockResolvedValueOnce({ ok: true, data: VALID });
+      setPermanentCredentialsMock.mockResolvedValueOnce({
+        ok: false,
+        reason: 'EMAIL_TAKEN',
+        message: 'A user with this email address has already been registered',
+      });
+
+      const outcome = (await run({
+        email: 'New-Owner@Example.com',
+        password: 'a-new-password',
+        confirmPassword: 'a-new-password',
+      })) as { ok: boolean; errors: Record<string, string> };
+
+      expect(outcome.ok).toBe(false);
+      expect(outcome.errors.email).toBeTruthy();
+      expect(outcome.errors.password).toBeUndefined();
+      expect(finalizeAccountSetupMock).not.toHaveBeenCalled();
+      expect(calls).toEqual([]);
+    });
+
+    it("puts a weak password on the password field, in Supabase's own wording", async () => {
+      validateAccountSetupMock.mockResolvedValueOnce({ ok: true, data: VALID });
+      setPermanentCredentialsMock.mockResolvedValueOnce({
+        ok: false,
+        reason: 'WEAK_PASSWORD',
+        message: 'Password should be at least 10 characters',
+      });
+
+      const outcome = (await run({
+        email: 'New-Owner@Example.com',
+        password: 'a-new-password',
+        confirmPassword: 'a-new-password',
+      })) as { ok: boolean; errors: Record<string, string> };
+
+      expect(outcome.ok).toBe(false);
+      // The requirement itself has to survive: RepOS's own schema stops at
+      // min(8) and cannot state the policy this project actually enforces.
+      expect(outcome.errors.password).toBe('Password should be at least 10 characters');
+      expect(outcome.errors.email).toBeUndefined();
+      expect(finalizeAccountSetupMock).not.toHaveBeenCalled();
+    });
+
+    it('reports an unconfigured admin API as an installation fault, not a form error', async () => {
+      validateAccountSetupMock.mockResolvedValueOnce({ ok: true, data: VALID });
+      setPermanentCredentialsMock.mockResolvedValueOnce({
+        ok: false,
+        reason: 'NOT_CONFIGURED',
+        message: 'Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to generate temporary credentials.',
+      });
+
+      const outcome = (await run({
+        password: 'a-new-password',
+        confirmPassword: 'a-new-password',
+      })) as { ok: boolean; message: string; errors: Record<string, string> };
+
+      expect(outcome.ok).toBe(false);
+      expect(outcome.errors.email).toBeUndefined();
+      expect(outcome.errors.password).toBeUndefined();
+      // Never the variable names, never the reason string itself.
+      expect(outcome.message).not.toMatch(/SUPABASE/i);
+      expect(finalizeAccountSetupMock).not.toHaveBeenCalled();
+    });
+  });
+
   it('passes undefined, not the blank string, when validation says no email was set', async () => {
     validateAccountSetupMock.mockResolvedValueOnce({ ok: true, data: { ...VALID, email: null } });
     setPermanentCredentialsMock.mockResolvedValueOnce({ ok: true });
@@ -151,6 +232,9 @@ describe('completeAccountSetupAction', () => {
     await run({ password: 'a-new-password', confirmPassword: 'a-new-password' });
 
     expect(setPermanentCredentialsMock).toHaveBeenCalledWith('auth-owner-1', 'a-new-password', undefined);
+    // The login id was kept, so the confirmation must not tell them to use a
+    // "new email" they never set.
+    expect(calls).toEqual(['redirect:/login?setup=password']);
   });
 
   it('never calls Supabase or finalize when validation itself already refused', async () => {

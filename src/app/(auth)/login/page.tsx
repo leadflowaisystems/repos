@@ -5,6 +5,7 @@ import { currentActor } from '@/lib/auth/authorize';
 import { prisma } from '@/lib/db';
 import { landingPathFor } from '@/lib/onboarding/service';
 import { safeNextPath } from '@/lib/auth/redirect';
+import { SETUP_NOTICE_PARAM, setupNotice } from '@/lib/auth/setup-notice';
 import { HeadwayWordmark } from '@/components/brand';
 
 export const dynamic = 'force-dynamic';
@@ -50,7 +51,16 @@ export default async function LoginPage({
    * authenticated person one click and it cannot loop.
    */
   const bouncedByMiddleware = typeof raw === 'string' && raw.length > 0;
-  if (!bouncedByMiddleware) {
+
+  // Finishing account setup does not end the session it was done in — the
+  // credential change goes through the admin API, which leaves that session
+  // valid — so without this the owner would be sent straight back to their
+  // workspace and never see the confirmation. Same trade as the circuit
+  // breaker above: one extra click for someone already signed in, nothing
+  // gained by anyone else, since the notice is a fixed sentence chosen here.
+  const notice = setupNotice(query[SETUP_NOTICE_PARAM]);
+
+  if (!bouncedByMiddleware && !notice) {
     const actor = await currentActor(prisma);
     if (actor) redirect(landingPathFor(actor));
   }
@@ -65,6 +75,15 @@ export default async function LoginPage({
       <p className="mb-6 text-[13px] leading-relaxed text-ink-500">
         Your Headway workspace: what your customers are saying, and what to do about it.
       </p>
+
+      {notice ? (
+        <p
+          role="status"
+          className="mb-5 rounded-xl border border-good-200 bg-good-50 px-4 py-3 text-[14px] leading-relaxed text-good-700"
+        >
+          {notice}
+        </p>
+      ) : null}
 
       <SignInForm next={next} />
 
