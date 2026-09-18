@@ -1,8 +1,7 @@
 import { Link } from '@/components/portal/link';
 import clsx from 'clsx';
-import type { Brief, BriefCard, BriefChange, BriefMemory, BriefTrend } from '@/lib/portal/brief';
+import type { Brief, BriefCard, BriefChange, BriefMemory, BriefMove, BriefTrend } from '@/lib/portal/brief';
 import { getTranslator } from '@/lib/i18n/request';
-import { Quotes } from '@/components/portal/disclose';
 import { HeadwayMark } from '@/components/brand';
 import { OwnerDecision } from '@/components/workspace/owner-decision';
 import { Greeting } from '@/components/workspace/greeting';
@@ -51,15 +50,18 @@ const TREND_TONE: Record<BriefTrend['tone'], string> = {
   neutral: 'text-ink-500',
 };
 
-/** The arrow, and the real counts behind it when the engine could read both. */
-async function Trend({ trend }: { trend: BriefTrend }) {
+/**
+ * Which way it is going, as the owner reads it: "↑ Getting worse", then the
+ * two real counts it rests on. The words are the verdict; the arrow is the
+ * count's own direction; the colour repeats the verdict and is never alone.
+ */
+function Trend({ trend }: { trend: BriefTrend }) {
   return (
-    <span className={clsx('inline-flex items-baseline gap-1.5 text-[13px] font-medium', TREND_TONE[trend.tone])}>
-      <span aria-hidden className="text-[15px] leading-none">
-        {trend.mark}
+    <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+      <span className={clsx('text-[15px] font-semibold', TREND_TONE[trend.tone])}>
+        <span aria-hidden>{trend.mark}</span> {trend.label}
       </span>
-      <span>{trend.counts ?? trend.label}</span>
-      {trend.counts ? <span className="font-normal text-ink-500">· {trend.label}</span> : null}
+      {trend.counts ? <span className="text-[13px] text-ink-500 tabular-nums">{trend.counts}</span> : null}
     </span>
   );
 }
@@ -164,9 +166,13 @@ async function Band({ brief, live }: { brief: Brief; live: LiveState }) {
           Two facts on two lines: run together they wrapped mid-phrase on a
           phone and left a separator hanging at the end of the first line. */}
       <div className="mt-2.5 space-y-0.5 text-[13px] leading-snug text-ink-300">
-        <p className="flex items-center gap-2">
-          <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-400" />
-          {header.watching > 0 ? t.plural('brief.status.watching', header.watching) : t('brief.status.patterns')}
+        {/* The owner's question, answered first: does anything need me? */}
+        <p className="flex items-center gap-2 text-[14px] font-medium text-white">
+          <span
+            aria-hidden
+            className={clsx('h-2 w-2 shrink-0 rounded-full', header.needsYou > 0 ? 'bg-bad-200' : 'bg-good-200')}
+          />
+          {header.needsYou > 0 ? t.plural('brief.status.needs', header.needsYou) : t('brief.calm.title')}
         </p>
         <LiveLine live={live} arrivedSinceVisit={header.arrivedSinceVisit} t={t} />
       </div>
@@ -218,19 +224,20 @@ async function Band({ brief, live }: { brief: Brief; live: LiveState }) {
 // ---------------------------------------------------------------------------
 
 /**
- * THE STORY — pattern, size, direction, a customer, meaning, suggestion, act.
+ * THE STORY — problem, signal, what to do; then the evidence.
  *
- * One customer is quoted in the open, under the count, because a number with
- * a person behind it is believed and a number on its own is studied. The rest
- * of what customers said stays one tap away.
+ * Owner UX pass. A busy owner reads three things and stops: what the problem
+ * is, whether it is getting worse, and what Headway suggests — so those come
+ * first, with the decision right under the suggestion. One customer in their
+ * own words, and the one recorded reason behind it, follow as the evidence.
+ * The engine's longer sentence about the topic lives on the topic's own page.
  *
- * The decision closes it. The state of the loop — "You said you would handle
- * this", "You decided not to do this" — sits directly above the buttons it
- * explains, so "Revisit this" is never a button without a reason.
+ * The state of the loop — "You said you would handle this" — sits directly
+ * above the buttons it explains, so "Revisit this" is never without a reason.
  */
-async function Story({ card, clientId, basePath }: { card: BriefCard; clientId?: string; basePath: string }) {
+async function Story({ card, clientId }: { card: BriefCard; clientId?: string }) {
   const t = await getTranslator();
-  const [lead, ...rest] = card.quotes;
+  const [lead] = card.quotes;
   const choices = movesFor(card.loop.status);
   return (
     <section
@@ -238,53 +245,32 @@ async function Story({ card, clientId, basePath }: { card: BriefCard; clientId?:
       className="rounded-2xl border border-ink-200 bg-white p-5 shadow-[0_1px_2px_rgba(16,42,67,0.04)] sm:p-6"
     >
       <p className={clsx(EYEBROW, 'flex items-center gap-2 text-bad-700')}>
-        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-bad-600" />
+        <span aria-hidden className="h-2 w-2 rounded-full bg-bad-600" />
         {t('brief.attention.title')}
       </p>
 
       <h2
         id={`story-${card.themeKey}`}
-        className="mt-2 font-display text-[26px] leading-[1.15] font-semibold tracking-[-0.01em] text-balance text-ink-900"
+        className="mt-2 font-display text-[28px] leading-[1.12] font-semibold tracking-[-0.01em] text-balance text-ink-900"
       >
         {card.label}
       </h2>
 
-      <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <Link
-          href={card.href}
-          // 44px tall, not the 32px the figure alone occupies: the count is a
-          // link into the rows it counts, and a small link is a missed tap.
-          // `-my-1.5` gives the height back to the layout.
-          className="-my-1.5 inline-flex min-h-11 items-baseline gap-1.5 rounded"
-        >
-          <span className="font-mono text-[34px] leading-none font-semibold text-ink-900 tabular-nums">
-            {card.count}
-          </span>
-          <span className="text-[13px] text-ink-500 underline decoration-ink-300 underline-offset-4">{card.basis}</span>
-        </Link>
-        {card.trend ? <Trend trend={card.trend} /> : null}
-      </div>
-
-      <p className="mt-3 max-w-2xl text-[15px] leading-snug text-ink-800">{card.line}</p>
-
-      {/* One customer, in their own words, before anything Headway concludes. */}
-      {lead ? (
-        <blockquote className="mt-4 border-l-2 border-brand-500 pl-3 text-[15px] leading-snug text-ink-900">
-          “{lead.text}”
-        </blockquote>
+      {/* THE SIGNAL: how many customers, and which way it is going. */}
+      <p className="mt-2 text-[17px] leading-snug font-semibold text-ink-900 tabular-nums">
+        {t.plural('brief.mentioned', card.count)}
+      </p>
+      {card.trend ? (
+        <p className="mt-1">
+          <Trend trend={card.trend} />
+        </p>
       ) : null}
 
-      {card.meaning ? (
-        <div className="mt-4">
-          <p className={clsx(EYEBROW, 'text-ink-500')}>{t('brief.meaning.title')}</p>
-          <p className="mt-1 max-w-2xl text-[15px] leading-snug text-ink-800">{card.meaning}</p>
-        </div>
-      ) : null}
-
+      {/* WHAT TO DO — the suggestion, then the decision, together. */}
       {card.action ? (
-        <div className="mt-5 border-t border-ink-200 pt-4">
+        <div className="mt-5 rounded-xl bg-canvas px-4 py-3.5">
           <p className={clsx(EYEBROW, 'text-ink-500')}>{t('brief.suggest.title')}</p>
-          <p className="mt-1.5 max-w-2xl text-[17px] leading-snug font-semibold text-ink-900">{card.action}</p>
+          <p className="mt-1 max-w-2xl text-[17px] leading-snug font-semibold text-ink-900">{card.action}</p>
         </div>
       ) : null}
 
@@ -293,44 +279,28 @@ async function Story({ card, clientId, basePath }: { card: BriefCard; clientId?:
       ) : null}
 
       {clientId && choices.length > 0 ? (
-        <OwnerDecision
-          clientId={clientId}
-          themeKey={card.themeKey}
-          actionId={card.loop.actionId}
-          choices={choices}
-          lead
-        />
+        <OwnerDecision clientId={clientId} themeKey={card.themeKey} actionId={card.loop.actionId} choices={choices} lead />
       ) : null}
 
-      {/* The rest of the evidence: present on the page, one tap from the
-          screen. The way to the whole list lives inside it, quietly. */}
-      {rest.length > 0 ? (
-        <details className="group mt-3">
-          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-[13px] font-medium text-ink-700 hover:text-ink-900">
-            {t('brief.evidence.title')}
-            <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-90">
-              ›
-            </span>
-          </summary>
-          <div className="hw-reveal mt-3">
-            <Quotes
-              quotes={rest}
-              seeAll={{
-                label: t.plural('brief.evidence.all', card.count),
-                href: card.href,
-              }}
-              hrefFor={(id) => `${basePath}/reviews/${id}?from=home`}
-            />
-          </div>
-        </details>
-      ) : (
-        <Link
-          href={card.href}
-          className="mt-3 inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-ink-700 hover:text-ink-900"
-        >
-          {t.plural('brief.evidence.all', card.count)} <span aria-hidden>→</span>
-        </Link>
-      )}
+      {/* THE EVIDENCE, after the conclusion: one customer, and the recorded
+          reason when there is one. */}
+      {lead ? (
+        <blockquote className="mt-5 border-l-2 border-brand-500 pl-3 text-[15px] leading-snug text-ink-800">
+          “{lead.text}”
+        </blockquote>
+      ) : null}
+      {card.meaning ? (
+        <p className="mt-3 text-[14px] leading-snug text-ink-700">
+          <span className="font-semibold text-ink-900">{t('brief.meaning.title')}:</span> {card.meaning}
+        </p>
+      ) : null}
+
+      <Link
+        href={card.href}
+        className="mt-3 inline-flex min-h-11 items-center gap-1 text-[14px] font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
+      >
+        {t('brief.evidence.cta')} <span aria-hidden>→</span>
+      </Link>
     </section>
   );
 }
@@ -455,41 +425,41 @@ function LatestRow({
   );
 }
 
-/** CUSTOMERS LOVE — one row, the width of the phone, not another card. */
+/** CUSTOMERS LOVE — the strength, how many praised it, and one instruction. */
 async function Loved({ card }: { card: BriefCard }) {
   const t = await getTranslator();
   return (
     <section aria-labelledby="brief-love">
-      <h2 id="brief-love" className={clsx(EYEBROW, 'text-good-700')}>
+      <h2 id="brief-love" className={clsx(EYEBROW, 'flex items-center gap-2 text-good-700')}>
+        <span aria-hidden className="h-2 w-2 rounded-full bg-good-600" />
         {t('brief.love.title')}
       </h2>
       <Link
         href={card.href}
-        className="mt-2 flex min-h-14 items-center gap-3 border-y border-ink-200 py-3 hover:bg-white/60"
+        className="mt-2 flex min-h-14 items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 hover:border-ink-400"
       >
-        <span aria-hidden className="h-9 w-1 shrink-0 rounded-full bg-good-600" />
         <span className="min-w-0 flex-1">
           <span className="block text-[17px] leading-snug font-semibold text-ink-900">{card.label}</span>
-          {card.action ? (
-            <span className="mt-0.5 block text-[13px] leading-snug text-ink-600">{card.action}</span>
-          ) : null}
-        </span>
-        <span className="flex shrink-0 flex-col items-end">
-          <span className="font-mono text-[22px] leading-none font-semibold text-good-700 tabular-nums">
-            {card.count}
+          <span className="mt-0.5 block text-[14px] leading-snug text-ink-700 tabular-nums">
+            {t.plural('brief.praised', card.count)}
           </span>
-          {card.trend ? (
-            <span className={clsx('mt-1 text-[12px]', TREND_TONE[card.trend.tone])}>
-              <span aria-hidden>{card.trend.mark}</span> {card.trend.label}
-            </span>
-          ) : null}
+          <span className="mt-0.5 block text-[13px] font-medium text-good-700">{t('brief.love.keep')}</span>
         </span>
+        {card.trend ? (
+          <span className="shrink-0 text-right">
+            <Trend trend={card.trend} />
+          </span>
+        ) : null}
       </Link>
     </section>
   );
 }
 
-/** WHAT CHANGED — movement since the last check-in, as lines. */
+/**
+ * WHAT CHANGED — one row per topic: its name, which kind of change, and the
+ * two counts. Never the same sentence twice: the engine's sentence is the
+ * same for every topic that moved, so rows are told apart by what moved.
+ */
 async function Changed({ brief }: { brief: Brief }) {
   const t = await getTranslator();
   if (brief.changed.length === 0) return null;
@@ -501,20 +471,33 @@ async function Changed({ brief }: { brief: Brief }) {
         </h2>
         <p className="text-[12px] text-ink-500">{t.plural('brief.changed.count', brief.changedTotal)}</p>
       </div>
-      <ul className="mt-2 space-y-2">
+      <ul className="mt-2 divide-y divide-ink-200 border-y border-ink-200">
         {brief.changed.map((c) => (
-          <li
-            key={c.key}
-            className={clsx(
-              'border-l-2 pl-3 text-[14px] leading-snug text-ink-800',
-              c.tone === 'bad' ? 'border-bad-600' : 'border-good-600',
-            )}
-          >
-            {c.line}
-          </li>
+          <ChangedRow key={c.key} move={c} t={t} />
         ))}
       </ul>
     </section>
+  );
+}
+
+function ChangedRow({ move, t }: { move: BriefMove; t: PortalTranslator }) {
+  // Only rising complaints and rising praise reach this list (see buildBrief),
+  // so the kind of change is read off the kind of topic.
+  const kind = move.kind === 'ISSUE' ? t('brief.changed.moreComplaints') : t('brief.changed.morePraise');
+  return (
+    <li className="flex min-h-14 items-center gap-3 py-2.5">
+      <span
+        aria-hidden
+        className={clsx('h-2.5 w-2.5 shrink-0 rounded-full', move.tone === 'bad' ? 'bg-bad-600' : 'bg-good-600')}
+      />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] leading-snug font-semibold text-ink-900">{move.label}</span>
+        <span className={clsx('block text-[13px] font-medium', move.tone === 'bad' ? 'text-bad-700' : 'text-good-700')}>
+          {kind}
+        </span>
+      </span>
+      <span className="shrink-0 text-right text-[13px] text-ink-600 tabular-nums">{move.counts ?? move.line}</span>
+    </li>
   );
 }
 
@@ -726,7 +709,7 @@ export async function OwnerBrief({
       <div className="mt-6 grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="min-w-0 space-y-8">
           {brief.attention ? (
-            <Story card={brief.attention} clientId={clientId} basePath={basePath} />
+            <Story card={brief.attention} clientId={clientId} />
           ) : brief.calm ? (
             <Calm brief={brief} />
           ) : null}

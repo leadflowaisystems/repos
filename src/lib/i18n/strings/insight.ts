@@ -340,34 +340,34 @@ export const insight = {
   // The last two check-ins, on their own
   // -------------------------------------------------------------------------
   'insight.movement.issue.worsening': {
-    en: 'Customers raised it more at your latest check-in than at the one before.',
-    hi: 'पिछले चेक-इन के मुक़ाबले आपके सबसे नए चेक-इन पर ग्राहकों ने यह ज़्यादा बार उठाया।',
-    mr: 'आधीच्या चेक-इनपेक्षा तुमच्या सर्वात नव्या चेक-इनला ग्राहकांनी हे जास्त वेळा मांडलं.',
+    en: 'Customers mentioned this more this time.',
+    hi: 'इस बार ग्राहकों ने इसका ज़िक्र ज़्यादा किया।',
+    mr: 'या वेळी ग्राहकांनी याचा उल्लेख जास्त केला.',
   },
   'insight.movement.praise.worsening': {
-    en: 'Customers praised it less at your latest check-in than at the one before.',
-    hi: 'पिछले चेक-इन के मुक़ाबले आपके सबसे नए चेक-इन पर ग्राहकों ने इसकी तारीफ़ कम बार की।',
-    mr: 'आधीच्या चेक-इनपेक्षा तुमच्या सर्वात नव्या चेक-इनला ग्राहकांनी याचं कौतुक कमी वेळा केलं.',
+    en: 'Customers praised this less this time.',
+    hi: 'इस बार ग्राहकों ने इसकी तारीफ़ कम की।',
+    mr: 'या वेळी ग्राहकांनी याचं कौतुक कमी केलं.',
   },
   'insight.movement.issue.improving': {
-    en: 'Customers raised it less at your latest check-in than at the one before.',
-    hi: 'पिछले चेक-इन के मुक़ाबले आपके सबसे नए चेक-इन पर ग्राहकों ने यह कम बार उठाया।',
-    mr: 'आधीच्या चेक-इनपेक्षा तुमच्या सर्वात नव्या चेक-इनला ग्राहकांनी हे कमी वेळा मांडलं.',
+    en: 'Customers mentioned this less this time.',
+    hi: 'इस बार ग्राहकों ने इसका ज़िक्र कम किया।',
+    mr: 'या वेळी ग्राहकांनी याचा उल्लेख कमी केला.',
   },
   'insight.movement.praise.improving': {
-    en: 'Customers praised it more at your latest check-in than at the one before.',
-    hi: 'पिछले चेक-इन के मुक़ाबले आपके सबसे नए चेक-इन पर ग्राहकों ने इसकी तारीफ़ ज़्यादा बार की।',
-    mr: 'आधीच्या चेक-इनपेक्षा तुमच्या सर्वात नव्या चेक-इनला ग्राहकांनी याचं कौतुक जास्त वेळा केलं.',
+    en: 'Customers praised this more this time.',
+    hi: 'इस बार ग्राहकों ने इसकी तारीफ़ ज़्यादा की।',
+    mr: 'या वेळी ग्राहकांनी याचं कौतुक जास्त केलं.',
   },
   'insight.movement.stable': {
-    en: 'Customers mentioned it about as often at your latest check-in as at the one before.',
-    hi: 'पिछले चेक-इन के मुक़ाबले आपके सबसे नए चेक-इन पर ग्राहकों ने इसका ज़िक्र लगभग उतनी ही बार किया।',
-    mr: 'आधीच्या चेक-इनला जितक्या वेळा, साधारण तितक्याच वेळा तुमच्या सर्वात नव्या चेक-इनलाही ग्राहकांनी याचा उल्लेख केला.',
+    en: 'About the same as last time.',
+    hi: 'पिछली बार जितना ही।',
+    mr: 'मागच्या वेळेइतकंच.',
   },
   'insight.movement.none': {
-    en: 'There were too few mentions at one of your last two check-ins to compare.',
-    hi: 'आपके पिछले दो चेक-इन में से एक पर इतने कम ज़िक्र थे कि तुलना नहीं की जा सकती।',
-    mr: 'तुमच्या मागच्या दोन चेक-इनपैकी एकावर इतके कमी उल्लेख होते की तुलना करता येत नाही.',
+    en: 'Too early to compare.',
+    hi: 'तुलना करना अभी जल्दी है।',
+    mr: 'तुलना करणं अजून घाईचं आहे.',
   },
 
   // -------------------------------------------------------------------------
@@ -541,9 +541,9 @@ export const insight = {
   // What Headway will check next for this theme
   // -------------------------------------------------------------------------
   'insight.watch.early.praise': {
-    en: 'Headway is watching whether customers praise {theme} often enough to call it a strength. It needs {need} comments before it can say so.',
-    hi: 'Headway देख रहा है कि ग्राहक {theme} की इतनी बार तारीफ़ करते हैं या नहीं कि इसे ताक़त कहा जा सके। ऐसा कहने से पहले उसे {need} कमेंट चाहिए।',
-    mr: 'ग्राहक {theme} चं इतक्या वेळा कौतुक करतात का, की त्याला जमेची बाजू म्हणता येईल, हे Headway पाहत आहे. असं म्हणण्यापूर्वी त्याला {need} कमेंट लागतील.',
+    en: 'A few customers praised {theme}. Too early to call it a strength.',
+    hi: 'कुछ ग्राहकों ने {theme} की तारीफ़ की। इसे ताक़त कहना अभी जल्दी है।',
+    mr: 'काही ग्राहकांनी {theme} चं कौतुक केलं. याला जमेची बाजू म्हणणं अजून घाईचं आहे.',
   },
   'insight.watch.early.issue': {
     en: 'Headway is watching whether {theme} comes up more often. It calls this a pattern once customers have raised it {need} times.',
@@ -551,24 +551,24 @@ export const insight = {
     mr: '{theme} जास्त वेळा येतं का, हे Headway पाहत आहे. ग्राहकांनी हे {need} वेळा मांडल्यावर तो याला पॅटर्न म्हणतो.',
   },
   'insight.watch.praise': {
-    en: 'Headway is checking that customers keep praising {theme}. It will tell you if the praise drops by {change} or more mentions at a check-in.',
-    hi: 'Headway देख रहा है कि ग्राहक {theme} की तारीफ़ करते रहते हैं या नहीं। किसी चेक-इन पर तारीफ़ {change} या उससे ज़्यादा ज़िक्र से घटी, तो वह आपको बताएगा।',
-    mr: 'ग्राहक {theme} चं कौतुक करत राहतात का, हे Headway तपासत आहे. एखाद्या चेक-इनला कौतुक {change} किंवा त्याहून जास्त उल्लेखांनी घटलं, तर तो तुम्हाला सांगेल.',
+    en: 'Keep it up. Headway will tell you if customers praise {theme} less.',
+    hi: 'ऐसे ही जारी रखें। ग्राहकों ने {theme} की तारीफ़ कम की, तो Headway आपको बताएगा।',
+    mr: 'असंच चालू ठेवा. ग्राहकांनी {theme} चं कौतुक कमी केलं, तर Headway तुम्हाला सांगेल.',
   },
   'insight.watch.improved': {
-    en: 'Headway is checking whether {theme} keeps coming up less often as new feedback arrives. It will tell you if it comes up more again.',
-    hi: 'नया फ़ीडबैक आने पर {theme} कम बार आता रहता है या नहीं, Headway यह देख रहा है। यह फिर से ज़्यादा बार आने लगा, तो वह आपको बताएगा।',
-    mr: 'नवा फीडबॅक येताना {theme} कमी वेळा येत राहतं का, हे Headway तपासत आहे. ते पुन्हा जास्त वेळा येऊ लागलं, तर तो तुम्हाला सांगेल.',
+    en: 'Headway will tell you if {theme} starts coming up more again.',
+    hi: '{theme} फिर से ज़्यादा बार आने लगा, तो Headway आपको बताएगा।',
+    mr: '{theme} पुन्हा जास्त वेळा येऊ लागलं, तर Headway तुम्हाला सांगेल.',
   },
   'insight.watch.inProgress': {
-    en: 'Headway is waiting for the feedback that comes in after the change. Then it can compare how often {theme} comes up.',
-    hi: 'बदलाव के बाद आने वाले फ़ीडबैक का Headway इंतज़ार कर रहा है। फिर वह तुलना कर सकेगा कि {theme} कितनी बार आता है।',
-    mr: 'बदलानंतर येणाऱ्या फीडबॅकची Headway वाट पाहत आहे. मग {theme} किती वेळा येतं याची तो तुलना करू शकेल.',
+    en: 'Headway is waiting for new feedback after your change, then it will compare {theme}.',
+    hi: 'Headway आपके बदलाव के बाद नए फ़ीडबैक का इंतज़ार कर रहा है, फिर वह {theme} की तुलना करेगा।',
+    mr: 'Headway तुमच्या बदलानंतरच्या नव्या फीडबॅकची वाट पाहत आहे, मग तो {theme} ची तुलना करेल.',
   },
   'insight.watch.default': {
-    en: 'Headway is checking whether {theme} comes up more or less at your next check-in. It will tell you if the count moves by {change} or more mentions.',
-    hi: 'आपके अगले चेक-इन पर {theme} ज़्यादा बार आता है या कम, Headway यह देख रहा है। गिनती {change} या उससे ज़्यादा ज़िक्र से बदली, तो वह आपको बताएगा।',
-    mr: 'तुमच्या पुढच्या चेक-इनला {theme} जास्त वेळा येतं की कमी, हे Headway तपासत आहे. आकडा {change} किंवा त्याहून जास्त उल्लेखांनी बदलला, तर तो तुम्हाला सांगेल.',
+    en: 'Keep an eye on {theme}. Headway will tell you if this changes.',
+    hi: '{theme} पर नज़र रखें। इसमें बदलाव हुआ, तो Headway आपको बताएगा।',
+    mr: '{theme} वर लक्ष ठेवा. यात बदल झाला, तर Headway तुम्हाला सांगेल.',
   },
 
   // -------------------------------------------------------------------------
@@ -802,34 +802,34 @@ export const insight = {
   // The invisible work, stated plainly
   // -------------------------------------------------------------------------
   'insight.work.read.one': {
-    en: 'Read {count} feedback entry.',
-    hi: '{count} फ़ीडबैक पढ़ा।',
-    mr: '{count} फीडबॅक वाचला.',
+    en: '{count} customer response read so far.',
+    hi: 'अब तक ग्राहक का {count} जवाब पढ़ा।',
+    mr: 'आतापर्यंत ग्राहकाचा {count} प्रतिसाद वाचला.',
   },
   'insight.work.read.other': {
-    en: 'Read {count} feedback entries.',
-    hi: '{count} फ़ीडबैक पढ़े।',
-    mr: '{count} फीडबॅक वाचले.',
+    en: '{count} customer responses read so far.',
+    hi: 'अब तक ग्राहकों के {count} जवाब पढ़े।',
+    mr: 'आतापर्यंत ग्राहकांचे {count} प्रतिसाद वाचले.',
   },
   'insight.work.readWithUnread.one': {
-    en: 'Read {count} feedback entry ({unread} more being read now).',
-    hi: '{count} फ़ीडबैक पढ़ा ({unread} और अभी पढ़ा जा रहा है)।',
-    mr: '{count} फीडबॅक वाचला ({unread} आणखी आता वाचला जात आहे).',
+    en: '{count} customer response read so far ({unread} more being read now).',
+    hi: 'अब तक ग्राहक का {count} जवाब पढ़ा ({unread} और अभी पढ़ा जा रहा है)।',
+    mr: 'आतापर्यंत ग्राहकाचा {count} प्रतिसाद वाचला ({unread} आणखी आता वाचला जात आहे).',
   },
   'insight.work.readWithUnread.other': {
-    en: 'Read {count} feedback entries ({unread} more being read now).',
-    hi: '{count} फ़ीडबैक पढ़े ({unread} और अभी पढ़े जा रहे हैं)।',
-    mr: '{count} फीडबॅक वाचले ({unread} आणखी आता वाचले जात आहेत).',
+    en: '{count} customer responses read so far ({unread} more being read now).',
+    hi: 'अब तक ग्राहकों के {count} जवाब पढ़े ({unread} और अभी पढ़े जा रहे हैं)।',
+    mr: 'आतापर्यंत ग्राहकांचे {count} प्रतिसाद वाचले ({unread} आणखी आता वाचले जात आहेत).',
   },
   'insight.work.grouped.one': {
-    en: 'Grouped them into {count} thing customers keep raising.',
-    hi: 'उन्हें {count} ऐसी बात में बाँटा जो ग्राहक बार-बार उठाते हैं।',
-    mr: 'ग्राहक वारंवार मांडतात अशा {count} गोष्टीत त्यांची विभागणी केली.',
+    en: 'Found {count} thing customers keep mentioning.',
+    hi: 'ग्राहक {count} बात बार-बार कह रहे हैं।',
+    mr: 'ग्राहक {count} गोष्ट वारंवार सांगत आहेत.',
   },
   'insight.work.grouped.other': {
-    en: 'Grouped them into {count} things customers keep raising.',
-    hi: 'उन्हें {count} ऐसी बातों में बाँटा जो ग्राहक बार-बार उठाते हैं।',
-    mr: 'ग्राहक वारंवार मांडतात अशा {count} गोष्टींत त्यांची विभागणी केली.',
+    en: 'Found {count} things customers keep mentioning.',
+    hi: 'ग्राहक {count} बातें बार-बार कह रहे हैं।',
+    mr: 'ग्राहक {count} गोष्टी वारंवार सांगत आहेत.',
   },
   'insight.work.setAside.one': {
     en: 'Set aside {count} topic mentioned only once or twice.',

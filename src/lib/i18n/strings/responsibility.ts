@@ -255,9 +255,9 @@ export const responsibility = {
     mr: 'तुमच्या मागच्या चेक-इनला {theme} जास्त वेळा आलं.',
   },
   'responsibility.headline.secondary': {
-    en: '{theme} is a pattern, but not the main problem to fix first.',
-    hi: '{theme} एक पैटर्न है, पर सबसे पहले ठीक करने वाली मुख्य समस्या नहीं।',
-    mr: '{theme} एक पॅटर्न आहे, पण सर्वात आधी सोडवायची मुख्य अडचण नाही.',
+    en: '{theme}: worth watching, but not the first thing to fix.',
+    hi: '{theme}: नज़र रखने लायक, पर सबसे पहले ठीक करने वाली बात नहीं।',
+    mr: '{theme}: लक्ष ठेवण्यासारखं, पण सर्वात आधी सोडवायची गोष्ट नाही.',
   },
 
   // -------------------------------------------------------------------------
@@ -476,20 +476,15 @@ export const responsibility = {
     hi: 'फ़ीडबैक आना शुरू होने के बाद से',
     mr: 'फीडबॅक येऊ लागल्यापासून',
   },
-  'responsibility.did.direct': {
-    en: '{count} of them came through your feedback page.',
-    hi: 'इनमें से {count} आपके फ़ीडबैक पेज से आए।',
-    mr: 'त्यांपैकी {count} तुमच्या फीडबॅक पेजवरून आले.',
-  },
   'responsibility.did.read.one': {
-    en: 'Since your check-in on {date}, read {count} feedback entry.',
-    hi: '{date} के आपके चेक-इन के बाद से {count} फ़ीडबैक पढ़ा।',
-    mr: '{date} च्या तुमच्या चेक-इननंतर {count} फीडबॅक वाचला.',
+    en: '{count} new customer response since your last check-in.',
+    hi: 'पिछले चेक-इन के बाद ग्राहकों का {count} नया जवाब।',
+    mr: 'मागच्या चेक-इननंतर ग्राहकांचा {count} नवा प्रतिसाद.',
   },
   'responsibility.did.read.other': {
-    en: 'Since your check-in on {date}, read {count} feedback entries.',
-    hi: '{date} के आपके चेक-इन के बाद से {count} फ़ीडबैक पढ़े।',
-    mr: '{date} च्या तुमच्या चेक-इननंतर {count} फीडबॅक वाचले.',
+    en: '{count} new customer responses since your last check-in.',
+    hi: 'पिछले चेक-इन के बाद ग्राहकों के {count} नए जवाब।',
+    mr: 'मागच्या चेक-इननंतर ग्राहकांचे {count} नवे प्रतिसाद.',
   },
   'responsibility.did.unread.one': {
     en: 'Since your check-in on {date}, {count} feedback entry has come in. Headway is reading it now.',
@@ -512,14 +507,14 @@ export const responsibility = {
     mr: 'आणखी {count} आत्ता वाचत आहोत.',
   },
   'responsibility.did.readTotal.one': {
-    en: 'Read {count} feedback entry.',
-    hi: '{count} फ़ीडबैक पढ़ा।',
-    mr: '{count} फीडबॅक वाचला.',
+    en: '{count} customer response read so far.',
+    hi: 'अब तक ग्राहक का {count} जवाब पढ़ा।',
+    mr: 'आतापर्यंत ग्राहकाचा {count} प्रतिसाद वाचला.',
   },
   'responsibility.did.readTotal.other': {
-    en: 'Read {count} feedback entries.',
-    hi: '{count} फ़ीडबैक पढ़े।',
-    mr: '{count} फीडबॅक वाचले.',
+    en: '{count} customer responses read so far.',
+    hi: 'अब तक ग्राहकों के {count} जवाब पढ़े।',
+    mr: 'आतापर्यंत ग्राहकांचे {count} प्रतिसाद वाचले.',
   },
   'responsibility.did.readingNow.one': {
     en: 'Reading {count} feedback entry now.',
@@ -537,9 +532,9 @@ export const responsibility = {
     mr: 'नव्या फीडबॅकमध्ये {theme} अजूनही येत आहे का ते तपासलं.',
   },
   'responsibility.did.checkedAll': {
-    en: 'Checked whether {theme} keeps coming up across everything read.',
-    hi: 'जाँचा कि जो कुछ पढ़ा गया है, उस सब में {theme} बार-बार आता है या नहीं।',
-    mr: 'वाचलेल्या सगळ्यामध्ये {theme} वारंवार येत आहे का ते तपासलं.',
+    en: 'Checked how often {theme} comes up overall.',
+    hi: 'देखा कि कुल मिलाकर {theme} कितनी बार आता है।',
+    mr: 'एकूण {theme} किती वेळा येतं ते तपासलं.',
   },
   'responsibility.did.noProblem': {
     en: 'Found no new problem big enough to act on.',

@@ -272,17 +272,18 @@ export function DoNow({ row, clientId, t }: { row: Row; clientId?: string; t: Tr
         {t('loop.shelf.doNow')}
       </p>
       <h2 className="mt-2 font-display text-[24px] leading-[1.15] font-semibold text-ink-900">{row.about}</h2>
+      {/* The same signal line Home uses: how many customers, which way. */}
       {row.count ? (
-        <p className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="font-mono text-[30px] leading-none font-semibold text-ink-900 tabular-nums">
-            {row.count.value}
+        <p className="mt-2 text-[17px] leading-snug font-semibold text-ink-900 tabular-nums">
+          {t.plural('brief.mentioned', row.count.value)}
+        </p>
+      ) : null}
+      {row.trend ? (
+        <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
+          <span className={clsx('text-[15px] font-semibold', TONE_TEXT[row.trend.tone])}>
+            <span aria-hidden>{row.trend.mark}</span> {row.trend.label}
           </span>
-          <span className="text-[13px] text-ink-500">{row.count.basis}</span>
-          {row.trend ? (
-            <span className={clsx('text-[13px] font-medium', TONE_TEXT[row.trend.tone])}>
-              <span aria-hidden>{row.trend.mark}</span> {row.trend.counts ?? row.trend.label}
-            </span>
-          ) : null}
+          {row.trend.counts ? <span className="text-[13px] text-ink-500 tabular-nums">{row.trend.counts}</span> : null}
         </p>
       ) : null}
       <p className="mt-4 text-[11px] font-semibold tracking-[0.14em] text-ink-500 uppercase">

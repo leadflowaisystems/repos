@@ -61,26 +61,32 @@ describe('every piece of feedback', () => {
   const ui = code(read('components', 'portal', 'portal-ui.tsx'));
   const row = between(ui, 'export async function ReviewRow(', 'export async function RatingStrip(');
 
+  // OWNER UX PASS: each entry is one card, and everything the CUSTOMER gave —
+  // stars, the parts they rated, their words, what they tapped — comes before
+  // "See details", behind which Headway's own reading sits, labelled as such.
+  const details = row.slice(row.indexOf('<details'));
+  const evidence = row.slice(0, row.indexOf('<details'));
+
   it('separates what the customer gave from what Headway understood', () => {
-    expect(row).toContain("t('common.review.gave')");
-    expect(row).toContain("t('common.review.understood')");
-    expect(row.indexOf("t('common.review.gave')")).toBeLessThan(
-      row.indexOf("t('common.review.understood')"),
-    );
-    expect(says('common.review.gave')).toBe('Customer gave');
+    expect(row).toContain('<details');
+    expect(details).toContain("t('common.review.details')");
+    expect(details).toContain("t('common.review.understood')");
+    expect(evidence).not.toContain("t('common.review.understood')");
+    expect(says('common.review.details')).toBe('See details');
     expect(says('common.review.understood')).toBe('Headway understood');
   });
 
-  it('shows the overall stars, each part rated out of 5, the selected specifics and the words', () => {
-    expect(row).toContain('<Stars value={item.stars} />');
-    expect(row).toContain('gave.dimensions.map');
-    expect(row).toContain('/5');
-    expect(row).toContain('gave.selected.map');
-    expect(row).toContain("t('common.review.selected')");
-    expect(row).toContain("t('common.review.written')");
-    expect(says('common.review.selected')).toBe('Selected');
-    expect(says('common.review.written')).toBe('Written');
-    expect(row).toContain('{item.text}');
+  it('shows the overall stars, each part rated out of 5 (worst first), what they tapped and the words', () => {
+    expect(evidence).toContain('<Stars value={item.stars} />');
+    expect(evidence).toContain('[...gave.dimensions].sort((a, b) => a.rating - b.rating)');
+    expect(evidence).toContain('/5');
+    expect(evidence).toContain('gave.selected.map');
+    expect(evidence).toContain('gave.liked.map');
+    expect(evidence).toContain("t('common.review.problems')");
+    expect(evidence).toContain("t('common.review.liked')");
+    expect(says('common.review.problems')).toBe('Problems');
+    expect(says('common.review.liked')).toBe('Liked');
+    expect(evidence).toContain('{item.text}');
   });
 
   it('never dresses up a rating-only submission as words', () => {
@@ -92,23 +98,21 @@ describe('every piece of feedback', () => {
     );
   });
 
-  it('keeps the themes on the Headway side, joined as a reading', () => {
-    const understood = row.slice(row.indexOf("t('common.review.understood')"));
-    expect(understood).toContain("{item.state === 'ANALYSED' ? (");
-    expect(understood).toContain("item.themes.join(' · ')");
-    expect(understood).toContain("t('common.review.noTopic')");
-    expect(says('common.review.noTopic')).toBe('Nothing here matched a topic Headway tracks.');
-    expect(understood).toContain("t('common.review.tone'");
-    expect(says('common.review.tone')).toContain('in tone');
-    expect(understood).toContain("t('common.review.sortedAs')");
+  it('names the topics plainly, and keeps the tone and the sorting as Headway’s reading', () => {
+    expect(evidence).toContain("t('common.review.mentioned')");
+    expect(evidence).toContain("item.themes.join(' · ')");
+    expect(says('common.review.mentioned')).toBe('Mentioned');
+    expect(details).toContain("t('common.review.noTopic')");
+    expect(details).toContain('{item.sentimentLabel}');
+    expect(details).toContain("t('common.review.sortedAs')");
     expect(says('common.review.sortedAs')).toBe('Sorted as');
   });
 
   it('tells the four states apart: read, being read, waiting, could not read', () => {
-    const understood = row.slice(row.indexOf("t('common.review.understood')"));
-    expect(understood).toContain("t('common.review.reading')");
-    expect(understood).toContain("t('common.review.waiting')");
-    expect(understood).toContain("t('common.review.failed')");
+    expect(row).toContain("item.state !== 'ANALYSED'");
+    expect(row).toContain("t('common.review.reading')");
+    expect(row).toContain("t('common.review.waiting')");
+    expect(row).toContain("t('common.review.failed')");
     expect(says('common.review.reading')).toBe('Headway is reading this now.');
     expect(says('common.review.waiting')).toBe(
       'Waiting for Headway to read it — usually within a minute of it arriving.',
@@ -116,7 +120,6 @@ describe('every piece of feedback', () => {
     expect(says('common.review.failed')).toBe(
       'Headway could not read this one yet. It will try again on its own.',
     );
-    expect(understood).not.toContain('Not read yet');
     for (const state of [
       'common.review.reading',
       'common.review.waiting',
@@ -124,6 +127,13 @@ describe('every piece of feedback', () => {
     ] as const) {
       expect(says(state)).not.toContain('Not read yet');
     }
+  });
+
+  it('draws each customer as a separate card, so one never runs into the next', () => {
+    expect(row).toContain('<li className="rounded-2xl border border-ink-200 bg-white');
+    const page = code(read('components', 'workspace', 'reviews.tsx'));
+    expect(page).toContain('<ul className="mt-3 space-y-3">');
+    expect(page).not.toContain('divide-y divide-ink-200 border-t border-ink-200">\n              {items.map');
   });
 });
 
@@ -409,7 +419,7 @@ describe('home, as the owner’s brief', () => {
     expect(says('home.watching.title')).toBe('Headway is watching');
     expect(says('home.goingWell.title')).toBe('Going well');
     expect(says('home.nextCheck.title')).toBe('Your next check-in');
-    expect(says('brief.more.summary')).toBe('The full reading');
+    expect(says('brief.more.summary')).toBe('More detail');
   });
 
   it('answers what happened, what matters and what to do, in that order', () => {
@@ -421,7 +431,7 @@ describe('home, as the owner’s brief', () => {
       "t('brief.mood.title')", // WHAT HAPPENED — the pile, split three ways
       "t('brief.attention.title')", // WHAT MATTERS
       "t('brief.suggest.title')", // WHAT TO DO
-      "t('brief.evidence.title')", // and the evidence, AFTER the conclusion
+      "t('brief.evidence.cta')", // and the evidence, AFTER the conclusion
       "t('brief.latest.title')", // and the newest customers, read or not
     ];
     const at = order.map((token) => {
@@ -432,8 +442,8 @@ describe('home, as the owner’s brief', () => {
     expect(at).toEqual([...at].sort((a, b) => a - b));
     expect(says('brief.mood.title')).toBe('How customers feel');
     expect(says('brief.attention.title')).toBe('Needs your attention');
-    expect(says('brief.suggest.title')).toBe('Headway suggests');
-    expect(says('brief.evidence.title')).toBe('What customers said');
+    expect(says('brief.suggest.title')).toBe('What to do');
+    expect(says('brief.evidence.cta')).toBe('See what customers said');
     expect(says('brief.latest.title')).toBe('Latest from customers');
     // And the page is composed in that order.
     // OwnerBrief is the last thing in the file: from its name to the end.
@@ -447,15 +457,21 @@ describe('home, as the owner’s brief', () => {
     expect(where).toEqual([...where].sort((a, b) => a - b));
   });
 
-  it('makes the count the largest thing, and makes it open its own evidence', () => {
-    // A figure an owner cannot open is a figure they have to take on trust.
-    // The count is a link to the feedback entries it counts, every time.
+  it('leads with the problem, then how many customers, then which way — and opens its evidence', () => {
+    // OWNER UX PASS: the problem's name is the headline and the count is said
+    // as people ("39 customers mentioned it"), then "↑ Getting worse", then
+    // what to do. The evidence behind the count is one tap away, every time.
     const block = between(brief, 'async function Story(', 'async function Calm(');
+    const order = ['{card.label}', "t.plural('brief.mentioned', card.count)", '<Trend trend={card.trend} />', "t('brief.suggest.title')"];
+    const at = order.map((token) => {
+      const i = block.indexOf(token);
+      expect(i, token).toBeGreaterThan(-1);
+      return i;
+    });
+    expect(at).toEqual([...at].sort((a, b) => a - b));
     expect(block).toContain('href={card.href}');
-    expect(block).toContain('{card.count}');
-    expect(block).toMatch(/text-\[34px\][^"]*tabular-nums/);
-    // The theme name is large, but the count is larger.
-    expect(block).toContain('text-[26px]');
+    expect(block).toContain('text-[28px]');
+    expect(says('brief.mentioned.other')).toBe('{count} customers mentioned it');
   });
 
   it('draws no chart, and invents no number of its own', () => {

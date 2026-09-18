@@ -831,153 +831,160 @@ async function Stars({ value }: { value: number }) {
 }
 
 /**
- * One feedback entry, in two columns that must never blur into each other.
+ * ONE CUSTOMER'S RESPONSE, AS ONE OBJECT (owner UX pass).
  *
- * CUSTOMER GAVE is exactly what the person tapped and typed: the overall
- * rating, a rating for each part of the visit the vertical asks about, the
- * specifics they selected, and their words in quotation marks. Nothing here
- * is paraphrased, and a customer who wrote nothing is shown as having written
- * nothing.
+ * The list used to run entries together with a hairline between them, and an
+ * owner could not see where one customer ended and the next began. Each entry
+ * is now its own card, read top to bottom in the order a person takes it in:
  *
- * HEADWAY UNDERSTOOD is everything derived from that: the topics, the tone, how
- * it was sorted, and whether it needs an answer. Labelled as a reading, placed
- * beside the evidence rather than woven into it, so an owner can always check
- * the one against the other — and can never mistake "Slow service" for
- * something the customer literally said.
+ *   the rating, then when and where it came from
+ *   the parts of the visit they rated, WORST FIRST, low ones in red
+ *   their words
+ *   what they tapped: problems in red, what they liked in green
+ *   what it was about (the topics), quietly
+ *
+ * Everything Headway DERIVED — the tone, how it was sorted, a reply — sits
+ * behind "See details", labelled as Headway's reading, so it can be checked
+ * against the evidence without being mistaken for it. Colour is never alone:
+ * every rating carries its number and every chip its words.
  */
-export async function ReviewRow({ item }: { item: ReviewItem }) {
+export async function ReviewRow({ item, href }: { item: ReviewItem; href?: string }) {
   const t = await getTranslator();
   const { gave } = item;
-  const tapped = gave.dimensions.length > 0 || gave.selected.length > 0;
+  const tapped = gave.dimensions.length > 0 || gave.selected.length > 0 || gave.liked.length > 0;
+  const worstFirst = [...gave.dimensions].sort((a, b) => a.rating - b.rating);
 
   return (
-    <li className="py-5">
-      <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <div>
-          <p className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
-            {t('common.review.gave')}
-          </p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-500">
-            {item.stars !== null ? (
-              <Stars value={item.stars} />
-            ) : (
-              <span className="italic">{t('common.review.noRating')}</span>
-            )}
-            {item.at ? <span>{formatDate(item.at)}</span> : null}
-            <span>{item.sourceLabel}</span>
-          </div>
-
-          {gave.dimensions.length > 0 ? (
-            <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
-              {gave.dimensions.map((d) => (
-                <div
-                  key={d.label}
-                  className="flex items-baseline justify-between gap-3 border-b border-dotted border-ink-200 pb-0.5 text-[13px]"
-                >
-                  <dt className="text-ink-700">{d.label}</dt>
-                  <dd
-                    className={clsx(
-                      'font-semibold tabular-nums',
-                      d.rating <= 2 ? 'text-bad-700' : d.rating === 3 ? 'text-ink-600' : 'text-good-700',
-                    )}
-                  >
-                    {d.rating}
-                    <span className="font-normal text-ink-400">/5</span>
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          ) : null}
-
-          {gave.selected.length > 0 ? (
-            <div className="mt-3">
-              <p className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
-                {t('common.review.selected')}
-              </p>
-              <ul className="mt-1.5 flex flex-wrap gap-1.5">
-                {gave.selected.map((label) => (
-                  <li
-                    key={label}
-                    className="rounded-full border border-ink-300 px-2.5 py-0.5 text-[12px] text-ink-800"
-                  >
-                    {label}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          <div className="mt-3">
-            <p className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
-              {t('common.review.written')}
-            </p>
-            {item.text.length > 0 ? (
-              <p className="mt-1 text-[14px] leading-relaxed text-ink-900">“{item.text}”</p>
-            ) : (
-              <p className="mt-1 text-[13px] leading-relaxed text-ink-500 italic">
-                {tapped
-                  ? t('common.review.noWordsTapped')
-                  : t('common.review.ratingOnly')}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="border-t border-dashed border-ink-200 pt-3 md:border-t-0 md:border-l md:pt-0 md:pl-6">
-          <p className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
-            {t('common.review.understood')}
-          </p>
-          {item.state === 'ANALYSED' ? (
-            <div className="mt-1.5 space-y-1.5 text-[13px] leading-relaxed text-ink-700">
-              {item.themes.length > 0 ? (
-                <p className="text-ink-900">{item.themes.join(' · ')}</p>
-              ) : (
-                <p className="text-ink-500">{t('common.review.noTopic')}</p>
-              )}
-              <p className="flex items-center gap-1.5">
-                <span
-                  aria-hidden
-                  className={clsx('h-1.5 w-1.5 rounded-full', SENTIMENT_DOT[item.sentiment] ?? 'bg-ink-300')}
-                />
-                {t('common.review.tone', { label: item.sentimentLabel })}
-              </p>
-              {item.classLabel ? (
-                <p>
-                  <span className="text-ink-500">{t('common.review.sortedAs')}</span>{' '}
-                  {item.classLabel}
-                </p>
-              ) : null}
-              {item.replyState === 'SUGGESTED' ? (
-                <p className="font-medium text-warn-700">{t('common.review.needsAnswerDraft')}</p>
-              ) : item.replyState === 'YOURS' ? (
-                <p className="font-medium text-warn-700">{t('common.review.needsAnswerNoDraft')}</p>
-              ) : item.replyState === 'DRAFT' ? (
-                <p className="text-ink-500">{t('common.review.answerOptionalDraft')}</p>
-              ) : item.replyState === 'ANSWERED' ? (
-                <p className="text-good-700">{t('common.review.answered')}</p>
-              ) : null}
-              {item.suggestedReply ? (
-                <details className="group pt-1">
-                  <summary className="inline-flex min-h-11 cursor-pointer items-center list-none text-[12px] font-medium text-ink-600 hover:text-ink-900 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none">
-                    {t('common.review.suggestedReply')} <span aria-hidden>›</span>
-                  </summary>
-                  <p className="mt-1.5 border-l-2 border-ink-200 pl-3 whitespace-pre-line text-ink-800">
-                    {item.suggestedReply}
-                  </p>
-                </details>
-              ) : null}
-            </div>
-          ) : (
-            <p className="mt-1.5 text-[13px] leading-relaxed text-ink-500 italic">
-              {item.state === 'PROCESSING'
-                ? t('common.review.reading')
-                : item.state === 'FAILED'
-                  ? t('common.review.failed')
-                  : t('common.review.waiting')}
-            </p>
-          )}
-        </div>
+    <li className="rounded-2xl border border-ink-200 bg-white p-4 shadow-[0_1px_2px_rgba(16,42,67,0.04)] sm:p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        {item.stars !== null ? (
+          <span className="text-[18px] leading-none">
+            <Stars value={item.stars} />
+          </span>
+        ) : (
+          <span className="text-[13px] text-ink-500 italic">{t('common.review.noRating')}</span>
+        )}
+        <span className="text-[12px] text-ink-500">
+          {item.at ? `${formatDate(item.at)} · ` : ''}
+          {item.sourceLabel}
+        </span>
       </div>
+
+      {worstFirst.length > 0 ? (
+        <ul className="mt-3 flex flex-wrap gap-1.5">
+          {worstFirst.map((d) => (
+            <li
+              key={d.label}
+              className={clsx(
+                'rounded-lg px-2.5 py-1 text-[13px] tabular-nums',
+                d.rating <= 2
+                  ? 'bg-bad-50 text-bad-700'
+                  : d.rating === 3
+                    ? 'bg-ink-50 text-ink-700'
+                    : 'bg-good-50 text-good-700',
+              )}
+            >
+              <span className="font-medium">{d.label}</span> {d.rating}/5
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {item.text.length > 0 ? (
+        <p className="mt-3 text-[16px] leading-relaxed text-ink-900">“{item.text}”</p>
+      ) : (
+        <p className="mt-3 text-[14px] leading-relaxed text-ink-500 italic">
+          {tapped ? t('common.review.noWordsTapped') : t('common.review.ratingOnly')}
+        </p>
+      )}
+
+      {gave.selected.length > 0 ? (
+        <div className="mt-3">
+          <p className="text-[12px] font-semibold text-bad-700">{t('common.review.problems')}</p>
+          <ul className="mt-1 flex flex-wrap gap-1.5">
+            {gave.selected.map((label) => (
+              <li key={label} className="rounded-full border border-bad-200 bg-bad-50 px-2.5 py-0.5 text-[13px] text-bad-700">
+                {label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {gave.liked.length > 0 ? (
+        <div className="mt-3">
+          <p className="text-[12px] font-semibold text-good-700">{t('common.review.liked')}</p>
+          <ul className="mt-1 flex flex-wrap gap-1.5">
+            {gave.liked.map((label) => (
+              <li key={label} className="rounded-full border border-good-200 bg-good-50 px-2.5 py-0.5 text-[13px] text-good-700">
+                {label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {item.state === 'ANALYSED' && item.themes.length > 0 ? (
+        <p className="mt-3 text-[13px] text-ink-600">
+          <span className="font-medium text-ink-700">{t('common.review.mentioned')}:</span> {item.themes.join(' · ')}
+        </p>
+      ) : null}
+
+      {item.state !== 'ANALYSED' ? (
+        <p className="mt-3 text-[13px] leading-relaxed text-ink-500 italic">
+          {item.state === 'PROCESSING'
+            ? t('common.review.reading')
+            : item.state === 'FAILED'
+              ? t('common.review.failed')
+              : t('common.review.waiting')}
+        </p>
+      ) : (
+        <details className="group mt-2">
+          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 text-[13px] font-medium text-ink-700 hover:text-ink-900">
+            {t('common.review.details')}
+            <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-90">
+              ›
+            </span>
+          </summary>
+          <div className="mt-1 space-y-1.5 border-t border-dashed border-ink-200 pt-3 text-[13px] leading-relaxed text-ink-700">
+            <p className="text-[11px] font-semibold tracking-widest text-ink-400 uppercase">{t('common.review.understood')}</p>
+            {item.themes.length === 0 ? <p className="text-ink-500">{t('common.review.noTopic')}</p> : null}
+            <p className="flex items-center gap-1.5">
+              <span aria-hidden className={clsx('h-1.5 w-1.5 rounded-full', SENTIMENT_DOT[item.sentiment] ?? 'bg-ink-300')} />
+              {item.sentimentLabel}
+            </p>
+            {item.classLabel ? (
+              <p>
+                <span className="text-ink-500">{t('common.review.sortedAs')}</span> {item.classLabel}
+              </p>
+            ) : null}
+            {item.replyState === 'SUGGESTED' ? (
+              <p className="font-medium text-warn-700">{t('common.review.needsAnswerDraft')}</p>
+            ) : item.replyState === 'YOURS' ? (
+              <p className="font-medium text-warn-700">{t('common.review.needsAnswerNoDraft')}</p>
+            ) : item.replyState === 'DRAFT' ? (
+              <p className="text-ink-500">{t('common.review.answerOptionalDraft')}</p>
+            ) : item.replyState === 'ANSWERED' ? (
+              <p className="text-good-700">{t('common.review.answered')}</p>
+            ) : null}
+            {item.suggestedReply ? (
+              <div>
+                <p className="text-ink-500">{t('common.review.suggestedReply')}</p>
+                <p className="mt-1 border-l-2 border-ink-200 pl-3 whitespace-pre-line text-ink-800">{item.suggestedReply}</p>
+              </div>
+            ) : null}
+          </div>
+        </details>
+      )}
+
+      {href ? (
+        <Link
+          href={href}
+          className="-mb-2 inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-ink-700 hover:text-ink-900"
+        >
+          {t('common.review.open')} <span aria-hidden>→</span>
+        </Link>
+      ) : null}
     </li>
   );
 }

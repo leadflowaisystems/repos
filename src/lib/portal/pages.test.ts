@@ -367,7 +367,7 @@ describe('check-in — what changed', () => {
     });
     expect(v.movementLine).toBe(`Since your check-in on ${MAR}: 1 thing is getting better.`);
     expect(v.better.map((s) => s.themeKey)).toEqual(['wait_time']);
-    expect(v.better[0]?.movementBrief).toBe('Customers raised it less at your latest check-in than at the one before.');
+    expect(v.better[0]?.movementBrief).toBe('Customers mentioned this less this time.');
     // Measured on 1 Jun, after the May check-in: reported as "since this check-in", not inside it.
     expect(v.checked).toEqual([]);
     expect(v.sinceCheckin).toHaveLength(1);

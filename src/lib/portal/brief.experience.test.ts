@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildPortalView } from '@/lib/portal/view';
-import { NOW, action, input, intel, themes } from '@/lib/portal/test-fixtures';
+import { NOW, action, input, intel, pulseWith, themes } from '@/lib/portal/test-fixtures';
 import { buildResponsibility, type ResponsibilityInput } from '@/lib/responsibility/engine';
 import type { AnalysisCoverage } from '@/lib/feedback/analysis';
 import type { SinceLastVisit } from '@/lib/retention/service';
@@ -96,7 +96,7 @@ describe('trendOf: the arrow is the count, the colour is the news', () => {
   it('draws praise that FELL as down and bad news — the shipped bug drew it green and rising', () => {
     const trend = trendOf(signal('PRAISE', 'WORSENING'), EN);
     expect(trend).toMatchObject({ mark: '↓', tone: 'bad' });
-    expect(trend!.label).toBe(EN('brief.trend.down'));
+    expect(trend!.label).toBe(EN('brief.trend.worse'));
   });
 
   it('draws no movement as a level arrow, in neutral', () => {
@@ -220,5 +220,23 @@ describe('your changes: the record, from what the loop stored', () => {
   it('keeps a worse result on the record too — a record of wins only would be a brochure', () => {
     const memory = build({ portal: { actions: [action('MEASURED', 'WORSENED')] } }).brief.memory!;
     expect(memory.recent[0]!.state).toBe('WORSE');
+  });
+});
+
+describe('what changed: one row per topic, never the same line twice', () => {
+  it('names each topic that moved, once, with its counts', () => {
+    const { brief, view } = build({
+      portal: { intelligence: intel({ pulse: pulseWith({ waitThen: 2, waitNow: 9, careThen: 4, careNow: 12 }) }) },
+    });
+    expect(brief.changed.length).toBeGreaterThan(0);
+    const keys = brief.changed.map((c) => c.key);
+    expect(new Set(keys).size).toBe(keys.length);
+    const labels = new Map([...view.unhappy, ...view.loved].map((s) => [s.themeKey, s.themeLabel]));
+    for (const row of brief.changed) {
+      // The topic's own name, not the engine's generic sentence.
+      expect(row.label).toBe(labels.get(row.key));
+      expect(row.kind === 'ISSUE' ? row.tone : 'good').toBe(row.kind === 'ISSUE' ? 'bad' : 'good');
+    }
+    expect(brief.changed.length).toBeLessThanOrEqual(3);
   });
 });

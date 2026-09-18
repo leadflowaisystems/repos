@@ -811,13 +811,13 @@ function didFor(args: {
   }
 
   // The read count. "Since" is said only when there is a check-in to be since.
-  const direct =
-    f.direct > 0 ? ` ${t('responsibility.did.direct', { count: f.direct })}` : '';
+  // Where each response came from is not the owner's question on the first
+  // line; the Feedback page still says which door every entry came through.
   if (since) {
     if (f.read > 0) {
       say(
         'read',
-        `${t.plural('responsibility.did.read', f.read, { date: formatDate(since) })}${direct}`,
+        t.plural('responsibility.did.read', f.read, { date: formatDate(since) }),
       );
     } else if (f.unread > 0) {
       say('read', t.plural('responsibility.did.unread', f.unread, { date: formatDate(since) }));
@@ -830,7 +830,7 @@ function didFor(args: {
   } else if (intel.evidence.analysed > 0) {
     say(
       'read',
-      `${t.plural('responsibility.did.readTotal', intel.evidence.analysed)}${direct}${intel.evidence.unread > 0 ? ` ${t('responsibility.did.readingMore', { count: intel.evidence.unread })}` : ''}`,
+      `${t.plural('responsibility.did.readTotal', intel.evidence.analysed)}${intel.evidence.unread > 0 ? ` ${t('responsibility.did.readingMore', { count: intel.evidence.unread })}` : ''}`,
     );
   } else if (intel.evidence.unread > 0) {
     say('read', t.plural('responsibility.did.readingNow', intel.evidence.unread));

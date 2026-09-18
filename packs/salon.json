@@ -150,7 +150,7 @@
     },
     {
       "key": "hygiene",
-      "label": "Hygiene / tool cleanliness",
+      "label": "Hygiene & cleanliness",
       "severity": "high",
       "action": "Sanitise tools in front of the client and keep a visible sterilisation log at each station.",
       "hints": [
@@ -375,7 +375,7 @@
     },
     {
       "key": "hygiene_praise",
-      "label": "Cleanliness and hygiene",
+      "label": "Hygiene & cleanliness",
       "hints": [
         "clean",
         "hygienic",

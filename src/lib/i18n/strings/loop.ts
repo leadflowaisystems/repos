@@ -134,9 +134,9 @@ export const loop = {
     mr: 'आत्ता करा',
   },
   'loop.shelf.watching': {
-    en: 'Headway is watching',
-    hi: 'Headway नज़र रख रहा है',
-    mr: 'Headway लक्ष ठेवत आहे',
+    en: 'In progress',
+    hi: 'काम चल रहा है',
+    mr: 'काम सुरू आहे',
   },
   'loop.shelf.alsoSuggested': {
     en: 'Also suggested',
@@ -149,9 +149,9 @@ export const loop = {
     mr: 'करत राहा',
   },
   'loop.shelf.completed': {
-    en: 'Checked',
-    hi: 'जाँच हो चुकी',
-    mr: 'तपासून झालं',
+    en: 'Results',
+    hi: 'नतीजे',
+    mr: 'निकाल',
   },
 
   'loop.shelf.notDoing': {

@@ -516,6 +516,43 @@ export const common = {
     hi: 'सिर्फ़ रेटिंग — कुछ लिखा नहीं।',
     mr: 'फक्त रेटिंग — काही लिहिलेलं नाही.',
   },
+  // A good overall rating that ALSO names a problem. The customer said both,
+  // so both are said: never "Positive", never "Praise", on its own.
+  'common.review.positiveWithProblem.one': {
+    en: 'Positive overall, with one problem: {problem}',
+    hi: 'कुल मिलाकर अच्छा, पर एक शिकायत: {problem}',
+    mr: 'एकूण चांगलं, पण एक तक्रार: {problem}',
+  },
+  'common.review.positiveWithProblem.other': {
+    en: 'Positive overall, with {count} problems mentioned',
+    hi: 'कुल मिलाकर अच्छा, पर {count} शिकायतें',
+    mr: 'एकूण चांगलं, पण {count} तक्रारी',
+  },
+  'common.review.problems': {
+    en: 'Problems',
+    hi: 'शिकायतें',
+    mr: 'तक्रारी',
+  },
+  'common.review.liked': {
+    en: 'Liked',
+    hi: 'पसंद आया',
+    mr: 'आवडलं',
+  },
+  'common.review.mentioned': {
+    en: 'Mentioned',
+    hi: 'ज़िक्र',
+    mr: 'उल्लेख',
+  },
+  'common.review.details': {
+    en: 'See details',
+    hi: 'विवरण देखें',
+    mr: 'तपशील पाहा',
+  },
+  'common.review.open': {
+    en: 'Open this response',
+    hi: 'यह जवाब खोलें',
+    mr: 'हा प्रतिसाद उघडा',
+  },
   'common.review.noTopic': {
     en: 'Nothing here matched a topic Headway tracks.',
     hi: 'Headway जिन विषयों पर नज़र रखता है, उनमें से कोई इसमें नहीं मिला।',

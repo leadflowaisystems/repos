@@ -293,8 +293,8 @@ describe('the whole loop, on private feedback alone', () => {
     const bundle = await getPortalView(db, id, { now: SECOND_CHECKIN });
     expect(bundle).not.toBeNull();
     // What RepOS did, in words, is the thing they are paying for.
-    expect(bundle!.view.work.join(' ')).toMatch(/Read \d+ feedback entries/);
-    expect(bundle!.view.work.join(' ')).toMatch(/Grouped them into/);
+    expect(bundle!.view.work.join(' ')).toMatch(/\d+ customer responses read so far/);
+    expect(bundle!.view.work.join(' ')).toMatch(/Found \d+ things? customers keep mentioning/);
 
     const analysis = await getAnalysisView(db, id, { now: SECOND_CHECKIN });
     expect(analysis!.work.length).toBeGreaterThan(0);

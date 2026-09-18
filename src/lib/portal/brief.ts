@@ -146,6 +146,18 @@ export type BriefCard = {
   };
 };
 
+/** One topic that moved between the last two check-ins. */
+export type BriefMove = {
+  key: string;
+  label: string;
+  /** "24 → 39 mentions", written by the engine; null when it could not count both. */
+  counts: string | null;
+  line: string;
+  /** Good or bad news for the owner. */
+  tone: 'good' | 'bad';
+  kind: 'ISSUE' | 'PRAISE';
+};
+
 /** One change the owner made, and what customers did afterward. */
 export type BriefChange = {
   key: string;
@@ -197,6 +209,12 @@ export type Brief = {
     verticalLabel: string;
     /** Topics Headway is following for this business right now. */
     watching: number;
+    /**
+     * How many things the responsibility engine says need the owner now —
+     * the band leads with this, because "1 thing needs your attention" is the
+     * owner's question and "watching 7 topics" is Headway's.
+     */
+    needsYou: number;
     /** Feedback that arrived since this person last looked, when any did. */
     arrivedSinceVisit: number | null;
     /** Changes Headway checked while they were away — the reward, arriving. */
@@ -215,8 +233,12 @@ export type Brief = {
   attention: BriefCard | null;
   /** The one strongest thing customers like, when there is one. */
   loved: BriefCard | null;
-  /** What moved since the last check-in, as short lines. At most three. */
-  changed: Array<{ key: string; line: string; tone: 'good' | 'bad' }>;
+  /**
+   * What moved since the last check-in: one row per topic, at most three —
+   * the topic's own name, the engine's two counts, and which kind of change
+   * it is. `line` is the engine's sentence, kept for when there are no counts.
+   */
+  changed: BriefMove[];
   /** How many topics moved in all, of which `changed` shows three. */
   changedTotal: number;
   /**
@@ -280,7 +302,7 @@ export function trendOf(signal: PortalSignal, t: PortalTranslator): BriefTrend |
   const direction = signal.movementDirection;
   if (direction === null) return null;
   if (direction === 'STABLE') {
-    return { mark: '→', label: t('brief.trend.steady'), counts: signal.movementCounts, tone: 'neutral' };
+    return { mark: '→', label: t('brief.trend.same'), counts: signal.movementCounts, tone: 'neutral' };
   }
 
   // THE ENGINE'S STATE IS GOOD-OR-BAD, NOT UP-OR-DOWN. `movementDirection`
@@ -295,7 +317,10 @@ export function trendOf(signal: PortalSignal, t: PortalTranslator): BriefTrend |
   const rose = signal.kind === 'ISSUE' ? direction === 'WORSENING' : direction === 'IMPROVING';
   return {
     mark: rose ? '↑' : '↓',
-    label: rose ? t('brief.trend.up') : t('brief.trend.down'),
+    // The words are the verdict an owner acts on — "Getting worse" for a
+    // complaint that rose AND for praise that fell. The arrow beside them is
+    // the count's own direction, so the two can never be confused.
+    label: direction === 'IMPROVING' ? t('brief.trend.better') : t('brief.trend.worse'),
     counts: signal.movementCounts,
     tone: direction === 'IMPROVING' ? 'good' : 'bad',
   };
@@ -480,14 +505,27 @@ export function buildBrief(input: BriefInput): Brief {
 
   // Movement, shortest first: what got worse, then what got better. Three is
   // the ceiling — a fourth line on a phone is a list, and a list is reading.
-  const moved = [
+  // One row per topic, never the same topic twice: the engine's sentence is
+  // generic ("mentioned more this time"), so rows are told apart by the
+  // topic's own name and counts, not by the sentence.
+  const seen = new Set<string>();
+  const moved: BriefMove[] = [
     ...view.unhappy
       .filter((s) => s.movementDirection === 'WORSENING' && s.movementBrief)
-      .map((s) => ({ key: s.themeKey, line: s.movementBrief, tone: 'bad' as const })),
+      .map((s) => ({ s, tone: 'bad' as const })),
     ...view.loved
       .filter((s) => s.movementDirection === 'IMPROVING' && s.movementBrief)
-      .map((s) => ({ key: s.themeKey, line: s.movementBrief, tone: 'good' as const })),
-  ];
+      .map((s) => ({ s, tone: 'good' as const })),
+  ]
+    .filter(({ s }) => (seen.has(s.themeKey) ? false : (seen.add(s.themeKey), true)))
+    .map(({ s, tone }) => ({
+      key: s.themeKey,
+      label: s.themeLabel,
+      counts: s.movementCounts,
+      line: s.movementBrief ?? '',
+      tone,
+      kind: s.kind,
+    }));
   const changed = moved.slice(0, 3);
 
   // NEUTRAL joins MIXED, UNKNOWN is left out, and the total is the three
@@ -506,6 +544,7 @@ export function buildBrief(input: BriefInput): Brief {
       businessName: view.businessName,
       verticalLabel: view.verticalLabel,
       watching: view.unhappy.length + view.loved.length,
+      needsYou: r.needsYou.length,
       arrivedSinceVisit: since && since.arrived > 0 ? since.arrived : null,
       checkedWhileAway: (since?.measured ?? []).map((m) => ({
         id: m.id,

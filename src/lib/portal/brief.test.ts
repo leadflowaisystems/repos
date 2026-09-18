@@ -306,11 +306,15 @@ describe('the arrow', () => {
     }
   });
 
-  it('keeps the words neutral, so only the colour carries the judgement', () => {
+  it('says the verdict in words that match the colour, so neither is alone', () => {
+    // Owner UX pass: "↑ Getting worse", not "↑ more than last check-in" — the
+    // owner reads the verdict, the arrow keeps the count's own direction, and
+    // the colour repeats the words rather than carrying the meaning alone.
     const { brief } = twoCheckins();
     for (const card of [brief.attention, brief.loved]) {
       if (!card?.trend) continue;
-      expect(card.trend.label).not.toMatch(/better|worse|good|bad|problem/i);
+      const expected = card.trend.tone === 'good' ? 'Getting better' : card.trend.tone === 'bad' ? 'Getting worse' : 'About the same';
+      expect(card.trend.label).toBe(expected);
     }
   });
 });

@@ -436,24 +436,23 @@ export async function TopicStory({
       >
         {signal.themeLabel}
       </h1>
-      <p className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="font-mono text-[34px] leading-none font-semibold text-ink-900 tabular-nums">
-          {signal.evidenceCount}
-        </span>
-        <span className="text-[13px] text-ink-500">
-          {t('brief.basis', { count: signal.evidenceCount, total: signal.evidenceTotal })}
-        </span>
-        {trend ? (
+      {/* The signal, as Home says it: how many customers, and which way. */}
+      <p className="mt-2 text-[17px] leading-snug font-semibold text-ink-900 tabular-nums">
+        {issue ? t.plural('brief.mentioned', signal.evidenceCount) : t.plural('brief.praised', signal.evidenceCount)}
+      </p>
+      {trend ? (
+        <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
           <span
             className={clsx(
-              'text-[13px] font-medium',
+              'text-[15px] font-semibold',
               trend.tone === 'good' ? 'text-good-700' : trend.tone === 'bad' ? 'text-bad-700' : 'text-ink-500',
             )}
           >
-            <span aria-hidden>{trend.mark}</span> {trend.counts ?? trend.label}
+            <span aria-hidden>{trend.mark}</span> {trend.label}
           </span>
-        ) : null}
-      </p>
+          {trend.counts ? <span className="text-[13px] text-ink-500 tabular-nums">{trend.counts}</span> : null}
+        </p>
+      ) : null}
 
       <ol className="mt-7 ml-1.5 border-l border-ink-200">
         <Step title={t('feedback.story.said')}>
@@ -831,9 +830,9 @@ export async function PortalReviews({
             </p>
           )}
           {items.length > 0 ? (
-            <ul className="mt-2 divide-y divide-ink-200 border-t border-ink-200">
+            <ul className="mt-3 space-y-3">
               {items.map((item) => (
-                <ReviewRow key={item.id} item={item} />
+                <ReviewRow key={item.id} item={item} href={`${base}/${item.id}`} />
               ))}
             </ul>
           ) : (

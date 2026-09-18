@@ -183,9 +183,9 @@ export const brief = {
   // The rest of Home, moved behind one tap
   // -------------------------------------------------------------------------
   'brief.more.summary': {
-    en: 'The full reading',
-    hi: 'पूरी बात',
-    mr: 'संपूर्ण माहिती',
+    en: 'More detail',
+    hi: 'और जानकारी',
+    mr: 'अधिक माहिती',
   },
 
   // -------------------------------------------------------------------------
@@ -249,34 +249,34 @@ export const brief = {
   // while rows are genuinely waiting for the pipeline, "just read" only for
   // rows read in the last few minutes, and "waiting" when reading is paused.
   'brief.live.reading.one': {
-    en: '{count} new feedback entry · Headway is reading it',
-    hi: '{count} नया फ़ीडबैक · Headway इसे पढ़ रहा है',
-    mr: '{count} नवा फीडबॅक · Headway तो वाचत आहे',
+    en: '{count} new customer response · Headway is reading it',
+    hi: 'ग्राहक का {count} नया जवाब · Headway इसे पढ़ रहा है',
+    mr: 'ग्राहकाचा {count} नवा प्रतिसाद · Headway तो वाचत आहे',
   },
   'brief.live.reading.other': {
-    en: '{count} new feedback entries · Headway is reading them',
-    hi: '{count} नए फ़ीडबैक · Headway इन्हें पढ़ रहा है',
-    mr: '{count} नवे फीडबॅक · Headway ते वाचत आहे',
+    en: '{count} new customer responses · Headway is reading them',
+    hi: 'ग्राहकों के {count} नए जवाब · Headway इन्हें पढ़ रहा है',
+    mr: 'ग्राहकांचे {count} नवे प्रतिसाद · Headway ते वाचत आहे',
   },
   'brief.live.held.one': {
-    en: '{count} new feedback entry · waiting to be read',
-    hi: '{count} नया फ़ीडबैक · पढ़े जाने का इंतज़ार',
-    mr: '{count} नवा फीडबॅक · वाचला जाण्याची वाट',
+    en: '{count} new customer response · waiting to be read',
+    hi: 'ग्राहक का {count} नया जवाब · पढ़े जाने का इंतज़ार',
+    mr: 'ग्राहकाचा {count} नवा प्रतिसाद · वाचला जाण्याची वाट',
   },
   'brief.live.held.other': {
-    en: '{count} new feedback entries · waiting to be read',
-    hi: '{count} नए फ़ीडबैक · पढ़े जाने का इंतज़ार',
-    mr: '{count} नवे फीडबॅक · वाचले जाण्याची वाट',
+    en: '{count} new customer responses · waiting to be read',
+    hi: 'ग्राहकों के {count} नए जवाब · पढ़े जाने का इंतज़ार',
+    mr: 'ग्राहकांचे {count} नवे प्रतिसाद · वाचले जाण्याची वाट',
   },
   'brief.live.justRead.one': {
-    en: 'Headway just read {count} new feedback entry',
-    hi: 'Headway ने अभी {count} नया फ़ीडबैक पढ़ा',
-    mr: 'Headway ने आत्ताच {count} नवा फीडबॅक वाचला',
+    en: 'Headway just read {count} new customer response',
+    hi: 'Headway ने अभी ग्राहक का {count} नया जवाब पढ़ा',
+    mr: 'Headway ने आत्ताच ग्राहकाचा {count} नवा प्रतिसाद वाचला',
   },
   'brief.live.justRead.other': {
-    en: 'Headway just read {count} new feedback entries',
-    hi: 'Headway ने अभी {count} नए फ़ीडबैक पढ़े',
-    mr: 'Headway ने आत्ताच {count} नवे फीडबॅक वाचले',
+    en: 'Headway just read {count} new customer responses',
+    hi: 'Headway ने अभी ग्राहकों के {count} नए जवाब पढ़े',
+    mr: 'Headway ने आत्ताच ग्राहकांचे {count} नवे प्रतिसाद वाचले',
   },
 
   // LATEST FROM CUSTOMERS — the newest few, in their own words, read or not.
@@ -286,14 +286,14 @@ export const brief = {
     mr: 'ग्राहकांचं ताजं म्हणणं',
   },
   'brief.latest.all.one': {
-    en: 'See the {count} feedback entry',
-    hi: '{count} फ़ीडबैक देखें',
-    mr: '{count} फीडबॅक पाहा',
+    en: 'See the {count} response',
+    hi: '{count} जवाब देखें',
+    mr: '{count} प्रतिसाद पाहा',
   },
   'brief.latest.all.other': {
-    en: 'See all {count} feedback entries',
-    hi: 'सभी {count} फ़ीडबैक देखें',
-    mr: 'सर्व {count} फीडबॅक पाहा',
+    en: 'See all {count} responses',
+    hi: 'सभी {count} जवाब देखें',
+    mr: 'सर्व {count} प्रतिसाद पाहा',
   },
   'brief.latest.new': {
     en: 'New · being read',
@@ -343,23 +343,23 @@ export const brief = {
     mr: 'ग्राहकांना कसं वाटतं',
   },
   'brief.mood.basis.one': {
-    en: 'From {count} feedback entry',
-    hi: '{count} फ़ीडबैक से',
-    mr: '{count} फीडबॅकमधून',
+    en: 'From {count} customer',
+    hi: '{count} ग्राहक से',
+    mr: '{count} ग्राहकाकडून',
   },
   'brief.mood.basis.other': {
-    en: 'From {count} feedback entries',
-    hi: '{count} फ़ीडबैक से',
-    mr: '{count} फीडबॅकमधून',
+    en: 'From {count} customers',
+    hi: '{count} ग्राहकों से',
+    mr: '{count} ग्राहकांकडून',
   },
 
   // -------------------------------------------------------------------------
   // The story
   // -------------------------------------------------------------------------
   'brief.meaning.title': {
-    en: 'What this means',
-    hi: 'इसका मतलब',
-    mr: 'याचा अर्थ',
+    en: 'Why',
+    hi: 'क्यों',
+    mr: 'का',
   },
   // What unhappy customers themselves tapped, never an inference.
   'brief.meaning.tapped.one': {
@@ -375,9 +375,9 @@ export const brief = {
   // Headway speaks as Headway. Not "what I would do": the product does not
   // pretend to be a person.
   'brief.suggest.title': {
-    en: 'Headway suggests',
-    hi: 'Headway का सुझाव',
-    mr: 'Headway चा सल्ला',
+    en: 'What to do',
+    hi: 'क्या करें',
+    mr: 'काय करावं',
   },
 
   // -------------------------------------------------------------------------
@@ -501,5 +501,89 @@ export const brief = {
     en: 'Headway is watching',
     hi: 'Headway नज़र रख रहा है',
     mr: 'Headway लक्ष ठेवत आहे',
+  },
+  // -------------------------------------------------------------------------
+  // Owner UX pass: the conclusion in the owner's words
+  // -------------------------------------------------------------------------
+  // Which way a topic is going, as good or bad news for the owner. The arrow
+  // beside it still shows which way the COUNT moved.
+  'brief.trend.worse': {
+    en: 'Getting worse',
+    hi: 'बिगड़ रहा है',
+    mr: 'बिघडत आहे',
+  },
+  'brief.trend.better': {
+    en: 'Getting better',
+    hi: 'सुधर रहा है',
+    mr: 'सुधारत आहे',
+  },
+  'brief.trend.same': {
+    en: 'About the same',
+    hi: 'लगभग वैसा ही',
+    mr: 'साधारण तसंच',
+  },
+  // The band's status: how many things need the owner, not how busy Headway is.
+  'brief.status.needs.one': {
+    en: '{count} thing needs your attention',
+    hi: '{count} बात पर आपका ध्यान चाहिए',
+    mr: '{count} गोष्टीकडे तुमचं लक्ष हवं',
+  },
+  'brief.status.needs.other': {
+    en: '{count} things need your attention',
+    hi: '{count} बातों पर आपका ध्यान चाहिए',
+    mr: '{count} गोष्टींकडे तुमचं लक्ष हवं',
+  },
+  // A count of people, not of rows.
+  'brief.mentioned.one': {
+    en: '{count} customer mentioned it',
+    hi: '{count} ग्राहक ने इसका ज़िक्र किया',
+    mr: '{count} ग्राहकाने याचा उल्लेख केला',
+  },
+  'brief.mentioned.other': {
+    en: '{count} customers mentioned it',
+    hi: '{count} ग्राहकों ने इसका ज़िक्र किया',
+    mr: '{count} ग्राहकांनी याचा उल्लेख केला',
+  },
+  'brief.praised.one': {
+    en: '{count} customer praised it',
+    hi: '{count} ग्राहक ने इसकी तारीफ़ की',
+    mr: '{count} ग्राहकाने याचं कौतुक केलं',
+  },
+  'brief.praised.other': {
+    en: '{count} customers praised it',
+    hi: '{count} ग्राहकों ने इसकी तारीफ़ की',
+    mr: '{count} ग्राहकांनी याचं कौतुक केलं',
+  },
+  'brief.love.keep': {
+    en: 'Keep doing this.',
+    hi: 'ऐसे ही करते रहें।',
+    mr: 'असंच करत राहा.',
+  },
+  'brief.evidence.cta': {
+    en: 'See what customers said',
+    hi: 'देखें ग्राहकों ने क्या कहा',
+    mr: 'ग्राहक काय म्हणाले ते पाहा',
+  },
+  // What changed, one row per topic: the topic's name, its two counts, and
+  // which kind of change it is. The same noun in red and green is the point.
+  'brief.changed.moreComplaints': {
+    en: 'More complaints',
+    hi: 'ज़्यादा शिकायतें',
+    mr: 'जास्त तक्रारी',
+  },
+  'brief.changed.fewerComplaints': {
+    en: 'Fewer complaints',
+    hi: 'कम शिकायतें',
+    mr: 'कमी तक्रारी',
+  },
+  'brief.changed.morePraise': {
+    en: 'More praise',
+    hi: 'ज़्यादा तारीफ़',
+    mr: 'जास्त कौतुक',
+  },
+  'brief.changed.lessPraise': {
+    en: 'Less praise',
+    hi: 'कम तारीफ़',
+    mr: 'कमी कौतुक',
   },
 } satisfies Namespace;

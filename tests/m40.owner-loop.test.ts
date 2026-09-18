@@ -266,7 +266,7 @@ describe('the loop is reachable where the owner already is', () => {
   it('puts the decision on Home, under the problem it is about', () => {
     expect(BRIEF).toContain('<OwnerDecision');
     // After the conclusion, the count, the reading and the action — never before.
-    const at = ['{card.count}', '{card.line}', '{card.action}', '<OwnerDecision'].map((token) => {
+    const at = ["t.plural('brief.mentioned', card.count)", '{card.action}', '<OwnerDecision'].map((token) => {
       const i = BRIEF.indexOf(token);
       expect(i, token).toBeGreaterThan(-1);
       return i;
@@ -325,8 +325,9 @@ describe('the loop is reachable where the owner already is', () => {
     });
     expect(at).toEqual([...at].sort((a, b) => a - b));
     expect(says('loop.shelf.doNow')).toBe('Do now');
-    expect(says('loop.shelf.watching')).toBe('Headway is watching');
-    expect(says('loop.shelf.completed')).toBe('Checked');
+    // Owner UX pass: plain words for where a change stands.
+    expect(says('loop.shelf.watching')).toBe('In progress');
+    expect(says('loop.shelf.completed')).toBe('Results');
     expect(says('loop.shelf.notDoing')).toBe('Not doing');
   });
 

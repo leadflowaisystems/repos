@@ -21,9 +21,9 @@ import type { Namespace } from '../t';
 export const pack = {
   // --- restaurant (packs/restaurant.json) ---------------------------------
   'pack.restaurant.food_quality': {
-    en: 'Food quality / taste',
-    hi: 'खाने की क्वालिटी / स्वाद',
-    mr: 'जेवणाची गुणवत्ता / चव',
+    en: 'Food & taste',
+    hi: 'खाना और स्वाद',
+    mr: 'जेवण आणि चव',
   },
   'pack.restaurant.service_speed': {
     en: 'Slow service',
@@ -41,9 +41,9 @@ export const pack = {
     mr: 'स्टाफची वागणूक / लक्ष देणं',
   },
   'pack.restaurant.cleanliness': {
-    en: 'Cleanliness / hygiene',
-    hi: 'साफ़-सफ़ाई / हाइजीन',
-    mr: 'स्वच्छता / हायजीन',
+    en: 'Cleanliness',
+    hi: 'साफ़-सफ़ाई',
+    mr: 'स्वच्छता',
   },
   'pack.restaurant.pricing_value': {
     en: 'Pricing / value for money',
@@ -71,9 +71,9 @@ export const pack = {
     mr: 'बिलिंगमधल्या चुका / छुपे चार्ज',
   },
   'pack.restaurant.food_taste': {
-    en: 'Food taste and quality',
-    hi: 'खाने का स्वाद और क्वालिटी',
-    mr: 'जेवणाची चव आणि गुणवत्ता',
+    en: 'Food & taste',
+    hi: 'खाना और स्वाद',
+    mr: 'जेवण आणि चव',
   },
   'pack.restaurant.service_quality': {
     en: 'Attentive service',
@@ -91,9 +91,9 @@ export const pack = {
     mr: 'पैसा वसूल किंमत',
   },
   'pack.restaurant.cleanliness_praise': {
-    en: 'Cleanliness and upkeep',
-    hi: 'साफ़-सफ़ाई और रख-रखाव',
-    mr: 'स्वच्छता आणि देखभाल',
+    en: 'Cleanliness',
+    hi: 'साफ़-सफ़ाई',
+    mr: 'स्वच्छता',
   },
   'pack.restaurant.staff_warmth': {
     en: 'Warm, welcoming staff',
@@ -302,9 +302,9 @@ export const pack = {
     mr: 'स्टाफची वागणूक / वृत्ती',
   },
   'pack.salon.hygiene': {
-    en: 'Hygiene / tool cleanliness',
-    hi: 'हाइजीन / औज़ारों की साफ़-सफ़ाई',
-    mr: 'हायजीन / साधनांची स्वच्छता',
+    en: 'Hygiene & cleanliness',
+    hi: 'हाइजीन और साफ़-सफ़ाई',
+    mr: 'हायजीन आणि स्वच्छता',
   },
   'pack.salon.upselling_pressure': {
     en: 'Pushy upselling',
@@ -342,9 +342,9 @@ export const pack = {
     mr: 'आपुलकीचा, संयमी स्टाफ',
   },
   'pack.salon.hygiene_praise': {
-    en: 'Cleanliness and hygiene',
-    hi: 'साफ़-सफ़ाई और हाइजीन',
-    mr: 'स्वच्छता आणि हायजीन',
+    en: 'Hygiene & cleanliness',
+    hi: 'हाइजीन और साफ़-सफ़ाई',
+    mr: 'हायजीन आणि स्वच्छता',
   },
   'pack.salon.ambience': {
     en: 'Relaxing ambience',

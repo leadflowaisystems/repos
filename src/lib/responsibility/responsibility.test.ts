@@ -186,7 +186,7 @@ describe('do I need to do anything?', () => {
     const keep = r.watching.find((i) => i.themeKey === 'doctor_care');
     expect(keep?.state).toBe('KEEP_DOING');
     expect(keep?.headline).toBe("Customers praise your doctor's care and explanation.");
-    expect(keep?.watching).toMatch(/^Headway is checking that customers keep praising doctor's care and explanation/);
+    expect(keep?.watching).toMatch(/^Keep it up\. Headway will tell you if customers praise doctor's care and explanation less\./);
   });
 
   it('11. too little feedback overall is said plainly, with nothing recommended', () => {
@@ -461,7 +461,7 @@ describe('continuity', () => {
       // English. The no-causation sentence is unchanged and still required.
       /^Customers mention long waiting time less often since the change\. This does not show the change caused the difference\.$/,
     );
-    expect(item.thread.find((s) => s.key === 'next')?.text).toMatch(/^Headway is checking whether long waiting time keeps coming up less often/);
+    expect(item.thread.find((s) => s.key === 'next')?.text).toMatch(/^Headway will tell you if long waiting time starts coming up more again\./);
   });
 
   it('records a declined decision as the owner\'s, and keeps watching without nagging', () => {
@@ -482,14 +482,14 @@ describe('continuity', () => {
     const none = build({ feedbackSince: { total: 50, read: 50, unread: 0, direct: 3 } });
     expect(text(none)).not.toMatch(/since your check-in/i);
     expect(none.sinceLabel).toBe('Since feedback started coming in');
-    expect(none.did[0]).toBe('Read 50 feedback entries. 3 of them came through your feedback page.');
+    expect(none.did[0]).toBe('50 customer responses read so far.');
 
     const one = build({
       checkins: [checkin('s1', new Date(2026, 2, 1))],
       feedbackSince: { total: 7, read: 6, unread: 1, direct: 2 },
     });
     expect(one.sinceLabel).toBe('Since your check-in on 01 Mar 2026');
-    expect(one.did[0]).toBe('Since your check-in on 01 Mar 2026, read 6 feedback entries. 2 of them came through your feedback page.');
+    expect(one.did[0]).toBe('6 new customer responses since your last check-in.');
     expect(one.did[1]).toBe('Reading 1 more now.');
     expect(one.did).toContain('Checked whether long waiting time is still coming up in the new feedback.');
     expect(one.lastCheckinAt?.getTime()).toBe(new Date(2026, 2, 1).getTime());

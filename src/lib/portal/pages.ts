@@ -285,7 +285,10 @@ export type ReviewItem = {
    */
   gave: {
     dimensions: Array<{ label: string; rating: number }>;
+    /** The problems the customer tapped ("Spice level was wrong"). */
     selected: string[];
+    /** What they tapped as good ("Great taste"). */
+    liked: string[];
   };
   /**
    * Where this stands with RepOS. Without it, "no theme" and "not looked at
@@ -437,6 +440,23 @@ export function reviewItemOf(row: FeedbackRow, t: PortalTranslator = EN, packId?
   // same pack dictionary the intelligence uses; the key never changes.
   const topicLabel = (theme: { key: string; label: string }) =>
     (packId ? t.soft(`pack.${packId}.${theme.key}`) : null) ?? theme.label;
+
+  // THE CUSTOMER'S OWN SIGNALS OUTRANK A TONE READING. The overall tone is
+  // composed from the stars and the words; the problems a customer TAPPED
+  // ("Spice level was wrong", "Rude or dismissive") never reach it. So a
+  // 5-star row with a tapped problem was shown as "Positive in tone · Sorted
+  // as Praise" — a line that contradicts what the customer actually said.
+  // It is corrected here, where it is shown: the rating stays what it was,
+  // and the tone says both halves. Nothing stored is rewritten.
+  const problems = row.answers.flatMap((a) => a.signals);
+  // A chip is read on its own, so it carries the part of the visit it is
+  // about: "For food" means nothing; "Waiting: For food" does.
+  const chip = (part: string, signal: string) => `${part}: ${signal}`;
+  const problemChips = row.answers.flatMap((a) => a.signals.map((s) => chip(a.label, s)));
+  const liked = row.answers.flatMap((a) => a.positiveSignals.map((s) => chip(a.label, s)));
+  const lowParts = row.answers.filter((a) => a.rating <= 2).map((a) => a.label);
+  const named = problems.length > 0 ? problems : lowParts;
+  const positiveWithProblem = row.sentiment === 'POSITIVE' && named.length > 0;
   const classKey = CLASS_KEYS[row.responseClass as keyof typeof CLASS_KEYS];
   return {
     id: row.id,
@@ -448,11 +468,19 @@ export function reviewItemOf(row: FeedbackRow, t: PortalTranslator = EN, packId?
     state: row.state,
     gave: {
       dimensions: row.answers.map((a) => ({ label: a.label, rating: a.rating })),
-      selected: row.answers.flatMap((a) => a.signals),
+      selected: problemChips,
+      liked,
     },
-    sentiment: row.sentiment,
-    sentimentLabel: sentimentLabelOf(row.sentiment, t),
-    classLabel: row.responseClass === 'UNCLASSIFIED' || !classKey ? null : t(classKey),
+    sentiment: positiveWithProblem ? 'MIXED' : row.sentiment,
+    sentimentLabel: positiveWithProblem
+      ? t.plural('common.review.positiveWithProblem', named.length, { problem: named[0]! })
+      : sentimentLabelOf(row.sentiment, t),
+    classLabel:
+      row.responseClass === 'UNCLASSIFIED' || !classKey
+        ? null
+        : positiveWithProblem && row.responseClass === 'PRAISE'
+          ? t(CLASS_KEYS.MIXED)
+          : t(classKey),
     themes: row.themes.map(topicLabel),
     topics: row.themes.map((theme) => ({ key: theme.key, label: topicLabel(theme) })),
     replyState: state,

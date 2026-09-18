@@ -42,7 +42,7 @@ export async function FeedbackEntry({
 }) {
   const t = await getTranslator();
   const { gave } = item;
-  const tapped = gave.dimensions.length > 0 || gave.selected.length > 0;
+  const tapped = gave.dimensions.length > 0 || gave.selected.length > 0 || gave.liked.length > 0;
   const reviews = `${basePath}/reviews`;
   // Stamped to the minute by the feedback card, dated by everything else. A
   // recent card submission also says how long ago, on the same clock as Home.
@@ -119,13 +119,28 @@ export async function FeedbackEntry({
             </dl>
           ) : null}
           {gave.selected.length > 0 ? (
-            <ul className="mt-3 flex flex-wrap gap-1.5">
-              {gave.selected.map((label) => (
-                <li key={label} className="rounded-full border border-ink-300 px-3 py-1 text-[13px] text-ink-800">
-                  {label}
-                </li>
-              ))}
-            </ul>
+            <div className="mt-3">
+              <p className="text-[12px] font-semibold text-bad-700">{t('common.review.problems')}</p>
+              <ul className="mt-1 flex flex-wrap gap-1.5">
+                {gave.selected.map((label) => (
+                  <li key={label} className="rounded-full border border-bad-200 bg-bad-50 px-3 py-1 text-[13px] text-bad-700">
+                    {label}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {gave.liked.length > 0 ? (
+            <div className="mt-3">
+              <p className="text-[12px] font-semibold text-good-700">{t('common.review.liked')}</p>
+              <ul className="mt-1 flex flex-wrap gap-1.5">
+                {gave.liked.map((label) => (
+                  <li key={label} className="rounded-full border border-good-200 bg-good-50 px-3 py-1 text-[13px] text-good-700">
+                    {label}
+                  </li>
+                ))}
+              </ul>
+            </div>
           ) : null}
         </section>
       ) : null}
@@ -157,7 +172,7 @@ export async function FeedbackEntry({
             ) : (
               <p className="text-[14px] text-ink-600">{t('common.review.noTopic')}</p>
             )}
-            <p className="text-[14px] text-ink-700">{t('common.review.tone', { label: item.sentimentLabel })}</p>
+            <p className="text-[14px] text-ink-700">{item.sentimentLabel}</p>
             {item.classLabel ? (
               <p className="text-[14px] text-ink-700">
                 <span className="text-ink-500">{t('common.review.sortedAs')}</span> {item.classLabel}

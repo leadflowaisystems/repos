@@ -91,19 +91,23 @@ describe('home is a brief, not a dashboard', () => {
     // The final experience pass told it as one story: the problem is the only
     // card, and between the sentence and the action sits one recorded fact
     // (WHAT THIS MEANS) and one customer in their own words.
+    //
+    // Owner UX pass: the conclusion comes before the evidence, in the order a
+    // busy owner reads it — the problem, how many customers, which way, what
+    // to do, the decision; then one customer and the recorded reason.
     ordered(brief, [
       "t('brief.attention.title')", // which pile this is
       '{card.label}', // PATTERN
-      '{card.count}', // MAGNITUDE
+      "t.plural('brief.mentioned', card.count)", // MAGNITUDE, as people
       '{card.trend ?', // CHANGE
-      '{card.line}', // one sentence, never a paragraph
-      '{card.meaning}', // one recorded fact, or nothing
       "t('brief.suggest.title')", // ACTION
-      "t('brief.evidence.title')", // EVIDENCE, last and behind a tap
+      '<OwnerDecision', // the decision, right under it
+      '{lead.text}', // one customer, in their own words
+      '{card.meaning}', // one recorded fact, or nothing
+      "t('brief.evidence.cta')", // the rest of the evidence, one tap away
     ]);
-    // The largest type on the page is a NUMBER now, not a sentence — and the
-    // count outranks the theme name it belongs to.
-    expect(brief).toMatch(/text-\[34px\][^"]*tabular-nums/);
+    // The headline is the problem's name; the count is said in words.
+    expect(brief).toContain('text-[28px]');
     expect(home).not.toMatch(/text-\[2[6-9]px\]|text-\[3\dpx\]/);
   });
 
@@ -115,9 +119,13 @@ describe('home is a brief, not a dashboard', () => {
     // The story carries the reading, ONE recorded fact behind it and the
     // action — each a single sentence the builder wrote — plus the basis
     // under the count. Nothing else in it is prose.
+    // Owner UX pass: the engine's longer sentence left the story (it lives on
+    // the topic's page), so the only prose is the action and the one recorded
+    // reason.
     const block = brief.slice(brief.indexOf('async function Story('), brief.indexOf('async function Calm('));
     const sentences = [...block.matchAll(/\{card\.(line|meaning|action|basis)\}/g)].length;
-    expect(sentences).toBe(4);
+    expect(sentences).toBe(2);
+    expect(block).not.toContain('{card.line}');
     expect(block).not.toContain('{card.why}');
     expect(block).not.toMatch(/leading-relaxed/);
   });
@@ -156,10 +164,10 @@ describe('home is a brief, not a dashboard', () => {
     // states its own count once. The total appears once, under the problem.
     const story = brief.slice(brief.indexOf('async function Story('), brief.indexOf('async function Calm('));
     const loved = brief.slice(brief.indexOf('async function Loved('), brief.indexOf('async function Changed('));
-    expect(story.split('{card.count}').length - 1).toBe(1);
-    expect(loved.split('{card.count}').length - 1).toBe(1);
-    expect(brief.split('{card.count}').length - 1).toBe(2);
-    expect(brief.split('{card.basis}').length - 1).toBe(1);
+    // Owner UX pass: each count is said once, as people, and no "18 of 87".
+    expect(story.split('card.count').length - 1).toBe(1);
+    expect(loved.split('card.count').length - 1).toBe(1);
+    expect(brief).not.toContain('{card.basis}');
   });
 
   it('shows, on every watched thing, the condition that brings it back', () => {
@@ -388,7 +396,7 @@ describe('reviews reads as evidence, not an inbox', () => {
       '<RatingStrip',
       "t('feedback.found.summary')",
       "t('feedback.filter.summary')",
-      '<ReviewRow key={item.id} item={item} />',
+      '<ReviewRow key={item.id} item={item} href={`${base}/${item.id}`} />',
     ]);
     expect(MESSAGES['feedback.found.summary'].en).toBe('What Headway found');
     expect(MESSAGES['feedback.filter.summary'].en).toBe('Search and filter');

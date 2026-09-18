@@ -251,7 +251,7 @@ describe('every theme carries its layers, kept apart', () => {
     const v = buildPortalView(input({ intelligence: intel({ pulse: pulseWith({ waitThen: 2, waitNow: 0 }) }) }));
     expect(v.first?.movementCounts).toBeNull();
     expect(v.first?.movementDirection).toBeNull();
-    expect(v.first?.movementBrief).toBe('There were too few mentions at one of your last two check-ins to compare.');
+    expect(v.first?.movementBrief).toBe('Too early to compare.');
   });
 
   it('keeps a declined suggestion on record without repeating the decision', () => {
@@ -285,7 +285,7 @@ describe('every theme carries its layers, kept apart', () => {
       'Customers have praised this a few times. That is not often enough yet to call it a strength.',
     );
     expect(v.early[0]?.advice).toBe('WAIT');
-    expect(v.early[0]?.watchLine).toMatch(/It needs 6 comments before it can say so/);
+    expect(v.early[0]?.watchLine).toMatch(/Too early to call it a strength\./);
   });
 
   it('does not call a theme new when it had mentions at the check-in before', () => {
@@ -305,8 +305,8 @@ describe('the invisible work, the watch list and the one question', () => {
   it('states what Headway did, with the real numbers', () => {
     const v = buildPortalView(input({ actions: [action('MEASURED')] }));
     expect(v.work).toEqual([
-      'Read 50 feedback entries.',
-      'Grouped them into 4 things customers keep raising. Set aside 1 topic mentioned only once or twice.',
+      '50 customer responses read so far.',
+      'Found 4 things customers keep mentioning. Set aside 1 topic mentioned only once or twice.',
       'Compared the feedback before and after 1 change you made.',
     ]);
   });
@@ -321,16 +321,16 @@ describe('the invisible work, the watch list and the one question', () => {
   it('watches the first and the keep themes with full sentences, without repeating the watch rows', () => {
     const v = buildPortalView(input());
     expect(v.watching.map((w) => w.themeKey)).toEqual(['wait_time', 'doctor_care', null]);
-    expect(v.watching[0]?.next).toMatch(/^Headway is checking whether long waiting time comes up more or less at your next check-in\. It will tell you if the count moves by 2 or more mentions\./);
-    expect(v.watching[1]?.next).toMatch(/It will tell you if the praise drops by 2 or more/);
+    expect(v.watching[0]?.next).toMatch(/^Keep an eye on long waiting time\. Headway will tell you if this changes\./);
+    expect(v.watching[1]?.next).toMatch(/^Keep it up. Headway will tell you if customers praise .+ less./);
     expect(v.watching[2]?.label).toBe('Friendly, helpful staff');
-    expect(v.watch[0]?.watchLine).toMatch(/It will tell you if the count moves by 2 or more mentions/);
+    expect(v.watch[0]?.watchLine).toMatch(/Headway will tell you if this changes./);
   });
 
   it('keeps watching a change that is waiting for feedback', () => {
     const v = buildPortalView(input({ actions: [action('DONE')] }));
     expect(v.watching[0]?.state).toBe('change in progress');
-    expect(v.watching[0]?.next).toMatch(/^Headway is waiting for the feedback that comes in after the change\. Then it can compare how often long waiting time comes up\./);
+    expect(v.watching[0]?.next).toMatch(/^Headway is waiting for new feedback after your change, then it will compare long waiting time\./);
   });
 
   it('asks the one question the pack has for the leading complaint, only before anything is tried, without claiming to have read the answer', () => {

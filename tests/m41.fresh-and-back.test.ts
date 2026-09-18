@@ -193,8 +193,8 @@ describe('Home stays fresh without pretending to be live', () => {
       expect(phrase.hi, key).toMatch(/[ऀ-ॿ]/);
       expect(phrase.mr, key).toMatch(/[ऀ-ॿ]/);
     }
-    expect(says('brief.live.reading.other')).toBe('{count} new feedback entries · Headway is reading them');
-    expect(says('brief.live.justRead.other')).toBe('Headway just read {count} new feedback entries');
+    expect(says('brief.live.reading.other')).toBe('{count} new customer responses · Headway is reading them');
+    expect(says('brief.live.justRead.other')).toBe('Headway just read {count} new customer responses');
     expect(says('brief.latest.title')).toBe('Latest from customers');
   });
 

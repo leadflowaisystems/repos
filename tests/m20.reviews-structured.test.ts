@@ -78,7 +78,8 @@ describe('the reviews page', () => {
       ]),
     );
     expect(item!.gave.dimensions).toHaveLength(2);
-    expect(item!.gave.selected).toEqual(['For the food']);
+    // Owner UX pass: a chip names the part of the visit it is about.
+    expect(item!.gave.selected).toEqual(['Waiting: For the food']);
   });
 
   it('shows nothing tapped for a pasted review, rather than inventing it', async () => {
@@ -92,7 +93,7 @@ describe('the reviews page', () => {
 
     const view = await getReviewsView(db, clientId, filters(), { page: 1 });
     expect(view!.items).toHaveLength(1);
-    expect(view!.items[0]!.gave).toEqual({ dimensions: [], selected: [] });
+    expect(view!.items[0]!.gave).toEqual({ dimensions: [], selected: [], liked: [] });
     expect(view!.items[0]!.text).toContain('Lovely dosa');
   });
 

@@ -206,7 +206,7 @@ describe('what Headway wants you to know, and the next step', () => {
   it("recommends the pack's own advice when nothing has been tried", () => {
     const { focus } = build();
     expect(focus.next?.headline).toBe(clinic.issueTaxonomy.find((t) => t.key === 'wait_time')?.action);
-    expect(focus.next?.watching).toMatch(/^Headway is checking whether long waiting time/);
+    expect(focus.next?.watching).toMatch(/^Keep an eye on long waiting time\. Headway will tell you if this changes\./);
     expect(focus.cta).toEqual({
       label: 'See everything on long waiting time',
       href: `${BASE}/analysis?open=wait_time#signal-wait_time`,

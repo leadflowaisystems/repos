@@ -109,7 +109,7 @@ describe('from nothing to something', () => {
     expect(r.state).toBe('WAITING_FOR_EVIDENCE');
     expect(r.answer).toBe('Not enough feedback yet to say.');
     expect(r.needsYou).toEqual([]);
-    expect(r.did[0]).toBe('Read 1 feedback entry.');
+    expect(r.did[0]).toBe('1 customer response read so far.');
   });
 
   it('unread feedback is reported as being read, never counted as read', async () => {
@@ -134,9 +134,9 @@ describe('from nothing to something', () => {
     // reason the owner is paying rather than reading fourteen comments
     // themselves, and until M17 it was computed and never shown (M17).
     expect(r.did).toEqual([
-      'Read 14 feedback entries.',
-      'Grouped them into 2 things customers keep raising.',
-      'Checked whether long waiting time keeps coming up across everything read.',
+      '14 customer responses read so far.',
+      'Found 2 things customers keep mentioning.',
+      'Checked how often long waiting time comes up overall.',
     ]);
   });
 });
@@ -227,7 +227,7 @@ describe('the feedback page feeds it', () => {
     let r = await responsibility(id);
     expect(r.state).toBe('CLEAR');
     expect(r.needsYou).toEqual([]);
-    expect(r.did[0]).toBe('Read 10 feedback entries. 2 of them came through your feedback page.');
+    expect(r.did[0]).toBe('10 customer responses read so far.');
 
     // The third clears the floor: now it is the thing to decide.
     const third = await submitCustomerFeedback(db, token, { stars: 1, text: 'Waited over an hour past my appointment time (q2)' }, { now: new Date(NOW.getTime() + 180_000) });
@@ -237,7 +237,7 @@ describe('the feedback page feeds it', () => {
     expect(r.state).toBe('DO_NOW');
     expect(r.needsYou[0]?.themeKey).toBe('wait_time');
     expect(r.needsYou[0]?.evidence).toMatchObject({ count: 3, outOf: 11 });
-    expect(r.did[0]).toBe('Read 11 feedback entries. 3 of them came through your feedback page.');
+    expect(r.did[0]).toBe('11 customer responses read so far.');
   });
 
   it('a paused page is a stated limitation, and nothing else changes', async () => {
@@ -313,7 +313,7 @@ describe('check-ins', () => {
     await paste(id, praise(3, 'c'), new Date('2026-05-20T00:00:00.000Z'));
     await read(id);
     const r = await responsibility(id);
-    expect(r.did[0]).toBe('Since your check-in on 01 Apr 2026, read 3 feedback entries.');
+    expect(r.did[0]).toBe('3 new customer responses since your last check-in.');
     expect(r.did).toContain('Checked whether long waiting time is still coming up in the new feedback.');
   });
 });

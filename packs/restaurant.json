@@ -11,7 +11,7 @@
   "issueTaxonomy": [
     {
       "key": "food_quality",
-      "label": "Food quality / taste",
+      "label": "Food & taste",
       "severity": "high",
       "action": "Re-standardise the two dishes named most often: fix the recipe card, weigh portions, and taste-check at the pass for one week.",
       "hints": [
@@ -167,7 +167,7 @@
     },
     {
       "key": "cleanliness",
-      "label": "Cleanliness / hygiene",
+      "label": "Cleanliness",
       "severity": "high",
       "action": "Add a visible washroom and table-turn cleaning checklist signed off every hour.",
       "hints": [
@@ -346,7 +346,7 @@
   "praiseTaxonomy": [
     {
       "key": "food_taste",
-      "label": "Food taste and quality",
+      "label": "Food & taste",
       "hints": [
         "delicious",
         "tasty",
@@ -444,7 +444,7 @@
     },
     {
       "key": "cleanliness_praise",
-      "label": "Cleanliness and upkeep",
+      "label": "Cleanliness",
       "hints": [
         "clean",
         "hygienic",
