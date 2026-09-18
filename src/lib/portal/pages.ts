@@ -16,6 +16,7 @@ import {
   type PortalWatch,
 } from './view';
 import { EN } from '@/lib/i18n/translator';
+import { buildTrends, type Trends } from './trends';
 import type { PortalTranslator } from '@/lib/i18n/translator';
 
 /**
@@ -202,6 +203,8 @@ export type ImprovementsView = {
    * anybody decided to make.
    */
   keepDoing: PortalSignal[];
+  /** What is getting worse, better, or holding steady — see `portal/trends.ts`. */
+  trends: Trends;
 };
 
 export function buildImprovementsView(input: PortalInput): ImprovementsView {
@@ -249,6 +252,7 @@ export function buildImprovementsView(input: PortalInput): ImprovementsView {
     // it as much as a change that worked — but it is not an ACTION and never
     // becomes a row in the improvement table. Nobody decided to be good at it.
     keepDoing: v.loved.filter((s) => s.bucket === 'KEEP'),
+    trends: buildTrends(v, input.intelligence.window.available),
   };
 }
 

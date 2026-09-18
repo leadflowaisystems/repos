@@ -307,17 +307,23 @@ describe('the loop is reachable where the owner already is', () => {
     expect(REVIEWS).toContain('const selected = filters.theme');
   });
 
-  it('lays the action centre out as the five places a thing can be', () => {
-    // Do now · Headway is watching · Checked · Keep doing · Not doing. The
-    // "checking" and "waiting" shelves of the first version became one —
-    // "Headway is watching" — whose rows say which of the two they are.
+  it('opens on trends, then lays out the owner changes in the places a thing can be', () => {
+    // Trends pass: the page first answers "what is changing" — worse, better,
+    // stable — and the owner's own changes follow: Do now · In progress ·
+    // Results · Not doing. "Keep doing" is no longer a shelf here; what is
+    // going well now reads as "Getting better" at the top.
     const order = [
       "t('loop.shelf.doNow')",
+      "tone=\"worse\"",
+      "tone=\"better\"",
+      "tone=\"stable\"",
+      '<TrendsBoard',
+      "t('improvements.trends.changes')",
       "t('loop.shelf.watching')",
       "t('loop.shelf.completed')",
-      "t('loop.shelf.keepDoing')",
       "t('loop.shelf.notDoing')",
     ];
+    expect(IMPROVEMENTS).not.toContain("t('loop.shelf.keepDoing')");
     const at = order.map((token) => {
       const i = IMPROVEMENTS.indexOf(token);
       expect(i, token).toBeGreaterThan(-1);

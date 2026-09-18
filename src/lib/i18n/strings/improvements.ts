@@ -280,4 +280,80 @@ export const improvements = {
     hi: 'इस बारे में ग्राहकों ने क्या कहा',
     mr: 'याबद्दल ग्राहक काय म्हणाले',
   },
+  // --- trends: what is changing in the business ------------------------------
+  'improvements.trends.title': {
+    en: 'Trends',
+    hi: 'रुझान',
+    mr: 'कल',
+  },
+  'improvements.trends.intro': {
+    en: 'See what’s getting better, worse, or staying the same.',
+    hi: 'देखें क्या बेहतर हो रहा है, क्या बिगड़ रहा है और क्या वैसा ही है।',
+    mr: 'काय सुधारतंय, काय बिघडतंय आणि काय तसंच आहे ते पाहा.',
+  },
+  'improvements.trends.worse': {
+    en: 'Getting worse',
+    hi: 'बिगड़ रहा है',
+    mr: 'बिघडत आहे',
+  },
+  'improvements.trends.worseNote': {
+    en: 'Customers are mentioning these more than before.',
+    hi: 'ग्राहक इनका ज़िक्र पहले से ज़्यादा कर रहे हैं।',
+    mr: 'ग्राहक यांचा उल्लेख आधीपेक्षा जास्त करत आहेत.',
+  },
+  'improvements.trends.better': {
+    en: 'Getting better',
+    hi: 'बेहतर हो रहा है',
+    mr: 'सुधारत आहे',
+  },
+  'improvements.trends.betterNote': {
+    en: 'Customers are mentioning these less, or more positively.',
+    hi: 'ग्राहक इनका ज़िक्र कम, या ज़्यादा अच्छे से कर रहे हैं।',
+    mr: 'ग्राहक यांचा उल्लेख कमी, किंवा अधिक चांगल्या प्रकारे करत आहेत.',
+  },
+  'improvements.trends.stable': {
+    en: 'Stable',
+    hi: 'स्थिर',
+    mr: 'स्थिर',
+  },
+  'improvements.trends.noChange': {
+    en: 'No significant change',
+    hi: 'कोई ख़ास बदलाव नहीं',
+    mr: 'विशेष बदल नाही',
+  },
+  'improvements.trends.moreMentions': {
+    en: 'Mentioned more than before',
+    hi: 'पहले से ज़्यादा ज़िक्र',
+    mr: 'आधीपेक्षा जास्त उल्लेख',
+  },
+  'improvements.trends.fewerMentions': {
+    en: 'Mentioned less than before',
+    hi: 'पहले से कम ज़िक्र',
+    mr: 'आधीपेक्षा कमी उल्लेख',
+  },
+  'improvements.trends.morePraise': {
+    en: 'Praised more than before',
+    hi: 'पहले से ज़्यादा तारीफ़',
+    mr: 'आधीपेक्षा जास्त कौतुक',
+  },
+  'improvements.trends.lessPraise': {
+    en: 'Praised less than before',
+    hi: 'पहले से कम तारीफ़',
+    mr: 'आधीपेक्षा कमी कौतुक',
+  },
+  'improvements.trends.none': {
+    en: 'Nothing has moved enough to call a trend yet.',
+    hi: 'अभी कुछ भी इतना नहीं बदला कि उसे रुझान कहा जा सके।',
+    mr: 'कल म्हणता येईल इतकं अजून काहीही बदललेलं नाही.',
+  },
+  'improvements.trends.notYet': {
+    en: 'Trends appear after your second check-in.',
+    hi: 'रुझान आपके दूसरे चेक-इन के बाद दिखेंगे।',
+    mr: 'तुमच्या दुसऱ्या चेक-इननंतर कल दिसतील.',
+  },
+  'improvements.trends.changes': {
+    en: 'Your changes',
+    hi: 'आपके बदलाव',
+    mr: 'तुमचे बदल',
+  },
 } satisfies Namespace;

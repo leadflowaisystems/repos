@@ -9,6 +9,7 @@ import { getEvidenceIndex, getImprovementsView } from '@/lib/portal/service';
 import type { ImprovementsView } from '@/lib/portal/pages';
 import type { PortalAction, PortalSignal } from '@/lib/portal/view';
 import type { EvidenceIndex } from '@/lib/portal/evidence';
+import type { TrendRow, Trends } from '@/lib/portal/trends';
 import { trendOf, type BriefTrend } from '@/lib/portal/brief';
 import { Quiet, Section } from '@/components/portal/portal-ui';
 import { Reveal } from '@/components/portal/disclose';
@@ -164,12 +165,7 @@ export function shelvesFor(view: ImprovementsView, t: Translator<MessageKey>, no
           // The engine's judgement of whether the movement was good news for
           // this topic — not a judgement of the change. Null where it refused
           // to call it, and the arrow goes grey.
-          good:
-            a.outcome.result === 'IMPROVED'
-              ? true
-              : a.outcome.result === 'WORSENED'
-                ? false
-                : null,
+          good: a.outcome.result === 'IMPROVED' ? true : a.outcome.result === 'WORSENED' ? false : null,
         }
       : undefined,
   }));
@@ -199,9 +195,8 @@ export function shelvesFor(view: ImprovementsView, t: Translator<MessageKey>, no
   const made = [...view.open, ...view.checked].filter((a) => a.doneAt !== null);
   const last30 = {
     made: made.filter((a) => (a.doneAt?.getTime() ?? 0) >= since).length,
-    better: view.checked.filter(
-      (a) => a.outcome?.result === 'IMPROVED' && (a.measuredAt?.getTime() ?? 0) >= since,
-    ).length,
+    better: view.checked.filter((a) => a.outcome?.result === 'IMPROVED' && (a.measuredAt?.getTime() ?? 0) >= since)
+      .length,
     watching: view.open.filter((a) => a.status === 'DONE').length,
   };
 
@@ -267,7 +262,10 @@ export function DoNow({ row, clientId, t }: { row: Row; clientId?: string; t: Tr
       aria-labelledby="do-now"
       className="rounded-2xl border border-ink-200 bg-white p-5 shadow-[0_1px_2px_rgba(16,42,67,0.04)] sm:p-6"
     >
-      <p id="do-now" className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.14em] text-bad-700 uppercase">
+      <p
+        id="do-now"
+        className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.14em] text-bad-700 uppercase"
+      >
         <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-bad-600" />
         {t('loop.shelf.doNow')}
       </p>
@@ -345,7 +343,9 @@ export function ActionList({
                     className="-my-2.5 inline-flex min-h-11 min-w-0 items-center gap-1 text-[16px] leading-snug font-semibold text-ink-900 underline decoration-ink-300 decoration-1 underline-offset-4 hover:decoration-ink-900"
                   >
                     {row.about}
-                    <span aria-hidden className="text-ink-400 no-underline">›</span>
+                    <span aria-hidden className="text-ink-400 no-underline">
+                      ›
+                    </span>
                   </Link>
                 ) : (
                   <p className="min-w-0 text-[16px] leading-snug font-semibold text-ink-900">{row.about}</p>
@@ -423,9 +423,7 @@ export function ActionList({
               ) : null}
 
               {row.note ? (
-                <p className="mt-2 border-l-2 border-ink-300 pl-3 text-[13px] leading-snug text-ink-600">
-                  {row.note}
-                </p>
+                <p className="mt-2 border-l-2 border-ink-300 pl-3 text-[13px] leading-snug text-ink-600">{row.note}</p>
               ) : null}
 
               {row.decide && clientId && row.decide.choices.length > 0 ? (
@@ -441,6 +439,168 @@ export function ActionList({
         ))}
       </ul>
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Trends: what is changing in the business (trends pass)
+// ---------------------------------------------------------------------------
+
+type TrendTone = 'worse' | 'better' | 'stable';
+
+const TREND = {
+  worse: { dot: 'bg-bad-600', head: 'text-bad-700', figure: 'text-bad-700' },
+  better: { dot: 'bg-good-600', head: 'text-good-700', figure: 'text-good-700' },
+  stable: { dot: 'bg-ink-300', head: 'text-ink-500', figure: 'text-ink-500' },
+} as const;
+
+/** "Mentioned more than before" — which way the count moved, for this kind of topic. */
+function movedPhrase(row: TrendRow, t: Translator<MessageKey>): string {
+  if (row.moved === 'SAME') return t('improvements.trends.noChange');
+  if (row.kind === 'ISSUE') {
+    return row.moved === 'UP' ? t('improvements.trends.moreMentions') : t('improvements.trends.fewerMentions');
+  }
+  return row.moved === 'UP' ? t('improvements.trends.morePraise') : t('improvements.trends.lessPraise');
+}
+
+/** "14/44" when the check-in's total was recorded, "14" when it was not. */
+function countOf(count: number, total: number | null): string {
+  return total !== null && total > 0 ? `${count}/${total}` : String(count);
+}
+
+/**
+ * One topic, read in a glance: its name, how much it moved, the two counts it
+ * moved between, and which way. The whole row opens the topic's own story,
+ * where the evidence and the decision already live.
+ */
+function TrendCard({
+  row,
+  tone,
+  basePath,
+  t,
+}: {
+  row: TrendRow;
+  tone: TrendTone;
+  basePath: string;
+  t: Translator<MessageKey>;
+}) {
+  const colour = TREND[tone];
+  const pct =
+    tone !== 'stable' && row.changePct !== null && row.changePct !== 0
+      ? `${row.changePct > 0 ? '+' : '−'}${Math.abs(row.changePct)}%`
+      : null;
+  return (
+    <Link
+      href={`${basePath}/reviews?theme=${encodeURIComponent(row.key)}`}
+      className="hw-focus-inset flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-ink-50"
+    >
+      <span className="min-w-0 flex-1">
+        <span
+          className={clsx(
+            'block leading-snug font-semibold text-ink-900',
+            tone === 'stable' ? 'text-[15px]' : 'text-[16px]',
+          )}
+        >
+          {row.label}
+        </span>
+        <span className="mt-0.5 flex flex-wrap items-baseline gap-x-2">
+          {pct ? (
+            <span className={clsx('font-mono text-[15px] font-semibold tabular-nums', colour.figure)}>{pct}</span>
+          ) : null}
+          <span className="text-[13px] text-ink-500 tabular-nums">
+            {countOf(row.previous, row.previousTotal)} → {countOf(row.current, row.currentTotal)}
+          </span>
+        </span>
+        <span className={clsx('mt-0.5 block text-[13px]', tone === 'stable' ? 'text-ink-500' : colour.head)}>
+          {movedPhrase(row, t)}
+        </span>
+      </span>
+      <span aria-hidden className="shrink-0 text-[18px] leading-none text-ink-300">
+        ›
+      </span>
+    </Link>
+  );
+}
+
+function TrendShelf({
+  tone,
+  title,
+  note,
+  rows,
+  basePath,
+  t,
+}: {
+  tone: TrendTone;
+  title: string;
+  note: string | null;
+  rows: TrendRow[];
+  basePath: string;
+  t: Translator<MessageKey>;
+}) {
+  if (rows.length === 0) return null;
+  const colour = TREND[tone];
+  return (
+    <section className={tone === 'worse' ? 'mt-6' : 'mt-8'} aria-label={title}>
+      <h2
+        className={clsx('flex items-center gap-2 text-[12px] font-semibold tracking-[0.14em] uppercase', colour.head)}
+      >
+        <span aria-hidden className={clsx('h-2 w-2 rounded-full', colour.dot)} />
+        {title}
+      </h2>
+      {note ? <p className="mt-1 text-[13px] text-ink-600">{note}</p> : null}
+      <ul
+        className={clsx(
+          'mt-2 divide-y divide-ink-200 overflow-hidden rounded-xl border bg-white',
+          tone === 'stable' ? 'border-ink-200' : tone === 'worse' ? 'border-bad-200' : 'border-good-200',
+        )}
+      >
+        {rows.map((row) => (
+          <li key={row.key}>
+            <TrendCard row={row} tone={tone} basePath={basePath} t={t} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * WHAT IS CHANGING — worse first, because that is what needs the owner; then
+ * better, so the good news is not buried; then what held steady, quietly.
+ * Every verdict is the engine's own; see `portal/trends.ts`.
+ */
+export function TrendsBoard({ trends, basePath, t }: { trends: Trends; basePath: string; t: Translator<MessageKey> }) {
+  if (!trends.comparable) return <Quiet>{t('improvements.trends.notYet')}</Quiet>;
+  if (trends.worse.length + trends.better.length + trends.stable.length === 0) {
+    return <Quiet>{t('improvements.trends.none')}</Quiet>;
+  }
+  return (
+    <>
+      <TrendShelf
+        tone="worse"
+        title={t('improvements.trends.worse')}
+        note={t('improvements.trends.worseNote')}
+        rows={trends.worse}
+        basePath={basePath}
+        t={t}
+      />
+      <TrendShelf
+        tone="better"
+        title={t('improvements.trends.better')}
+        note={t('improvements.trends.betterNote')}
+        rows={trends.better}
+        basePath={basePath}
+        t={t}
+      />
+      <TrendShelf
+        tone="stable"
+        title={t('improvements.trends.stable')}
+        note={null}
+        rows={trends.stable}
+        basePath={basePath}
+        t={t}
+      />
+    </>
   );
 }
 
@@ -461,13 +621,7 @@ export async function PortalImprovements({
   if (!view) notFound();
 
   const s = shelvesFor(view, t);
-  const empty =
-    s.now.length +
-      s.watching.length +
-      s.checked.length +
-      s.keep.length +
-      s.notDoing.length ===
-    0;
+  const changes = s.now.length + s.alsoNow.length + s.watching.length + s.checked.length + s.notDoing.length;
   const stories = view.checked.length + view.open.length + view.notPursued.length > 0;
   const summary = [
     s.last30.made > 0 ? t.plural('brief.memory.made', s.last30.made) : null,
@@ -486,27 +640,56 @@ export async function PortalImprovements({
         {t('improvements.page.eyebrow')}
       </p>
       <h1 className="mt-1.5 font-display text-[28px] leading-[1.12] font-semibold tracking-[-0.01em] text-balance text-ink-900 sm:text-[32px]">
-        {t('improvements.page.title')}
+        {t('improvements.trends.title')}
       </h1>
-      {/* What Headway has done with this business lately, in counts. */}
-      {summary.length > 0 ? (
-        <p className="mt-2 text-[14px] text-ink-700">
+      <p className="mt-1.5 text-[15px] leading-snug text-ink-700">{t('improvements.trends.intro')}</p>
+
+      {/* TRENDS — the page's first answer: what is changing. */}
+      <TrendsBoard trends={view.trends} basePath={basePath} t={t} />
+
+      {/* YOUR CHANGES — the decisions the owner made about those trends, and
+          what Headway is doing with them. Kept whole; no longer the lead. */}
+      {changes > 0 ? (
+        <h2 className="mt-12 border-t border-ink-200 pt-6 font-display text-[22px] leading-tight font-semibold text-ink-900">
+          {t('improvements.trends.changes')}
+        </h2>
+      ) : null}
+      {changes > 0 && summary.length > 0 ? (
+        <p className="mt-1.5 text-[14px] text-ink-700">
           <span className="font-semibold text-ink-900">{t('brief.memory.last30')}</span> {summary.join(' · ')}
         </p>
       ) : null}
 
-      <div className="mt-6">
-        {empty ? <Quiet>{t('improvements.page.empty')}</Quiet> : null}
-
+      <div className="mt-5">
         {s.now[0] ? <DoNow row={s.now[0]} clientId={clientId} t={t} /> : null}
 
         {s.alsoNow.length > 0 ? (
-          <ActionList kind="WATCHING" title={t('loop.shelf.alsoSuggested')} rows={s.alsoNow} clientId={clientId} basePath={basePath} t={t} />
+          <ActionList
+            kind="WATCHING"
+            title={t('loop.shelf.alsoSuggested')}
+            rows={s.alsoNow}
+            clientId={clientId}
+            basePath={basePath}
+            t={t}
+          />
         ) : null}
-        <ActionList kind="WATCHING" title={t('loop.shelf.watching')} rows={s.watching} clientId={clientId} basePath={basePath} t={t} />
+        <ActionList
+          kind="WATCHING"
+          title={t('loop.shelf.watching')}
+          rows={s.watching}
+          clientId={clientId}
+          basePath={basePath}
+          t={t}
+        />
         <ActionList kind="CHECKED" title={t('loop.shelf.completed')} rows={s.checked} basePath={basePath} t={t} />
-        <ActionList kind="KEEP" title={t('loop.shelf.keepDoing')} rows={s.keep} t={t} />
-        <ActionList kind="NOT_DOING" title={t('loop.shelf.notDoing')} rows={s.notDoing} clientId={clientId} basePath={basePath} t={t} />
+        <ActionList
+          kind="NOT_DOING"
+          title={t('loop.shelf.notDoing')}
+          rows={s.notDoing}
+          clientId={clientId}
+          basePath={basePath}
+          t={t}
+        />
       </div>
 
       {/* The full record, one tap down. Every story that was on this page is
@@ -515,10 +698,7 @@ export async function PortalImprovements({
         <Reveal summary={t('improvements.stories.summary')} tone="strong" className="mt-10">
           <div className="mt-4">
             {view.checked.length > 0 ? (
-              <Section
-                eyebrow={t('improvements.section.compared')}
-                note={t('improvements.section.comparedNote')}
-              >
+              <Section eyebrow={t('improvements.section.compared')} note={t('improvements.section.comparedNote')}>
                 <div className="space-y-5">
                   {view.checked.map((a) => (
                     <ImprovementStory key={a.id} action={a} evidence={evidence} basePath={basePath} />
@@ -538,10 +718,7 @@ export async function PortalImprovements({
             ) : null}
 
             {view.suggested ? (
-              <Section
-                eyebrow={t('improvements.section.waiting')}
-                note={t('improvements.section.waitingNote')}
-              >
+              <Section eyebrow={t('improvements.section.waiting')} note={t('improvements.section.waitingNote')}>
                 <SignalCard signal={view.suggested} group="NEEDS_YOU" evidence={evidence} basePath={basePath} />
               </Section>
             ) : null}

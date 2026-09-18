@@ -296,6 +296,17 @@ export type PortalSignal = {
   movementCounts: string | null;
   /** The engine's full sentence, naming both check-ins. */
   movementLine: string | null;
+  /**
+   * The same movement as numbers: mentions at the last two check-ins, and how
+   * much feedback each check-in held. Null exactly when `movementDirection`
+   * is — the engine did not read a direction or a genuine steady.
+   */
+  movementPoints: {
+    previous: number;
+    current: number;
+    previousTotal: number | null;
+    currentTotal: number | null;
+  } | null;
   /** "Raised at 2 of your last 2 check-ins." */
   recurrence: string | null;
   /**
@@ -1223,6 +1234,15 @@ export function toSignal(insight: Insight, ctx: ThemeContext): PortalSignal {
     movementDirection: readable ? moved : null,
     movementCounts: readable ? insight.movement.countNote : null,
     movementLine: readable ? insight.movement.pointNote : null,
+    movementPoints:
+      readable && insight.movement.previousCount !== null && insight.movement.currentCount !== null
+        ? {
+            previous: insight.movement.previousCount,
+            current: insight.movement.currentCount,
+            previousTotal: ctx.intel.window.previousFeedbackCount,
+            currentTotal: ctx.intel.window.currentFeedbackCount,
+          }
+        : null,
     recurrence: recurrenceLine,
     recurrenceRaised: recurrence.raisedAt,
     recurrenceOutOf: recurrence.outOf,
