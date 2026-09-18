@@ -59,16 +59,20 @@ function ordered(source: string, tokens: string[]): void {
 // The hierarchy
 // ---------------------------------------------------------------------------
 
-describe('home is a command centre, not a briefing', () => {
+describe('home is a brief, not a dashboard', () => {
   const home = code(read('src', 'components', 'workspace', 'home.tsx'));
-  const focus = code(read('src', 'components', 'workspace', 'focus.tsx'));
+  const brief = code(read('src', 'components', 'workspace', 'brief.tsx'));
 
   it('answers the seven questions in the order an owner asks them', () => {
+    // The final experience pass put "since I looked" inside the full reading:
+    // the band at the top already says how much arrived, so the itemised
+    // account is detail rather than headline.
     ordered(home, [
-      '<FocusBlock focus={focus} direction={direction} />', // what is happening, why, do I need to act, what exactly
+      '<OwnerBrief', // what happened, what matters, what to do, the latest words
+      "t('brief.more.summary')", // everything below is the full reading
+      '<SinceVisit since={since} basePath={basePath} />', // what changed since I looked, in full
       "eyebrow={t('home.watching.title')}", // what is Headway watching
       "eyebrow={t('home.goingWell.title')}", // what is going well
-      '{since ? <SinceVisit since={since} basePath={basePath} /> : null}', // what changed since I looked
       "eyebrow={t('home.nextCheck.title')}", // when the next check-in is worth opening
       '<Limits limits={r.limitations} collapsed />',
     ]);
@@ -78,20 +82,44 @@ describe('home is a command centre, not a briefing', () => {
     expect(MESSAGES['home.nextCheck.title'].en).toBe('Your next check-in');
   });
 
-  it('reads as a decision: conclusion, why, evidence, what to do, what Headway checks next', () => {
-    ordered(focus, [
-      'Right now',
-      '{focus.headline}',
-      '<p className={EYEBROW}>Why</p>',
-      '<ProofChips proofs={focus.proofs} />',
-      'What to do',
-      'bg-brand-700',
-      'Why this step',
-      'Headway will check next',
+  it('reads as a decision: pattern, magnitude, change, action, then evidence', () => {
+    // The mobile pass swapped the ORDER OF KINDS, not the order of questions.
+    // The block used to open with a sentence and put its figures behind chips;
+    // it now opens with the figure and puts the sentence under it. Evidence
+    // stays last, behind a tap, exactly as it was.
+    //
+    // The final experience pass told it as one story: the problem is the only
+    // card, and between the sentence and the action sits one recorded fact
+    // (WHAT THIS MEANS) and one customer in their own words.
+    ordered(brief, [
+      "t('brief.attention.title')", // which pile this is
+      '{card.label}', // PATTERN
+      '{card.count}', // MAGNITUDE
+      '{card.trend ?', // CHANGE
+      '{card.line}', // one sentence, never a paragraph
+      '{card.meaning}', // one recorded fact, or nothing
+      "t('brief.suggest.title')", // ACTION
+      "t('brief.evidence.title')", // EVIDENCE, last and behind a tap
     ]);
-    // The largest type on the page is the headline, and nothing else competes with it.
-    expect(focus).toMatch(/text-\[26px\][^"]*sm:text-\[34px\]/);
+    // The largest type on the page is a NUMBER now, not a sentence — and the
+    // count outranks the theme name it belongs to.
+    expect(brief).toMatch(/text-\[34px\][^"]*tabular-nums/);
     expect(home).not.toMatch(/text-\[2[6-9]px\]|text-\[3\dpx\]/);
+  });
+
+  it('spends its first screen on figures rather than on prose', () => {
+    // The rule this pass was written to enforce. The brief may carry exactly
+    // two sentences per block — the reading and the action — and the rest is
+    // labels and counts. A third sentence is a paragraph starting.
+    //
+    // The story carries the reading, ONE recorded fact behind it and the
+    // action — each a single sentence the builder wrote — plus the basis
+    // under the count. Nothing else in it is prose.
+    const block = brief.slice(brief.indexOf('async function Story('), brief.indexOf('async function Calm('));
+    const sentences = [...block.matchAll(/\{card\.(line|meaning|action|basis)\}/g)].length;
+    expect(sentences).toBe(4);
+    expect(block).not.toContain('{card.why}');
+    expect(block).not.toMatch(/leading-relaxed/);
   });
 
   it('no longer stacks four labelled layers under the decision', () => {
@@ -105,7 +133,10 @@ describe('home is a command centre, not a briefing', () => {
   it('keeps what Headway knows and what it cannot say behind a tap', () => {
     expect(home).toContain("t('home.knows.title')");
     expect(MESSAGES['home.knows.title'].en).toBe('What Headway knows about your business');
-    expect(home.indexOf('<Reveal')).toBeGreaterThan(home.indexOf('<aside'));
+    // Both now sit inside the one disclosure that holds the full reading,
+    // rather than being two more things to scroll past.
+    expect(home.indexOf('<Reveal')).toBeLessThan(home.indexOf('<aside'));
+    expect(home.indexOf('<Reveal')).toBeGreaterThan(home.indexOf('<OwnerBrief'));
     expect(home).toContain('<Limits limits={r.limitations} collapsed />');
   });
 
@@ -118,9 +149,17 @@ describe('home is a command centre, not a briefing', () => {
     // Picked out by key, not by its label — the label is translated now — but
     // still picked out exactly once.
     expect(home.split("f.key === 'publicRating'").length - 1).toBe(1);
-    // And the block itself no longer repeats the share chip's quotes under the reading.
-    expect(focus).not.toContain('Show me the evidence');
-    expect(focus).not.toContain('<Quotes');
+    // The brief states each count once, and the lists under the reveal do not
+    // repeat it. `basis` is the only place the total appears.
+    //
+    // Two cards reach the brief — the problem and the strength — and each
+    // states its own count once. The total appears once, under the problem.
+    const story = brief.slice(brief.indexOf('async function Story('), brief.indexOf('async function Calm('));
+    const loved = brief.slice(brief.indexOf('async function Loved('), brief.indexOf('async function Changed('));
+    expect(story.split('{card.count}').length - 1).toBe(1);
+    expect(loved.split('{card.count}').length - 1).toBe(1);
+    expect(brief.split('{card.count}').length - 1).toBe(2);
+    expect(brief.split('{card.basis}').length - 1).toBe(1);
   });
 
   it('shows, on every watched thing, the condition that brings it back', () => {
@@ -130,8 +169,11 @@ describe('home is a command centre, not a briefing', () => {
   });
 
   it('computes the block from a module that can be tested without React', () => {
-    expect(home).toContain("import { buildFocus } from '@/lib/portal/focus'");
-    expect(focus).not.toMatch(/Math\.round|toFixed|\* 100|\/ 100/);
+    expect(home).toContain("import { buildBrief } from '@/lib/portal/brief'");
+    // The component does no arithmetic of its own. Every figure it draws was
+    // decided by a pure builder, which is what keeps a presentation pass from
+    // quietly becoming a second engine disagreeing with the first.
+    expect(brief).not.toMatch(/Math\.round|toFixed|\* 100|\/ 100/);
   });
 });
 
@@ -177,7 +219,7 @@ describe('every figure that matters opens into the rows it counts', () => {
       ['disclose', disclose],
       ['signal-board', board],
       ['improvement-story', story],
-      ['focus', code(read('src', 'components', 'workspace', 'focus.tsx'))],
+      ['brief', code(read('src', 'components', 'workspace', 'brief.tsx'))],
       ['responsibility', code(read('src', 'components', 'portal', 'responsibility.tsx'))],
       ['checkin', code(read('src', 'components', 'workspace', 'checkin.tsx'))],
     ] as const) {
@@ -262,7 +304,23 @@ describe('customers is a signal board', () => {
 describe('reviews reads as evidence, not an inbox', () => {
   const page = code(read('src', 'components', 'workspace', 'reviews.tsx'));
 
-  it('opens with the transformation Headway made of the pile', () => {
+  it('opens with what customers are saying, not with Headway’s own workings', () => {
+    // THE ONE REORDERING ON THIS PAGE. The funnel — four figures and three
+    // arrows describing what Headway did to the pile — used to be the first
+    // thing on a screen whose entire job is to answer "what are my customers
+    // saying?". It is a fair account of the method, so it moved to where the
+    // method lives, under one tap. The topics themselves lead.
+    ordered(page, [
+      "t('feedback.saying.heading')",
+      '<SayingRows',
+      "t('feedback.method.summary')",
+      '<Funnel funnel={view.funnel} base={base} t={t} />',
+    ]);
+    expect(MESSAGES['feedback.saying.heading'].en).toBe('What customers are saying');
+    expect(MESSAGES['feedback.method.summary'].en).toBe('How Headway read these');
+    // The funnel itself is unchanged: each step still names its own noun in
+    // both numbers — one entry is an entry — and the third step is still the
+    // counterweight that says these topics are NOT being treated as patterns.
     ordered(page, [
       'function Funnel(',
       "t.plural('feedback.funnel.read', funnel.read)",
@@ -270,9 +328,6 @@ describe('reviews reads as evidence, not an inbox', () => {
       "t.plural('feedback.funnel.isolated', funnel.isolated)",
       "t('feedback.funnel.attention'",
     ]);
-    // Each step still names its own noun in both numbers — one entry is an
-    // entry — and the third step is still the counterweight that says these
-    // topics are NOT being treated as patterns.
     expect(MESSAGES['feedback.funnel.read.one'].en).toBe('feedback entry read');
     expect(MESSAGES['feedback.funnel.read.other'].en).toBe('feedback entries read');
     expect(MESSAGES['feedback.funnel.pattern.one'].en).toBe('pattern');
@@ -280,11 +335,29 @@ describe('reviews reads as evidence, not an inbox', () => {
     expect(MESSAGES['feedback.funnel.isolated.one'].en).toBe('topic mentioned once or twice');
     expect(MESSAGES['feedback.funnel.isolated.other'].en).toBe('topics mentioned once or twice');
     expect(MESSAGES['feedback.funnel.attention'].en).toBe('needs attention · {topic}');
-    expect(page.indexOf('<Funnel funnel={view.funnel} base={base} t={t} />')).toBeLessThan(page.indexOf('<StatusStrip'));
+  });
+
+  it('gives each topic a full-width row with its count, not a wrapping chip', () => {
+    // Five pill-shaped chips wrapped into five ragged lines of small text on a
+    // phone, with the counts floating between them. A row per topic reads top
+    // to bottom, gives every topic the same width, and puts the count in the
+    // same place every time.
+    const rows = page.slice(page.indexOf('export function SayingRows('), page.indexOf('export async function PortalReviews('));
+    expect(rows).toContain('min-h-14');
+    expect(rows).toMatch(/text-\[22px\][^"]*tabular-nums/);
+    expect(rows).not.toContain('rounded-full border px-3.5');
+    // The open topic is marked for a screen reader. Since the back-navigation
+    // pass it is drawn by the helper that leads UP to the list, so the mark
+    // is set there, on the one row that is current.
+    expect(rows).toContain("aria-current={current ? 'page' : undefined}");
+    expect(rows).toContain('<Up href={base} className={className} current>');
+    // Complaints before praise — the order an owner acts in, decided by the
+    // view, and the kind is marked by a rule rather than by colour alone.
+    expect(rows).toContain("s.kind === 'ISSUE' ? 'bg-bad-600' : 'bg-good-600'");
   });
 
   it('lets the owner see only the evidence behind one signal', () => {
-    expect(page).toContain('function SignalChips(');
+    expect(page).toContain('export function SayingRows(');
     expect(page).toContain("t('feedback.evidence.eyebrow')");
     expect(MESSAGES['feedback.evidence.eyebrow'].en).toBe('What Headway based this on');
     expect(page).toContain(
@@ -301,7 +374,7 @@ describe('reviews reads as evidence, not an inbox', () => {
   it('leads with representative comments and keeps the whole pile one tap away', () => {
     // The same three quotes every figure on the workspace opens into, chosen
     // by the same rule, then "Show all N". Any other narrowing shows the list.
-    expect(page).toContain("import { quotesFor } from '@/lib/portal/evidence'");
+    expect(page).toMatch(/import \{ quotesFor(?:, type Quote)? \} from '@\/lib\/portal\/evidence'/);
     expect(page).toContain('const REPRESENTATIVE = 3;');
     expect(page).toContain("activeSignal !== null && !searching && filters.stars === null && page === 1 && !all");
     expect(page).toContain("t('feedback.list.showAll', { count: view.matching })");
@@ -309,9 +382,9 @@ describe('reviews reads as evidence, not an inbox', () => {
     expect(page).toContain('&all=1');
   });
 
-  it('keeps the raw list, the search and the charts, under the intelligence', () => {
+  it('keeps the raw list, the search and the charts, under what Headway found', () => {
     ordered(page, [
-      '<SignalChips',
+      '<SayingRows',
       '<RatingStrip',
       "t('feedback.found.summary')",
       "t('feedback.filter.summary')",
@@ -444,7 +517,10 @@ describe('the utility pages stay quiet', () => {
 describe('no gimmicks', () => {
   const files = [
     ['src', 'components', 'portal', 'disclose.tsx'],
-    ['src', 'components', 'workspace', 'focus.tsx'],
+    ['src', 'components', 'workspace', 'brief.tsx'],
+    ['src', 'components', 'portal', 'mobile-nav.tsx'],
+    ['src', 'components', 'workspace', 'more.tsx'],
+    ['src', 'components', 'workspace', 'improvements.tsx'],
     ['src', 'components', 'workspace', 'signal-board.tsx'],
     ['src', 'components', 'workspace', 'improvement-story.tsx'],
     ['src', 'components', 'workspace', 'home.tsx'],

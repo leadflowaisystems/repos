@@ -2,40 +2,49 @@ import { Link } from '@/components/portal/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { getResponsibility } from '@/lib/responsibility/service';
-import { getEvidenceIndex } from '@/lib/portal/service';
+import { getEvidenceIndex, getFreshFeed } from '@/lib/portal/service';
+import { getAnalysisCoverage } from '@/lib/feedback/analysis';
 import type { Responsibility } from '@/lib/responsibility/engine';
-import { buildFocus } from '@/lib/portal/focus';
-import { Knows, Limits, Question, Quiet, Section, SoFar } from '@/components/portal/portal-ui';
+import { buildBrief } from '@/lib/portal/brief';
+import { Knows, Limits, Question, Section, SoFar } from '@/components/portal/portal-ui';
 import { NeedsYouItem, StrengthsList, WatchingList } from '@/components/portal/responsibility';
 import { Reveal } from '@/components/portal/disclose';
-import { FocusBlock } from '@/components/workspace/focus';
+import { OwnerBrief } from '@/components/workspace/brief';
 import { SinceVisit } from '@/components/workspace/since-visit';
 import type { SinceLastVisit } from '@/lib/retention/service';
 import { getTranslator } from '@/lib/i18n/request';
 
 /**
- * HOME — the command centre (M24, tightened in the final experience pass).
+ * HOME — your Headway brief (final experience pass; was the command centre).
  *
- * An owner gives this page ten seconds standing behind a counter. In that
- * time it answers, in this order and no other:
+ * The screen an owner opens, composed as a briefing prepared for one
+ * business rather than a stack of equal blocks:
  *
- *   RIGHT NOW                 what is the one thing that matters, and why
- *   EVIDENCE                  three figures that open into what they count
- *   WHAT TO DO                one line, and the way to the whole reading
- *   HEADWAY WILL CHECK NEXT   the open loop on the decision
- *   HEADWAY IS WATCHING       what is being carried, with the condition that
- *                             brings each thing back
- *   GOING WELL                what to protect
- *   SINCE YOU WERE LAST HERE  only when something happened
- *   YOUR NEXT CHECK-IN        when it is worth opening, as a condition
+ *   THE BAND          good morning, the business's own name, what Headway is
+ *                     watching for it, and how customers feel
+ *   THE STORY         the one thing that needs them — or, when nothing does,
+ *                     Home says so and stops
+ *   LATEST            the newest customers in their own words, read or not
+ *                     yet — the freshness pass (see `portal/fresh.ts`)
+ *   CUSTOMERS LOVE    one strength, one row
+ *   WHAT CHANGED      movement since the last check-in
+ *   YOUR CHANGES      what they changed, and what customers did afterward
  *
- * ONE BLOCK IS DOMINANT. The first block is the largest thing on the page
- * and the owner can stop after it. Everything below is smaller, and
- * everything that explains method sits behind a tap. No figure is stated
- * twice: the count read is in the block's basis line, the leading complaint
- * and strength are the block and the lists, and the public rating — the one
- * number from outside the feedback — is stated once, quietly, where the next
- * check is.
+ * No paragraphs before the first number, and every number opens the feedback
+ * behind it. See `components/workspace/brief.tsx` for the composition.
+ *
+ * THE OLD PAGE IS STILL HERE, BEHIND ONE TAP. Everything below — what else
+ * needs attention, what Headway is watching, what is going well, the question
+ * it needs answered, the next check-in, what it knows about the business, what
+ * it cannot tell you — is unchanged and sits under "The full reading". None of
+ * it was wrong; it was simply never the first thing an owner needed. An owner
+ * with time still gets the whole reading, and an owner with ten seconds is no
+ * longer made to scroll past it.
+ *
+ * NO FIGURE IS STATED TWICE. The brief carries the counts, the movement and
+ * the action, so the lists under the reveal do not repeat them; the public
+ * rating — the one number from outside the feedback — is still stated once,
+ * quietly, next to the check-in.
  */
 
 /**
@@ -100,14 +109,35 @@ export async function PortalHome({
 }) {
   const t = await getTranslator();
   const client = { id: clientId };
-  const [bundle, evidence] = await Promise.all([
+  // Three reads, one round trip to the database. `getAnalysisCoverage` and the
+  // responsibility bundle both go through `loadFeedbackLedger`, which is
+  // memoized per request — so the split shown in the brief is counted over
+  // exactly the rows the rest of the page counted, and costs no extra query.
+  const [bundle, evidence, coverage] = await Promise.all([
     getResponsibility(prisma, client.id, { t }),
     getEvidenceIndex(prisma, client.id),
+    getAnalysisCoverage(prisma, client.id),
   ]);
   if (!bundle) notFound();
   const { view, responsibility: r } = bundle;
 
-  const focus = buildFocus({ responsibility: r, view, evidence, basePath, t });
+  // The visit and the clock are handed in, as everything is: the builder reads
+  // no database and no clock of its own.
+  const now = new Date();
+  const brief = buildBrief({ view, responsibility: r, evidence, coverage, basePath, since, now, t });
+
+  // The newest feedback, from the same memoised ledger the counts above were
+  // taken from — no query of its own. Topics are named the way the rest of
+  // the page names them. Early topics first, so a named pattern wins a tie.
+  const signalByTheme = new Map([...view.early, ...view.loved, ...view.unhappy].map((s) => [s.themeKey, s]));
+  const fresh = await getFreshFeed(prisma, client.id, {
+    now,
+    t,
+    labelFor: (key) => signalByTheme.get(key)?.themeLabel ?? null,
+  });
+  // One server render, named. A copy of this page the browser restores from
+  // its cache later carries the same name, which is how it knows to refresh.
+  const stamp = `${now.getTime().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
   // The engine files a strength under "watching" — it is carrying it. On the
   // page, a thing going well and a thing being watched for trouble are not
@@ -115,10 +145,9 @@ export async function PortalHome({
   // apart. Same items, same order; only the heading differs.
   const strengths = r.watching.filter((i) => i.state === 'KEEP_DOING');
   const watching = r.watching.filter((i) => i.state !== 'KEEP_DOING');
-  // The first thing that needs the owner is the focus block. Anything else
-  // that needs them — rare — follows as a compact item.
+  // The brief carries the first thing that needs the owner. Anything else that
+  // needs them — rare — follows under the reveal.
   const alsoNeedsYou = r.needsYou.slice(1);
-  const signalByTheme = new Map([...view.loved, ...view.unhappy].map((s) => [s.themeKey, s]));
 
   // Before anything is a pattern, the early mentions ARE the news: what the
   // first customers said, counted, and marked as not-yet-a-pattern. Once
@@ -129,83 +158,115 @@ export async function PortalHome({
 
   // By key, never by label: the labels are reworded and translated, and a
   // lookup that matches on display text disappears the row instead of failing.
-  const direction = view.facts.find((f) => f.key === 'direction') ?? null;
   const rating = view.facts.find((f) => f.key === 'publicRating') ?? null;
+
+  // Whether the reveal has anything in it at all. An empty disclosure that
+  // opens onto nothing is worse than no disclosure.
+  const hasFullReading =
+    since !== null ||
+    alsoNeedsYou.length > 0 ||
+    watching.length > 0 ||
+    strengths.length > 0 ||
+    showSoFar ||
+    view.question !== null ||
+    view.knows.length > 0 ||
+    r.did.length > 0 ||
+    view.basedOn > 0;
 
   return (
     <>
-      <FocusBlock focus={focus} direction={direction} />
+      <OwnerBrief
+        brief={brief}
+        clientId={clientId}
+        basePath={basePath}
+        fresh={fresh}
+        stamp={stamp}
+        now={now}
+      />
 
-      {alsoNeedsYou.length > 0 ? (
-        <Section eyebrow={t('home.alsoNeeds.title')}>
-          <div className="max-w-3xl">
-            {alsoNeedsYou.map((item) => (
-              <NeedsYouItem
-                key={item.id}
-                item={item}
-                signal={item.themeKey ? (signalByTheme.get(item.themeKey) ?? null) : null}
-                basePath={basePath}
-                lead={false}
-              />
-            ))}
-          </div>
-        </Section>
-      ) : null}
-
-      <div className="mt-8 grid grid-cols-1 items-start gap-x-10 gap-y-2 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <div className="min-w-0">
-          {watching.length > 0 ? (
-            <Section eyebrow={t('home.watching.title')} note={t('home.watching.note')}>
-              <WatchingList items={watching} basePath={basePath} />
-            </Section>
-          ) : null}
-
-          {strengths.length > 0 ? (
-            <Section eyebrow={t('home.goingWell.title')} note={t('home.goingWell.note')}>
-              <StrengthsList items={strengths} basePath={basePath} />
-            </Section>
-          ) : null}
-
-          {showSoFar ? (
-            <Section eyebrow={t('home.soFar.title')} note={t('home.soFar.note')}>
-              <SoFar soFar={view.soFar} basePath={basePath} />
-            </Section>
-          ) : null}
-
-          {view.question ? (
-            <Section eyebrow={t('home.question.title')}>
-              <Question q={view.question} />
-            </Section>
-          ) : null}
-
-          {view.basedOn === 0 && !reading ? (
-            <Section eyebrow={t('home.empty.title')}>
-              <Quiet>{t('home.empty.body')}</Quiet>
-            </Section>
-          ) : null}
-        </div>
-
-        <aside className="min-w-0 lg:border-l lg:border-ink-200 lg:pl-8">
-          {since ? <SinceVisit since={since} basePath={basePath} /> : null}
-
-          {r.did.length > 0 || view.basedOn > 0 ? (
-            <Section eyebrow={t('home.nextCheck.title')}>
-              <NextCheck r={r} basePath={basePath} rating={rating} />
-            </Section>
-          ) : null}
-        </aside>
-      </div>
-
-      {view.knows.length > 0 ? (
+      {hasFullReading ? (
         <Reveal
-          summary={<span className="tracking-widest uppercase">{t('home.knows.title')}</span>}
+          summary={<span className="tracking-widest uppercase">{t('brief.more.summary')}</span>}
           className="mt-10 border-t border-ink-200 pt-4"
         >
-          <Knows items={view.knows} basePath={basePath} />
+          <div className="mt-2">
+            {/* The detail of what happened while they were away. The band at
+                the top already says the headline — how much arrived, and any
+                change Headway checked — so the full account lives here rather
+                than repeating it under the brief. */}
+            {since ? (
+              <div className="mb-8">
+                <SinceVisit since={since} basePath={basePath} />
+              </div>
+            ) : null}
+            {alsoNeedsYou.length > 0 ? (
+              <Section eyebrow={t('home.alsoNeeds.title')}>
+                <div className="max-w-3xl">
+                  {alsoNeedsYou.map((item) => (
+                    <NeedsYouItem
+                      key={item.id}
+                      item={item}
+                      signal={item.themeKey ? (signalByTheme.get(item.themeKey) ?? null) : null}
+                      basePath={basePath}
+                      lead={false}
+                    />
+                  ))}
+                </div>
+              </Section>
+            ) : null}
+
+            <div className="grid grid-cols-1 items-start gap-x-10 gap-y-2 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+              <div className="min-w-0">
+                {watching.length > 0 ? (
+                  <Section eyebrow={t('home.watching.title')} note={t('home.watching.note')}>
+                    <WatchingList items={watching} basePath={basePath} />
+                  </Section>
+                ) : null}
+
+                {strengths.length > 0 ? (
+                  <Section eyebrow={t('home.goingWell.title')} note={t('home.goingWell.note')}>
+                    <StrengthsList items={strengths} basePath={basePath} />
+                  </Section>
+                ) : null}
+
+                {showSoFar ? (
+                  <Section eyebrow={t('home.soFar.title')} note={t('home.soFar.note')}>
+                    <SoFar soFar={view.soFar} basePath={basePath} />
+                  </Section>
+                ) : null}
+
+                {view.question ? (
+                  <Section eyebrow={t('home.question.title')}>
+                    <Question q={view.question} />
+                  </Section>
+                ) : null}
+
+                {/* The "nothing yet" message used to live here as well. The
+                    brief says it now, at the top, in half the words — and an
+                    owner who has told Headway about their business still opens
+                    this reveal, so leaving it here meant the same news twice on
+                    one screen. `BriefEmpty` owns it. */}
+              </div>
+
+              <aside className="min-w-0 lg:border-l lg:border-ink-200 lg:pl-8">
+                {r.did.length > 0 || view.basedOn > 0 ? (
+                  <Section eyebrow={t('home.nextCheck.title')}>
+                    <NextCheck r={r} basePath={basePath} rating={rating} />
+                  </Section>
+                ) : null}
+              </aside>
+            </div>
+
+            {view.knows.length > 0 ? (
+              <Section eyebrow={t('home.knows.title')}>
+                <Knows items={view.knows} basePath={basePath} />
+              </Section>
+            ) : null}
+
+            <Limits limits={r.limitations} collapsed />
+          </div>
         </Reveal>
       ) : null}
-
-      <Limits limits={r.limitations} collapsed />
     </>
   );
 }

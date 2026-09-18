@@ -1,6 +1,6 @@
 'use client';
 
-import { useT } from '@/components/portal/locale-provider';
+import { BriefSkeleton } from '@/components/workspace/skeleton';
 
 /**
  * What an owner sees between pressing a tab and the page arriving.
@@ -26,23 +26,5 @@ import { useT } from '@/components/portal/locale-provider';
  * that does not.
  */
 export default function Loading() {
-  const t = useT();
-
-  return (
-    <div className="space-y-6" aria-busy="true" aria-live="polite">
-      <span className="sr-only">{t('errors.loading.label')}</span>
-      <div className="h-8 w-64 animate-pulse rounded-lg bg-ink-100" />
-      <div className="grid gap-6">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="rounded-xl border border-ink-100 p-5">
-            <div className="h-4 w-40 animate-pulse rounded bg-ink-100" />
-            <div className="mt-4 space-y-2">
-              <div className="h-3 w-full animate-pulse rounded bg-ink-100" />
-              <div className="h-3 w-5/6 animate-pulse rounded bg-ink-100" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  return <BriefSkeleton />;
 }

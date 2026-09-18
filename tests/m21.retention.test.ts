@@ -313,7 +313,12 @@ describe('no dark patterns', () => {
     // would still leave an empty box on the page.
     const service = code(files[0]!);
     expect(service).toContain('return nothingHappened ? null : summary;');
-    expect(code(files[2]!)).toContain('{since ? <SinceVisit since={since} basePath={basePath} /> : null}');
+    // Home wraps the panel in its own spacing now, so the guard and the panel
+    // are on separate lines. The rule is the guard, not its formatting.
+    const home = code(files[2]!);
+    expect(home).toContain('{since ? (');
+    expect(home).toContain('<SinceVisit since={since} basePath={basePath} />');
+    expect(home).toContain(') : null}');
   });
 
   it('reads the previous visit before the current one is stamped', () => {

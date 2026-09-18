@@ -14,10 +14,13 @@ import {
   getAnalysisView,
   getCheckinView,
   getEvidenceIndex,
+  getFeedbackEntry,
+  getFreshFeed,
   getImprovementsView,
   getReviewsView,
   loadCore,
 } from '@/lib/portal/service';
+import { getAnalysisCoverage } from '@/lib/feedback/analysis';
 import { getAccountState } from '@/lib/commercial/service';
 import { pendingRequestFor } from '@/lib/continuation/service';
 
@@ -145,10 +148,30 @@ type Ctx = { db: PrismaClient; clientId: string; userId: string; locale: 'en' | 
 
 /** The loader sets the workspace pages run, as their components run them. */
 const PAGES: Record<string, (ctx: Ctx) => Promise<unknown>> = {
+  // Home, as the component composes it since the freshness pass: the brief's
+  // three loaders, then the newest feedback and where Headway is with it —
+  // which reads the SAME memoised ledger, so it must add no scan.
   home: async ({ db, clientId, userId, locale }) => {
     const t = translatorFor(locale);
     await sinceLastVisit(db, clientId, userId);
-    await Promise.all([getResponsibility(db, clientId, { t }), getEvidenceIndex(db, clientId)]);
+    await Promise.all([
+      getResponsibility(db, clientId, { t }),
+      getEvidenceIndex(db, clientId),
+      getAnalysisCoverage(db, clientId),
+    ]);
+    await getFreshFeed(db, clientId, { now: new Date() });
+  },
+  // One feedback entry on its own page: a lookup by id, never the ledger.
+  feedbackEntry: async ({ db, clientId, locale }) => {
+    const t = translatorFor(locale);
+    const id = `${clientId}f${(0).toString(36).padStart(4, '0')}`.slice(0, 32);
+    const item = await getFeedbackEntry(db, clientId, id, { t });
+    if (!item) throw new Error('the seeded entry should be found');
+  },
+  // One change on its own page: the action centre's own view, found in it.
+  improvementDetail: async ({ db, clientId, locale }) => {
+    const t = translatorFor(locale);
+    await Promise.all([getImprovementsView(db, clientId, { t }), getEvidenceIndex(db, clientId)]);
   },
   customers: async ({ db, clientId, locale }) => {
     const t = translatorFor(locale);
@@ -164,6 +187,25 @@ const PAGES: Record<string, (ctx: Ctx) => Promise<unknown>> = {
       getReviewsView(db, clientId, { q: '', stars: null, sentiment: null, theme: null, source: null, needs: null }, { page: 1, t }),
       getEvidenceIndex(db, clientId),
     ]);
+  },
+  // Feedback with one topic selected (owner action-loop pass). The page then
+  // also loads the full reading of that topic — Headway's read and the
+  // decision — through the responsibility bundle, which is a core load. It is
+  // measured separately because it is the one page state that pays for it,
+  // and because "the ledger is memoised, so it costs no extra scan" was an
+  // argument until this line made it a count.
+  feedbackTopic: async ({ db, clientId, locale }) => {
+    const t = translatorFor(locale);
+    await Promise.all([
+      getReviewsView(
+        db,
+        clientId,
+        { q: '', stars: null, sentiment: null, theme: 'service_speed', source: null, needs: null },
+        { page: 1, t },
+      ),
+      getEvidenceIndex(db, clientId),
+    ]);
+    await getResponsibility(db, clientId, { t });
   },
   improvements: async ({ db, clientId, locale }) => {
     const t = translatorFor(locale);
@@ -190,9 +232,15 @@ const PAGES: Record<string, (ctx: Ctx) => Promise<unknown>> = {
 /** How many times each page may read the feedback table. */
 const FEEDBACK_SCANS: Record<string, number> = {
   home: 1,
+  // A single entry is found by id, not by reading the pile.
+  feedbackEntry: 0,
+  improvementDetail: 1,
   customers: 1,
   // The ledger, and the page's own paged, filtered list of 25.
   feedback: 2,
+  // The same two. The responsibility bundle added for the selected topic
+  // reads the SAME memoised ledger, so it adds no scan of this table.
+  feedbackTopic: 2,
   improvements: 1,
   checkin: 1,
   account: 1,
@@ -236,9 +284,16 @@ describe('a workspace page reads its client, once', () => {
       const scans = c.byModel['ReviewItem.findMany'] ?? 0;
       expect(scans, `${page}: ReviewItem.findMany`).toBe(FEEDBACK_SCANS[page]);
       // No page still asks the database to count what the ledger already holds.
-      expect(c.byModel['ReviewItem.count'] ?? 0, `${page}: ReviewItem.count`).toBeLessThanOrEqual(page === 'feedback' ? 2 : 0);
+      expect(c.byModel['ReviewItem.count'] ?? 0, `${page}: ReviewItem.count`).toBeLessThanOrEqual(page === 'feedback' || page === 'feedbackTopic' ? 2 : 0);
     }
   }, 120_000);
+
+  it('opens one feedback entry with one lookup of that entry, and no scan', async () => {
+    const c = await measure(rls.appUrl, ctx, 'feedbackEntry');
+    expect(c.byModel['ReviewItem.findFirst']).toBe(1);
+    expect(c.byModel['ReviewItem.findMany'] ?? 0).toBe(0);
+    expect(c.byModel['ReviewItem.count'] ?? 0).toBe(0);
+  }, 60_000);
 
   it('loads the core, the client row and the lifecycle row once per request', async () => {
     const c = await measure(rls.appUrl, ctx, 'customers');

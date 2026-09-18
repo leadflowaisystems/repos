@@ -110,7 +110,14 @@ describe('the "Sign out" button', () => {
       join(ROOT, 'src', 'app', '(workspace)', 'workspace', '[clientId]', 'layout.tsx'),
       'utf8',
     );
-    expect(workspace).toContain(`<SignOutButton variant="inline" label={t('nav.signOut')} />`);
+    // On the navy app bar from tablet up (final experience pass), and as the
+    // last row of More on a phone — both handed the owner's word.
+    expect(workspace).toContain(`<SignOutButton variant="onNavy" label={t('nav.signOut')} />`);
+    const more = readFileSync(
+      join(ROOT, 'src', 'app', '(workspace)', 'workspace', '[clientId]', 'more', 'page.tsx'),
+      'utf8',
+    );
+    expect(more).toContain(`<SignOutButton variant="row" label={t('nav.signOut')} />`);
 
     // The operator console is not localized by design: it renders the button
     // without a label and reads the English default.

@@ -159,11 +159,17 @@ export async function ImprovementStory({
   action: a,
   evidence,
   basePath,
+  titled = true,
 }: {
   action: PortalAction;
   evidence: EvidenceIndex;
   /** Where this door lives, so links stay inside it. */
   basePath: string;
+  /**
+   * Whether the story names itself. On a change's own page the page heading
+   * already does, and saying it twice would put two titles one above the other.
+   */
+  titled?: boolean;
 }) {
   const t = await getTranslator();
   const declined = a.stage === 'NOT_DOING';
@@ -179,14 +185,16 @@ export async function ImprovementStory({
 
   return (
     <article className="rounded-2xl border border-ink-200 bg-white p-5 sm:p-7">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h3 className="text-[20px] leading-tight font-semibold tracking-tight text-ink-900 sm:text-[22px]">
-          {a.about}
-        </h3>
-        <span className="text-[12px] font-medium tracking-wide text-ink-500 uppercase">{a.stageLabel}</span>
-      </div>
+      {titled ? (
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h3 className="text-[20px] leading-tight font-semibold tracking-tight text-ink-900 sm:text-[22px]">
+            {a.about}
+          </h3>
+          <span className="text-[12px] font-medium tracking-wide text-ink-500 uppercase">{a.stageLabel}</span>
+        </div>
+      ) : null}
 
-      <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:gap-5">
+      <div className={clsx('grid grid-cols-1 gap-6 sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:gap-5', titled && 'mt-6')}>
         <Moment
           label={t('improvements.moment.problem')}
           when={a.suggestedAt}

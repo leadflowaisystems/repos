@@ -236,9 +236,16 @@ describe('the workspace navigation', () => {
     expect(extras.map((key) => says(key))).toEqual(['Kit', 'Orders', 'Account']);
   });
 
-  it('keeps every door on screen: wrapping on a phone, pinned from tablet up, finger-sized', () => {
-    expect(source).toContain('flex flex-wrap');
+  it('keeps every door on screen from tablet up, pinned and finger-sized', () => {
+    // The phone no longer reads this row at all — eight tabs wrapped into
+    // three lines of small text at the top of the screen, which is the far
+    // end from the thumb. It is `hidden` below `sm` and the bottom bar takes
+    // over. From tablet up it is the lower half of the navy app bar (final
+    // experience pass): still wrapping rather than scrolling sideways, still
+    // pinned, still 44px a door.
+    expect(source).toContain('flex max-w-5xl flex-wrap');
     expect(source).not.toContain('overflow-x-auto');
+    expect(source).toContain('className="hidden border-t border-white/10 sm:block"');
     expect(source).toContain('sm:sticky sm:top-0');
     expect(source).toContain('min-h-11');
     expect(source).toContain("aria-current={active ? 'page' : undefined}");
@@ -269,19 +276,126 @@ describe('the workspace navigation', () => {
   });
 });
 
-describe('home, as a command centre', () => {
+describe('the phone’s four doors', () => {
+  const bar = code(read('components', 'portal', 'mobile-nav.tsx'));
+  const layout = code(read('app', '(workspace)', 'workspace', '[clientId]', 'layout.tsx'));
+  const more = code(read('components', 'workspace', 'more.tsx'));
+  const doors = between(bar, 'const DOORS', '] as const satisfies');
+  const keys = [...doors.matchAll(/label: '([^']+)'/g)].map((m) => m[1] as MessageKey);
+
+  it('offers four doors, each a question an owner has', () => {
+    // Four, and no more. The number is the design: eight tabs asked the owner
+    // to choose before they had read anything, which is the work they came
+    // here to have done. Anything added here has to displace one of these.
+    expect(keys).toEqual([
+      'nav.section.home',
+      'nav.section.feedback',
+      'nav.section.improvements',
+      'nav.section.more',
+    ]);
+    expect(keys.map((k) => says(k))).toEqual(['Home', 'Feedback', 'Improvements', 'More']);
+  });
+
+  it('pairs every icon with its word, and never scrolls sideways', () => {
+    // There is no widely-read glyph for "improvements", and a picture nobody
+    // can name is a tap nobody makes — so the icon is never alone (final
+    // experience pass). Every icon is decoration beside its word: hidden from
+    // screen readers, which announce the word, and never focusable.
+    const svgs = [...bar.matchAll(/<svg[^>]*>/g)].map((m) => m[0]);
+    expect(svgs.length).toBe(4);
+    for (const svg of svgs) {
+      expect(svg).toContain('aria-hidden');
+      expect(svg).toContain('focusable="false"');
+    }
+    // The word is always rendered, under the icon.
+    expect(bar).toContain('<Icon active={active} />');
+    expect(bar).toContain('<span className="truncate text-[12px] leading-tight">{label}</span>');
+    expect(bar).not.toMatch(/react-icons|lucide/i);
+    expect(bar).not.toContain('overflow-x-auto');
+  });
+
+  it('is thumb-sized, marks where you are three ways, and says so to a screen reader', () => {
+    // 60px tall, a quarter of the screen wide. The selected state is a gold
+    // rule above the icon, a heavier icon stroke and a heavier word — never
+    // colour alone, because colour is the first signal a bright screen
+    // outdoors takes away.
+    expect(bar).toContain('min-h-15');
+    expect(bar).toContain("aria-current={active ? 'page' : undefined}");
+    expect(bar).toContain("active ? 'bg-brand-500' : 'bg-transparent'");
+    expect(bar).toContain('strokeWidth: active ? 2.2 : 1.7');
+    expect(bar).toContain("active ? 'font-semibold text-ink-900' : 'text-ink-500'");
+    expect(bar).toContain("aria-label={t('nav.sections.label')}");
+  });
+
+  it('never strips the focus ring it cannot replace', () => {
+    // It once carried `focus-visible:outline-none` with a ring class that did
+    // not resolve, which left a keyboard user with no visible focus at all on
+    // the bar. The app has one focus treatment, in globals.css, and it is
+    // unlayered — so nothing here may turn it off.
+    expect(bar).not.toContain('outline-none');
+  });
+
+  it('leaves room under itself, so it covers nothing and can show a focus ring', () => {
+    // A fixed bar with no matching space at the end of the document sits on
+    // top of the last control on every page. The spacer and the bar are
+    // rendered together, and both disappear from tablet width up.
+    expect(layout).toContain('<div aria-hidden className="h-20 sm:hidden" />');
+    expect(layout).toContain('<MobileTabBar basePath={`/workspace/${clientId}`} locked={locked} />');
+    expect(layout.indexOf('h-20 sm:hidden')).toBeLessThan(layout.indexOf('<MobileTabBar'));
+    expect(bar).toContain('sm:hidden');
+    expect(bar).toContain('pb-[max(0.25rem,env(safe-area-inset-bottom))]');
+  });
+
+  it('shows one door, not four, once the trial has locked the workspace', () => {
+    // Every other door redirects to Account, so four of them would be a menu
+    // of disappointments. The top row makes the same decision.
+    expect(bar).toContain('if (locked) return null;');
+  });
+
+  it('moves the secondary doors behind More without moving their addresses', () => {
+    // Nothing was removed and nothing was renamed: More is a menu, not a
+    // redirect, so every bookmark and emailed link still works.
+    const slugs = [...more.matchAll(/slug: '([^']+)'/g)].map((m) => m[1]);
+    expect(slugs).toEqual(['analysis', 'checkin', 'kit', 'orders', 'account']);
+    // And More stays lit while the owner is on any of them, so "where am I"
+    // still has an answer three levels down.
+    for (const slug of slugs) expect(doors).toContain(`'${slug}'`);
+  });
+
+  it('gives every row on More a reason to tap it, and the whole width to tap', () => {
+    expect(more).toContain('min-h-15');
+    expect(more).toContain('{t(door.hint)}');
+    expect(says('more.hint.customers')).toBe('Every topic customers raise, with the evidence');
+    expect(says('more.hint.account')).toBe('Language, team and your subscription');
+    // Rows, not a grid of cards with icons: a card is a lot of screen to
+    // spend on one word, and an unnamed icon is decoration.
+    expect(more).not.toMatch(/<svg|grid-cols-2/);
+  });
+});
+
+describe('home, as the owner’s brief', () => {
   const home = code(read('components', 'workspace', 'home.tsx'));
-  const focus = code(read('components', 'workspace', 'focus.tsx'));
+  const brief = code(read('components', 'workspace', 'brief.tsx'));
   const responsibility = code(read('components', 'portal', 'responsibility.tsx'));
 
-  it('leads with one dominant block the owner can stop after', () => {
-    // The hierarchy IS the design (M24). Anything that reorders these blocks
-    // is changing what an owner reads first, which is not a styling decision.
+  it('leads with the brief, and keeps the full reading behind one tap', () => {
+    // The hierarchy IS the design. Anything that reorders these blocks is
+    // changing what an owner reads first, which is not a styling decision.
+    //
+    // The mobile pass changed WHAT leads, not whether something does: the
+    // dominant block used to be five pieces of prose (FocusBlock) and is now
+    // four blocks of figures. Everything that followed it is unchanged and
+    // sits under one disclosure.
+    //
+    // The final experience pass moved "since your last visit" INSIDE the
+    // reveal: the band at the top already says how much arrived, so the full
+    // account is detail, not headline.
     const order = [
-      '<FocusBlock focus={focus} direction={direction} />', // right now, do I need to act, next step
+      '<OwnerBrief', // the band, the story, the latest, what changed, your changes
+      "t('brief.more.summary')", // the full reading, from here down
+      '<SinceVisit since={since}', // what changed while away, in full
       "eyebrow={t('home.watching.title')}", // what is being carried
       "eyebrow={t('home.goingWell.title')}", // what to protect
-      '<SinceVisit since={since}', // what changed while away
       "eyebrow={t('home.nextCheck.title')}", // when the next check-in is worth opening
       '<Limits limits={r.limitations} collapsed />', // what we cannot tell you, one tap away
     ];
@@ -291,12 +405,65 @@ describe('home, as a command centre', () => {
       return i;
     });
     expect(at).toEqual([...at].sort((a, b) => a - b));
-    // The three eyebrows in that order are the words an owner reads.
+    // The eyebrows in that order are the words an owner reads.
     expect(says('home.watching.title')).toBe('Headway is watching');
     expect(says('home.goingWell.title')).toBe('Going well');
     expect(says('home.nextCheck.title')).toBe('Your next check-in');
-    expect(focus).toContain('Right now');
-    expect(focus).toContain('What to do');
+    expect(says('brief.more.summary')).toBe('The full reading');
+  });
+
+  it('answers what happened, what matters and what to do, in that order', () => {
+    // The three questions an owner opens the app with, and the order they
+    // arrive in. Each is a block in `brief.tsx`, and the order is the point:
+    // a count with no conclusion is a dashboard, and a conclusion with no
+    // count is an opinion. The customers' own words close it, newest first.
+    const order = [
+      "t('brief.mood.title')", // WHAT HAPPENED — the pile, split three ways
+      "t('brief.attention.title')", // WHAT MATTERS
+      "t('brief.suggest.title')", // WHAT TO DO
+      "t('brief.evidence.title')", // and the evidence, AFTER the conclusion
+      "t('brief.latest.title')", // and the newest customers, read or not
+    ];
+    const at = order.map((token) => {
+      const i = brief.indexOf(token);
+      expect(i, token).toBeGreaterThan(-1);
+      return i;
+    });
+    expect(at).toEqual([...at].sort((a, b) => a - b));
+    expect(says('brief.mood.title')).toBe('How customers feel');
+    expect(says('brief.attention.title')).toBe('Needs your attention');
+    expect(says('brief.suggest.title')).toBe('Headway suggests');
+    expect(says('brief.evidence.title')).toBe('What customers said');
+    expect(says('brief.latest.title')).toBe('Latest from customers');
+    // And the page is composed in that order.
+    // OwnerBrief is the last thing in the file: from its name to the end.
+    const composed = brief.slice(brief.indexOf('export async function OwnerBrief('));
+    const blocks = ['<Band', '<Story', '<Latest', '<Loved', '<Changed', '<Memory'];
+    const where = blocks.map((token) => {
+      const i = composed.indexOf(token);
+      expect(i, token).toBeGreaterThan(-1);
+      return i;
+    });
+    expect(where).toEqual([...where].sort((a, b) => a - b));
+  });
+
+  it('makes the count the largest thing, and makes it open its own evidence', () => {
+    // A figure an owner cannot open is a figure they have to take on trust.
+    // The count is a link to the feedback entries it counts, every time.
+    const block = between(brief, 'async function Story(', 'async function Calm(');
+    expect(block).toContain('href={card.href}');
+    expect(block).toContain('{card.count}');
+    expect(block).toMatch(/text-\[34px\][^"]*tabular-nums/);
+    // The theme name is large, but the count is larger.
+    expect(block).toContain('text-[26px]');
+  });
+
+  it('draws no chart, and invents no number of its own', () => {
+    // Three labelled figures instead of a four-segment bar nobody can label
+    // at 375px — and every figure carried across from the builders, never
+    // recomputed here.
+    expect(brief).not.toMatch(/<svg|Chart|<Bar|recharts|donut|sparkline/i);
+    expect(brief).not.toMatch(/\.reduce\(|\.filter\(|Math\.round|\/ *total/);
   });
 
   it('keeps what is going well apart from what is being watched', () => {
@@ -312,16 +479,23 @@ describe('home, as a command centre', () => {
       'grid grid-cols-1 items-start gap-x-10 gap-y-2 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]',
     );
     expect(home).toContain('<aside');
-    expect(home.indexOf('<FocusBlock')).toBeLessThan(home.indexOf('<aside'));
+    expect(home.indexOf('<OwnerBrief')).toBeLessThan(home.indexOf('<aside'));
   });
 
   it('opens with the answer, never with arithmetic', () => {
     // An earlier version opened with a row of numbers, and a later one closed
     // with a grid that repeated the answer as figures. Neither survives: the
-    // block is first, and no figure on the page is stated twice.
-    expect(home.indexOf('<FocusBlock')).toBeLessThan(home.indexOf('<Section'));
+    // brief is first, and no figure on the page is stated twice.
+    expect(home.indexOf('<OwnerBrief')).toBeLessThan(home.indexOf('<Section'));
     expect(home).not.toContain('<Tallies');
     expect(home).not.toMatch(/\+\d+%/);
+  });
+
+  it('never opens onto an empty disclosure', () => {
+    // "The full reading" that opens onto nothing is worse than no control at
+    // all, so the reveal is rendered only when something is in it.
+    expect(home).toContain('const hasFullReading =');
+    expect(home).toContain('{hasFullReading ? (');
   });
 
   it("shows the first customers' signals before anything is a pattern, and never a blank", () => {
@@ -331,15 +505,17 @@ describe('home, as a command centre', () => {
     // Counted, and said to be counts — never dressed up as a conclusion.
     expect(home).toContain("note={t('home.soFar.note')}");
     expect(says('home.soFar.note')).toBe('Counts only, not conclusions');
-    expect(focus).toContain('{focus.cta.label}');
     // Before the first piece of feedback the page still says what will happen
-    // and where it comes from, rather than stopping at the absence.
-    expect(home).toContain("t('home.empty.body')");
-    expect(says('home.empty.body')).toBe(
-      'No feedback has come in yet. Once customers give feedback through your QR code, this page will show what matters and whether anything needs your attention.',
+    // and where it comes from, rather than stopping at the absence. The brief
+    // owns that message now, and says it in half the words — Home used to say
+    // it a second time under the reveal, which was the same news twice.
+    expect(brief).toContain("t('brief.early.body')");
+    expect(says('brief.early.body')).toBe(
+      'Headway will brief you here as soon as customers start giving feedback.',
     );
-    expect(home).not.toMatch(/No data/i);
-    expect(says('home.empty.body')).not.toMatch(/No data/i);
+    expect(brief).not.toMatch(/No data/i);
+    expect(says('brief.early.body')).not.toMatch(/No data/i);
+    expect(home).not.toContain("t('home.empty.body')");
   });
 
   it('says what is watched, why, and when it will be flagged', () => {
@@ -475,7 +651,10 @@ describe('the pipeline is wired to the product', () => {
       ['components', 'portal', 'workspace.tsx'],
       ['components', 'workspace', 'reviews.tsx'],
       ['components', 'portal', 'disclose.tsx'],
-      ['components', 'workspace', 'focus.tsx'],
+      ['components', 'portal', 'mobile-nav.tsx'],
+      ['components', 'workspace', 'brief.tsx'],
+      ['components', 'workspace', 'more.tsx'],
+      ['components', 'workspace', 'improvements.tsx'],
       ['components', 'workspace', 'signal-board.tsx'],
       ['components', 'workspace', 'improvement-story.tsx'],
       ['components', 'workspace', 'checkin.tsx'],

@@ -1,6 +1,6 @@
 'use server';
 
-import { redirect } from 'next/navigation';
+import { RedirectType, redirect } from 'next/navigation';
 import { currentUserId, prisma } from '@/lib/db';
 import { currentActor } from '@/lib/auth/authorize';
 import { supabaseConfig, supabaseServerClient } from '@/lib/auth/supabase';
@@ -135,7 +135,11 @@ export async function signInAction(_prev: ActionState, form: FormData): Promise<
   void userId;
 
   const next = safeNext(str(form, 'next'));
-  redirect(next || landingPathFor(actor));
+  // REPLACE, not push. The sign-in page is a doorway, not a place: left in
+  // history under the workspace, Back from Home landed on a sign-in form for
+  // somebody already signed in, or bounced them straight back in. Replaced,
+  // Back from Home leaves Headway the way the owner came.
+  redirect(next || landingPathFor(actor), RedirectType.replace);
 }
 
 export async function signOutAction(): Promise<void> {

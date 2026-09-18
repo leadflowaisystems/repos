@@ -1,6 +1,7 @@
 import { Link } from '@/components/portal/link';
 import { notFound, redirect } from 'next/navigation';
 import { WorkspaceFooter, WorkspaceHeader } from '@/components/portal/workspace';
+import { MobileTabBar } from '@/components/portal/mobile-nav';
 import { SignOutButton } from '@/components/sign-out';
 import { currentActor } from '@/lib/auth/authorize';
 import { tenantGateFor } from '@/lib/auth/guard';
@@ -78,25 +79,38 @@ export default async function WorkspaceLayout({
         verticalLabel={verticalLabel(client.vertical)}
         showExtras
         locked={locked}
-        signOut={<SignOutButton variant="inline" label={t('nav.signOut')} />}
+        signOut={<SignOutButton variant="onNavy" label={t('nav.signOut')} />}
       />
-      {paused ? (
-        <p className="mb-6 border-l-2 border-warn-600 bg-warn-50 px-4 py-3 text-[14px] leading-relaxed text-ink-800">
-          {t('errors.paused.banner')}{' '}
-          <Link
-            href={`/workspace/${clientId}/account`}
-            className="inline-flex min-h-11 items-center font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
-          >
-            {t('errors.paused.account')} <span aria-hidden>→</span>
-          </Link>
-        </p>
-      ) : null}
-      {/* One <main> for every page under here, rather than four pages
-          remembering to bring their own and five forgetting. The header and the
-          footer sit outside it, which is what makes "skip to content" mean
-          something. */}
-      <main>{children}</main>
+      {/* The page column. It lives here rather than in the root layout so the
+          navy bar above it can run edge to edge; everything an owner reads
+          sits inside it. */}
+      <div className="mx-auto w-full max-w-5xl px-4 pt-5 sm:px-6 sm:pt-8">
+        {paused ? (
+          <p className="mb-6 border-l-2 border-warn-600 bg-warn-50 px-4 py-3 text-[14px] leading-relaxed text-ink-800">
+            {t('errors.paused.banner')}{' '}
+            <Link
+              href={`/workspace/${clientId}/account`}
+              className="inline-flex min-h-11 items-center font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
+            >
+              {t('errors.paused.account')} <span aria-hidden>→</span>
+            </Link>
+          </p>
+        ) : null}
+        {/* One <main> for every page under here, rather than four pages
+            remembering to bring their own and five forgetting. The header and
+            the footer sit outside it, which is what makes "skip to content"
+            mean something. */}
+        <main>{children}</main>
+      </div>
       <WorkspaceFooter businessName={client.businessName} />
+      {/* The phone's four doors, fixed to the bottom of the screen. The
+          spacer above it is the reason it can be fixed at all: without a
+          matching amount of room at the end of the document, the bar sits on
+          top of the last thing on every page — which on Feedback is the
+          "show more" control and on Account is the button that continues the
+          service. `sm:hidden` on both, because desktop keeps the top tabs. */}
+      <div aria-hidden className="h-20 sm:hidden" />
+      <MobileTabBar basePath={`/workspace/${clientId}`} locked={locked} />
     </>
   );
 }

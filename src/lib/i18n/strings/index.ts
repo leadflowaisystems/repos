@@ -1,4 +1,7 @@
 import { account } from './account';
+import { brief } from './brief';
+import { loop } from './loop';
+import { more } from './more';
 import { checkin } from './checkin';
 import { common } from './common';
 import { customers } from './customers';
@@ -40,6 +43,9 @@ export const MESSAGES = {
   ...common,
   ...nav,
   ...home,
+  ...brief,
+  ...loop,
+  ...more,
   ...customers,
   ...feedback,
   ...improvements,

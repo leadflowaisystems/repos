@@ -433,13 +433,16 @@ describe('the translation layer stays out of everything else', () => {
     // Language is a setting on Account, not a new page, and not a path
     // segment: this pass added none of these. `orders` is M33's ordering
     // history, which is a page in its own right and arrived with its own
-    // milestone — not with the dictionary.
+    // milestone — not with the dictionary. `more` is the mobile pass's fourth
+    // door: a MENU of the routes already in this list, which is why nothing
+    // else here moved or was renamed when it arrived.
     expect(routes).toEqual([
       'account',
       'analysis',
       'checkin',
       'improvements',
       'kit',
+      'more',
       'orders',
       'pulse',
       'review',

@@ -201,9 +201,12 @@ describe('operator-only material never reaches the portal', () => {
     expect(item).toBeDefined();
     // The owner-facing shape, exactly. Triage reasons, priority ranks, draft
     // internals and redaction details are not in it.
+    // `exact` and `topics` arrived with the single-entry page: whether the
+    // date is a moment, and each theme with the key its story lives under.
     expect(Object.keys(item ?? {}).sort()).toEqual([
       'at',
       'classLabel',
+      'exact',
       'gave',
       'id',
       'replyState',
@@ -215,6 +218,7 @@ describe('operator-only material never reaches the portal', () => {
       'suggestedReply',
       'text',
       'themes',
+      'topics',
     ]);
     expect(JSON.stringify(view)).not.toMatch(/priorityRank|priorityReasons|draftNotes|redactions|clientId/);
   });

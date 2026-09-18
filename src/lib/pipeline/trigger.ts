@@ -1,6 +1,7 @@
 import { after } from 'next/server';
 import { serviceScopedDb } from '@/lib/db';
 import { hasUnprocessedFeedback, isServiceSuspended, processClientFeedback } from './feedback';
+import { measureReadyActions } from '@/lib/improve/auto-measure';
 
 /**
  * WHEN THE PIPELINE RUNS.
@@ -48,13 +49,22 @@ export function triggerFeedbackProcessing(clientId: string, reason: TriggerReaso
       // A paused account still collects. It does not get read until it is
       // resumed, and then the backlog is read in the ordinary way.
       if (await isServiceSuspended(db, clientId)) return;
-      if (reason === 'VISIT' && !(await hasUnprocessedFeedback(db, clientId))) return;
+      if (reason === 'VISIT' && !(await hasUnprocessedFeedback(db, clientId))) {
+        // Nothing to read, but a change may have crossed its evidence floor on
+        // a run that has already finished. One indexed count when it has not.
+        await measureReadyActions(db, clientId);
+        return;
+      }
       const result = await processClientFeedback(db, clientId);
       if (!result.ok || result.needsRetry > 0) {
         console.error(
           `[pipeline] ${reason} run for client ${clientId}: ${result.needsRetry} need retry. ${result.notes.join(' ')}`,
         );
       }
+      // What was just read may be the entry that gives a change enough
+      // evidence to be checked. Headway checks it now rather than waiting for
+      // a person in the console — see `improve/auto-measure.ts`.
+      await measureReadyActions(db, clientId);
     } catch (error) {
       console.error(
         `[pipeline] ${reason} run for client ${clientId} failed: ${error instanceof Error ? error.message : 'unknown error'}`,

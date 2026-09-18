@@ -295,15 +295,63 @@ describe('colour carries meaning, and only its own meaning', () => {
 
   it('spends the gold fill once, on the one action', () => {
     // Gold stops being premium the moment there are two of it on a screen.
+    // The one gold control on Home is now the DECISION — "I'll handle this" —
+    // rather than a link to more reading. It lives in the decision component,
+    // so that is where the fill is counted; the brief and the lists that
+    // render it carry none of their own.
     const home = [
       read('src', 'components', 'workspace', 'home.tsx'),
-      read('src', 'components', 'workspace', 'focus.tsx'),
+      read('src', 'components', 'workspace', 'brief.tsx'),
+      read('src', 'components', 'workspace', 'improvements.tsx'),
       read('src', 'components', 'portal', 'responsibility.tsx'),
+      read('src', 'components', 'workspace', 'owner-decision.tsx'),
     ].join('\n');
-    const fills = [...stripComments(home).matchAll(/bg-brand-(?:500|600|700|900)\b/g)];
-    // One resting fill and its hover, on the decision card's button.
+    //
+    // A FILL is gold behind a control. The pass that followed added gold
+    // MARKS — the dot beside a feedback entry Headway is reading right now,
+    // the rule down the side of the "Headway is watching" shelf — and a
+    // six-pixel dot does not compete with a button, any more than the green
+    // and red dots do in the rule above. So the marks are named — a dot is
+    // six pixels square, and the shelf rule is the bare colour its four-pixel
+    // stripe is painted with — and everything else gold counts as a fill.
+    const classLists = [...stripComments(home).matchAll(/'([^'\n]*)'|"([^"\n]*)"/g)]
+      .map((m) => m[1] ?? m[2] ?? '')
+      .filter((cls) => /bg-brand-(?:500|600|700|900)\b/.test(cls));
+    const mark = (cls: string) => /\bh-1\.5\b.*\bw-1\.5\b/.test(cls) || cls === 'bg-brand-500';
+    expect(classLists.filter(mark).length).toBeLessThanOrEqual(2);
+    const fills = classLists
+      .filter((cls) => !mark(cls))
+      .flatMap((cls) => [...cls.matchAll(/bg-brand-(?:500|600|700|900)\b/g)]);
+    // One resting fill and its hover, on that one button.
     expect(fills.length).toBeLessThanOrEqual(2);
     expect(stripComments(home)).toContain('bg-brand-700');
+  });
+
+  it('gilds the first choice on the problem only, and never a second button', () => {
+    // The strength card's instruction is "keep doing this" — there is nothing
+    // to decide, so a gold button there would be spending the accent to say
+    // nothing. Inside a list no choice is gold at all: four gold buttons down
+    // a page is a page with no emphasis left.
+    //
+    // On Home the decision lives inside the story of the problem, and only
+    // when there is a move to make; the strength row below it has none.
+    const brief = stripComments(read('src', 'components', 'workspace', 'brief.tsx'));
+    const story = brief.slice(brief.indexOf('async function Story('), brief.indexOf('async function Calm('));
+    expect(story).toContain('clientId && choices.length > 0 ? (');
+    expect(story).toMatch(/<OwnerDecision[\s\S]*?\blead\b/);
+    const loved = brief.slice(brief.indexOf('async function Loved('), brief.indexOf('async function Changed('));
+    expect(loved).not.toContain('<OwnerDecision');
+    const decision = stripComments(read('src', 'components', 'workspace', 'owner-decision.tsx'));
+    expect(decision).toContain('lead && index === 0');
+    // The action centre has exactly one gold choice too: "Do now", drawn as the
+    // one card on the page. Its shelves are lists, and nothing in a list is
+    // gold — and neither is the decision on a single change's own page.
+    const centre = stripComments(read('src', 'components', 'workspace', 'improvements.tsx'));
+    const doNow = centre.slice(centre.indexOf('export function DoNow('), centre.indexOf('export function ActionList('));
+    expect(doNow).toMatch(/<OwnerDecision[\s\S]*?\blead\b/);
+    const rest = centre.replace(doNow, '');
+    expect(rest).toContain('<OwnerDecision');
+    expect(rest).not.toMatch(/\blead(?:=|\s*\/>)/);
   });
 
   it('reads a measured worsening as red, wherever it is drawn', () => {

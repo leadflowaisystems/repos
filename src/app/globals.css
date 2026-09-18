@@ -30,6 +30,20 @@
     'Helvetica Neue', Arial, 'Noto Sans Devanagari', sans-serif;
   --font-mono: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Consolas, monospace;
 
+  /* The editorial voice (final experience pass). A serif for the handful of
+     lines that carry the brief — the business's own name, the one story Home
+     leads with, a page's title — and nowhere else. Still no web font: every
+     face here ships with the platform, and Devanagari falls through to the
+     system's own, which is what an owner's phone already reads well. */
+  --font-display:
+    'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, ui-serif,
+    'Noto Serif Devanagari', 'Noto Sans Devanagari', serif;
+
+  /* The ground the owner's workspace sits on: warm, lighter than the cream,
+     so white surfaces still read as surfaces and text keeps its contrast.
+     tests/m22.headway-identity.test.ts holds every text grey to 4.5:1 on it. */
+  --color-canvas: #fcfaf5;
+
   /* --- the navy interface ------------------------------------------------ */
   --color-ink-50: #f7f8fa;  /* page ground */
   --color-ink-100: #edf1f5; /* quiet chips and fills */
@@ -107,6 +121,15 @@ body {
   outline-color: var(--color-brand-400);
 }
 
+/* A row inside a rounded list that clips its overflow draws its ring INSIDE
+   itself: drawn outside, the list's own clipping cuts the ring off at both
+   edges. Unlayered and more specific than `:focus-visible`, so it wins — a
+   Tailwind utility could not, which is why this is a class here and not an
+   `outline-offset` utility on the element. */
+.hw-focus-inset:focus-visible {
+  outline-offset: -3px;
+}
+
 /* ---------------------------------------------------------------------------
    Progressive disclosure (M24).
 
@@ -164,10 +187,18 @@ details > .hw-reveal {
   }
 }
 
+/* A decision that has just been saved settles into place rather than
+   appearing: the button row gives way to the line saying what happens next.
+   The same brief, once-only motion as a reveal, for the same reason. */
+.hw-settle {
+  animation: hw-reveal 260ms ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   details > .hw-reveal,
   .hw-dot,
-  .hw-grow {
+  .hw-grow,
+  .hw-settle {
     animation: none;
   }
 }

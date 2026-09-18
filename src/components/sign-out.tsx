@@ -20,6 +20,13 @@ const STYLES = {
   nav: 'w-full rounded-lg px-3 py-2 text-left text-[13px] font-medium text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900',
   inline:
     'inline-flex min-h-11 items-center rounded-lg px-2.5 text-[13px] font-medium text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900',
+  // The workspace's navy app bar, from tablet width up. Light on dark, and the
+  // same 44px floor as everything else on that bar.
+  onNavy:
+    'inline-flex min-h-11 items-center rounded-lg px-3 text-[13px] font-medium text-ink-300 transition-colors hover:bg-white/10 hover:text-white',
+  // A full-width row at the foot of More, where a phone keeps it: the one
+  // place an owner goes looking for their account.
+  row: 'hw-focus-inset flex min-h-14 w-full items-center px-4 text-left text-[16px] font-medium text-ink-700 transition-colors hover:bg-ink-50',
 } as const;
 
 export function SignOutButton({

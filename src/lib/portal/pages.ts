@@ -196,6 +196,12 @@ export type ImprovementsView = {
   notPursued: PortalAction[];
   /** Anything that improved after a change and is now coming back. */
   returning: PortalAction[];
+  /**
+   * Strengths customers keep mentioning, for the action centre's "keep doing"
+   * shelf. Signals, not actions: praise is a thing to protect, not a change
+   * anybody decided to make.
+   */
+  keepDoing: PortalSignal[];
 };
 
 export function buildImprovementsView(input: PortalInput): ImprovementsView {
@@ -237,6 +243,12 @@ export function buildImprovementsView(input: PortalInput): ImprovementsView {
     checked,
     notPursued,
     returning: v.actions.filter((a) => a.returning),
+    // The strengths worth protecting, carried across from the view the
+    // improvements page is already built on. The action centre's fifth shelf
+    // is "keep doing", and a thing customers consistently praise belongs on
+    // it as much as a change that worked — but it is not an ACTION and never
+    // becomes a row in the improvement table. Nobody decided to be good at it.
+    keepDoing: v.loved.filter((s) => s.bucket === 'KEEP'),
   };
 }
 
@@ -259,6 +271,12 @@ export type ReviewItem = {
   text: string;
   stars: number | null;
   at: Date | null;
+  /**
+   * Whether `at` is the moment it arrived, to the minute. True only for the
+   * feedback card, which stamps its submissions; a pasted review carries a
+   * date at best, and showing it a time would invent one.
+   */
+  exact: boolean;
   sourceLabel: string;
   /**
    * Exactly what the customer tapped, as the pack words it today (M19), kept
@@ -280,6 +298,12 @@ export type ReviewItem = {
   /** Null when the reply engine has not sorted it. */
   classLabel: string | null;
   themes: string[];
+  /**
+   * The same topics, with the key each one is filed under, so a single entry
+   * can link to the story of every topic it counts towards. `themes` stays
+   * for the list, which only ever needed the words.
+   */
+  topics: Array<{ key: string; label: string }>;
   /**
    * SUGGESTED: needs an answer and a draft is ready · YOURS: needs the owner
    * personally · DRAFT: a draft exists but it is optional · ANSWERED: done.
@@ -320,7 +344,21 @@ export type ReviewsView = {
     attention: { key: string; label: string; count: number } | null;
   };
   /** Every recurring signal as a one-tap filter, biggest first. */
-  signals: Array<{ key: string; label: string; kind: 'PRAISE' | 'ISSUE'; count: number; active: boolean }>;
+  signals: Array<{
+    key: string;
+    label: string;
+    kind: 'PRAISE' | 'ISSUE';
+    count: number;
+    active: boolean;
+    /**
+     * Which way the count moved between the last two check-ins, and whether
+     * that is good news for THIS topic. Null when the engine could not read
+     * both check-ins. The arrow is the count's own direction and the tone is
+     * the engine's verdict; the two are kept apart because a complaint rising
+     * and praise rising are the same arrow and opposite news.
+     */
+    trend: { mark: '↑' | '↓' | '→'; tone: 'good' | 'bad' | 'neutral' } | null;
+  }>;
   replyWorth: number;
   themeOptions: Array<{ key: string; label: string; kind: 'PRAISE' | 'ISSUE' }>;
   sourceOptions: Array<{ key: string; label: string }>;
@@ -386,6 +424,42 @@ function sentimentLabelOf(key: string, t: PortalTranslator): string {
   return t(TONE_KEYS[key as keyof typeof TONE_KEYS] ?? 'evidence.tone.unread');
 }
 
+/**
+ * One stored row, as the owner reads it.
+ *
+ * The list and the single-entry page both draw from this, so an entry cannot
+ * say one thing in the list and another on its own page.
+ */
+export function reviewItemOf(row: FeedbackRow, t: PortalTranslator = EN, packId?: string): ReviewItem {
+  const state = replyStateOf(row);
+  // A topic is stored with its canonical key and the English label it had
+  // when it was read. The owner reads it in their own language, through the
+  // same pack dictionary the intelligence uses; the key never changes.
+  const topicLabel = (theme: { key: string; label: string }) =>
+    (packId ? t.soft(`pack.${packId}.${theme.key}`) : null) ?? theme.label;
+  const classKey = CLASS_KEYS[row.responseClass as keyof typeof CLASS_KEYS];
+  return {
+    id: row.id,
+    text: row.text,
+    stars: row.stars,
+    at: row.reviewDate,
+    exact: row.source === 'REP_OS_QR' && row.reviewDate !== null,
+    sourceLabel: row.sourceLabel,
+    state: row.state,
+    gave: {
+      dimensions: row.answers.map((a) => ({ label: a.label, rating: a.rating })),
+      selected: row.answers.flatMap((a) => a.signals),
+    },
+    sentiment: row.sentiment,
+    sentimentLabel: sentimentLabelOf(row.sentiment, t),
+    classLabel: row.responseClass === 'UNCLASSIFIED' || !classKey ? null : t(classKey),
+    themes: row.themes.map(topicLabel),
+    topics: row.themes.map((theme) => ({ key: theme.key, label: topicLabel(theme) })),
+    replyState: state,
+    suggestedReply: state === 'SUGGESTED' || state === 'DRAFT' ? row.draftText : null,
+  };
+}
+
 export function buildReviewsView(input: {
   businessName: string;
   pack: Pack;
@@ -412,9 +486,12 @@ export function buildReviewsView(input: {
   const t = input.t ?? EN;
 
   const themeLabel = (key: string) =>
+    t.soft(`pack.${input.pack.id}.${key}`) ??
     input.pack.praiseTaxonomy.find((t) => t.key === key)?.label ??
     input.pack.issueTaxonomy.find((t) => t.key === key)?.label ??
     null;
+  const optionLabel = (entry: { key: string; label: string }) =>
+    t.soft(`pack.${input.pack.id}.${entry.key}`) ?? entry.label;
 
   const parts: string[] = [];
   if (input.filters.theme) {
@@ -513,6 +590,18 @@ export function buildReviewsView(input: {
       ? { key: intel.attention.themeKey, label: intel.attention.themeLabel, count: intel.attention.evidence.count }
       : null,
   };
+  // The engine's own movement for each topic. Its STATE is good-or-bad for
+  // the owner, not a direction (see intelligence/engine.ts), so the arrow is
+  // taken from the sign of the change and the tone from the state.
+  const insights = intel
+    ? [...(intel.attention ? [intel.attention] : []), ...intel.unhappy, ...intel.loved, ...intel.changing]
+    : [];
+  const trendFor = (key: string): ReviewsView['signals'][number]['trend'] => {
+    const m = insights.find((i) => i.themeKey === key)?.movement;
+    if (!m || !m.available || m.delta === null) return null;
+    if (m.delta === 0 || m.state === 'STABLE') return { mark: '→', tone: 'neutral' };
+    return { mark: m.delta > 0 ? '↑' : '↓', tone: m.state === 'IMPROVING' ? 'good' : 'bad' };
+  };
   const signals: ReviewsView['signals'] = [...patterns]
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
     .slice(0, 8)
@@ -522,6 +611,7 @@ export function buildReviewsView(input: {
       kind: t.kind,
       count: t.count,
       active: input.filters.theme === t.key,
+      trend: trendFor(t.key),
     }));
 
   if (positive > 0) {
@@ -554,35 +644,13 @@ export function buildReviewsView(input: {
     signals,
     replyWorth: input.replyWorth,
     themeOptions: [
-      ...input.pack.issueTaxonomy.map((t) => ({ key: t.key, label: t.label, kind: 'ISSUE' as const })),
-      ...input.pack.praiseTaxonomy.map((t) => ({ key: t.key, label: t.label, kind: 'PRAISE' as const })),
+      ...input.pack.issueTaxonomy.map((t) => ({ key: t.key, label: optionLabel(t), kind: 'ISSUE' as const })),
+      ...input.pack.praiseTaxonomy.map((t) => ({ key: t.key, label: optionLabel(t), kind: 'PRAISE' as const })),
     ],
     sourceOptions: input.stats.sourceCounts.map((s) => ({ key: s.source, label: s.label })),
     filters: input.filters,
     filterSummary: parts.length ? parts.join(', ') : null,
-    items: rows.map((row) => {
-      const state = replyStateOf(row);
-      const classKey = CLASS_KEYS[row.responseClass as keyof typeof CLASS_KEYS];
-      return {
-        id: row.id,
-        text: row.text,
-        stars: row.stars,
-        at: row.reviewDate,
-        sourceLabel: row.sourceLabel,
-        state: row.state,
-        gave: {
-          dimensions: row.answers.map((a) => ({ label: a.label, rating: a.rating })),
-          selected: row.answers.flatMap((a) => a.signals),
-        },
-        sentiment: row.sentiment,
-        sentimentLabel: sentimentLabelOf(row.sentiment, t),
-        classLabel:
-          row.responseClass === 'UNCLASSIFIED' || !classKey ? null : t(classKey),
-        themes: row.themes.map((t) => t.label),
-        replyState: state,
-        suggestedReply: state === 'SUGGESTED' || state === 'DRAFT' ? row.draftText : null,
-      };
-    }),
+    items: rows.map((row) => reviewItemOf(row, t, input.pack.id)),
     shown: rows.length,
     matching: input.matching,
     hasMore: input.hasMore,

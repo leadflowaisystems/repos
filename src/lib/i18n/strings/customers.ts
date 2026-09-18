@@ -243,6 +243,14 @@ export const customers = {
   },
 
   // ---- what changed between two check-ins ---------------------------------
+  // The sentences that qualify the lead reading, behind one tap. The lead
+  // itself is always in the open — this only holds what follows it.
+  'customers.telling.more': {
+    en: 'More on this',
+    hi: 'इस बारे में और',
+    mr: 'याबद्दल आणखी',
+  },
+
   'customers.changed.summary': {
     en: 'Show what changed between your check-ins',
     hi: 'आपके चेक-इन के बीच क्या बदला, वह दिखाएँ',

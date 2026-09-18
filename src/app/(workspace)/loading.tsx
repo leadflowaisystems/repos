@@ -1,6 +1,6 @@
 'use client';
 
-import { useT } from '@/components/portal/locale-provider';
+import { BriefSkeleton } from '@/components/workspace/skeleton';
 
 /**
  * What the business owner sees while their workspace is still loading.
@@ -19,23 +19,6 @@ import { useT } from '@/components/portal/locale-provider';
  * a fallback that had to fetch its own words would defeat the whole file.
  */
 export default function Loading() {
-  const t = useT();
-
-  return (
-    <div className="space-y-6" aria-busy="true" aria-live="polite">
-      <span className="sr-only">{t('errors.loading.label')}</span>
-      <div className="h-8 w-64 animate-pulse rounded-lg bg-ink-100" />
-      <div className="grid gap-6">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="rounded-xl border border-ink-100 p-5">
-            <div className="h-4 w-40 animate-pulse rounded bg-ink-100" />
-            <div className="mt-4 space-y-2">
-              <div className="h-3 w-full animate-pulse rounded bg-ink-100" />
-              <div className="h-3 w-5/6 animate-pulse rounded bg-ink-100" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  // The shell is not there yet on the way in, so the skeleton draws the bar.
+  return <BriefSkeleton withBar />;
 }

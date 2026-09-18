@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { getEvidenceIndex, getReviewsView } from '@/lib/portal/service';
-import { quotesFor } from '@/lib/portal/evidence';
+import { quotesFor, type Quote } from '@/lib/portal/evidence';
 import type { ReviewFilters, ReviewsView } from '@/lib/portal/pages';
 import { getTranslator } from '@/lib/i18n/request';
 import type { MessageKey } from '@/lib/i18n/strings';
@@ -17,7 +17,14 @@ import {
   SentimentBar,
   StatusStrip,
 } from '@/components/portal/portal-ui';
-import { Reveal } from '@/components/portal/disclose';
+import { Quotes, Reveal } from '@/components/portal/disclose';
+import type { PortalSignal } from '@/lib/portal/view';
+import { loopLine, trendOf } from '@/lib/portal/brief';
+import { OwnerDecision } from '@/components/workspace/owner-decision';
+import { LiveRefresh } from '@/components/workspace/live-refresh';
+import { UpLink } from '@/components/portal/history';
+import { movesFor } from '@/lib/improve/owner-moves';
+import { getResponsibility } from '@/lib/responsibility/service';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Feedback' };
@@ -175,33 +182,327 @@ function Funnel({
   );
 }
 
-/** Every pattern, as a one-tap filter, biggest first. */
-function SignalChips({ signals, base }: { signals: ReviewsView['signals']; base: string }) {
-  if (signals.length === 0) return null;
+/**
+ * WHAT CUSTOMERS ARE SAYING — the answer, first (mobile pass).
+ *
+ * This page used to open with the funnel: four figures and three arrows
+ * describing what Headway did to the pile. That is a diagram of the SOFTWARE'S
+ * work, and it was the first thing on a screen whose whole job is to answer
+ * "what are my customers saying?". The funnel is still here — it is a fair
+ * account of the method — but it now sits with the method, under a tap.
+ *
+ * In its place: the themes themselves, complaints first, biggest first, each
+ * one a row the width of the phone. The count is the largest thing in the row
+ * because the count IS the finding, and tapping the row filters the page to
+ * exactly the feedback entries it counts.
+ *
+ * COMPLAINTS BEFORE PRAISE, and not because bad news matters more. They are in
+ * the order an owner acts on them: the complaints are the list they can do
+ * something about this week, and burying them under praise would be the
+ * product flattering the reader.
+ *
+ * ROWS, NOT CHIPS. These were pill-shaped chips in a wrapping row, which on a
+ * phone produced five ragged lines of small text with the counts floating
+ * between them. A row per theme reads top to bottom, gives every theme the
+ * same width, and gives the count somewhere consistent to sit.
+ */
+export function SayingRows({
+  signals,
+  base,
+  active,
+  t,
+  basePath,
+}: {
+  signals: ReviewsView['signals'];
+  base: string;
+  /** Whether one of these rows is currently the filter. */
+  active: boolean;
+  t: Translator<MessageKey>;
+  /**
+   * The workspace root, for the history rules. A row that is already open
+   * goes back UP to the list rather than pushing the list on top of itself.
+   */
+  basePath?: string;
+}) {
+  const Up = ({
+    href,
+    className,
+    children,
+    current,
+  }: {
+    href: string;
+    className: string;
+    children: React.ReactNode;
+    current?: boolean;
+  }) =>
+    basePath ? (
+      <UpLink href={href} basePath={basePath} className={className} aria-current={current ? 'page' : undefined}>
+        {children}
+      </UpLink>
+    ) : (
+      <Link href={href} className={className} aria-current={current ? 'page' : undefined}>
+        {children}
+      </Link>
+    );
   return (
-    <ul id="signals" className="flex scroll-mt-24 flex-wrap gap-2">
+    <ul id="signals" className="scroll-mt-24 divide-y divide-ink-200 overflow-hidden rounded-xl border border-ink-200 bg-white">
       {signals.map((s) => (
         <li key={s.key}>
-          <Link
-            href={s.active ? base : `${base}?theme=${encodeURIComponent(s.key)}`}
-            aria-current={s.active ? 'page' : undefined}
-            className={clsx(
-              'inline-flex min-h-11 items-center gap-2 rounded-full border px-3.5 text-[13px] font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none',
-              s.active
-                ? 'border-ink-900 bg-ink-900 text-white'
-                : s.kind === 'ISSUE'
-                  ? 'border-bad-200 bg-bad-50 text-bad-700 hover:border-bad-600'
-                  : 'border-good-200 bg-good-50 text-good-700 hover:border-good-600',
-            )}
-          >
-            {s.label}
-            <span className={clsx('rounded-full px-1.5 text-[12px] tabular-nums', s.active ? 'bg-white/20' : 'bg-white/80')}>
+          {/* Opening a topic is a step deeper, so it is an ordinary link and
+              adds to history. The open row leads back up. */}
+          {(() => {
+            const className = clsx(
+              'hw-focus-inset flex min-h-14 items-center gap-3 px-4 py-3 transition-colors',
+              s.active ? 'bg-ink-900' : 'hover:bg-ink-50',
+            );
+            const inner = (
+              <>
+            {/* The kind, as a rule down the left rather than a coloured pill.
+                One mark, at the same place in every row, readable at a glance
+                and still there when the row is selected. */}
+            <span
+              aria-hidden
+              className={clsx(
+                'h-8 w-1 shrink-0 rounded-full',
+                s.active ? 'bg-white' : s.kind === 'ISSUE' ? 'bg-bad-600' : 'bg-good-600',
+              )}
+            />
+            <span
+              className={clsx(
+                'min-w-0 flex-1 text-[16px] leading-snug font-medium',
+                s.active ? 'text-white' : 'text-ink-900',
+              )}
+            >
+              {s.label}
+            </span>
+            {/* Which way it moved since the last check-in: the arrow is the
+                count's own direction, the colour whether that is good news
+                for this topic. Hidden from screen readers, which hear the
+                word beside it instead. */}
+            {s.trend ? (
+              <span
+                className={clsx(
+                  'text-[15px] leading-none font-semibold',
+                  s.active
+                    ? 'text-white'
+                    : s.trend.tone === 'good'
+                      ? 'text-good-700'
+                      : s.trend.tone === 'bad'
+                        ? 'text-bad-700'
+                        : 'text-ink-400',
+                )}
+              >
+                <span aria-hidden>{s.trend.mark}</span>
+                <span className="sr-only">
+                  {s.trend.mark === '↑'
+                    ? t('brief.trend.up')
+                    : s.trend.mark === '↓'
+                      ? t('brief.trend.down')
+                      : t('brief.trend.steady')}
+                </span>
+              </span>
+            ) : null}
+            <span
+              className={clsx(
+                'font-mono text-[22px] leading-none font-semibold tabular-nums',
+                s.active ? 'text-white' : s.kind === 'ISSUE' ? 'text-bad-700' : 'text-good-700',
+              )}
+            >
               {s.count}
             </span>
-          </Link>
+              </>
+            );
+            return s.active ? (
+              <Up href={base} className={className} current>
+                {inner}
+              </Up>
+            ) : (
+              <Link href={`${base}?theme=${encodeURIComponent(s.key)}`} className={className}>
+                {inner}
+              </Link>
+            );
+          })()}
         </li>
       ))}
+      {/* The way back out, in the list rather than floating above it: a
+          selected row is the only state from which "show everything" means
+          anything, so the control only exists then. */}
+      {active ? (
+        <li>
+          <Up
+            href={base}
+            className="hw-focus-inset flex min-h-12 items-center px-4 py-2.5 text-[14px] font-medium text-ink-700 hover:bg-ink-50"
+          >
+            {/* Not "clear filters": an owner did not set a filter, they tapped
+                a topic. This is the way back to everything. */}
+            {t('feedback.saying.showAll')}
+          </Up>
+        </li>
+      ) : null}
     </ul>
+  );
+}
+
+/**
+ * ONE TOPIC, TOLD AS A STORY (final experience pass).
+ *
+ * Tapping a topic used to filter the inbox: the same page, fewer rows, and a
+ * box saying what Headway made of them. The owner still had to read the rows
+ * and assemble the meaning. Now a topic opens as the sequence a person would
+ * tell it in:
+ *
+ *   WHAT CUSTOMERS SAID     three of them, in their own words — first
+ *   WHAT CHANGED            the engine's own comparison of the last two check-ins
+ *   WHAT HEADWAY THINKS     one sentence, marked as Headway's reading
+ *   WHAT TO DO              the suggestion, and the decision, on this screen
+ *   WHAT HAPPENS NEXT       what Headway will watch for
+ *
+ * Evidence before interpretation, interpretation before action — the order
+ * that makes the conclusion believable. Every feedback entry about the topic
+ * is still listed below the story.
+ *
+ * A strength has no decision to make, so its fourth step is "keep doing" and
+ * carries no button. Praise is a thing to protect, not a change.
+ *
+ * The rail down the left is the one piece of structure: it says "these five
+ * belong together, in this order" without five more boxes.
+ */
+export async function TopicStory({
+  signal,
+  quotes,
+  clientId,
+  base,
+  basePath,
+}: {
+  signal: PortalSignal;
+  quotes: Quote[];
+  clientId: string;
+  base: string;
+  /** The workspace root, for the history rules and for each quote's own page. */
+  basePath: string;
+}) {
+  const t = await getTranslator();
+  const issue = signal.kind === 'ISSUE';
+  const trend = trendOf(signal, t);
+  const state = loopLine(signal.actionState, t);
+  const choices = movesFor(signal.actionStatus);
+  const changed = signal.movementLine ?? signal.recurrence;
+
+  const Step = ({
+    title,
+    lead = false,
+    children,
+  }: {
+    title: string;
+    lead?: boolean;
+    children: React.ReactNode;
+  }) => (
+    <li className="relative pb-6 pl-6 last:pb-0">
+      <span
+        aria-hidden
+        className={clsx(
+          'absolute top-1 -left-[7px] h-3 w-3 rounded-full border-2',
+          lead ? 'border-brand-500 bg-brand-500' : 'border-brand-400 bg-canvas',
+        )}
+      />
+      <h2 className="text-[11px] font-semibold tracking-[0.14em] text-ink-500 uppercase">{title}</h2>
+      <div className="mt-1.5">{children}</div>
+    </li>
+  );
+
+  return (
+    <article aria-labelledby="topic-title" className="mb-10">
+      {/* Up to every topic. When the list is right behind this in history —
+          the usual way here — this is the browser's own Back. */}
+      <UpLink
+        href={base}
+        basePath={basePath}
+        className="-ml-1 inline-flex min-h-11 items-center gap-1 px-1 text-[14px] font-medium text-ink-700 hover:text-ink-900"
+      >
+        <span aria-hidden>←</span> {t('feedback.story.back')}
+      </UpLink>
+
+      <p
+        className={clsx(
+          'mt-2 text-[11px] font-semibold tracking-[0.14em] uppercase',
+          issue ? 'text-bad-700' : 'text-good-700',
+        )}
+      >
+        {issue ? t('feedback.story.issue') : t('feedback.story.praise')}
+      </p>
+      <h1
+        id="topic-title"
+        className="mt-1.5 font-display text-[30px] leading-[1.1] font-semibold tracking-[-0.01em] text-balance text-ink-900 sm:text-[34px]"
+      >
+        {signal.themeLabel}
+      </h1>
+      <p className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="font-mono text-[34px] leading-none font-semibold text-ink-900 tabular-nums">
+          {signal.evidenceCount}
+        </span>
+        <span className="text-[13px] text-ink-500">
+          {t('brief.basis', { count: signal.evidenceCount, total: signal.evidenceTotal })}
+        </span>
+        {trend ? (
+          <span
+            className={clsx(
+              'text-[13px] font-medium',
+              trend.tone === 'good' ? 'text-good-700' : trend.tone === 'bad' ? 'text-bad-700' : 'text-ink-500',
+            )}
+          >
+            <span aria-hidden>{trend.mark}</span> {trend.counts ?? trend.label}
+          </span>
+        ) : null}
+      </p>
+
+      <ol className="mt-7 ml-1.5 border-l border-ink-200">
+        <Step title={t('feedback.story.said')}>
+          {/* Each customer opens their whole entry: a step deeper. */}
+          <Quotes
+            quotes={quotes}
+            hrefFor={(id) => `${base}/${id}?topic=${encodeURIComponent(signal.themeKey)}`}
+          />
+        </Step>
+
+        {changed ? (
+          <Step title={t('feedback.story.changed')}>
+            <p className="max-w-2xl text-[15px] leading-snug text-ink-800">{changed}</p>
+          </Step>
+        ) : null}
+
+        <Step title={t('feedback.story.thinks')}>
+          <p className="max-w-2xl text-[16px] leading-snug text-ink-900">{signal.brief}</p>
+        </Step>
+
+        {issue ? (
+          <Step title={t('feedback.story.todo')} lead>
+            <p className="max-w-2xl text-[17px] leading-snug font-semibold text-ink-900">
+              {signal.suggestion ?? signal.nextStep}
+            </p>
+            {state ? (
+              <p className="mt-3 border-l-2 border-ink-300 pl-3 text-[13px] leading-snug text-ink-600">{state}</p>
+            ) : null}
+            {choices.length > 0 ? (
+              <OwnerDecision
+                clientId={clientId}
+                themeKey={signal.themeKey}
+                actionId={signal.actionId}
+                choices={choices}
+                lead
+              />
+            ) : null}
+          </Step>
+        ) : (
+          <Step title={t('feedback.story.keep')} lead>
+            <p className="max-w-2xl text-[17px] leading-snug font-semibold text-ink-900">{signal.nextStep}</p>
+          </Step>
+        )}
+
+        <Step title={t('feedback.story.next')}>
+          <p className="max-w-2xl text-[15px] leading-snug text-ink-700">{signal.watchLine}</p>
+        </Step>
+      </ol>
+    </article>
   );
 }
 
@@ -231,12 +532,30 @@ export async function PortalReviews({
   ]);
   if (!view) notFound();
 
+  // The whole reading of the selected theme, loaded ONLY when one is selected.
+  // It is what turns this page from evidence into a decision, and it costs a
+  // core load — so the unfiltered inbox, which cannot use it, does not pay.
+  const selected = filters.theme
+    ? await (async () => {
+        const bundle = await getResponsibility(prisma, client.id, { t });
+        if (!bundle) return null;
+        const v = bundle.view;
+        return (
+          [...v.unhappy, ...v.loved, ...v.early].find((s) => s.themeKey === filters.theme) ?? null
+        );
+      })()
+    : null;
+
   const base = `${basePath}/reviews`;
   const filtered = view.filterSummary !== null;
   const issues = view.themeOptions.filter((t) => t.kind === 'ISSUE');
   const praise = view.themeOptions.filter((t) => t.kind === 'PRAISE');
   const inHand = view.waiting + view.processing;
   const activeSignal = view.signals.find((s) => s.active) ?? null;
+  // The story is told only for a topic Headway reads as a pattern, which is
+  // exactly when the full signal was found. A topic mentioned once or twice
+  // gets the plain list, headed by what it is.
+  const story = activeSignal && selected ? selected : null;
   const searching = filters.q.trim().length > 0 || filters.sentiment !== null || filters.source !== null || filters.needs !== null;
 
   // One topic, nothing else narrowed, first page: the representative comments
@@ -258,23 +577,64 @@ export async function PortalReviews({
   }
   const showAllHref = activeSignal ? `${base}?theme=${encodeURIComponent(activeSignal.key)}&all=1` : base;
 
+  // One server render, named, so a copy the browser restores on Back can be
+  // told apart from a fresh one and refreshed. See `LiveRefresh`.
+  const stamp = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
   return (
     <>
-      <PageIntro
-        eyebrow={t('feedback.intro.eyebrow')}
-        title={t('feedback.intro.title')}
-        description={
-          view.total === 0
-            ? t('feedback.intro.empty')
-            : view.analysed === 0 && inHand > 0
-              ? t('feedback.intro.reading')
-              : t('feedback.intro.ready')
-        }
-      />
+      <LiveRefresh stamp={stamp} reading={inHand > 0} />
+      {/* The heading only, with no paragraph under it. The three sentences
+          that used to sit here said what the page was for — which the heading
+          already says — or gave instructions for reading the rows below, which
+          is documentation for a screen that should not need any. The one case
+          worth a sentence is the pile that has not been read yet, because the
+          owner otherwise sees an empty page and concludes the product is
+          broken. That sentence is kept and the other two are gone. */}
+      {/* ONE TOPIC OPEN: its story leads, and the tools for the whole pile —
+          the counts, the method, the summary — step aside. They are about
+          everything, and the owner has just asked about one thing. */}
+      {story ? (
+        <TopicStory
+          signal={story}
+          quotes={quotesFor(evidence, story.themeKey, { limit: REPRESENTATIVE })}
+          clientId={clientId}
+          base={base}
+          basePath={basePath}
+        />
+      ) : (
+        <>
+          <PageIntro
+            eyebrow={t('feedback.intro.eyebrow')}
+            title={t('feedback.saying.heading')}
+            description={
+              view.total === 0
+                ? t('feedback.intro.empty')
+                : view.analysed === 0 && inHand > 0
+                  ? t('feedback.intro.reading')
+                  : null
+            }
+          />
 
-      {view.analysed > 0 ? <Funnel funnel={view.funnel} base={base} t={t} /> : null}
+          {/* THE ANSWER, FIRST: the topics themselves, biggest first,
+              complaints before praise, each with which way it moved. What used
+              to lead here — the funnel of Headway's own work — is under "How
+              Headway read these", with the rest of the method. */}
+          {view.signals.length > 0 ? (
+            <section className="mb-6" aria-label={t('feedback.saying.heading')}>
+              <SayingRows
+                signals={view.signals}
+                base={base}
+                active={activeSignal !== null}
+                t={t}
+                basePath={basePath}
+              />
+            </section>
+          ) : null}
+        </>
+      )}
 
-      {view.total > 0 ? (
+      {!story && view.total > 0 ? (
         <StatusStrip
           items={[
             { label: t('feedback.status.collected'), value: view.total },
@@ -297,20 +657,24 @@ export async function PortalReviews({
         />
       ) : null}
 
-      {view.signals.length > 0 ? (
-        <section className="mb-6">
-          <h2 className="mb-2 text-[11px] font-medium tracking-widest text-ink-500 uppercase">
-            {t('feedback.signals.heading')}
-          </h2>
-          <SignalChips signals={view.signals} base={base} />
-        </section>
+      {/* How Headway got from the pile to those topics. Method, so it sits
+          with the method: the funnel, the ratings, the tones and the rest of
+          what the reading found, all behind one tap. An owner who wants to
+          audit the reading gets everything they had before; an owner who
+          wants to know what customers said is not made to walk through it
+          first. */}
+      {!story && view.analysed > 0 ? (
+        <div className="mb-6">
+          <Reveal summary={t('feedback.method.summary')}>
+            <div className="rounded-xl border border-ink-200 bg-white p-4 sm:p-5">
+              <Funnel funnel={view.funnel} base={base} t={t} />
+              <RatingStrip base={base} ratings={view.ratings} active={view.filters.stars} />
+            </div>
+          </Reveal>
+        </div>
       ) : null}
 
-      {view.total > 0 ? (
-        <RatingStrip base={base} ratings={view.ratings} active={view.filters.stars} />
-      ) : null}
-
-      {view.found.length > 0 ? (
+      {!story && view.found.length > 0 ? (
         <div className="mb-6">
           <Reveal summary={t('feedback.found.summary')}>
             <div className="rounded-xl border border-ink-200 bg-white p-4 sm:p-5">
@@ -438,9 +802,14 @@ export async function PortalReviews({
       {view.total === 0 ? (
         <Quiet>{t('feedback.empty.body')}</Quiet>
       ) : (
-        <>
+        // #entries is where Home's link to every entry lands: the entries
+        // themselves, below the topics.
+        <div id="entries" className="scroll-mt-24">
           {activeSignal ? (
             <div className="mb-1 border-l-2 border-ink-900 pl-4">
+              {/* Under the story, this is simply the rows it rests on. Where
+                  no story could be told — a topic mentioned, but not yet a
+                  pattern — it is the page's heading instead. */}
               <p className={EYEBROW}>{t('feedback.evidence.eyebrow')}</p>
               <p className="mt-1 text-[17px] leading-snug font-semibold tracking-tight text-ink-900">
                 {t('feedback.evidence.title', { topic: activeSignal.label.toLowerCase() })}
@@ -450,9 +819,9 @@ export async function PortalReviews({
                 {representative && view.matching > items.length
                   ? ` ${t.plural('feedback.evidence.clearest', items.length)}`
                   : ''}{' '}
-                <Link href={base} className="inline-flex min-h-11 items-center font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900">
+                <UpLink href={base} basePath={basePath} className="inline-flex min-h-11 items-center font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900">
                   {t('feedback.filter.clear')}
-                </Link>
+                </UpLink>
               </p>
             </div>
           ) : (
@@ -484,6 +853,9 @@ export async function PortalReviews({
               </p>
               <Link
                 href={showAllHref}
+                // The same list, longer — not a new place. Replace, and stay put.
+                replace
+                scroll={false}
                 className="mt-2 inline-flex min-h-11 items-center gap-1 rounded-lg border border-ink-300 px-4 text-[13px] font-medium text-ink-900 hover:border-ink-900"
               >
                 {t('feedback.list.showAll', { count: view.matching })} <span aria-hidden>→</span>
@@ -503,6 +875,8 @@ export async function PortalReviews({
                   ),
                   page: String(view.nextPage),
                 }).toString()}`}
+                replace
+                scroll={false}
                 className="mt-2 inline-flex min-h-11 items-center rounded-lg border border-ink-300 px-4 text-[13px] font-medium text-ink-900 hover:border-ink-900"
               >
                 {t('feedback.list.showMore')}
@@ -513,7 +887,7 @@ export async function PortalReviews({
               {t.plural('feedback.list.end', view.matching)}
             </p>
           ) : null}
-        </>
+        </div>
       )}
     </>
   );

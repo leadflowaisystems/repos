@@ -104,20 +104,29 @@ export async function PortalAnalysis({
         description={view.basis}
       />
 
+      {/* THE FIRST SENTENCE IS THE ANSWER; the rest is elaboration on it.
+          All three used to be stacked here, which on a phone is three
+          paragraphs standing between the owner and the board they came for.
+          The lead stays in the open at the size it always had, and the
+          sentences that qualify it sit behind one tap. Nothing is lost —
+          `telling` is the engine's own executive reading and every line of it
+          is still on the page. */}
       {view.telling.length > 0 ? (
         <div className="mb-8 max-w-2xl">
-          {view.telling.map((line, index) => (
-            <p
-              key={line}
-              className={
-                index === 0
-                  ? 'text-[17px] leading-snug font-medium text-ink-900 sm:text-[19px]'
-                  : 'mt-2 text-[15px] leading-relaxed text-ink-700'
-              }
-            >
-              {line}
-            </p>
-          ))}
+          <p className="text-[17px] leading-snug font-medium text-ink-900 sm:text-[19px]">
+            {view.telling[0]}
+          </p>
+          {view.telling.length > 1 ? (
+            <Reveal summary={t('customers.telling.more')} className="mt-2">
+              <div className="space-y-2">
+                {view.telling.slice(1).map((line) => (
+                  <p key={line} className="text-[15px] leading-relaxed text-ink-700">
+                    {line}
+                  </p>
+                ))}
+              </div>
+            </Reveal>
+          ) : null}
         </div>
       ) : null}
 

@@ -85,13 +85,15 @@ function TabLabel({ label, active }: { label: string; active: boolean }) {
     <span
       data-pending={pending ? 'true' : undefined}
       className={clsx(
-        'inline-flex min-h-11 items-center border-b-2 px-2.5 text-[13px] whitespace-nowrap transition-colors sm:px-3',
+        'inline-flex min-h-11 items-center border-b-2 px-3 text-[13px] whitespace-nowrap transition-colors',
+        // On navy now. Active is white and carries Headway's gold underline —
+        // gold used as the one accent that means "you are here".
         active
-          ? 'border-ink-900 font-semibold text-ink-900'
+          ? 'border-brand-400 font-semibold text-white'
           : pending
-            ? 'border-ink-400 text-ink-800'
-            : 'border-transparent text-ink-500 group-hover:border-ink-300 group-hover:text-ink-800',
-        pending && !active && 'animate-pulse',
+            ? 'border-white/40 text-white'
+            : 'border-transparent text-ink-300 group-hover:border-white/30 group-hover:text-white',
+        pending && !active && 'motion-safe:animate-pulse',
       )}
     >
       {label}
@@ -99,6 +101,28 @@ function TabLabel({ label, active }: { label: string; active: boolean }) {
   );
 }
 
+/**
+ * THE APP BAR (final experience pass).
+ *
+ * Headway's own navy bar, edge to edge, on every page of the workspace. The
+ * previous header was a small wordmark on the same cool grey as everything
+ * else, which is to say it was the header of an admin panel: nothing on the
+ * screen said whose product this was. Navy is the brand's authority colour and
+ * this is the one place it is used at full strength on every page, so the
+ * product is recognisable before a word is read.
+ *
+ * ON A PHONE it is two things: the mark, which goes Home, and the owner's own
+ * initial, which opens More — account, language, sign out. The business name
+ * is not repeated in the bar; Home greets the owner by it, and a bar that
+ * shouts the name on every page is the product talking about itself.
+ *
+ * FROM TABLET UP it also carries the doors, in white with a gold underline for
+ * the current one, pinned while the page scrolls. The phone uses the bottom
+ * bar instead (`MobileTabBar`).
+ *
+ * `on-navy` flips the global focus ring to gold: the navy ring the rest of the
+ * product uses would be invisible here.
+ */
 export function WorkspaceHeader({
   basePath,
   businessName,
@@ -134,32 +158,60 @@ export function WorkspaceHeader({
   const base = `${basePath}`;
   const rest = pathname.startsWith(base) ? pathname.slice(base.length) : '';
   const currentSlug = rest.split('/').filter(Boolean)[0] ?? '';
+  // The owner's own initial, as the handle to their account. A letter rather
+  // than a person glyph: it is THEIR business, and a generic silhouette would
+  // say "a user" instead.
+  const initial = (businessName.trim().charAt(0) || 'H').toUpperCase();
 
   return (
-    <header className="mb-6 sm:mb-8">
-      {/* Whose software this is, then whose business it is about. Two rows
-          rather than one, because on a phone a wordmark and a business name
-          fighting for the same line makes both of them small. */}
-      <div className="flex items-center justify-between gap-4">
-        <HeadwayWordmark markClassName="h-6 w-6" nameClassName="text-[17px]" />
-        {signOut}
-      </div>
-      <div className="mt-3 min-w-0">
-        <p className="truncate text-[20px] leading-tight font-semibold tracking-tight text-ink-900 sm:text-[22px]">
-          {businessName}
-        </p>
-        <p className="mt-0.5 text-[13px] text-ink-500">{verticalLabel}</p>
+    <header className="on-navy bg-ink-900 text-white sm:sticky sm:top-0 sm:z-30">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
+        <Link
+          href={base}
+          aria-label={t('nav.home.aria')}
+          className="-ml-1 inline-flex min-h-11 items-center rounded-lg px-1"
+        >
+          <HeadwayWordmark tone="dark" markClassName="h-7 w-7" nameClassName="text-[18px]" />
+        </Link>
+
+        {/* From tablet up: whose business this is, and the way out. */}
+        <div className="hidden min-w-0 items-center gap-3 sm:flex">
+          <span className="min-w-0 text-right">
+            <span className="block truncate text-[13px] font-medium text-white">{businessName}</span>
+            <span className="block truncate text-[11px] text-ink-300">{verticalLabel}</span>
+          </span>
+          {signOut}
+        </div>
+
+        {/* On a phone: the owner's account, one tap. When the workspace is
+            locked More is not open, so the bar offers the way out directly —
+            a locked owner must still be able to sign out. */}
+        {locked ? (
+          <div className="sm:hidden">{signOut}</div>
+        ) : showExtras ? (
+          <Link
+            href={`${base}/more`}
+            aria-label={t('nav.menu.aria', { business: businessName })}
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full sm:hidden"
+          >
+            <span
+              aria-hidden
+              className="grid h-9 w-9 place-items-center rounded-full border border-brand-400/60 bg-white/5 text-[15px] font-semibold text-brand-200"
+            >
+              {initial}
+            </span>
+          </Link>
+        ) : null}
       </div>
 
-      {/* The doors, always on screen. On a phone they wrap into rows
-          rather than scrolling sideways — a tab nobody can see is a page
-          nobody opens. From tablet width up the row stays put while the page
-          scrolls, so "where am I" and "where else can I go" never leave. */}
-      <nav
-        aria-label={t('nav.sections.label')}
-        className="-mx-4 mt-4 border-b border-ink-200 bg-ink-50/95 px-4 backdrop-blur sm:sticky sm:top-0 sm:z-30 sm:mx-0 sm:px-0"
-      >
-        <ul className="flex flex-wrap gap-x-1">
+      {/* The doors, from tablet width up. On a phone they used to wrap into
+          three rows of small text at the top of the screen — the far end from
+          the hand holding it — and eight of them asked the owner to choose
+          before they had read anything. The phone gets four doors on a bottom
+          bar (`MobileTabBar`); this row is what desktop keeps, where there is
+          room for the full set. */}
+      <nav aria-label={t('nav.sections.label')} className="hidden border-t border-white/10 sm:block">
+        <ul className="mx-auto flex max-w-5xl flex-wrap gap-x-1 px-4 sm:px-6">
           {SECTIONS.filter((s) => (locked ? s.slug === 'account' : showExtras || !s.extra)).map((s) => {
             const active =
               s.slug === 'checkin' ? CHECKIN_FAMILY.has(currentSlug) : currentSlug === s.slug;
@@ -170,7 +222,7 @@ export function WorkspaceHeader({
                   aria-current={active ? 'page' : undefined}
                   // The negative margin stays on the anchor so its box, and the
                   // focus ring drawn around it, still enclose the underline.
-                  className="group -mb-px inline-flex focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:outline-none"
+                  className="group -mb-px inline-flex"
                 >
                   <TabLabel label={t(s.label)} active={active} />
                 </Link>
@@ -200,7 +252,7 @@ export function WorkspaceHeader({
 export function WorkspaceFooter({ businessName }: { businessName: string }) {
   const t = useT();
   return (
-    <footer className="on-navy -mx-4 mt-12 bg-ink-950 px-4 py-4 sm:-mx-6 sm:px-6">
+    <footer className="on-navy mt-12 bg-ink-950 px-4 py-5 sm:px-6">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <div className="flex items-center gap-3">
           <HeadwayWordmark tone="dark" markClassName="h-5 w-5" nameClassName="text-[15px]" />

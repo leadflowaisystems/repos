@@ -72,6 +72,30 @@ export const nav = {
     mr: 'अकाउंट',
   },
 
+  // The fourth door on a phone: everything that is not the daily loop.
+  // Named for what it IS rather than for what it contains, because the list
+  // behind it changes and "More" never has to be renamed when it does.
+  'nav.section.more': {
+    en: 'More',
+    hi: 'और',
+    mr: 'अधिक',
+  },
+
+  // --- the app bar ----------------------------------------------------------
+  // Read aloud, never shown: the mark is the way Home, and the owner's own
+  // initial is the way to their account. Both need a name a screen reader can
+  // say, because neither carries visible words.
+  'nav.home.aria': {
+    en: 'Headway — go to your brief',
+    hi: 'Headway — अपनी ब्रीफ़ पर जाएँ',
+    mr: 'Headway — तुमच्या ब्रीफवर जा',
+  },
+  'nav.menu.aria': {
+    en: '{business} — account and more',
+    hi: '{business} — अकाउंट और बाक़ी',
+    mr: '{business} — अकाउंट आणि इतर',
+  },
+
   // --- ending the session ----------------------------------------------------
   // The one control in the header that is not a door. Read by the workspace's
   // sign-out button; the operator console renders the same button with its

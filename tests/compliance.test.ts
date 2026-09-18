@@ -1194,6 +1194,13 @@ describe('V1 hard rules — nothing acts without an operator behind it (M16)', (
     moveActionAction: 'MEMBER',
     measureActionAction: 'MEMBER',
     recordLearningAction: 'MEMBER',
+    // The owner's own half of the same loop. MEMBER, exactly like the four
+    // above it, and for the same reason: this is a business recording a
+    // decision about its own improvement, and it calls those same services.
+    // It is deliberately NOT 'OWNER' — a staff member who can see the
+    // feedback can say "I'll handle this", which is what a shift manager
+    // marking a change done actually is.
+    ownerDecideAction: 'MEMBER',
     saveReviewLinkAction: 'OWNER',
     saveKitConfigAction: 'OWNER',
     setKitInstalledAction: 'MEMBER',

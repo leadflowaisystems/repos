@@ -676,4 +676,34 @@ export const common = {
     hi: 'अगली जाँच।',
     mr: 'पुढची तपासणी.',
   },
+
+  // --- when a customer said it ----------------------------------------------
+  //
+  // Relative only for times Headway actually recorded to the minute (the
+  // feedback card stamps its submissions). Anything else shows its date.
+  'common.ago.now': {
+    en: 'just now',
+    hi: 'अभी-अभी',
+    mr: 'आत्ताच',
+  },
+  'common.ago.minutes.one': {
+    en: '{count} min ago',
+    hi: '{count} मिनट पहले',
+    mr: '{count} मिनिटापूर्वी',
+  },
+  'common.ago.minutes.other': {
+    en: '{count} min ago',
+    hi: '{count} मिनट पहले',
+    mr: '{count} मिनिटांपूर्वी',
+  },
+  'common.ago.hours.one': {
+    en: '{count} hour ago',
+    hi: '{count} घंटा पहले',
+    mr: '{count} तासापूर्वी',
+  },
+  'common.ago.hours.other': {
+    en: '{count} hours ago',
+    hi: '{count} घंटे पहले',
+    mr: '{count} तासांपूर्वी',
+  },
 } satisfies Namespace;

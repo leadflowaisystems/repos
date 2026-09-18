@@ -3,7 +3,12 @@ import { computeHealthCard } from '@/lib/health/health';
 import { getPackOrFallback } from '@/lib/packs';
 import { loadIntelligence } from '@/lib/intelligence/service';
 import { listActionsWithProgress } from '@/lib/improve/service';
-import { countClientFeedback, getFeedbackStats, listClientFeedback } from '@/lib/feedback/service';
+import {
+  countClientFeedback,
+  getFeedbackItem,
+  getFeedbackStats,
+  listClientFeedback,
+} from '@/lib/feedback/service';
 import { getAnalysisCoverage } from '@/lib/feedback/analysis';
 import { listSnapshots, loadHealthSnapshots } from '@/lib/snapshots/service';
 import { getContextSet } from '@/lib/context/service';
@@ -11,15 +16,18 @@ import { analysedRows, loadFeedbackLedger } from '@/lib/feedback/ledger';
 import { oncePerRequest } from '@/lib/request-cache';
 import { buildPortalView, type PortalInput, type PortalView } from './view';
 import { EMPTY_EVIDENCE, buildEvidenceIndex, type EvidenceIndex } from './evidence';
+import { buildFreshFeed, type FreshFeed } from './fresh';
 import {
   buildAnalysisView,
   buildCheckinView,
   buildImprovementsView,
   buildReviewsView,
+  reviewItemOf,
   type AnalysisView,
   type CheckinView,
   type ImprovementsView,
   type ReviewFilters,
+  type ReviewItem,
   type ReviewsView,
 } from './pages';
 import type { PortalTranslator } from '@/lib/i18n/translator';
@@ -36,7 +44,14 @@ import type { PortalTranslator } from '@/lib/i18n/translator';
  * workspace can never reach another owner's data.
  */
 
-type ClientRow = { id: string; businessName: string; vertical: string; archivedAt: Date | null };
+type ClientRow = {
+  id: string;
+  businessName: string;
+  vertical: string;
+  archivedAt: Date | null;
+  /** Read with the rest so Home can say "waiting" rather than "reading" while paused. */
+  subscriptionStatus: string;
+};
 
 /**
  * The client row, read once per request.
@@ -51,7 +66,7 @@ function findClient(db: PrismaClient, clientId: string): Promise<ClientRow | nul
     // Archived clients keep their workspace: the data is still theirs.
     db.client.findFirst({
       where: { id: clientId },
-      select: { id: true, businessName: true, vertical: true, archivedAt: true },
+      select: { id: true, businessName: true, vertical: true, archivedAt: true, subscriptionStatus: true },
     }),
   );
 }
@@ -250,6 +265,60 @@ export async function getEvidenceIndex(db: PrismaClient, clientId: string): Prom
   // shares (see feedback/ledger.ts) — the ledger is already in this order.
   const rows = analysedRows(await loadFeedbackLedger(db, client.id));
   return buildEvidenceIndex(rows);
+}
+
+/**
+ * The newest feedback and where Headway is with it (freshness pass).
+ *
+ * Built from the ledger Home already reads for its counts, so it costs no
+ * query of its own and can never disagree with the figures beside it. The
+ * client row is the request's cached one. See `portal/fresh.ts`.
+ */
+export async function getFreshFeed(
+  db: PrismaClient,
+  clientId: string,
+  options: { now?: Date; labelFor?: (key: string) => string | null; t?: PortalTranslator } = {},
+): Promise<FreshFeed | null> {
+  const client = await findClient(db, clientId);
+  if (!client) return null;
+  const ledger = await loadFeedbackLedger(db, client.id);
+  return buildFreshFeed({
+    ledger,
+    now: options.now ?? new Date(),
+    // The same rule the pipeline's own gate applies (`isServiceSuspended`):
+    // a paused or closed account keeps collecting and stops being read.
+    readingPaused: client.subscriptionStatus === 'PAUSED' || client.subscriptionStatus === 'CANCELLED',
+    // The page's own name for a topic first, then the pack's name for it in
+    // the owner's language, then the stored English — never the bare key.
+    labelFor: (key) =>
+      options.labelFor?.(key) ??
+      options.t?.soft(`pack.${getPackOrFallback(client.vertical).id}.${key}`) ??
+      null,
+  });
+}
+
+/** Ids are cuids. Anything else is not a feedback entry and is never looked up. */
+const ENTRY_ID = /^[a-z0-9]{10,64}$/i;
+
+/**
+ * One feedback entry, for its own page.
+ *
+ * One row by id AND client — the same scoping every list here uses, with Row
+ * Level Security underneath it — so an id from another business is simply not
+ * found. Not the ledger: a page about one entry has no business reading all
+ * of them.
+ */
+export async function getFeedbackEntry(
+  db: PrismaClient,
+  clientId: string,
+  entryId: string,
+  options: { t?: PortalTranslator } = {},
+): Promise<ReviewItem | null> {
+  if (!ENTRY_ID.test(entryId)) return null;
+  const client = await findClient(db, clientId);
+  if (!client) return null;
+  const row = await getFeedbackItem(db, client.id, entryId);
+  return row ? reviewItemOf(row, options.t, getPackOrFallback(client.vertical).id) : null;
 }
 
 /** Just enough to render the masthead and navigation. */

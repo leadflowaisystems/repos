@@ -60,6 +60,10 @@ export const viewport: Viewport = {
 const WORKSPACE_NAMESPACES = [
   // The header, its nine doors and the footer.
   'nav.',
+  // The decision buttons on Home, Feedback and the action centre.
+  'loop.',
+  // The greeting at the top of Home, said on the reader clock.
+  'brief.greeting.',
   // The loading and error states, which are client components.
   'errors.',
   // The forms: continuing with Headway and asking to extend access.
@@ -86,9 +90,14 @@ export default async function WorkspaceRootLayout({
 
   return (
     <html lang={LOCALE_HTML_LANG[locale]}>
-      <body className="min-h-dvh bg-ink-50">
+      {/* The warm canvas, not the cool grey of the operator console: the
+          owner's product and the agency's tool should never look like the
+          same screen. The page container lives in the business layout below
+          rather than here, so Headway's navy bar can run edge to edge above
+          it instead of sitting boxed inside a column. */}
+      <body className="min-h-dvh bg-canvas text-ink-900">
         <LocaleProvider locale={locale} strings={flattenFor(MESSAGES, locale, WORKSPACE_NAMESPACES)}>
-          <div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 sm:py-8">{children}</div>
+          {children}
         </LocaleProvider>
       </body>
     </html>

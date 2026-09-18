@@ -130,7 +130,11 @@ describe('the workspace ships only the namespaces its client components read', (
       '/src/components/portal/workspace.tsx',
       '/src/components/forms/language-form.tsx',
       '/src/components/forms/kit-order-form.tsx',
-      '/src/app/(workspace)/workspace/[clientId]/loading.tsx',
+      // Both loading boundaries draw the one branded skeleton, which is
+      // where their words live now (final experience pass).
+      '/src/components/workspace/skeleton.tsx',
+      '/src/components/portal/mobile-nav.tsx',
+      '/src/components/workspace/greeting.tsx',
       '/src/app/(workspace)/workspace/[clientId]/error.tsx',
     ]));
   });

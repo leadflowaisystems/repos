@@ -136,6 +136,98 @@ export const feedback = {
   // -------------------------------------------------------------------------
   // The patterns, as one-tap filters
   // -------------------------------------------------------------------------
+  // --- what customers are saying, the first thing on the page -------------
+  //
+  // The heading over the topics themselves. It is a question an owner has,
+  // answered — not a name for a section. "Patterns" and "Signals" are what
+  // Headway calls these internally and neither is a thing anybody wonders.
+  'feedback.saying.heading': {
+    en: 'What customers are saying',
+    hi: 'ग्राहक क्या कह रहे हैं',
+    mr: 'ग्राहक काय म्हणत आहेत',
+  },
+  'feedback.saying.showAll': {
+    en: 'Show all feedback',
+    hi: 'सारा फ़ीडबैक दिखाएँ',
+    mr: 'सर्व फीडबॅक दाखवा',
+  },
+
+  // --- how Headway read the pile, behind one tap --------------------------
+  // --- what Headway makes of the words, beside the words -----------------
+  //
+  // The two labels that close the loop on this page. "What Headway sees" is
+  // marked as an INTERPRETATION, separately from the counts above it, because
+  // the distinction between what was observed and what was concluded is the
+  // thing that makes the conclusion worth trusting.
+  'feedback.read.eyebrow': {
+    en: 'What Headway sees',
+    hi: 'Headway को क्या दिख रहा है',
+    mr: 'Headway ला काय दिसतं',
+  },
+  'feedback.read.thinkAbout': {
+    en: 'Think about',
+    hi: 'इस पर सोचें',
+    mr: 'याचा विचार करा',
+  },
+
+  // --- one topic, told as a story (final experience pass) -----------------
+  //
+  // The five headings are the order a person tells it in: what customers said,
+  // what changed, what Headway thinks, what to do, what happens next. Evidence
+  // first, interpretation second, action third — and "What Headway thinks" is
+  // named as Headway's, so a reading is never mistaken for a fact.
+  'feedback.story.back': {
+    en: 'All topics',
+    hi: 'सभी विषय',
+    mr: 'सर्व विषय',
+  },
+  'feedback.story.issue': {
+    en: 'What customers complain about',
+    hi: 'ग्राहक किस बात की शिकायत करते हैं',
+    mr: 'ग्राहक कशाबद्दल तक्रार करतात',
+  },
+  'feedback.story.praise': {
+    en: 'What customers like',
+    hi: 'ग्राहकों को क्या पसंद है',
+    mr: 'ग्राहकांना काय आवडतं',
+  },
+  'feedback.story.said': {
+    en: 'What customers said',
+    hi: 'ग्राहकों ने क्या कहा',
+    mr: 'ग्राहक काय म्हणाले',
+  },
+  'feedback.story.changed': {
+    en: 'What changed',
+    hi: 'क्या बदला',
+    mr: 'काय बदललं',
+  },
+  'feedback.story.thinks': {
+    en: 'What Headway thinks',
+    hi: 'Headway क्या सोचता है',
+    mr: 'Headway ला काय वाटतं',
+  },
+  'feedback.story.todo': {
+    en: 'What to do',
+    hi: 'क्या करना है',
+    mr: 'काय करायचं',
+  },
+  'feedback.story.keep': {
+    en: 'Keep doing',
+    hi: 'करते रहें',
+    mr: 'करत राहा',
+  },
+  'feedback.story.next': {
+    en: 'What happens next',
+    hi: 'आगे क्या होगा',
+    mr: 'पुढे काय होईल',
+  },
+
+  'feedback.method.summary': {
+    en: 'How Headway read these',
+    hi: 'Headway ने इन्हें कैसे पढ़ा',
+    mr: 'Headway ने हे कसे वाचले',
+  },
+
   'feedback.signals.heading': {
     en: 'What keeps coming up · tap one to read that feedback',
     hi: 'बार-बार क्या आ रहा है · वह फ़ीडबैक पढ़ने के लिए किसी एक पर टैप करें',
@@ -362,5 +454,22 @@ export const feedback = {
     en: 'That is all {count} feedback entries.',
     hi: 'बस इतने ही — कुल {count} फ़ीडबैक।',
     mr: 'एवढेच — एकूण {count} फीडबॅक.',
+  },
+
+  // --- one feedback entry, on its own page ----------------------------------
+  'feedback.entry.eyebrow': {
+    en: 'Feedback',
+    hi: 'फ़ीडबैक',
+    mr: 'फीडबॅक',
+  },
+  'feedback.entry.filed': {
+    en: 'Headway filed it under',
+    hi: 'Headway ने इसे यहाँ रखा',
+    mr: 'Headway ने हे इथे ठेवलं',
+  },
+  'feedback.entry.more': {
+    en: 'Everything customers said about this',
+    hi: 'इस बारे में ग्राहकों ने जो कुछ कहा',
+    mr: 'याबद्दल ग्राहकांनी जे काही सांगितलं',
   },
 } satisfies Namespace;

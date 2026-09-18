@@ -104,10 +104,14 @@ describe('a tab answers at once', () => {
 
   it('has a loading boundary for the page slot under the header', () => {
     expect(existsSync(loading)).toBe(true);
+    // The boundary draws the branded skeleton both loading states share
+    // (final experience pass), and the skeleton carries the busy state and
+    // the line that is read aloud, in the owner's language.
     const source = readFileSync(loading, 'utf8');
-    expect(source).toContain('aria-busy="true"');
-    // Read aloud, in the owner's language, like the outer one.
-    expect(source).toContain("t('errors.loading.label')");
+    expect(source).toContain('<BriefSkeleton');
+    const skeleton = readFileSync(join(SRC, 'components', 'workspace', 'skeleton.tsx'), 'utf8');
+    expect(skeleton).toContain('aria-busy="true"');
+    expect(skeleton).toContain("t('errors.loading.label')");
   });
 
   it('marks the pressed tab while its page is in flight', () => {
@@ -129,6 +133,13 @@ describe('nothing in the workspace fetches for itself', () => {
         return /\bfetch\(|useSWR|useQuery|router\.refresh\(|setInterval\(|new EventSource|WebSocket\(/.test(source);
       })
       .map(rel);
-    expect(fetching).toEqual([]);
+    // ONE sanctioned exception, and it fetches nothing itself: LiveRefresh
+    // asks the SERVER to render the page again (freshness pass). That answer
+    // is an ordinary page render through Next's own router queue, not a
+    // client-side request whose late reply could overwrite newer state.
+    expect(fetching).toEqual(['/src/components/workspace/live-refresh.tsx']);
+    const live = readFileSync(join(SRC, 'components', 'workspace', 'live-refresh.tsx'), 'utf8');
+    expect(live).not.toMatch(/\bfetch\(|useSWR|useQuery|setInterval\(|new EventSource|WebSocket\(/);
+    expect(live).toContain('startTransition(() => router.refresh())');
   });
 });

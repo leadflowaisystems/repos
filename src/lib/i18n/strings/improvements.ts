@@ -26,6 +26,12 @@ export const improvements = {
     hi: 'यहाँ अभी कुछ नहीं है। Headway ने जो बदलाव सुझाया है वह करें, और यह पेज उससे पहले और बाद के फ़ीडबैक की तुलना करेगा।',
     mr: 'इथे अजून काही नाही. Headway ने सुचवलेला बदल करा, आणि हे पान त्याआधीच्या आणि नंतरच्या फीडबॅकची तुलना करेल.',
   },
+  'improvements.stories.summary': {
+    en: 'The full story of each change',
+    hi: 'हर बदलाव की पूरी कहानी',
+    mr: 'प्रत्येक बदलाची संपूर्ण गोष्ट',
+  },
+
   'improvements.section.compared': {
     en: 'Changes compared',
     hi: 'तुलना किए गए बदलाव',
@@ -266,5 +272,12 @@ export const improvements = {
     en: 'The original suggestion still stands: {suggestion}',
     hi: 'पहली सलाह अब भी वही है: {suggestion}',
     mr: 'पहिला सल्ला अजूनही तोच आहे: {suggestion}',
+  },
+
+  // --- one change, on its own page ------------------------------------------
+  'improvements.detail.evidence': {
+    en: 'What customers said about this',
+    hi: 'इस बारे में ग्राहकों ने क्या कहा',
+    mr: 'याबद्दल ग्राहक काय म्हणाले',
   },
 } satisfies Namespace;

@@ -340,6 +340,25 @@ export type PortalSignal = {
   watchLine: string;
 
   // ---- owner context / the loop ----------------------------------------
+  /**
+   * The improvement action already open on this theme, when there is one.
+   *
+   * Null means nobody has decided anything about this yet, which is the state
+   * the owner's first tap resolves. The id is the loop's own and opaque; the
+   * THEME is what a first tap names, because an insight id carries tool
+   * vocabulary the portal may not show.
+   */
+  actionId: string | null;
+  /**
+   * The improvement loop's OWN status, not a display grouping of it.
+   *
+   * `actionState` and `stage` both merge ACCEPTED with PAUSED, which is right
+   * for a label and wrong for a button: the legal moves out of those two
+   * states are different, so a screen that read either of them would offer the
+   * owner a move `canTransition` then refused — after they had pressed it.
+   * Null when nobody has decided anything on this theme.
+   */
+  actionStatus: ActionStatus | null;
   actionState: PortalActionState;
   /** "You changed: cut evening bookings to five an hour." */
   actionLine: string | null;
@@ -414,6 +433,11 @@ export type PortalAction = {
   /** Movement at check-ins recorded after the change, when any exist. */
   sinceThen: string | null;
   returning: boolean;
+  /**
+   * The loop's own status, for the same reason `PortalSignal` carries it:
+   * `stage` merges ACCEPTED with PAUSED and the legal moves differ.
+   */
+  status: ActionStatus;
   /** New feedback collected so far against what a check needs. */
   awaiting: { have: number; need: number } | null;
 };
@@ -1230,6 +1254,8 @@ export function toSignal(insight: Insight, ctx: ThemeContext): PortalSignal {
     }),
     watchLine: watchLineFor(insight, bucket, state, outcome, t),
 
+    actionId: progress?.action.id ?? null,
+    actionStatus: progress?.action.status ?? null,
     actionState: state,
     actionLine,
     outcome,
@@ -1700,6 +1726,7 @@ export function buildPortalView(input: PortalInput): PortalView {
           ? t('insight.sinceThen', { note: insightNow.movement.pointNote })
           : null,
       returning,
+      status: a.status,
       awaiting:
         a.status === 'DONE'
           ? { have: progress.newFeedbackSinceDone, need: MIN_FEEDBACK_TO_MEASURE }

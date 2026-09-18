@@ -244,6 +244,35 @@ export async function latestReportableAction(
 // ---------------------------------------------------------------------------
 
 /** Finds one insight in the current intelligence by its stable id. */
+/**
+ * The insight currently standing behind one theme, by the theme key.
+ *
+ * The owner-facing pages address a theme by its key — it is already in every
+ * link they hold, as ?theme=wait_time — and never by an insight id. That is
+ * not a convenience. tests/compliance.test.ts forbids the string "insightId",
+ * and the KIND inside such an id (UNHAPPY, ATTENTION), from reaching anything
+ * the owner reads, on the grounds that an owner is looking at their business
+ * and not at the tool. Putting one in a hidden form field would have broken
+ * that rule in the most literal way available: in the page source.
+ *
+ * So the owner names a theme and the server resolves which insight that is
+ * now. ATTENTION first, then complaints, then praise — the same order
+ * findInsight searches, so the two always agree about which insight owns a
+ * theme.
+ */
+export function findInsightByTheme(
+  intelligence: ClientIntelligence,
+  themeKey: string,
+): Insight | null {
+  const all = [
+    ...(intelligence.attention ? [intelligence.attention] : []),
+    ...intelligence.unhappy,
+    ...intelligence.loved,
+    ...intelligence.changing,
+  ];
+  return all.find((insight) => insight.themeKey === themeKey) ?? null;
+}
+
 export function findInsight(
   intelligence: ClientIntelligence,
   insightId: string,
@@ -266,6 +295,39 @@ export function findInsight(
  * point: intelligence is recomputed constantly, and an action has to survive
  * being disagreed with by a later version of it.
  */
+/**
+ * Opens an action on whatever insight currently stands behind a theme.
+ *
+ * The owner-facing half of createActionFromInsight, and a thin one: it
+ * resolves the theme to an insight and hands over. The resolution has to
+ * happen HERE rather than in the browser, because an insight id carries the
+ * tool vocabulary the portal is forbidden to show — see findInsightByTheme.
+ */
+export async function createActionForTheme(
+  db: PrismaClient,
+  clientId: string,
+  themeKey: string,
+  options: { now?: Date } = {},
+): Promise<ServiceResult<{ id: string }>> {
+  const client = await db.client.findUnique({
+    where: { id: clientId },
+    select: { id: true, businessName: true, vertical: true },
+  });
+  if (!client) return err("That client no longer exists.");
+
+  const now = options.now ?? new Date();
+  const { intelligence } = await loadIntelligence(db, client, now);
+  const insight = findInsightByTheme(intelligence, themeKey);
+  if (!insight) {
+    // Said as the owner would understand it. The theme was read often
+    // enough to be shown and is not now, which happens when feedback moves
+    // on between the page rendering and the tap.
+    return err("Headway is no longer reading this as a pattern, so there is nothing to act on.");
+  }
+
+  return createActionFromInsight(db, clientId, insight.id, options);
+}
+
 export async function createActionFromInsight(
   db: PrismaClient,
   clientId: string,

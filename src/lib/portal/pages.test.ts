@@ -312,8 +312,11 @@ describe('reviews — the evidence', () => {
 
   it('shows the owner-facing shape and nothing more', () => {
     const v = reviews();
+    // `exact` says whether the date is a moment (the feedback card stamps its
+    // submissions) and `topics` pairs each theme label with the key its story
+    // lives under — the same key the Feedback page already puts in its URL.
     expect(Object.keys(v.items[0]!).sort()).toEqual([
-      'at', 'classLabel', 'gave', 'id', 'replyState', 'sentiment', 'sentimentLabel', 'sourceLabel', 'stars', 'state', 'suggestedReply', 'text', 'themes',
+      'at', 'classLabel', 'exact', 'gave', 'id', 'replyState', 'sentiment', 'sentimentLabel', 'sourceLabel', 'stars', 'state', 'suggestedReply', 'text', 'themes', 'topics',
     ]);
     const t = text(v);
     expect(t).not.toMatch(/priorityRank|priorityReasons|draftNotes|draftSource|redactions|clientId|matched a hint|low rating/);

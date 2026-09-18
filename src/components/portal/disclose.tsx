@@ -95,11 +95,18 @@ export async function Quotes({
   quotes,
   seeAll,
   empty,
+  hrefFor,
 }: {
   quotes: Quote[];
   seeAll?: { label: string; href: string } | null;
   /** What to say when nobody wrote anything: star ratings can carry a topic with no words. */
   empty?: string;
+  /**
+   * Where each quote opens, when it can: the whole entry it was taken from.
+   * A quote is an excerpt of one customer's feedback, and the owner should be
+   * one tap from the rest of what that customer said.
+   */
+  hrefFor?: (id: string) => string;
 }) {
   const t = await getTranslator();
   if (quotes.length === 0) {
@@ -110,20 +117,41 @@ export async function Quotes({
   return (
     <div>
       <ul className="space-y-3">
-        {quotes.map((q) => (
-          <li key={q.id} className="border-l-2 border-ink-200 pl-3">
-            <p className="text-[14px] leading-relaxed text-ink-900">“{q.text}”</p>
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-ink-500">
-              {q.stars !== null ? (
-                <SmallStars value={q.stars} />
+        {quotes.map((q) => {
+          const body = (
+            <>
+              <p className="text-[14px] leading-relaxed text-ink-900">“{q.text}”</p>
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-ink-500">
+                {q.stars !== null ? (
+                  <SmallStars value={q.stars} />
+                ) : (
+                  <span className="italic">{t('common.review.noRating')}</span>
+                )}
+                <span>{formatDate(q.at)}</span>
+                <span>· {q.sourceLabel}</span>
+                {hrefFor ? (
+                  <span aria-hidden className="ml-auto text-ink-400">
+                    ›
+                  </span>
+                ) : null}
+              </p>
+            </>
+          );
+          return (
+            <li key={q.id} className="border-l-2 border-ink-200 pl-3">
+              {hrefFor ? (
+                <Link
+                  href={hrefFor(q.id)}
+                  className="-my-1 block min-h-11 rounded py-1 transition-colors hover:bg-white"
+                >
+                  {body}
+                </Link>
               ) : (
-                <span className="italic">{t('common.review.noRating')}</span>
+                body
               )}
-              <span>{formatDate(q.at)}</span>
-              <span>· {q.sourceLabel}</span>
-            </p>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
       {seeAll ? (
         <Link
