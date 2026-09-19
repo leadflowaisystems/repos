@@ -1,8 +1,9 @@
 import { Link } from '@/components/portal/link';
 import clsx from 'clsx';
-import type { Brief, BriefCard, BriefChange, BriefMemory, BriefMove, BriefTrend } from '@/lib/portal/brief';
+import type { Brief, BriefCard, BriefChange, BriefMemory, BriefTrend } from '@/lib/portal/brief';
 import { getTranslator } from '@/lib/i18n/request';
 import { HeadwayMark } from '@/components/brand';
+import { Reveal } from '@/components/portal/disclose';
 import { OwnerDecision } from '@/components/workspace/owner-decision';
 import { Greeting } from '@/components/workspace/greeting';
 import { LiveRefresh } from '@/components/workspace/live-refresh';
@@ -197,21 +198,22 @@ async function Band({ brief, live }: { brief: Brief; live: LiveState }) {
         </ul>
       ) : null}
 
-      {/* How customers feel. Three labelled figures; the dot is decoration and
-          the word carries the meaning, so colour is never the only signal. */}
-      <p className={clsx(EYEBROW, 'mt-6 text-ink-300')}>{t('brief.mood.title')}</p>
-      <dl className="mt-2.5 grid grid-cols-3 gap-2">
+      {/* How customers feel — one quiet line, not three tiles (mobile polish
+          pass). Three big figures above the problem made the top of Home read
+          as a dashboard and pushed "what to do" below the fold; the counts are
+          the same, said once, small. The dot is decoration and the word
+          carries the meaning, so colour is never the only signal. */}
+      <p className={clsx(EYEBROW, 'mt-5 text-ink-300')}>{t('brief.mood.title')}</p>
+      <dl className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
         {tiles.map((tile) => (
-          <div key={tile.key} className="rounded-xl bg-white/[0.07] px-3 py-3">
-            <dd className="font-mono text-[28px] leading-none font-semibold text-white tabular-nums">{tile.value}</dd>
-            <dt className="mt-1.5 flex items-center gap-1.5 text-[12px] leading-tight text-ink-200">
-              <span aria-hidden className={clsx('h-2 w-2 shrink-0 rounded-full', tile.dot)} />
-              {tile.label}
-            </dt>
+          <div key={tile.key} className="flex items-baseline gap-1.5">
+            <span aria-hidden className={clsx('h-2 w-2 shrink-0 self-center rounded-full', tile.dot)} />
+            <dd className="text-[16px] font-semibold text-white tabular-nums">{tile.value}</dd>
+            <dt className="text-[13px] text-ink-200">{tile.label}</dt>
           </div>
         ))}
       </dl>
-      <p className="mt-2.5 text-[12px] text-ink-300">
+      <p className="mt-1 text-[12px] text-ink-300">
         {t.plural('brief.mood.basis', mix.read)}
         {brief.waiting > 0 ? ` · ${t.plural('brief.today.waiting', brief.waiting)}` : ''}
       </p>
@@ -279,28 +281,36 @@ async function Story({ card, clientId }: { card: BriefCard; clientId?: string })
       ) : null}
 
       {clientId && choices.length > 0 ? (
-        <OwnerDecision clientId={clientId} themeKey={card.themeKey} actionId={card.loop.actionId} choices={choices} lead />
+        <OwnerDecision
+          clientId={clientId}
+          themeKey={card.themeKey}
+          actionId={card.loop.actionId}
+          choices={choices}
+          lead
+        />
       ) : null}
 
-      {/* THE EVIDENCE, after the conclusion: one customer, and the recorded
-          reason when there is one. */}
-      {lead ? (
-        <blockquote className="mt-5 border-l-2 border-brand-500 pl-3 text-[15px] leading-snug text-ink-800">
-          “{lead.text}”
-        </blockquote>
-      ) : null}
-      {card.meaning ? (
-        <p className="mt-3 text-[14px] leading-snug text-ink-700">
-          <span className="font-semibold text-ink-900">{t('brief.meaning.title')}:</span> {card.meaning}
-        </p>
-      ) : null}
-
-      <Link
-        href={card.href}
-        className="mt-3 inline-flex min-h-11 items-center gap-1 text-[14px] font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
-      >
-        {t('brief.evidence.cta')} <span aria-hidden>→</span>
-      </Link>
+      {/* THE EVIDENCE, after the conclusion and one tap down (mobile polish
+          pass): one customer, the recorded reason when there is one, and the
+          way to everything they said. The conclusion above stands alone. */}
+      <Reveal summary={t('brief.why')} className="mt-4">
+        {lead ? (
+          <blockquote className="mt-1 border-l-2 border-brand-500 pl-3 text-[15px] leading-snug text-ink-800">
+            “{lead.text}”
+          </blockquote>
+        ) : null}
+        {card.meaning ? (
+          <p className="mt-3 text-[14px] leading-snug text-ink-700">
+            <span className="font-semibold text-ink-900">{t('brief.meaning.title')}:</span> {card.meaning}
+          </p>
+        ) : null}
+        <Link
+          href={card.href}
+          className="mt-2 inline-flex min-h-11 items-center gap-1 text-[14px] font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
+        >
+          {t('brief.evidence.cta')} <span aria-hidden>→</span>
+        </Link>
+      </Reveal>
     </section>
   );
 }
@@ -425,8 +435,11 @@ function LatestRow({
   );
 }
 
-/** CUSTOMERS LOVE — the strength, how many praised it, and one instruction. */
-async function Loved({ card }: { card: BriefCard }) {
+/**
+ * CUSTOMERS LOVE — up to three strengths, each with how many praised it and
+ * which way it is going. "Keep doing this" is said once, for the list.
+ */
+async function Loved({ cards }: { cards: BriefCard[] }) {
   const t = await getTranslator();
   return (
     <section aria-labelledby="brief-love">
@@ -434,70 +447,67 @@ async function Loved({ card }: { card: BriefCard }) {
         <span aria-hidden className="h-2 w-2 rounded-full bg-good-600" />
         {t('brief.love.title')}
       </h2>
-      <Link
-        href={card.href}
-        className="mt-2 flex min-h-14 items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 hover:border-ink-400"
-      >
-        <span className="min-w-0 flex-1">
-          <span className="block text-[17px] leading-snug font-semibold text-ink-900">{card.label}</span>
-          <span className="mt-0.5 block text-[14px] leading-snug text-ink-700 tabular-nums">
-            {t.plural('brief.praised', card.count)}
-          </span>
-          <span className="mt-0.5 block text-[13px] font-medium text-good-700">{t('brief.love.keep')}</span>
-        </span>
-        {card.trend ? (
-          <span className="shrink-0 text-right">
-            <Trend trend={card.trend} />
-          </span>
-        ) : null}
-      </Link>
-    </section>
-  );
-}
-
-/**
- * WHAT CHANGED — one row per topic: its name, which kind of change, and the
- * two counts. Never the same sentence twice: the engine's sentence is the
- * same for every topic that moved, so rows are told apart by what moved.
- */
-async function Changed({ brief }: { brief: Brief }) {
-  const t = await getTranslator();
-  if (brief.changed.length === 0) return null;
-  return (
-    <section aria-labelledby="brief-changed">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-        <h2 id="brief-changed" className={clsx(EYEBROW, 'text-ink-500')}>
-          {t('brief.changed.title')}
-        </h2>
-        <p className="text-[12px] text-ink-500">{t.plural('brief.changed.count', brief.changedTotal)}</p>
-      </div>
-      <ul className="mt-2 divide-y divide-ink-200 border-y border-ink-200">
-        {brief.changed.map((c) => (
-          <ChangedRow key={c.key} move={c} t={t} />
+      <p className="mt-1 text-[13px] text-ink-600">{t('brief.love.keep')}</p>
+      <ul className="mt-2 divide-y divide-ink-200 overflow-hidden rounded-xl border border-ink-200 bg-white">
+        {cards.map((card) => (
+          <li key={card.themeKey}>
+            <LovedRow card={card} t={t} />
+          </li>
         ))}
       </ul>
     </section>
   );
 }
 
-function ChangedRow({ move, t }: { move: BriefMove; t: PortalTranslator }) {
-  // Only rising complaints and rising praise reach this list (see buildBrief),
-  // so the kind of change is read off the kind of topic.
-  const kind = move.kind === 'ISSUE' ? t('brief.changed.moreComplaints') : t('brief.changed.morePraise');
+function LovedRow({ card, t }: { card: BriefCard; t: PortalTranslator }) {
   return (
-    <li className="flex min-h-14 items-center gap-3 py-2.5">
-      <span
-        aria-hidden
-        className={clsx('h-2.5 w-2.5 shrink-0 rounded-full', move.tone === 'bad' ? 'bg-bad-600' : 'bg-good-600')}
-      />
+    <Link href={card.href} className="hw-focus-inset flex min-h-14 items-center gap-3 px-4 py-3 hover:bg-ink-50">
       <span className="min-w-0 flex-1">
-        <span className="block text-[15px] leading-snug font-semibold text-ink-900">{move.label}</span>
-        <span className={clsx('block text-[13px] font-medium', move.tone === 'bad' ? 'text-bad-700' : 'text-good-700')}>
-          {kind}
+        <span className="block text-[16px] leading-snug font-semibold text-ink-900">{card.label}</span>
+        <span className="mt-0.5 block text-[14px] leading-snug text-ink-700 tabular-nums">
+          {t.plural('brief.praised', card.count)}
         </span>
+        {card.trend ? (
+          <span className="mt-0.5 block">
+            <Trend trend={card.trend} />
+          </span>
+        ) : null}
       </span>
-      <span className="shrink-0 text-right text-[13px] text-ink-600 tabular-nums">{move.counts ?? move.line}</span>
-    </li>
+      <span aria-hidden className="shrink-0 text-[18px] leading-none text-ink-300">
+        ›
+      </span>
+    </Link>
+  );
+}
+
+/**
+ * WHAT CHANGED — how many topics moved, and the way to Trends (mobile polish
+ * pass). Trends owns the rows — worse, better, stable, with their counts — so
+ * Home says how much moved and opens it, rather than repeating the list.
+ */
+async function Changed({ brief, basePath }: { brief: Brief; basePath: string }) {
+  const t = await getTranslator();
+  if (brief.changed.length === 0) return null;
+  return (
+    <section aria-labelledby="brief-changed">
+      <h2 id="brief-changed" className={clsx(EYEBROW, 'text-ink-500')}>
+        {t('brief.changed.title')}
+      </h2>
+      <Link
+        href={`${basePath}/improvements`}
+        className="mt-2 flex min-h-14 items-center gap-3 rounded-xl border border-ink-200 bg-white px-4 py-3 hover:border-ink-400"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] leading-snug font-semibold text-ink-900">
+            {t.plural('brief.changed.count', brief.changedTotal)}
+          </span>
+          <span className="mt-0.5 block text-[13px] text-ink-600">{t('brief.changed.see')}</span>
+        </span>
+        <span aria-hidden className="shrink-0 text-[18px] leading-none text-ink-300">
+          ›
+        </span>
+      </Link>
+    </section>
   );
 }
 
@@ -716,8 +726,8 @@ export async function OwnerBrief({
           {fresh ? <Latest fresh={fresh} basePath={basePath} now={now} /> : null}
         </div>
         <div className="min-w-0 space-y-8">
-          {brief.loved ? <Loved card={brief.loved} /> : null}
-          <Changed brief={brief} />
+          {brief.loved ? <Loved cards={[brief.loved, ...brief.alsoLoved]} /> : null}
+          <Changed brief={brief} basePath={basePath} />
           {brief.memory ? <Memory memory={brief.memory} basePath={basePath} /> : null}
         </div>
       </div>

@@ -99,13 +99,16 @@ function Moment({
     <div className="min-w-0">
       <p className={EYEBROW}>{label}</p>
       {figure ? (
-        <p className={clsx('mt-1.5 font-mono text-[34px] leading-none font-semibold tabular-nums sm:text-[40px]', figureTone ?? 'text-ink-900')}>
+        <p
+          className={clsx(
+            'mt-1.5 font-mono text-[34px] leading-none font-semibold tabular-nums sm:text-[40px]',
+            figureTone ?? 'text-ink-900',
+          )}
+        >
           {figure}
         </p>
       ) : null}
-      {quote ? (
-        <p className="mt-1.5 text-[16px] leading-snug font-medium text-ink-900 italic">“{quote}”</p>
-      ) : null}
+      {quote ? <p className="mt-1.5 text-[16px] leading-snug font-medium text-ink-900 italic">“{quote}”</p> : null}
       {pending ? <p className="mt-1.5 text-[14px] leading-snug text-ink-500">{pending}</p> : null}
       {line ? <p className="mt-1.5 text-[13px] leading-relaxed text-ink-600 tabular-nums">{line}</p> : null}
       {when ? <p className="mt-1 text-[12px] text-ink-500">{formatDate(when)}</p> : null}
@@ -134,9 +137,7 @@ function whatToDoNow(t: T, a: PortalAction): { lead: string; rest: string[] } {
         // without a specific suggestion", which would have produced "The
         // original suggestion still stands: Headway raised this without a
         // specific suggestion." So the flag, not the sentence.
-        rest: a.hasSuggestion
-          ? [t('improvements.next.originalSuggestion', { suggestion: a.suggested })]
-          : [],
+        rest: a.hasSuggestion ? [t('improvements.next.originalSuggestion', { suggestion: a.suggested })] : [],
       };
     case 'IMPROVED':
       return { lead: t('improvements.next.improved'), rest: sentences };
@@ -180,7 +181,7 @@ export async function ImprovementStory({
   const afterQuotes = quotesFor(evidence, a.themeKey, { limit: 3, since: a.doneAt });
   const beforeQuotes = quotesFor(evidence, a.themeKey, { limit: 3, until: a.doneAt ?? undefined });
   const reading = outcome ? readingOf(t, outcome.result) : null;
-  const tone = outcome ? READING_TONE[outcome.result] ?? 'text-ink-600' : 'text-ink-600';
+  const tone = outcome ? (READING_TONE[outcome.result] ?? 'text-ink-600') : 'text-ink-600';
   const { lead: nextLead, rest: nextRest } = whatToDoNow(t, a);
 
   return (
@@ -208,7 +209,9 @@ export async function ImprovementStory({
         <Moment
           label={declined ? t('improvements.notDoing') : t('improvements.moment.youChanged')}
           when={declined ? a.decidedAt : (a.doneAt ?? a.decidedAt)}
-          quote={declined ? undefined : a.decision || (a.doneAt ? t('improvements.moment.changeNotDescribed') : undefined)}
+          quote={
+            declined ? undefined : a.decision || (a.doneAt ? t('improvements.moment.changeNotDescribed') : undefined)
+          }
           pending={
             declined
               ? a.decisionNote
@@ -250,6 +253,19 @@ export async function ImprovementStory({
         />
       </div>
 
+      {/* WHAT CUSTOMERS SAID AFTER — one customer, in their own words, between
+          what was tried and what happened (mobile polish pass), so the story
+          reads in the order it happened. The rest are under the evidence
+          reveal below, as before. */}
+      {outcome && a.doneAt && afterQuotes[0] ? (
+        <div className="mt-7">
+          <p className={EYEBROW}>{t('improvements.said.after')}</p>
+          <blockquote className="mt-1.5 border-l-2 border-brand-500 pl-3 text-[15px] leading-snug text-ink-800">
+            “{afterQuotes[0].text}”
+          </blockquote>
+        </div>
+      ) : null}
+
       {outcome ? (
         <dl className="mt-7 divide-y divide-ink-200 border-y border-ink-200">
           <div className="grid grid-cols-1 gap-x-6 gap-y-0.5 py-3 sm:grid-cols-[11rem_1fr]">
@@ -259,8 +275,7 @@ export async function ImprovementStory({
           <div className="grid grid-cols-1 gap-x-6 gap-y-0.5 py-3 sm:grid-cols-[11rem_1fr]">
             <dt className={EYEBROW}>{t('improvements.row.whatThisMeans')}</dt>
             <dd className="text-[15px] leading-relaxed text-ink-900">
-              {outcome.headline}{' '}
-              <span className="text-ink-700">{outcome.caveat || outcome.note}</span>
+              {outcome.headline} <span className="text-ink-700">{outcome.caveat || outcome.note}</span>
             </dd>
           </div>
           <div className="grid grid-cols-1 gap-x-6 gap-y-0.5 py-3 sm:grid-cols-[11rem_1fr]">
@@ -314,7 +329,10 @@ export async function ImprovementStory({
               <>
                 <p className={EYEBROW}>{t('improvements.evidence.after')}</p>
                 <div className="mt-2">
-                  <Quotes quotes={afterQuotes} seeAll={{ label: t('improvements.evidence.seeMentions'), href: reviews }} />
+                  <Quotes
+                    quotes={afterQuotes}
+                    seeAll={{ label: t('improvements.evidence.seeMentions'), href: reviews }}
+                  />
                 </div>
                 {beforeQuotes.length > 0 ? (
                   <>
@@ -326,7 +344,10 @@ export async function ImprovementStory({
                 ) : null}
               </>
             ) : (
-              <Quotes quotes={beforeQuotes.length > 0 ? beforeQuotes : afterQuotes} seeAll={{ label: t('improvements.evidence.seeMentions'), href: reviews }} />
+              <Quotes
+                quotes={beforeQuotes.length > 0 ? beforeQuotes : afterQuotes}
+                seeAll={{ label: t('improvements.evidence.seeMentions'), href: reviews }}
+              />
             )}
           </div>
         </Reveal>

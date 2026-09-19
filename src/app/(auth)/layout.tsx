@@ -4,16 +4,21 @@ import { LOCALE_HTML_LANG } from '@/lib/i18n/locale';
 import { getLocale } from '@/lib/i18n/request';
 import { MESSAGES } from '@/lib/i18n/strings';
 import { flattenFor } from '@/lib/i18n/t';
+import { APP_THEME_COLOR, INSTALLABLE_METADATA } from '@/lib/pwa';
 import '../globals.css';
 
 export const metadata: Metadata = {
   title: 'Sign in · Headway',
   robots: { index: false, follow: false },
+  // Sign-in is where an installed Headway opens when nobody is signed in, so
+  // it carries the same app tags as the workspace. See `lib/pwa.ts`.
+  ...INSTALLABLE_METADATA,
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  themeColor: APP_THEME_COLOR,
 };
 
 /**

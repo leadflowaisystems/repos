@@ -31,6 +31,8 @@ export type TrendRow = {
   key: string;
   label: string;
   kind: 'ISSUE' | 'PRAISE';
+  /** Every mention of the topic Headway holds — the count Home and Feedback show. */
+  mentions: number;
   /** Mentions at the earlier and the later check-in. */
   previous: number;
   current: number;
@@ -59,6 +61,7 @@ function rowOf(signal: PortalSignal): TrendRow | null {
     key: signal.themeKey,
     label: signal.themeLabel,
     kind: signal.kind,
+    mentions: signal.evidenceCount,
     previous: points.previous,
     current: points.current,
     previousTotal: points.previousTotal,

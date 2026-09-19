@@ -4,16 +4,24 @@ import { LOCALE_HTML_LANG } from '@/lib/i18n/locale';
 import { getLocale } from '@/lib/i18n/request';
 import { MESSAGES } from '@/lib/i18n/strings';
 import { flattenFor } from '@/lib/i18n/t';
+import { APP_THEME_COLOR, INSTALLABLE_METADATA } from '@/lib/pwa';
 import '../globals.css';
 
 export const metadata: Metadata = {
   title: 'Headway',
   robots: { index: false, follow: false },
+  // Installable: the owner's workspace opens from the home screen like an app.
+  // See `lib/pwa.ts`.
+  ...INSTALLABLE_METADATA,
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  themeColor: APP_THEME_COLOR,
+  // Lets the bottom bar's safe-area padding reach past the iPhone home
+  // indicator when Headway runs from the home screen.
+  viewportFit: 'cover',
 };
 
 /**
@@ -81,6 +89,8 @@ const WORKSPACE_NAMESPACES = [
   'kit.summary.',
   // Inviting and managing the team.
   'team.',
+  // Adding Headway to the home screen, on More.
+  'more.install.',
 ] as const;
 
 export default async function WorkspaceRootLayout({

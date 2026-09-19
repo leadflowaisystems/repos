@@ -370,3 +370,22 @@ describe('the brief keeps the promises the rest of the portal makes', () => {
     }
   });
 });
+
+describe('what is going well (mobile polish pass)', () => {
+  it('names at most three strengths, the lead first, each only once', () => {
+    const { brief } = build();
+    if (!brief.loved) return; // nothing praised in this fixture
+    const keys = [brief.loved, ...brief.alsoLoved].map((c) => c.themeKey);
+    expect(keys.length).toBeLessThanOrEqual(3);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('calls going well only what Customers files under going well', () => {
+    const { brief, view } = build();
+    for (const card of brief.alsoLoved) {
+      const signal = view.loved.find((s) => s.themeKey === card.themeKey);
+      expect(signal, card.themeKey).toBeDefined();
+      expect(['WATCH', 'EARLY']).not.toContain(signal!.bucket);
+    }
+  });
+});

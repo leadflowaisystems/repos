@@ -317,19 +317,19 @@ export const improvements = {
     mr: 'स्थिर',
   },
   'improvements.trends.noChange': {
-    en: 'No significant change',
-    hi: 'कोई ख़ास बदलाव नहीं',
-    mr: 'विशेष बदल नाही',
+    en: 'About the same',
+    hi: 'लगभग वैसा ही',
+    mr: 'जवळपास तसंच',
   },
   'improvements.trends.moreMentions': {
-    en: 'Mentioned more than before',
-    hi: 'पहले से ज़्यादा ज़िक्र',
-    mr: 'आधीपेक्षा जास्त उल्लेख',
+    en: 'More often',
+    hi: 'पहले से ज़्यादा',
+    mr: 'आधीपेक्षा जास्त',
   },
   'improvements.trends.fewerMentions': {
-    en: 'Mentioned less than before',
-    hi: 'पहले से कम ज़िक्र',
-    mr: 'आधीपेक्षा कमी उल्लेख',
+    en: 'Less often',
+    hi: 'पहले से कम',
+    mr: 'आधीपेक्षा कमी',
   },
   'improvements.trends.morePraise': {
     en: 'Praised more than before',
@@ -355,5 +355,20 @@ export const improvements = {
     en: 'Your changes',
     hi: 'आपके बदलाव',
     mr: 'तुमचे बदल',
+  },
+  'improvements.trends.mentions.one': {
+    en: '{count} mention',
+    hi: '{count} ज़िक्र',
+    mr: '{count} उल्लेख',
+  },
+  'improvements.trends.mentions.other': {
+    en: '{count} mentions',
+    hi: '{count} ज़िक्र',
+    mr: '{count} उल्लेख',
+  },
+  'improvements.said.after': {
+    en: 'What customers said after',
+    hi: 'बाद में ग्राहकों ने क्या कहा',
+    mr: 'नंतर ग्राहक काय म्हणाले',
   },
 } satisfies Namespace;

@@ -222,7 +222,7 @@ describe('the workspace navigation', () => {
       'Home',
       'Customers',
       'Feedback',
-      'Improvements',
+      'Trends', // mobile polish pass: the door opens on Trends; the route is still /improvements
       'Check-in',
       'Kit',
       'Orders',
@@ -303,7 +303,7 @@ describe('the phone’s four doors', () => {
       'nav.section.improvements',
       'nav.section.more',
     ]);
-    expect(keys.map((k) => says(k))).toEqual(['Home', 'Feedback', 'Improvements', 'More']);
+    expect(keys.map((k) => says(k))).toEqual(['Home', 'Feedback', 'Trends', 'More']);
   });
 
   it('pairs every icon with its word, and never scrolls sideways', () => {

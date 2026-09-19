@@ -164,7 +164,10 @@ export const config = {
   // files that carry no data about anybody. `og.png` joined them with the
   // public website: it is the picture a link to the front door unfurls into,
   // fetched by whichever service is drawing the preview, with no session.
+  // `app.webmanifest` and `icons/` joined them with the installable app: the
+  // phone fetches both before anyone has signed in, to draw the home-screen
+  // icon, and the same static-files-about-nobody reasoning applies.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.svg|og.png|sitemap.xml|robots.txt).*)',
+    '/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.svg|og.png|app.webmanifest|icons/|sitemap.xml|robots.txt).*)',
   ],
 };

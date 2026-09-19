@@ -2,6 +2,7 @@ import { Link } from '@/components/portal/link';
 import { getTranslator } from '@/lib/i18n/request';
 import { HeadwayMark } from '@/components/brand';
 import type { MessageKey } from '@/lib/i18n/strings';
+import { InstallHint } from '@/components/workspace/install-hint';
 
 export const metadata = { title: 'More' };
 
@@ -142,6 +143,10 @@ export async function PortalMore({
           </ul>
         </section>
       ))}
+
+      {/* Headway on the home screen — offered here, quietly, and only where
+          the phone can do it. Never a popup. */}
+      <InstallHint />
 
       {/* The way out, at the foot of the owner's own page — where a phone
           app keeps it — rather than in the bar on every screen. */}

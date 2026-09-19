@@ -42,9 +42,9 @@ export const nav = {
     mr: 'फीडबॅक',
   },
   'nav.section.improvements': {
-    en: 'Improvements',
-    hi: 'सुधार',
-    mr: 'सुधारणा',
+    en: 'Trends',
+    hi: 'रुझान',
+    mr: 'कल',
   },
   'nav.section.checkin': {
     en: 'Check-in',

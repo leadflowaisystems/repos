@@ -586,4 +586,15 @@ export const brief = {
     hi: 'कम तारीफ़',
     mr: 'कमी कौतुक',
   },
+  // --- mobile polish pass ------------------------------------------------------
+  'brief.why': {
+    en: 'See why',
+    hi: 'वजह देखें',
+    mr: 'कारण पाहा',
+  },
+  'brief.changed.see': {
+    en: 'See what’s getting better or worse',
+    hi: 'देखें क्या बेहतर हो रहा है और क्या बिगड़ रहा है',
+    mr: 'काय सुधारतंय आणि काय बिघडतंय ते पाहा',
+  },
 } satisfies Namespace;

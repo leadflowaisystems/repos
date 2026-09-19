@@ -234,6 +234,12 @@ export type Brief = {
   /** The one strongest thing customers like, when there is one. */
   loved: BriefCard | null;
   /**
+   * Up to two more things going well (mobile polish pass), from the same
+   * ranked pile and the same "going well" filter the Customers page uses —
+   * so Home never calls something going well that Customers files elsewhere.
+   */
+  alsoLoved: BriefCard[];
+  /**
    * What moved since the last check-in: one row per topic, at most three —
    * the topic's own name, the engine's two counts, and which kind of change
    * it is. `line` is the engine's sentence, kept for when there are no counts.
@@ -502,6 +508,9 @@ export function buildBrief(input: BriefInput): Brief {
   // The strength is chosen the same way, from the pile the view already
   // ranked. `keep` is the engine's own answer to "what would I protect".
   const strength = view.keep ?? view.loved[0] ?? null;
+  const alsoStrong = view.loved
+    .filter((s) => s !== strength && (s.bucket === 'KEEP' || (s.bucket !== 'WATCH' && s.bucket !== 'EARLY')))
+    .slice(0, 2);
 
   // Movement, shortest first: what got worse, then what got better. Three is
   // the ceiling — a fourth line on a phone is a list, and a list is reading.
@@ -557,6 +566,7 @@ export function buildBrief(input: BriefInput): Brief {
     waiting: view.soFar.waiting,
     attention,
     loved: strength ? cardFor(strength, evidence, basePath, t) : null,
+    alsoLoved: strength ? alsoStrong.map((s) => cardFor(s, evidence, basePath, t)) : [],
     changed,
     changedTotal: moved.length,
     calm: !tooEarly && attention === null,

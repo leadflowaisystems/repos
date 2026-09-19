@@ -61,4 +61,21 @@ export const more = {
     hi: 'भाषा, टीम और आपकी सदस्यता',
     mr: 'भाषा, टीम आणि तुमची सदस्यता',
   },
+
+  // --- adding Headway to the home screen (mobile polish pass) -----------------
+  'more.install.title': {
+    en: 'Add Headway to your home screen',
+    hi: 'Headway को अपनी होम स्क्रीन पर जोड़ें',
+    mr: 'Headway तुमच्या होम स्क्रीनवर जोडा',
+  },
+  'more.install.hint': {
+    en: 'It opens like an app, straight to your Home.',
+    hi: 'यह ऐप की तरह खुलेगा, सीधे आपके होम पर।',
+    mr: 'हे ॲपसारखं उघडेल, थेट तुमच्या होमवर.',
+  },
+  'more.install.ios': {
+    en: 'In Safari, tap Share, then “Add to Home Screen”.',
+    hi: 'Safari में Share दबाएँ, फिर “Add to Home Screen”।',
+    mr: 'Safari मध्ये Share दाबा, मग “Add to Home Screen”.',
+  },
 } satisfies Namespace;

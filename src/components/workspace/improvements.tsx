@@ -456,11 +456,14 @@ const TREND = {
 
 /** "Mentioned more than before" — which way the count moved, for this kind of topic. */
 function movedPhrase(row: TrendRow, t: Translator<MessageKey>): string {
-  if (row.moved === 'SAME') return t('improvements.trends.noChange');
-  if (row.kind === 'ISSUE') {
-    return row.moved === 'UP' ? t('improvements.trends.moreMentions') : t('improvements.trends.fewerMentions');
-  }
-  return row.moved === 'UP' ? t('improvements.trends.morePraise') : t('improvements.trends.lessPraise');
+  // Mobile polish pass: which way the count went, in two words. Whether that
+  // is good or bad news is the shelf's heading — the engine's verdict — so the
+  // phrase never has to say it, and "more mentions" is never read as "worse"
+  // on its own.
+  if (row.moved === 'SAME') return `→ ${t('improvements.trends.noChange')}`;
+  return row.moved === 'UP'
+    ? `↑ ${t('improvements.trends.moreMentions')}`
+    : `↓ ${t('improvements.trends.fewerMentions')}`;
 }
 
 /** "14/44" when the check-in's total was recorded, "14" when it was not. */
@@ -503,16 +506,19 @@ function TrendCard({
         >
           {row.label}
         </span>
-        <span className="mt-0.5 flex flex-wrap items-baseline gap-x-2">
-          {pct ? (
-            <span className={clsx('font-mono text-[15px] font-semibold tabular-nums', colour.figure)}>{pct}</span>
-          ) : null}
-          <span className="text-[13px] text-ink-500 tabular-nums">
-            {countOf(row.previous, row.previousTotal)} → {countOf(row.current, row.currentTotal)}
+        {/* How much, then which way — the two things a glance needs. */}
+        <span className="mt-0.5 flex flex-wrap items-baseline gap-x-3">
+          <span className="text-[14px] text-ink-800 tabular-nums">
+            {t.plural('improvements.trends.mentions', row.mentions)}
+          </span>
+          <span className={clsx('text-[14px] font-semibold', tone === 'stable' ? 'text-ink-500' : colour.head)}>
+            {movedPhrase(row, t)}
           </span>
         </span>
-        <span className={clsx('mt-0.5 block text-[13px]', tone === 'stable' ? 'text-ink-500' : colour.head)}>
-          {movedPhrase(row, t)}
+        {/* The two check-ins it rests on, quietly. */}
+        <span className="mt-0.5 block text-[12px] text-ink-500 tabular-nums">
+          {pct ? <span className={clsx('font-semibold', colour.figure)}>{pct} · </span> : null}
+          {countOf(row.previous, row.previousTotal)} → {countOf(row.current, row.currentTotal)}
         </span>
       </span>
       <span aria-hidden className="shrink-0 text-[18px] leading-none text-ink-300">
