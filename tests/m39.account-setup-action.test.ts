@@ -263,3 +263,33 @@ describe('completeAccountSetupAction', () => {
     expect(finalizeAccountSetupMock).not.toHaveBeenCalled();
   });
 });
+
+describe('completeAccountSetupAction when the database drops after Supabase accepted', () => {
+  it('tries the commit once more, and finishes normally when that works', async () => {
+    validateAccountSetupMock.mockResolvedValueOnce({ ok: true, data: VALID });
+    setPermanentCredentialsMock.mockResolvedValueOnce({ ok: true });
+    finalizeAccountSetupMock.mockRejectedValueOnce(new Error('Can’t reach database server')).mockResolvedValueOnce(undefined);
+
+    const outcome = await run({ email: VALID.email, password: 'a-new-password', confirmPassword: 'a-new-password' });
+    expect(outcome).toBe('redirected');
+    expect(finalizeAccountSetupMock).toHaveBeenCalledTimes(2);
+    expect(setPermanentCredentialsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('never says "nothing changed" once Supabase has the new password, and asks for one more submit', async () => {
+    validateAccountSetupMock.mockResolvedValueOnce({ ok: true, data: VALID });
+    setPermanentCredentialsMock.mockResolvedValueOnce({ ok: true });
+    finalizeAccountSetupMock.mockRejectedValue(new Error('Can’t reach database server'));
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const outcome = await run({ email: VALID.email, password: 'a-new-password', confirmPassword: 'a-new-password' });
+    quiet.mockRestore();
+    expect(outcome).not.toBe('redirected');
+    if (outcome === 'redirected') return;
+    expect(outcome.ok).toBe(false);
+    expect(outcome.message).toContain('Your new password is already saved');
+    expect(outcome.message).toContain('submit this form once more');
+    expect(outcome.message).not.toContain('Nothing was changed');
+    expect(finalizeAccountSetupMock).toHaveBeenCalledTimes(2);
+  });
+});

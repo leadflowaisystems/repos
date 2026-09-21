@@ -154,3 +154,35 @@ describe('signInAction', () => {
     expect(conflict.message).toBe(wrongPassword.message);
   });
 });
+
+describe('signUpAction with an address that already has an account', () => {
+  it('creates no user from Supabase’s placeholder, and answers exactly like a new signup', async () => {
+    const { signUpAction } = await import('@/lib/actions/account');
+    const { provisionUser } = await import('@/lib/tenancy/service');
+    const { IDLE } = await import('@/lib/actions/shared');
+    (provisionUser as Mock).mockReset();
+
+    // Supabase's answer for an address it already knows: a user whose id
+    // belongs to no identity, marked by an empty identities list.
+    signUpMock.mockResolvedValueOnce({
+      data: { user: { id: 'placeholder-id', identities: [] }, session: null },
+      error: null,
+    });
+    const existing = await signUpAction(IDLE, form({ email: 'known@example.com', password: 'password1' }));
+    expect(provisionUser).not.toHaveBeenCalled();
+
+    // A genuine new signup awaiting confirmation.
+    signUpMock.mockResolvedValueOnce({
+      data: { user: { id: 'real-id', identities: [{ id: 'i1' }] }, session: null },
+      error: null,
+    });
+    (provisionUser as Mock).mockResolvedValueOnce({ userId: 'u1', created: true });
+    const fresh = await signUpAction(IDLE, form({ email: 'new@example.com', password: 'password1' }));
+    expect(provisionUser).toHaveBeenCalledTimes(1);
+    expect(provisionUser).toHaveBeenCalledWith(expect.anything(), { providerId: 'real-id', email: 'new@example.com' });
+
+    // Indistinguishable to whoever is filling in the form.
+    expect(existing).toEqual(fresh);
+    expect(existing.ok).toBe(true);
+  });
+});

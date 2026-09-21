@@ -26,3 +26,18 @@ export function setupNotice(value: unknown): string | null {
   if (value === 'password') return PASSWORD_ONLY;
   return null;
 }
+
+/**
+ * A confirmation or password-reset link that Supabase refused — expired, or
+ * already used. The auth callback sends the person to `/login?expired=1`;
+ * without a sentence they could not tell whether their confirmation or reset
+ * had worked. Fixed words chosen here, never text from the URL.
+ */
+export const EXPIRED_LINK_PARAM = 'expired';
+
+const EXPIRED_LINK =
+  'That link has expired or was already used. Sign in if you can — or use “Forgot your password?” below to get a new link.';
+
+export function expiredLinkNotice(value: unknown): string | null {
+  return value === '1' ? EXPIRED_LINK : null;
+}

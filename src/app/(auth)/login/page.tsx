@@ -5,7 +5,7 @@ import { currentActor } from '@/lib/auth/authorize';
 import { prisma } from '@/lib/db';
 import { landingPathFor } from '@/lib/onboarding/service';
 import { safeNextPath } from '@/lib/auth/redirect';
-import { SETUP_NOTICE_PARAM, setupNotice } from '@/lib/auth/setup-notice';
+import { EXPIRED_LINK_PARAM, expiredLinkNotice, SETUP_NOTICE_PARAM, setupNotice } from '@/lib/auth/setup-notice';
 import { HeadwayWordmark } from '@/components/brand';
 
 export const dynamic = 'force-dynamic';
@@ -59,6 +59,8 @@ export default async function LoginPage({
   // breaker above: one extra click for someone already signed in, nothing
   // gained by anyone else, since the notice is a fixed sentence chosen here.
   const notice = setupNotice(query[SETUP_NOTICE_PARAM]);
+  // A confirmation or reset link the auth callback could not use.
+  const expired = expiredLinkNotice(query[EXPIRED_LINK_PARAM]);
 
   if (!bouncedByMiddleware && !notice) {
     const actor = await currentActor(prisma);
@@ -82,6 +84,15 @@ export default async function LoginPage({
           className="mb-5 rounded-xl border border-good-200 bg-good-50 px-4 py-3 text-[14px] leading-relaxed text-good-700"
         >
           {notice}
+        </p>
+      ) : null}
+
+      {expired ? (
+        <p
+          role="status"
+          className="mb-5 rounded-xl border border-warn-200 bg-warn-50 px-4 py-3 text-[14px] leading-relaxed text-warn-700"
+        >
+          {expired}
         </p>
       ) : null}
 

@@ -35,6 +35,12 @@ import { failure, str, type ActionState } from './shared';
 const SIGN_IN_FAILED = 'That email and password do not match.';
 const SIGN_UP_FAILED = 'That account could not be created.';
 const NOT_CONFIGURED = 'Sign-in is not set up yet. Contact Headway.';
+/**
+ * What a signup that needs confirming is told — and, word for word, what an
+ * address that already has an account is told, so the two cannot be told apart.
+ */
+const SIGN_UP_CHECK_EMAIL =
+  'Check your email to confirm your address, then sign in. Already have an account? Sign in instead.';
 
 /**
  * Only same-site paths are followed, so this can never become an open redirect.
@@ -79,6 +85,17 @@ export async function signUpAction(_prev: ActionState, form: FormData): Promise<
   });
   if (error || !data.user) return failure(SIGN_UP_FAILED);
 
+  // AN ADDRESS THAT ALREADY HAS AN ACCOUNT. Supabase does not say so — that
+  // would let this form be used to ask who is a customer — and instead
+  // returns a placeholder user whose id belongs to NO identity, marked by an
+  // empty `identities` list. Provisioning from that id created a RepOS user
+  // bound to a login that does not exist, which then refused every sign-in
+  // for that address. Nothing is created; the answer reads exactly like a
+  // genuine new signup's.
+  if (Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+    return { ok: true, message: SIGN_UP_CHECK_EMAIL, errors: {} };
+  }
+
   // The RepOS user is created from the identity Supabase just verified, never
   // from the form. Nothing here can set isPlatformAdmin — provisionUser does
   // not write that column at all, and the database will not let it.
@@ -98,7 +115,7 @@ export async function signUpAction(_prev: ActionState, form: FormData): Promise<
   // A project that requires email confirmation returns a user with no session.
   // Saying so is safe: the person is holding the address in question.
   if (!data.session) {
-    return { ok: true, message: 'Check your email to confirm your address, then sign in.', errors: {} };
+    return { ok: true, message: SIGN_UP_CHECK_EMAIL, errors: {} };
   }
   redirect('/onboarding');
 }

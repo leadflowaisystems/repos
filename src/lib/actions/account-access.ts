@@ -148,7 +148,30 @@ export async function completeAccountSetupAction(
     return failure('Your password could not be set. Nothing was changed — try again.');
   }
 
-  await finalizeAccountSetup(prisma, actor.userId, validated.data);
+  // Supabase has ACCEPTED the new credentials at this point, so a failure
+  // here must never read as "nothing changed". A momentary database or pooler
+  // drop is the realistic cause, so the commit is tried once more; if it
+  // still fails, the owner is told the truth — their new password already
+  // works — and that submitting once more finishes the job, which it does:
+  // validation still passes while the row is TEMPORARY_ACTIVE, and setting
+  // the same credentials on the same identity again is harmless.
+  try {
+    await finalizeAccountSetup(prisma, actor.userId, validated.data);
+  } catch (first) {
+    try {
+      await finalizeAccountSetup(prisma, actor.userId, validated.data);
+    } catch (second) {
+      console.error('completeAccountSetupAction: finalize failed after Supabase accepted the credentials', {
+        userId: actor.userId,
+        clientId,
+        first: first instanceof Error ? first.message : String(first),
+        second: second instanceof Error ? second.message : String(second),
+      });
+      return failure(
+        'Your new password is already saved, but Headway could not finish recording your setup. Please submit this form once more.',
+      );
+    }
+  }
 
   redirect(loginAfterSetup(validated.data.email !== null));
 }

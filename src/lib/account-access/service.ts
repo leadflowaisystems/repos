@@ -351,7 +351,7 @@ export async function disableTempAccess(
 ): Promise<ServiceResult<{ clientId: string }>> {
   const access = await db.accountAccess.findUnique({
     where: { clientId },
-    select: { userId: true, status: true },
+    select: { userId: true, status: true, loginId: true },
   });
   if (!access) return err('There is no temporary access for this client.');
   if (access.status === 'DISABLED') return err('Temporary access is already disabled.');
@@ -359,9 +359,16 @@ export async function disableTempAccess(
   if (access.status === 'TEMPORARY_ACTIVE') {
     const user = await db.user.findUnique({
       where: { id: access.userId },
-      select: { authProviderId: true },
+      select: { authProviderId: true, email: true },
     });
-    if (user?.authProviderId) {
+    // THE OWNER'S OWN LOGIN IS NOT A TEMPORARY ONE. When the login email is
+    // no longer the synthetic login id, the owner's setup already reached
+    // Supabase — their own address and their own password — even though
+    // this row never moved past TEMPORARY_ACTIVE (a database drop between
+    // the two steps). Scrambling now would lock a real owner out of the
+    // password they chose. Only the row is disabled.
+    const ownLogin = user !== null && user.email.toLowerCase() !== access.loginId.toLowerCase();
+    if (user?.authProviderId && !ownLogin) {
       try {
         await randomizeIdentityPassword(user.authProviderId);
       } catch {

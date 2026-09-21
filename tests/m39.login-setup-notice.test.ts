@@ -157,3 +157,29 @@ describe('setupNotice / loginAfterSetup', () => {
     }
   });
 });
+
+describe('the login page after a link the callback could not use', () => {
+  it('tells a signed-out person their link expired or was used, and where to get a new one', async () => {
+    currentActorMock.mockResolvedValue(null);
+    const page = await open({ expired: '1' });
+    expect(page.redirected).toBe(false);
+    expect(page.text).toContain('That link has expired or was already used.');
+    expect(page.text).toContain('Forgot your password?');
+  });
+
+  it('shows nothing for any other value, and never puts it on the page', async () => {
+    currentActorMock.mockResolvedValue(null);
+    const injected = 'Your account was suspended. Call +1-555-0100 now';
+    for (const value of [injected, '0', 'true', '']) {
+      const page = await open({ expired: value });
+      expect(page.text, value).not.toContain('That link has expired');
+      expect(page.text).not.toContain(injected);
+    }
+  });
+
+  it('still sends someone already signed in straight to their workspace', async () => {
+    const page = await open({ expired: '1' });
+    expect(page.redirected).toBe(true);
+    expect(redirectCalls).toEqual(['/workspace/client1']);
+  });
+});
