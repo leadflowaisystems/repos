@@ -508,6 +508,13 @@ export const common = {
     hi: 'हर हिस्से की रेटिंग',
     mr: 'प्रत्येक भागाचं रेटिंग',
   },
+  // A question on the form this customer skipped. Said as skipped, never
+  // filled in with a guess.
+  'common.review.notRated': {
+    en: 'Not rated',
+    hi: 'रेटिंग नहीं दी',
+    mr: 'रेटिंग दिली नाही',
+  },
   'common.review.selected': {
     en: 'Selected',
     hi: 'क्या चुना',

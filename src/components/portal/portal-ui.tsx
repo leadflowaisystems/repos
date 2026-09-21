@@ -837,10 +837,11 @@ async function Stars({ value }: { value: number }) {
  * owner could not see where one customer ended and the next began. Each entry
  * is now its own card, read top to bottom in the order a person takes it in:
  *
- *   the rating, then when and where it came from
- *   the parts of the visit they rated, WORST FIRST, low ones in red
+ *   the overall rating, then when and where it came from
+ *   every question the form asked, in the form's order: their stars and
+ *     number (or "Not rated" when skipped), and under each question exactly
+ *     the tags they tapped for it — liked in green, problems in red
  *   their words
- *   what they tapped: problems in red, what they liked in green
  *   what it was about (the topics), quietly
  *
  * Everything Headway DERIVED — the tone, how it was sorted, a reply — sits
@@ -852,7 +853,6 @@ export async function ReviewRow({ item, href }: { item: ReviewItem; href?: strin
   const t = await getTranslator();
   const { gave } = item;
   const tapped = gave.dimensions.length > 0 || gave.selected.length > 0 || gave.liked.length > 0;
-  const worstFirst = [...gave.dimensions].sort((a, b) => a.rating - b.rating);
 
   return (
     <li className="rounded-2xl border border-ink-200 bg-white p-4 shadow-[0_1px_2px_rgba(16,42,67,0.04)] sm:p-5">
@@ -875,34 +875,60 @@ export async function ReviewRow({ item, href }: { item: ReviewItem; href?: strin
         </span>
       </div>
 
-      {/* Each part of the visit the customer rated, one row each: the part,
-          its own stars, and the number — so a part score is never read as the
-          overall one above, and a skipped part is simply absent. */}
-      {worstFirst.length > 0 ? (
+      {/* EVERY question the business's form asks, in the form's order, one row
+          each: the question, the customer's own stars and number — or "Not
+          rated" when they skipped it, never a guess — and, under it, exactly
+          the tags they tapped for that question: what they liked in green,
+          what could be better in red. Only for a response that came through
+          the form; a pasted public review was asked no questions. */}
+      {gave.questions.length > 0 ? (
         <div className="mt-3">
           <p className="text-[11px] font-semibold tracking-widest text-ink-500 uppercase">
             {t('common.review.parts')}
           </p>
           <ul className="mt-1.5 divide-y divide-ink-100 rounded-lg border border-ink-200">
-            {worstFirst.map((d) => (
-              <li
-                key={d.label}
-                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 px-3 py-2"
-              >
-                <span className="text-[14px] font-medium text-ink-900">{d.label}</span>
-                <span className="flex items-center gap-2 tabular-nums">
-                  <span className="text-[15px] leading-none">
-                    <Stars value={d.rating} />
-                  </span>
-                  <span
-                    className={clsx(
-                      'text-[13px] font-semibold',
-                      d.rating <= 2 ? 'text-bad-700' : d.rating === 3 ? 'text-ink-600' : 'text-good-700',
-                    )}
-                  >
-                    {d.rating}/5
-                  </span>
-                </span>
+            {gave.questions.map((q) => (
+              <li key={q.label} className="px-3 py-2">
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5">
+                  <span className="text-[14px] font-medium text-ink-900">{q.label}</span>
+                  {q.rating !== null ? (
+                    <span className="flex items-center gap-2 tabular-nums">
+                      <span className="text-[15px] leading-none">
+                        <Stars value={q.rating} />
+                      </span>
+                      <span
+                        className={clsx(
+                          'text-[13px] font-semibold',
+                          q.rating <= 2 ? 'text-bad-700' : q.rating === 3 ? 'text-ink-600' : 'text-good-700',
+                        )}
+                      >
+                        {q.rating}/5
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-[13px] text-ink-400 italic">{t('common.review.notRated')}</span>
+                  )}
+                </div>
+                {q.liked.length > 0 ? (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[12px] font-semibold text-good-700">{t('common.review.liked')}</span>
+                    {q.liked.map((label) => (
+                      <span key={label} className="rounded-full border border-good-200 bg-good-50 px-2.5 py-0.5 text-[13px] text-good-700">
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+                {q.problems.length > 0 ? (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[12px] font-semibold text-bad-700">{t('common.review.problems')}</span>
+                    {q.problems.map((label) => (
+                      <span key={label} className="rounded-full border border-bad-200 bg-bad-50 px-2.5 py-0.5 text-[13px] text-bad-700">
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -916,32 +942,6 @@ export async function ReviewRow({ item, href }: { item: ReviewItem; href?: strin
           {tapped ? t('common.review.noWordsTapped') : t('common.review.ratingOnly')}
         </p>
       )}
-
-      {gave.selected.length > 0 ? (
-        <div className="mt-3">
-          <p className="text-[12px] font-semibold text-bad-700">{t('common.review.problems')}</p>
-          <ul className="mt-1 flex flex-wrap gap-1.5">
-            {gave.selected.map((label) => (
-              <li key={label} className="rounded-full border border-bad-200 bg-bad-50 px-2.5 py-0.5 text-[13px] text-bad-700">
-                {label}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {gave.liked.length > 0 ? (
-        <div className="mt-3">
-          <p className="text-[12px] font-semibold text-good-700">{t('common.review.liked')}</p>
-          <ul className="mt-1 flex flex-wrap gap-1.5">
-            {gave.liked.map((label) => (
-              <li key={label} className="rounded-full border border-good-200 bg-good-50 px-2.5 py-0.5 text-[13px] text-good-700">
-                {label}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
 
       {item.state === 'ANALYSED' && item.themes.length > 0 ? (
         <p className="mt-3 text-[13px] text-ink-600">

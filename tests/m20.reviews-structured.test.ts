@@ -93,7 +93,7 @@ describe('the reviews page', () => {
 
     const view = await getReviewsView(db, clientId, filters(), { page: 1 });
     expect(view!.items).toHaveLength(1);
-    expect(view!.items[0]!.gave).toEqual({ dimensions: [], selected: [], liked: [] });
+    expect(view!.items[0]!.gave).toEqual({ dimensions: [], questions: [], selected: [], liked: [] });
     expect(view!.items[0]!.text).toContain('Lovely dosa');
   });
 

@@ -76,12 +76,19 @@ describe('every piece of feedback', () => {
     expect(says('common.review.understood')).toBe('Headway understood');
   });
 
-  it('shows the overall stars, each part rated out of 5 (worst first), what they tapped and the words', () => {
+  it('shows the overall stars, every question of the form with its rating and its own tags, and the words', () => {
     expect(evidence).toContain('<Stars value={item.stars} />');
-    expect(evidence).toContain('[...gave.dimensions].sort((a, b) => a.rating - b.rating)');
-    expect(evidence).toContain('/5');
-    expect(evidence).toContain('gave.selected.map');
-    expect(evidence).toContain('gave.liked.map');
+    expect(says('common.review.overall')).toBe('Overall');
+    // Every question the form asked, in the form's order — not only the ones
+    // answered — each with its own stars and number, or "Not rated".
+    expect(evidence).toContain('gave.questions.map((q) => (');
+    expect(evidence).toContain('<Stars value={q.rating} />');
+    expect(evidence).toContain('{q.rating}/5');
+    expect(evidence).toContain("t('common.review.notRated')");
+    expect(says('common.review.notRated')).toBe('Not rated');
+    // Every tag tapped, under the question it belongs to.
+    expect(evidence).toContain('q.liked.map');
+    expect(evidence).toContain('q.problems.map');
     expect(evidence).toContain("t('common.review.problems')");
     expect(evidence).toContain("t('common.review.liked')");
     expect(says('common.review.problems')).toBe('Problems');

@@ -5,7 +5,7 @@ import type { AnalysisCoverage, ThemeSummary } from '@/lib/feedback/analysis';
 import type { AnalysisState } from '@/lib/feedback/state';
 import type { SnapshotListRow } from '@/lib/snapshots/service';
 import { formatDate } from '@/lib/format';
-import type { Pack } from '@/lib/packs';
+import { findPack, type Pack } from '@/lib/packs';
 import {
   buildPortalView,
   spoken,
@@ -289,6 +289,13 @@ export type ReviewItem = {
    */
   gave: {
     dimensions: Array<{ label: string; rating: number }>;
+    /**
+     * EVERY question the business's feedback form asks, in the form's order,
+     * for a response that came through that form: the customer's rating (null
+     * when they skipped it — never a guessed value) and the tags they tapped
+     * under it. Empty for a pasted public review, which answered no questions.
+     */
+    questions: Array<{ label: string; rating: number | null; liked: string[]; problems: string[] }>;
     /** The problems the customer tapped ("Spice level was wrong"). */
     selected: string[];
     /** What they tapped as good ("Great taste"). */
@@ -437,6 +444,26 @@ function sentimentLabelOf(key: string, t: PortalTranslator): string {
  * The list and the single-entry page both draw from this, so an entry cannot
  * say one thing in the list and another on its own page.
  */
+/**
+ * The form's questions, one per row, whether or not this customer answered
+ * each: a response is read against the whole form, so a skipped question is
+ * visible as skipped. Only for a response that came through the form — a
+ * pasted review was never asked these questions.
+ */
+function questionsOf(row: FeedbackRow, packId?: string): ReviewItem['gave']['questions'] {
+  const fromForm = row.source === 'REP_OS_QR' || row.answers.length > 0;
+  if (!fromForm) return [];
+  const byKey = new Map(row.answers.map((a) => [a.key, a]));
+  const asked = packId ? (findPack(packId)?.gateway?.dimensions ?? []) : [];
+  if (asked.length === 0) {
+    return row.answers.map((a) => ({ label: a.label, rating: a.rating, liked: a.positiveSignals, problems: a.signals }));
+  }
+  return asked.map((d) => {
+    const a = byKey.get(d.key);
+    return { label: d.label, rating: a?.rating ?? null, liked: a?.positiveSignals ?? [], problems: a?.signals ?? [] };
+  });
+}
+
 export function reviewItemOf(row: FeedbackRow, t: PortalTranslator = EN, packId?: string): ReviewItem {
   const state = replyStateOf(row);
   // A topic is stored with its canonical key and the English label it had
@@ -472,6 +499,7 @@ export function reviewItemOf(row: FeedbackRow, t: PortalTranslator = EN, packId?
     state: row.state,
     gave: {
       dimensions: row.answers.map((a) => ({ label: a.label, rating: a.rating })),
+      questions: questionsOf(row, packId),
       selected: problemChips,
       liked,
     },
