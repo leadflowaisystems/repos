@@ -496,6 +496,18 @@ export const common = {
     hi: 'कुल रेटिंग नहीं दी',
     mr: 'एकूण रेटिंग दिली नाही',
   },
+  // The card's two kinds of rating, named so neither is mistaken for the
+  // other: the one overall score, and each part of the visit on its own.
+  'common.review.overall': {
+    en: 'Overall',
+    hi: 'कुल मिलाकर',
+    mr: 'एकूण',
+  },
+  'common.review.parts': {
+    en: 'Each part they rated',
+    hi: 'हर हिस्से की रेटिंग',
+    mr: 'प्रत्येक भागाचं रेटिंग',
+  },
   'common.review.selected': {
     en: 'Selected',
     hi: 'क्या चुना',

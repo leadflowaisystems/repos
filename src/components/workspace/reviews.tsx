@@ -664,7 +664,7 @@ export async function PortalReviews({
           first. */}
       {!story && view.analysed > 0 ? (
         <div className="mb-6">
-          <Reveal summary={t('feedback.method.summary')}>
+          <Reveal summary={t('feedback.method.summary')} tone="strong">
             <div className="rounded-xl border border-ink-200 bg-white p-4 sm:p-5">
               <Funnel funnel={view.funnel} base={base} t={t} />
               <RatingStrip base={base} ratings={view.ratings} active={view.filters.stars} />
@@ -675,7 +675,7 @@ export async function PortalReviews({
 
       {!story && view.found.length > 0 ? (
         <div className="mb-6">
-          <Reveal summary={t('feedback.found.summary')}>
+          <Reveal summary={t('feedback.found.summary')} tone="strong">
             <div className="rounded-xl border border-ink-200 bg-white p-4 sm:p-5">
               <ul className="space-y-1.5">
                 {view.found.map((f) => (
@@ -719,83 +719,86 @@ export async function PortalReviews({
         </div>
       ) : null}
 
+      {/* Search and filter is always open: the controls are the tool, and a
+          tool hidden behind a small disclosure on a phone is one nobody finds. */}
       {view.total > 0 ? (
-        <div className="mb-6">
-          <Reveal summary={t('feedback.filter.summary')} open={searching}>
-            <form method="get" action={base} className="border-y border-ink-200 py-4">
-              {/* One grid that reads the same on every width: search full width,
-                  then the pickers two to a row on a phone and in one row from
-                  tablet up. Nothing here scrolls sideways. */}
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr]">
-                <label className={`${label} col-span-2 sm:col-span-4 lg:col-span-1`}>
-                  {t('feedback.filter.search')}
-                  <input type="search" name="q" defaultValue={view.filters.q} placeholder={t('feedback.filter.searchPlaceholder')} className={control} />
-                </label>
-                <label className={label}>
-                  {t('feedback.filter.about')}
-                  <select name="theme" defaultValue={view.filters.theme ?? ''} className={control}>
-                    <option value="">{t('feedback.filter.anything')}</option>
-                    {issues.length > 0 ? (
-                      <optgroup label={t('feedback.filter.complaints')}>
-                        {issues.map((t) => (
-                          <option key={t.key} value={t.key}>{t.label}</option>
-                        ))}
-                      </optgroup>
-                    ) : null}
-                    {praise.length > 0 ? (
-                      <optgroup label={t('feedback.filter.praise')}>
-                        {praise.map((t) => (
-                          <option key={t.key} value={t.key}>{t.label}</option>
-                        ))}
-                      </optgroup>
-                    ) : null}
-                  </select>
-                </label>
-                <label className={label}>
-                  {t('feedback.filter.rating')}
-                  <select name="stars" defaultValue={view.filters.stars ? String(view.filters.stars) : ''} className={control}>
-                    <option value="">{t('feedback.filter.any')}</option>
-                    {[5, 4, 3, 2, 1].map((s) => (
-                      <option key={s} value={s}>{t.plural('feedback.filter.stars', s)}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className={label}>
-                  {t('feedback.filter.tone')}
-                  <select name="sentiment" defaultValue={view.filters.sentiment ?? ''} className={control}>
-                    <option value="">{t('feedback.filter.any')}</option>
-                    {SENTIMENTS.map((s) => (
-                      <option key={s} value={s}>{t(SENTIMENT_LABEL[s])}</option>
-                    ))}
-                  </select>
-                </label>
-                {view.sourceOptions.length > 1 ? (
-                  <label className={label}>
-                    {t('feedback.filter.from')}
-                    <select name="source" defaultValue={view.filters.source ?? ''} className={control}>
-                      <option value="">{t('feedback.filter.anywhere')}</option>
-                      {view.sourceOptions.map((s) => (
-                        <option key={s.key} value={s.key}>{s.label}</option>
+        <section className="mb-6" aria-labelledby="feedback-filter">
+          <h2 id="feedback-filter" className="mb-2 text-[15px] font-semibold text-ink-900">
+            {t('feedback.filter.summary')}
+          </h2>
+          <form method="get" action={base} className="border-y border-ink-200 py-4">
+            {/* One grid that reads the same on every width: search full width,
+                then the pickers two to a row on a phone and in one row from
+                tablet up. Nothing here scrolls sideways. */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr]">
+              <label className={`${label} col-span-2 sm:col-span-4 lg:col-span-1`}>
+                {t('feedback.filter.search')}
+                <input type="search" name="q" defaultValue={view.filters.q} placeholder={t('feedback.filter.searchPlaceholder')} className={control} />
+              </label>
+              <label className={label}>
+                {t('feedback.filter.about')}
+                <select name="theme" defaultValue={view.filters.theme ?? ''} className={control}>
+                  <option value="">{t('feedback.filter.anything')}</option>
+                  {issues.length > 0 ? (
+                    <optgroup label={t('feedback.filter.complaints')}>
+                      {issues.map((t) => (
+                        <option key={t.key} value={t.key}>{t.label}</option>
                       ))}
-                    </select>
-                  </label>
-                ) : null}
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
-                <label className="flex min-h-11 items-center gap-2 text-[13px] text-ink-700">
-                  <input type="checkbox" name="needs" value="reply" defaultChecked={view.filters.needs === 'reply'} className="h-4 w-4 rounded border-ink-300 accent-ink-900" />
-                  {t('feedback.filter.needsReply')}
+                    </optgroup>
+                  ) : null}
+                  {praise.length > 0 ? (
+                    <optgroup label={t('feedback.filter.praise')}>
+                      {praise.map((t) => (
+                        <option key={t.key} value={t.key}>{t.label}</option>
+                      ))}
+                    </optgroup>
+                  ) : null}
+                </select>
+              </label>
+              <label className={label}>
+                {t('feedback.filter.rating')}
+                <select name="stars" defaultValue={view.filters.stars ? String(view.filters.stars) : ''} className={control}>
+                  <option value="">{t('feedback.filter.any')}</option>
+                  {[5, 4, 3, 2, 1].map((s) => (
+                    <option key={s} value={s}>{t.plural('feedback.filter.stars', s)}</option>
+                  ))}
+                </select>
+              </label>
+              <label className={label}>
+                {t('feedback.filter.tone')}
+                <select name="sentiment" defaultValue={view.filters.sentiment ?? ''} className={control}>
+                  <option value="">{t('feedback.filter.any')}</option>
+                  {SENTIMENTS.map((s) => (
+                    <option key={s} value={s}>{t(SENTIMENT_LABEL[s])}</option>
+                  ))}
+                </select>
+              </label>
+              {view.sourceOptions.length > 1 ? (
+                <label className={label}>
+                  {t('feedback.filter.from')}
+                  <select name="source" defaultValue={view.filters.source ?? ''} className={control}>
+                    <option value="">{t('feedback.filter.anywhere')}</option>
+                    {view.sourceOptions.map((s) => (
+                      <option key={s.key} value={s.key}>{s.label}</option>
+                    ))}
+                  </select>
                 </label>
-                <button type="submit" className="inline-flex min-h-11 items-center rounded-md bg-ink-900 px-3.5 text-[13px] font-medium text-white hover:bg-ink-800 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:ring-offset-2 focus-visible:outline-none">
-                  {t('feedback.filter.show')}
-                </button>
-                {filtered ? (
-                  <Link href={base} className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[13px] text-ink-500 hover:text-ink-900">{t('feedback.filter.clear')}</Link>
-                ) : null}
-              </div>
-            </form>
-          </Reveal>
-        </div>
+              ) : null}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+              <label className="flex min-h-11 items-center gap-2 text-[13px] text-ink-700">
+                <input type="checkbox" name="needs" value="reply" defaultChecked={view.filters.needs === 'reply'} className="h-4 w-4 rounded border-ink-300 accent-ink-900" />
+                {t('feedback.filter.needsReply')}
+              </label>
+              <button type="submit" className="inline-flex min-h-11 items-center rounded-md bg-ink-900 px-3.5 text-[13px] font-medium text-white hover:bg-ink-800 focus-visible:ring-2 focus-visible:ring-ink-400 focus-visible:ring-offset-2 focus-visible:outline-none">
+                {t('feedback.filter.show')}
+              </button>
+              {filtered ? (
+                <Link href={base} className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[13px] text-ink-500 hover:text-ink-900">{t('feedback.filter.clear')}</Link>
+              ) : null}
+            </div>
+          </form>
+        </section>
       ) : null}
 
       {view.total === 0 ? (

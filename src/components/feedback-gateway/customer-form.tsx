@@ -333,17 +333,20 @@ function DimensionRow({
       {/* 5 and 4 share the same positive list, under a headline that differs
           by one word — "loved" versus "liked" — because a 4 is not a 5 with
           a complaint, it is a good visit with one thing short of great. */}
+      {/* The tag question sits behind a coloured rule with a real heading,
+          and the instruction ("pick any — or none") is bold and coloured right
+          above the chips, so it cannot blend into the body copy on a phone. */}
       {band === 'love' || band === 'like' ? (
-        <div className="mt-3">
-          <p className="text-[13px] font-medium text-ink-800">
+        <div className="mt-3 border-l-4 border-good-600 py-1 pl-3.5">
+          <p className="text-[16px] leading-snug font-semibold text-ink-900">
             {band === 'love' ? copy.loveHeadline : copy.likeHeadline}
           </p>
           {dimension.goodPrompt ? (
-            <p className="mt-0.5 text-[12px] text-ink-500">{dimension.goodPrompt}</p>
+            <p className="mt-0.5 text-[13px] text-ink-600">{dimension.goodPrompt}</p>
           ) : null}
           {dimension.positiveSignals.length > 0 ? (
             <>
-              <p className="mt-2 text-[12px] text-ink-500">{copy.signalsNote}</p>
+              <p className="mt-2.5 text-[14px] font-semibold text-good-700">{copy.signalsNote}</p>
               <div className="mt-2.5 flex flex-wrap gap-2">
                 {dimension.positiveSignals.map((signal) => (
                   <SignalChip
@@ -366,14 +369,14 @@ function DimensionRow({
       {/* 1-3 goes straight to the same improvement taxonomy a 4 can reach by
           choice — never a separate "unhappy customer" vocabulary. */}
       {band === 'improve' ? (
-        <div className="mt-3">
-          <p className="text-[13px] font-medium text-ink-800">{copy.improveHeadline}</p>
+        <div className="mt-3 border-l-4 border-bad-600 py-1 pl-3.5">
+          <p className="text-[16px] leading-snug font-semibold text-ink-900">{copy.improveHeadline}</p>
           {dimension.improvePrompt ? (
-            <p className="mt-0.5 text-[12px] text-ink-500">{dimension.improvePrompt}</p>
+            <p className="mt-0.5 text-[13px] text-ink-600">{dimension.improvePrompt}</p>
           ) : null}
           {dimension.signals.length > 0 ? (
             <>
-              <p className="mt-2 text-[12px] text-ink-500">{copy.signalsNote}</p>
+              <p className="mt-2.5 text-[14px] font-semibold text-bad-700">{copy.signalsNote}</p>
               <div className="mt-2.5 flex flex-wrap gap-2">
                 {dimension.signals.map((signal) => (
                   <SignalChip key={signal.key} value={signal.key} label={signal.label} tone="red" />
@@ -416,7 +419,7 @@ function Make5Disclosure({
       </button>
       {open ? (
         <div className="mt-1">
-          <p className="text-[12px] text-ink-500">{note}</p>
+          <p className="text-[14px] font-semibold text-warn-700">{note}</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {dimension.signals.map((signal) => (
               <SignalChip key={signal.key} value={signal.key} label={signal.label} tone="amber" />

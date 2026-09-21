@@ -858,8 +858,13 @@ export async function ReviewRow({ item, href }: { item: ReviewItem; href?: strin
     <li className="rounded-2xl border border-ink-200 bg-white p-4 shadow-[0_1px_2px_rgba(16,42,67,0.04)] sm:p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         {item.stars !== null ? (
-          <span className="text-[18px] leading-none">
-            <Stars value={item.stars} />
+          <span className="flex items-baseline gap-2">
+            <span className="text-[11px] font-semibold tracking-widest text-ink-500 uppercase">
+              {t('common.review.overall')}
+            </span>
+            <span className="text-[18px] leading-none">
+              <Stars value={item.stars} />
+            </span>
           </span>
         ) : (
           <span className="text-[13px] text-ink-500 italic">{t('common.review.noRating')}</span>
@@ -870,24 +875,38 @@ export async function ReviewRow({ item, href }: { item: ReviewItem; href?: strin
         </span>
       </div>
 
+      {/* Each part of the visit the customer rated, one row each: the part,
+          its own stars, and the number — so a part score is never read as the
+          overall one above, and a skipped part is simply absent. */}
       {worstFirst.length > 0 ? (
-        <ul className="mt-3 flex flex-wrap gap-1.5">
-          {worstFirst.map((d) => (
-            <li
-              key={d.label}
-              className={clsx(
-                'rounded-lg px-2.5 py-1 text-[13px] tabular-nums',
-                d.rating <= 2
-                  ? 'bg-bad-50 text-bad-700'
-                  : d.rating === 3
-                    ? 'bg-ink-50 text-ink-700'
-                    : 'bg-good-50 text-good-700',
-              )}
-            >
-              <span className="font-medium">{d.label}</span> {d.rating}/5
-            </li>
-          ))}
-        </ul>
+        <div className="mt-3">
+          <p className="text-[11px] font-semibold tracking-widest text-ink-500 uppercase">
+            {t('common.review.parts')}
+          </p>
+          <ul className="mt-1.5 divide-y divide-ink-100 rounded-lg border border-ink-200">
+            {worstFirst.map((d) => (
+              <li
+                key={d.label}
+                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 px-3 py-2"
+              >
+                <span className="text-[14px] font-medium text-ink-900">{d.label}</span>
+                <span className="flex items-center gap-2 tabular-nums">
+                  <span className="text-[15px] leading-none">
+                    <Stars value={d.rating} />
+                  </span>
+                  <span
+                    className={clsx(
+                      'text-[13px] font-semibold',
+                      d.rating <= 2 ? 'text-bad-700' : d.rating === 3 ? 'text-ink-600' : 'text-good-700',
+                    )}
+                  >
+                    {d.rating}/5
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
 
       {item.text.length > 0 ? (
