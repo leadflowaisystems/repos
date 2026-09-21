@@ -38,74 +38,15 @@
  * deterministic and reproducible.
  */
 
-export type PublicReview = {
-  /** When the customer left it. ISO 8601 with an offset. Empty inside a check-in. */
-  at: string;
-  /** 1–5, or null where the listing showed none. */
-  stars: number | null;
-  text: string;
-};
+import type { DemoStory, PublicReview } from './story';
+import { countStoryFeedback } from './story';
 
-export type QrSubmission = {
-  at: string;
-  stars: number | null;
-  /** Dimension key → 1–5, keys from the restaurant pack's gateway block. */
-  dimensions: Record<string, number>;
-  /** Signal keys the customer tapped. Only ever offered for a rating of 3 or below. */
-  signals: string[];
-  /** Optional words. Empty is a real submission: taps only. */
-  text: string;
-};
+export type { Checkin, OwnerContextLine, PublicReview, QrSubmission } from './story';
 
-export type Checkin = {
-  label: string;
-  capturedAt: string;
-  rating: number;
-  reviewCount: number;
-  unansweredCount: number;
-  reviewsPerWeek: number;
-  daysSinceLastPost: number;
-  photoRecencyDays: number;
-  /** Reviews the operator observed on the day, one per line as they paste them. */
-  reviews: PublicReview[];
-};
-
-export type OwnerContextLine = {
-  at: string;
-  kind: 'OPERATING' | 'FOCUS' | 'CONSTRAINT' | 'PRIORITY';
-  text: string;
-  themeKey?: string;
-  constraintKey?: 'STAFF' | 'DISCOUNT' | 'PRICE' | 'SPEND';
-};
-
-export type CornerCafeStory = {
-  businessName: string;
+/** The first demo story. Same shape as every vertical demo, pinned to the restaurant pack. */
+export type CornerCafeStory = DemoStory & {
   vertical: 'restaurant';
-  /** Public reviews pasted before the first check-in. */
-  earlyReviews: PublicReview[];
-  firstCheckin: Checkin;
-  /** Public reviews pasted between the first check-in and the decision. */
-  midReviews: PublicReview[];
-  owner: {
-    conversation: { at: string; title: string; body: string };
-    context: OwnerContextLine[];
-    answer: { at: string; themeKey: string; answer: string };
-    followUp: { at: string; title: string; body: string };
-    afterNote: { at: string; title: string; body: string };
-  };
-  action: {
-    suggestedAt: string;
-    decidedAt: string;
-    description: string;
-    doneAt: string;
-    measuredAt: string;
-    learning: string;
-  };
-  /** Public reviews pasted after the change. */
-  lateReviews: PublicReview[];
-  secondCheckin: Checkin;
-  /** What came through the table card, from the week it went out. */
-  qr: QrSubmission[];
+  owner: DemoStory['owner'] & { answer: NonNullable<DemoStory['owner']['answer']> };
 };
 
 const r = (at: string, stars: number | null, text: string): PublicReview => ({ at, stars, text });
@@ -427,12 +368,5 @@ export const CORNER_CAFE: CornerCafeStory = {
 
 /** Every piece of feedback in the story, in the order it arrives. */
 export function storyFeedbackCount(story: CornerCafeStory = CORNER_CAFE): number {
-  return (
-    story.earlyReviews.length +
-    story.firstCheckin.reviews.length +
-    story.midReviews.length +
-    story.lateReviews.length +
-    story.secondCheckin.reviews.length +
-    story.qr.length
-  );
+  return countStoryFeedback(story);
 }
