@@ -184,7 +184,7 @@ export const PROOFS: FocusProof[] = [
  */
 export const TAPPED = {
   label: 'Waiting',
-  rated: 19,
+  rated: 20,
   average: '3.0',
   low: 11,
   specifics: [
@@ -274,6 +274,7 @@ export const PILE: PileItem[] = [
       { label: 'Food and drink', value: 4 },
       { label: 'Service', value: 4 },
       { label: 'Waiting', value: 3 },
+      { label: 'Cleanliness', value: 4 },
       { label: 'Value for money', value: 4 },
     ],
     specifics: ['For the food'],
