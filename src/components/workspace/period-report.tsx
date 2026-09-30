@@ -3,6 +3,8 @@ import { getTranslator } from '@/lib/i18n/request';
 import type { MessageKey } from '@/lib/i18n/strings';
 import type { Translator } from '@/lib/i18n/t';
 import type { PeriodReport, PeriodTheme } from '@/lib/reporting/service';
+import type { Readiness } from '@/lib/portal/readiness';
+import { InsightsBuilding } from '@/components/workspace/insights-building';
 
 /**
  * The weekly Pulse and the monthly Review, rendered (M20 Stage 4). Those are
@@ -84,10 +86,18 @@ function ThemeList({ themes, t }: { themes: PeriodTheme[]; t: Translator<Message
 export async function PeriodReportView({
   report,
   basePath,
+  readiness = null,
 }: {
   report: PeriodReport;
   /** Where this door lives, so the period switch stays inside it. */
   basePath: string;
+  /**
+   * Whether the business has enough feedback for any reading at all. This
+   * page's own `enoughEvidence` is about ONE window; this is about the whole
+   * pile, and below its line the page shows the shared readiness card instead
+   * of a headline, a volume line or a topic list.
+   */
+  readiness?: Readiness | null;
 }) {
   const t = await getTranslator();
   const isWeek = report.kind === 'WEEK';
@@ -96,6 +106,16 @@ export async function PeriodReportView({
   // Only shared code that genuinely cannot tell is allowed to say "period".
   const ns = isWeek ? 'pulse' : 'review';
   const title = t(`${ns}.title`);
+
+  if (readiness && !readiness.ready) {
+    return (
+      <div className="max-w-3xl">
+        <PageIntro eyebrow={t('pulse.report.eyebrow')} title={title} />
+        <PeriodSwitch basePath={basePath} current={isWeek ? 'pulse' : 'review'} />
+        <InsightsBuilding readiness={readiness} basePath={basePath} className="mt-6" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl">

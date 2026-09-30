@@ -3,9 +3,10 @@ import { notFound } from 'next/navigation';
 import { Link } from '@/components/portal/link';
 import { UpLink } from '@/components/portal/history';
 import { LiveRefresh } from '@/components/workspace/live-refresh';
+import { InsightsBuilding } from '@/components/workspace/insights-building';
 import { prisma } from '@/lib/db';
 import { getTranslator } from '@/lib/i18n/request';
-import { getEvidenceIndex, getImprovementsView } from '@/lib/portal/service';
+import { getEvidenceIndex, getImprovementsView, getReadiness } from '@/lib/portal/service';
 import type { ImprovementsView } from '@/lib/portal/pages';
 import type { PortalAction, PortalSignal } from '@/lib/portal/view';
 import type { EvidenceIndex } from '@/lib/portal/evidence';
@@ -620,11 +621,18 @@ export async function PortalImprovements({
 }) {
   const client = { id: clientId };
   const t = await getTranslator();
-  const [view, evidence] = await Promise.all([
+  const [loaded, evidence, readiness] = await Promise.all([
     getImprovementsView(prisma, client.id, { t }),
     getEvidenceIndex(prisma, client.id),
+    getReadiness(prisma, client.id),
   ]);
-  if (!view) notFound();
+  if (!loaded) notFound();
+
+  // Before the first reading there is no trend to show and nothing to suggest
+  // changing: the suggestion would rest on a handful of responses, which is
+  // the conclusion the shared card exists to withhold. Changes the business
+  // has already recorded are facts, not a reading, so they stay.
+  const view = readiness.ready ? loaded : { ...loaded, suggested: null };
 
   const s = shelvesFor(view, t);
   const changes = s.now.length + s.alsoNow.length + s.watching.length + s.checked.length + s.notDoing.length;
@@ -650,8 +658,13 @@ export async function PortalImprovements({
       </h1>
       <p className="mt-1.5 text-[15px] leading-snug text-ink-700">{t('improvements.trends.intro')}</p>
 
-      {/* TRENDS — the page's first answer: what is changing. */}
-      <TrendsBoard trends={view.trends} basePath={basePath} t={t} />
+      {/* TRENDS — the page's first answer: what is changing. Before the first
+          reading, the shared card says why there is no answer yet. */}
+      {readiness.ready ? (
+        <TrendsBoard trends={view.trends} basePath={basePath} t={t} />
+      ) : (
+        <InsightsBuilding readiness={readiness} basePath={basePath} className="mt-6" />
+      )}
 
       {/* YOUR CHANGES — the decisions the owner made about those trends, and
           what Headway is doing with them. Kept whole; no longer the lead. */}

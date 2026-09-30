@@ -25,10 +25,10 @@ const FUNNEL = [
 
 export function Intelligence() {
   return (
-    <Section id="product" ground="white" labelledBy="product-heading">
+    <Section ground="white" labelledBy="intelligence-heading">
       <Heading
-        id="product-heading"
-        eyebrow="Product intelligence"
+        id="intelligence-heading"
+        eyebrow="One topic, opened"
         title={
           <>
             From {DEMO_BUSINESS.total} feedback entries to the one main thing to fix.
@@ -67,7 +67,7 @@ export function Intelligence() {
           <div className="rounded-2xl border border-ink-200 bg-white shadow-[0_1px_2px_rgb(15_18_26/0.04),0_24px_48px_-28px_rgb(16_42_67/0.25)]">
             <div className="p-4 sm:p-5">
               <div className="flex items-center justify-between gap-3">
-                <Chip tone="needs">{'Needs you'}</Chip>
+                <Chip tone="needs">Needs your attention</Chip>
                 <span className="text-[12px] text-ink-500">The one thing worth a decision</span>
               </div>
               <p className="mt-2.5 text-[20px] leading-tight font-semibold tracking-tight text-ink-900 sm:text-[22px]">
@@ -123,7 +123,7 @@ export function Intelligence() {
                 Headway is checking whether slow service comes up more or less at your next check-in, and will
                 flag a move of 2 or more mentions.
               </Row>
-              <Row label="Source">
+              <Row label="What Headway based this on">
                 <span className="tabular-nums">{SLOW_SERVICE.source}</span>
                 <span className="block text-[13px] text-ink-500">{SLOW_SERVICE.recurrence}</span>
                 <span className="block text-[13px] text-ink-500 tabular-nums">
@@ -134,7 +134,7 @@ export function Intelligence() {
             </div>
           </div>
           <figcaption className={`${CARD_EYEBROW} mt-3`}>
-            One signal on the Customers page, opened &middot; {DEMO_BUSINESS.name}
+            One topic on the Customers tab, opened &middot; {DEMO_BUSINESS.name}, Headway&rsquo;s demonstration business
           </figcaption>
         </figure>
       </div>

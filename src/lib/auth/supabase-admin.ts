@@ -20,7 +20,7 @@ import { SUPABASE_URL_VAR } from '@/lib/auth/supabase';
  * is exactly as strong with this file present as without it.
  *
  * `SUPABASE_SERVICE_ROLE_KEY` is read only here, only on the server, and only
- * for the three narrow operations below. The compliance suite already
+ * for the narrow operations below. The compliance suite already
  * forbids `NEXT_PUBLIC_` anywhere and `process.env` inside any `'use client'`
  * file; nothing in this module is exported to, or importable from, a client
  * component.
@@ -185,6 +185,43 @@ export async function setPermanentCredentials(
     return { ok: false, reason: classify(error.code, error.message), message: error.message };
   }
   return { ok: true };
+}
+
+/**
+ * Removes a Headway-generated identity for good, and SAYS whether it did.
+ *
+ * The fourth narrow operation, used by exactly one caller: permanently
+ * deleting an archived business (`purgeClient`). A temporary login that
+ * Headway minted for that business and nobody ever claimed is the business's
+ * own data, and it has to stop working before the business disappears —
+ * sign-in re-provisions a RepOS user for any identity Supabase accepts, so a
+ * surviving one would open onto a blank new account.
+ *
+ * Unlike `deleteIdentity` below, this reports failure rather than swallowing
+ * it, because here the caller must NOT go on to delete anything when the
+ * login could not be revoked. An identity that is already gone counts as
+ * removed, so a retry after a half-finished attempt goes through.
+ *
+ * Never called for a person's own account: see `purgeClient` for the rule
+ * that decides which identity, if any, this may be handed.
+ */
+export async function removeGeneratedIdentity(
+  authUserId: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const config = adminConfig();
+  if (!config.ok) return { ok: false, message: config.reason };
+
+  const supabase = adminClient();
+  const { error } = await supabase.auth.admin.deleteUser(authUserId);
+  if (!error) return { ok: true };
+  if (error.status === 404 || /not.?found/i.test(error.message)) return { ok: true };
+  console.error('removeGeneratedIdentity: Supabase Auth admin delete failed', {
+    authUserId,
+    code: error.code,
+    status: error.status,
+    message: error.message,
+  });
+  return { ok: false, message: error.message };
 }
 
 /**

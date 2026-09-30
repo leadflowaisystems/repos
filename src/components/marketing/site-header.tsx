@@ -6,7 +6,7 @@ import { GET_STARTED, NAV_LINKS, SIGN_IN } from './links';
 /**
  * The bar at the top of the public site.
  *
- * Four places on the page, a way in for people with an account, and the one
+ * Five places on the page, a way in for people with an account, and the one
  * call to action — which stays visible at every width, including beside the
  * menu button on a phone, so the thing the page exists to offer is never
  * more than a tap away.
@@ -19,7 +19,7 @@ export function SiteHeader() {
           <HeadwayWordmark markClassName="h-7 w-7" nameClassName="text-[19px]" />
         </a>
 
-        <nav aria-label="Site" className="hidden md:block">
+        <nav aria-label="Site" className="hidden lg:block">
           <ul className="flex items-center gap-1">
             {NAV_LINKS.map((item) => (
               <li key={item.href}>

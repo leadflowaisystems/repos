@@ -76,13 +76,13 @@ export default async function EditClientPage({
       <Card className="border-bad-200">
         <CardHeader
           title="Delete permanently"
-          description="Only for a delete-on-request from the business owner. This cannot be undone."
+          description="Only for a delete-on-request from the business owner, and only once archived. This cannot be undone."
         />
         <CardBody>
           <PurgeClientPanel
             clientId={client.id}
             businessName={client.businessName}
-            snapshotCount={client._count.snapshots}
+            archived={client.archivedAt !== null}
           />
         </CardBody>
       </Card>

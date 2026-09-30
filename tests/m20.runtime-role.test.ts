@@ -186,6 +186,8 @@ describe('the role the application actually connects as', () => {
     const policies = await owner.$queryRawUnsafe<{ n: bigint }[]>(
       `SELECT count(*) AS n FROM pg_policies WHERE schemaname = 'public'`,
     );
+    // 28 since M44: `client_delete_admin_archived`, the RESTRICTIVE DELETE
+    // policy on Client — only platform staff, and only an archived business.
     // 27 since M39: three new policies on AccountAccess
     // (account_access_admin_all, account_access_self_read,
     // account_access_self_update) — kept out of the generic tenant_isolation
@@ -197,7 +199,7 @@ describe('the role the application actually connects as', () => {
     // AiUsageDay added ai_usage_app, the one deliberately permissive policy in
     // the schema — it guards a token counter that holds no customer data, not
     // a per-business table.)
-    expect(Number(policies[0]?.n)).toBe(27);
+    expect(Number(policies[0]?.n)).toBe(28);
   });
 
   it('ships the scope the pipeline runs under', async () => {

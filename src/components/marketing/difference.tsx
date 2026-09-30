@@ -39,7 +39,7 @@ const QUESTIONS = [
 
 export function Difference() {
   return (
-    <Section ground="white" labelledBy="difference-heading">
+    <Section labelledBy="difference-heading">
       <Heading
         id="difference-heading"
         eyebrow="The difference"
@@ -74,7 +74,7 @@ export function Difference() {
             <h3 className="text-[34px] leading-[1.05] font-semibold tracking-[-0.03em] text-ink-900 sm:text-[48px] lg:text-[60px]">
               Did it get better?
             </h3>
-            <div className="mt-6 grid grid-cols-1 gap-6 rounded-2xl border border-ink-200 bg-ink-50 p-5 sm:p-7 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-10">
+            <div className="mt-6 grid grid-cols-1 gap-6 rounded-2xl border border-ink-200 bg-white p-5 sm:p-7 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-10">
               <div>
                 <p className={CARD_EYEBROW}>What happened</p>
                 <p className="mt-2 text-[22px] leading-tight font-semibold tracking-tight text-bad-700 sm:text-[24px]">

@@ -2,16 +2,17 @@
  * EVERY DESTINATION THE PUBLIC SITE OFFERS.
  *
  * One primary call to action with one label, one secondary, one way in for
- * people who already have an account, and four places on the page itself.
+ * people who already have an account, and five places on the page itself.
  * Nothing on the site links anywhere else — no external site, no messaging
  * deep link — and `tests/m26.marketing-site.test.ts` checks every href on
  * the page against this list.
  */
 
 export const NAV_LINKS = [
-  { label: 'Product', href: '#product' },
   { label: 'How it works', href: '#how-it-works' },
+  { label: 'What you see', href: '#product' },
   { label: 'Businesses', href: '#businesses' },
+  { label: 'Questions', href: '#faq' },
   { label: 'Contact', href: '#contact' },
 ] as const;
 

@@ -15,7 +15,7 @@ export function SiteFooter() {
           <div>
             <HeadwayWordmark tone="dark" />
             <p className="mt-4 max-w-md text-[15px] leading-relaxed text-ink-300">
-              Customer intelligence and improvement for businesses that care about getting better.
+              Smart Feedback for local businesses: private customer feedback, read for you, with a record of what you changed and what happened next.
             </p>
             {/* One line, not a section (M37). The portal itself is translated;
                 this is only so a prospect knows before they ask. */}

@@ -21,6 +21,7 @@ import { kit } from './kit';
 import { lifecycle } from './lifecycle';
 import { nav } from './nav';
 import { pulse } from './pulse';
+import { readiness } from './readiness';
 import { review } from './review';
 import { team } from './team';
 
@@ -52,6 +53,7 @@ export const MESSAGES = {
   ...checkin,
   ...pulse,
   ...review,
+  ...readiness,
   ...team,
   ...kit,
   ...account,

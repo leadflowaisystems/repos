@@ -1,11 +1,12 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
-import { getAnalysisView, getEvidenceIndex } from '@/lib/portal/service';
+import { getAnalysisView, getEvidenceIndex, getReadiness } from '@/lib/portal/service';
 import { getResponsibility } from '@/lib/responsibility/service';
 import { getTranslator } from '@/lib/i18n/request';
 import { Callout, Limits, PageIntro, Quiet, Section, SoFar, ThemeRows, WorkList } from '@/components/portal/portal-ui';
 import { Reveal } from '@/components/portal/disclose';
 import { SignalBoard, type SignalGroup } from '@/components/workspace/signal-board';
+import { InsightsBuilding } from '@/components/workspace/insights-building';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Customers' };
@@ -51,13 +52,27 @@ export async function PortalAnalysis({
   // Resolved before the fetch, not after: the sentences these builders write
   // are generated during the fetch, so the language has to be in hand first.
   const t = await getTranslator();
-  const [view, bundle, evidence, search] = await Promise.all([
+  const [view, bundle, evidence, search, readiness] = await Promise.all([
     getAnalysisView(prisma, client.id, { t }),
     getResponsibility(prisma, client.id, { t }),
     getEvidenceIndex(prisma, client.id),
     searchParams ?? Promise.resolve({} as Search),
+    getReadiness(prisma, client.id),
   ]);
   if (!view || !bundle) notFound();
+
+  // Before the first reading this page has nothing honest to put on its
+  // board: no piles, no movement, no method, because there is not yet enough
+  // to read. The shared card says so — the same card Home shows — and the
+  // customers' own words are one tap away on Feedback.
+  if (!readiness.ready) {
+    return (
+      <div className="max-w-3xl">
+        <PageIntro eyebrow={t('customers.page.eyebrow')} title={t('customers.page.title')} />
+        <InsightsBuilding readiness={readiness} basePath={basePath} />
+      </div>
+    );
+  }
   const r = bundle.responsibility;
   const open = one(search.open).slice(0, 80) || null;
 

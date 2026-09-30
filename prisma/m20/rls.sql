@@ -1065,3 +1065,23 @@ REVOKE ALL ON public."AccountAccess" FROM repos_app;
 GRANT SELECT, INSERT ON public."AccountAccess" TO repos_app;
 GRANT UPDATE ("status", "setupCompletedAt", "disabledAt", "disabledByUserId", "updatedAt")
   ON public."AccountAccess" TO repos_app;
+
+-- ---------------------------------------------------------------------------
+-- M44 — only Headway staff may delete a business, and only an archived one.
+--
+-- `client_write` above is FOR ALL, which is right for UPDATE and, with the
+-- blanket DELETE grant, also let a BUSINESS_OWNER's connection delete their
+-- own business and let an admin delete one still in service. This policy is
+-- RESTRICTIVE, so it is AND-ed with `client_write`: a DELETE now needs both.
+-- Foreign-key cascades run as the table owner and are unaffected, so deleting
+-- an archived business still removes every row that references it. The only
+-- code path that deletes one is `purgeClient`. See prisma/m44/migration.sql,
+-- the incremental form of this block for an already-built database.
+--
+-- Afterwards the policy count the runtime-role test pins moves from 27 to 28.
+
+DROP POLICY IF EXISTS client_delete_admin_archived ON public."Client";
+CREATE POLICY client_delete_admin_archived ON public."Client"
+  AS RESTRICTIVE
+  FOR DELETE
+  USING (app.is_platform_admin() AND "archivedAt" IS NOT NULL);

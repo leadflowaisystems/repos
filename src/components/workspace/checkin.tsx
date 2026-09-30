@@ -2,7 +2,7 @@ import { Link } from '@/components/portal/link';
 import clsx from 'clsx';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
-import { getCheckinView, getEvidenceIndex } from '@/lib/portal/service';
+import { getCheckinView, getEvidenceIndex, getReadiness } from '@/lib/portal/service';
 import { getResponsibility } from '@/lib/responsibility/service';
 import { checkinPulse, type CheckinBlock } from '@/lib/portal/focus';
 import type { ResponsibilityItem } from '@/lib/responsibility/engine';
@@ -20,6 +20,7 @@ import { SinceThen } from '@/components/portal/responsibility';
 import { SignalCard, type SignalGroupKey } from '@/components/workspace/signal-board';
 import type { EvidenceIndex } from '@/lib/portal/evidence';
 import { getTranslator } from '@/lib/i18n/request';
+import { InsightsBuilding } from '@/components/workspace/insights-building';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Check-in' };
@@ -125,12 +126,27 @@ export async function PortalCheckin({
 }) {
   const client = { id: clientId };
   const t = await getTranslator();
-  const [view, bundle, evidence] = await Promise.all([
+  const [view, bundle, evidence, readiness] = await Promise.all([
     getCheckinView(prisma, client.id, { t }),
     getResponsibility(prisma, client.id, { t }),
     getEvidenceIndex(prisma, client.id),
+    getReadiness(prisma, client.id),
   ]);
   if (!view || !bundle) notFound();
+
+  // A check-in is movement between two readings, and before the first reading
+  // there is nothing to move. The page keeps its place in the check-in family
+  // — the intro and the switch — and says, in the shared card, how far off the
+  // first reading is.
+  if (!readiness.ready) {
+    return (
+      <div className="max-w-3xl">
+        <PageIntro eyebrow={t('checkin.title')} title={view.title} />
+        <PeriodSwitch basePath={basePath} current="checkin" />
+        <InsightsBuilding readiness={readiness} basePath={basePath} className="mt-6" />
+      </div>
+    );
+  }
   const r = bundle.responsibility;
 
   const moved = view.better.length + view.worse.length + view.returning.length + view.checked.length > 0;

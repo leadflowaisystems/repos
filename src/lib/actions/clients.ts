@@ -122,6 +122,13 @@ export async function restoreClientAction(form: FormData): Promise<void> {
 /**
  * Permanent delete, kept separate from archiving. This is the delete-on-request
  * path described in COMPLIANCE.md and destroys the client's whole history.
+ *
+ * Admin only, archived only, exact name only — the last two re-checked by
+ * `purgeClient` whatever the form said. Every page that could have shown the
+ * business is dropped from the router cache afterwards, the owner's workspace
+ * included; they are all rendered per request anyway, so this is belt and
+ * braces against a stale client-side copy rather than the thing that makes
+ * the business unreachable. That is the missing row itself.
  */
 export async function purgeClientAction(
   _prev: ActionState,
@@ -136,7 +143,9 @@ export async function purgeClientAction(
   if (!result.ok) return failure(result.message, result.errors);
 
   revalidateClient(id);
-  redirect('/clients?deleted=1');
+  revalidatePath(`/clients/${id}`, 'layout');
+  revalidatePath(`/workspace/${id}`, 'layout');
+  redirect(`/clients?view=archived&deleted=1${result.data.removedLogin ? '&login=removed' : ''}`);
 }
 
 // ---------------------------------------------------------------------------

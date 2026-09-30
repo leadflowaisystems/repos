@@ -8,7 +8,7 @@ import { NAV_LINKS, SIGN_IN } from './links';
  * The menu on a phone.
  *
  * The only script the public site runs: a button that opens a list of the
- * four places on the page and the sign-in link, and closes it again when one
+ * five places on the page and the sign-in link, and closes it again when one
  * is chosen or Escape is pressed. The primary call to action is not in here —
  * it stays in the bar, beside this button, so it is never behind a tap.
  */
@@ -26,7 +26,7 @@ export function MobileNav() {
   }, [open]);
 
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

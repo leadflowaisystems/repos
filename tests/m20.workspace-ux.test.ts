@@ -279,7 +279,7 @@ describe('the workspace navigation', () => {
     for (const route of ['pulse', 'review']) {
       const page = code(read('app', '(workspace)', 'workspace', '[clientId]', route, 'page.tsx'));
       expect(page).toContain(
-        '<PeriodReportView report={report} basePath={`/workspace/${clientId}`} />',
+        '<PeriodReportView report={report} basePath={`/workspace/${clientId}`} readiness={readiness} />',
       );
     }
     const report = code(read('components', 'workspace', 'period-report.tsx'));

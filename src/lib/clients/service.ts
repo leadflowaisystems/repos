@@ -3,6 +3,7 @@ import { newPublicToken } from '@/lib/tokens';
 import { isMissingDbFunction, withRlsContext } from '@/lib/db';
 import { createClientRow, setClientCommercials } from '@/lib/tenancy/service';
 import { getTrialDefaultDays, trialWindowFrom } from '@/lib/commercial/service';
+import { removeGeneratedIdentity } from '@/lib/auth/supabase-admin';
 import {
   clientInputSchema,
   normaliseBusinessName,
@@ -505,22 +506,114 @@ export async function restoreClient(
 }
 
 /**
- * Permanent removal, for a delete-on-request from the business owner.
+ * What `purgeClient` needs from outside the database, handed in so the tests
+ * never reach Supabase.
+ */
+export type PurgeDeps = {
+  /** Revokes a Headway-generated sign-in identity. Already-gone counts as done. */
+  removeIdentity: (authUserId: string) => Promise<{ ok: true } | { ok: false; message: string }>;
+};
+
+// Looked up when a delete actually runs, not when this module loads: nothing
+// that merely imports the client service should need the service-role module.
+const DEFAULT_PURGE_DEPS: PurgeDeps = { removeIdentity: (authUserId) => removeGeneratedIdentity(authUserId) };
+
+/**
+ * The one sign-in identity that belongs to this business and to nobody else,
+ * if there is one.
  *
- * Separate from archiving on purpose: this destroys the historical record.
- * The typed confirmation must match the business name exactly, and is checked
- * here on the server rather than only in the browser.
+ * Only a login HEADWAY GENERATED for this business (M39's temporary access)
+ * and that NO PERSON HAS CLAIMED. All four must hold:
+ *
+ *   - it is this client's AccountAccess identity;
+ *   - setup was never completed — nobody replaced the generated password
+ *     with their own, so no person thinks of it as their account;
+ *   - it still signs in as the synthetic login id, not an address somebody
+ *     typed (the same test `disableTempAccess` uses);
+ *   - it belongs to no other business, and is not Headway staff.
+ *
+ * Everyone else — an owner who signed up themselves, a colleague who was
+ * invited, an owner who finished setting up the generated login — keeps their
+ * account. Deleting a business removes their access TO THAT BUSINESS (the
+ * Membership row cascades) and nothing more, so a person who also works with
+ * another business on Headway is untouched there.
+ */
+async function generatedLoginOnlyFor(
+  db: PrismaClient,
+  clientId: string,
+): Promise<{ userId: string; authProviderId: string | null } | null> {
+  const access = await db.accountAccess.findUnique({
+    where: { clientId },
+    select: {
+      status: true,
+      loginId: true,
+      user: {
+        select: {
+          id: true,
+          email: true,
+          authProviderId: true,
+          isPlatformAdmin: true,
+          memberships: { where: { clientId: { not: clientId } }, select: { id: true }, take: 1 },
+        },
+      },
+    },
+  });
+  if (!access) return null;
+  const { user } = access;
+  if (access.status === 'SETUP_COMPLETE') return null;
+  if (user.email.toLowerCase() !== access.loginId.toLowerCase()) return null;
+  if (user.isPlatformAdmin || user.memberships.length > 0) return null;
+  return { userId: user.id, authProviderId: user.authProviderId };
+}
+
+/**
+ * PERMANENT REMOVAL of an archived business, and everything it owns.
+ *
+ * Separate from archiving on purpose: this destroys the historical record,
+ * and there is no restore afterwards. Three things must all be true, and all
+ * three are checked here on the server rather than trusted from the browser:
+ *
+ *   1. the business still exists;
+ *   2. it is ARCHIVED — a business in service is never one click from gone,
+ *      so the path is always archive first, delete second;
+ *   3. the typed confirmation is the business name, exactly.
+ *
+ * WHAT IS REMOVED. The Client row, and with it — by the database's own
+ * ON DELETE CASCADE on every tenant table, verified against the production
+ * catalogue — its feedback (ReviewItem), check-ins (Snapshot), improvement
+ * actions, business context, voice profile, policies, competitors, kit
+ * configuration, kit orders, feedback QR gateway and its token, the owner's
+ * portal token, minutes, time entries, commercial terms, continuation
+ * requests, invitations, memberships and temporary access. Deleting one row
+ * and letting the database follow every foreign key is deliberate: a list of
+ * application deletes is a list somebody forgets to extend when the next
+ * table arrives. Nothing outside those tables is keyed by a client — there is
+ * no file storage, no client-scoped setting, and the AI tally holds no client.
+ *
+ * WHAT IS NOT. People. See `generatedLoginOnlyFor` for the one identity that
+ * goes with the business, and why every other account stays.
+ *
+ * ORDER. The generated login is revoked in Supabase FIRST, and if that fails
+ * nothing is deleted: a business that is gone while its printed password still
+ * signs in is the worse half-state. The database work then happens in one
+ * transaction, so the business and its generated User row go together or not
+ * at all.
  */
 export async function purgeClient(
   db: PrismaClient,
   id: string,
   confirmation: string,
-): Promise<ServiceResult<{ id: string }>> {
+  deps: PurgeDeps = DEFAULT_PURGE_DEPS,
+): Promise<ServiceResult<{ id: string; removedLogin: boolean }>> {
   const existing = await db.client.findUnique({
     where: { id },
-    select: { id: true, businessName: true },
+    select: { id: true, businessName: true, archivedAt: true },
   });
   if (!existing) return err('That client no longer exists.');
+
+  if (!existing.archivedAt) {
+    return err('Only an archived client can be deleted permanently. Archive it first.');
+  }
 
   if (confirmation.trim() !== existing.businessName) {
     return err('The confirmation text did not match the business name.', {
@@ -528,8 +621,27 @@ export async function purgeClient(
     });
   }
 
-  await db.client.delete({ where: { id } });
-  return ok({ id });
+  const generated = await generatedLoginOnlyFor(db, id);
+  if (generated?.authProviderId) {
+    const revoked = await deps.removeIdentity(generated.authProviderId);
+    if (!revoked.ok) {
+      return err(
+        `Nothing was deleted. The temporary login Headway generated for this business could not be removed: ${revoked.message}`,
+      );
+    }
+  }
+
+  await withRlsContext(db, async (tx) => {
+    await tx.client.delete({ where: { id } });
+    if (generated) {
+      // Guarded again inside the transaction: only if, with this business
+      // gone, the row belongs to nothing at all and is not staff.
+      await tx.user.deleteMany({
+        where: { id: generated.userId, isPlatformAdmin: false, memberships: { none: {} } },
+      });
+    }
+  });
+  return ok({ id, removedLogin: generated !== null });
 }
 
 // ---------------------------------------------------------------------------

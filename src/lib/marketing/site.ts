@@ -14,8 +14,23 @@ import { checkPublicBaseUrl, PUBLIC_BASE_URL_VAR } from '@/lib/config/public-url
 
 export const SITE_NAME = 'Headway';
 export const SITE_TITLE = 'Headway — Turn customer feedback into better decisions';
+/**
+ * Two rules the workspace applies, quoted by the site in plain words.
+ *
+ * Written here rather than imported: the product keeps them beside code that
+ * reads the database, and this site reads nothing. The marketing test holds
+ * both equal to the product's own constants, so the page cannot promise a
+ * different threshold from the one an owner's workspace applies.
+ */
+export const PRODUCT_RULES = {
+  /** The first reading appears at this many responses (FIRST_READING_AT). */
+  firstReadingAt: 5,
+  /** A topic is named once this many customers raise it (MIN_MENTIONS_TO_NAME). */
+  namedAt: 3,
+} as const;
+
 export const SITE_DESCRIPTION =
-  'Headway helps businesses turn customer feedback into clear actions, track what changes, and see whether the customer experience actually improves.';
+  'Private customer feedback through your own QR code, read for you. Headway shows what customers love, the one thing that needs your attention, and whether your changes helped.';
 
 /**
  * How a visitor reaches the people behind Headway.

@@ -294,6 +294,30 @@ The file gained one function and one policy:
 Afterwards there are **20** tables with RLS enabled and forced, **24**
 policies, and the `app` schema holds one more function than before.
 
+**A database from before M44 needs one more policy, and this file carries it.**
+Permanently deleting an archived business (the Archive list's *Delete
+permanently*) works without it — the application already refuses anything but
+an archived business, for platform staff only. The policy makes the database
+refuse the rest for itself: `client_write` is `FOR ALL`, so until now a
+business owner's connection could delete its own business outright.
+
+```bash
+# See "Applying SQL to production" below.
+psql -X -1 -v ON_ERROR_STOP=1 -c "SET lock_timeout = '5s'" -f prisma/m44/migration.sql
+# or re-apply the whole file, which now carries the same policy:
+psql -X -1 -v ON_ERROR_STOP=1 -c "SET lock_timeout = '5s'" -f prisma/m20/rls.sql
+```
+
+Verify it landed:
+
+```sql
+SELECT permissive, cmd FROM pg_policies
+ WHERE schemaname = 'public' AND tablename = 'Client'
+   AND policyname = 'client_delete_admin_archived';   -- RESTRICTIVE, DELETE
+```
+
+Afterwards there are **28** policies.
+
 ## Applying SQL to production
 
 **Never `npx prisma db execute` against production. It aims at the wrong

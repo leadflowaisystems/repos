@@ -1,5 +1,5 @@
 import type { Quote } from '@/lib/portal/evidence';
-import type { FocusProof, ProofPopulation } from '@/lib/portal/focus';
+import type { ProofPopulation } from '@/lib/portal/focus';
 
 /**
  * THE DEMO BUSINESS, AS THE PRODUCT SHOWS IT.
@@ -144,40 +144,6 @@ export const RIGHT_NOW = {
   },
 } as const;
 
-/** The three chips under the decision, in the product's own order and words. */
-export const PROOFS: FocusProof[] = [
-  {
-    key: 'share',
-    label: '39% of feedback',
-    detail: '34 of 87 feedback entries mention slow service.',
-    tone: 'bad',
-    quotes: SLOW_SERVICE_QUOTES,
-    seeAll: null,
-    population: null,
-    comparison: null,
-  },
-  {
-    key: 'outcome',
-    label: 'More often after your change',
-    detail: '32% of feedback before the change, 47% after.',
-    tone: 'bad',
-    quotes: [],
-    seeAll: null,
-    population: POPULATION,
-    comparison: null,
-  },
-  {
-    key: 'recurrence',
-    label: 'At both recent check-ins',
-    detail: 'Raised at 2 of your last 2 check-ins.',
-    tone: 'bad',
-    quotes: [],
-    seeAll: null,
-    population: null,
-    comparison: null,
-  },
-];
-
 /**
  * What customers tapped on the feedback page, added up — the "Waiting" rating
  * across every table-card submission that rated it.
@@ -214,21 +180,18 @@ export const SLOW_SERVICE = {
   checkins: { june: 9, august: 24 },
 } as const;
 
-/** The four kinds of signal, each with the Corner Cafe example the board shows. */
+/**
+ * Three topics as the Customers board counts them for Corner Cafe: the
+ * strength, the complaint, and the one that grew between check-ins.
+ */
 export const SIGNALS = {
-  loved: { label: 'Food taste and quality', count: 32, share: '37%', movement: 'growing', chip: 'Protect' },
-  unhappy: { label: 'Slow service', count: 34, share: '39%', movement: 'increasing', chip: 'Needs attention' },
+  loved: { label: 'Food taste and quality', count: 32, share: '37%', movement: 'growing' },
+  unhappy: { label: 'Slow service', count: 34, share: '39%', movement: 'increasing' },
   changing: {
     label: 'Wrong or missing items',
     count: 12,
     share: '14%',
     checkins: { june: 2, august: 9 },
-    line: 'Customers mentioned it more at your latest check-in than at the one before, so it is growing.',
-    chip: 'Watching',
-  },
-  attention: {
-    headline: 'Slow service is the main thing to fix.',
-    chip: 'Needs attention',
   },
 } as const;
 
@@ -289,6 +252,47 @@ export const PILE: PileItem[] = [
   },
   { kind: 'words', text: 'Twenty minutes just for the bill after a nice meal.', stars: 3, source: 'Feedback QR' },
 ];
+
+/**
+ * HOME, AS THE BRIEF DRAWS IT NOW (website refresh, after the Sep 2026
+ * workspace redesign).
+ *
+ * Only the parts of the brief whose figures this file can stand behind: the
+ * card that needs attention (its count, its movement between the June and
+ * August check-ins, the pack's own suggestion, and the loop line the brief
+ * prints for a change that has been measured — "Headway is watching this",
+ * with no buttons, because a measured change has none), the strength
+ * customers praise, the owner's one change with its two counts, and the
+ * three newest entries exactly as they arrived. The mood split and the
+ * "things need your attention" count are left off rather than guessed.
+ */
+export const HOME_BRIEF = {
+  attention: {
+    label: SLOW_SERVICE.label,
+    mentioned: SLOW_SERVICE.count,
+    trend: {
+      mark: '↑',
+      label: 'Getting worse',
+      counts: `${SLOW_SERVICE.checkins.june} → ${SLOW_SERVICE.checkins.august} mentions`,
+    },
+    suggestion: SLOW_SERVICE.suggestion,
+    loopLine: 'Headway is watching this',
+    quote: SLOW_SERVICE_QUOTES[0]!,
+  },
+  loved: { label: SIGNALS.loved.label, praised: SIGNALS.loved.count, trend: 'Getting better' },
+  change: {
+    about: IMPROVEMENT.decision,
+    state: 'Mentioned more after the change',
+    before: `${MEASUREMENT.before.count}/${MEASUREMENT.before.total}`,
+    after: `${MEASUREMENT.after.count}/${MEASUREMENT.after.total}`,
+  },
+  /** The three newest entries in the dataset, newest first, verbatim. */
+  latest: [
+    { text: '', stars: 4, at: at('2026-09-06T21:05:00') },
+    { text: 'Improve service', stars: 4, at: at('2026-09-05T19:56:00') },
+    { text: 'Fresh, tasty, and the place was clean and neat. We will be back.', stars: 5, at: at('2026-09-03T13:25:00') },
+  ],
+} as const;
 
 /** The Customers page's opening, as rendered. */
 export const IN_SHORT = {

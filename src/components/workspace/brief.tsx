@@ -7,10 +7,12 @@ import { Reveal } from '@/components/portal/disclose';
 import { OwnerDecision } from '@/components/workspace/owner-decision';
 import { Greeting } from '@/components/workspace/greeting';
 import { LiveRefresh } from '@/components/workspace/live-refresh';
+import { InsightsBuilding } from '@/components/workspace/insights-building';
 import { movesFor } from '@/lib/improve/owner-moves';
 import { whenSaid, type FreshFeed, type LatestEntry, type LiveState } from '@/lib/portal/fresh';
 import { formatDate } from '@/lib/format';
 import type { PortalTranslator } from '@/lib/i18n/translator';
+import type { Readiness } from '@/lib/portal/readiness';
 
 /**
  * YOUR HEADWAY BRIEF — the screen an owner opens (final experience pass).
@@ -621,20 +623,29 @@ async function Memory({ memory, basePath }: { memory: BriefMemory; basePath: str
  * Not enough to brief on yet: the brand, one honest line, and — the moment the
  * first customer has written — what they wrote. In a first week the early
  * words ARE the news, so they are not hidden until there is a pattern.
+ *
+ * Below the first-reading line the honest line is the shared readiness card
+ * (`InsightsBuilding`), the same one every other page shows, so Home cannot
+ * say something different from Customers about the same five responses. At or
+ * above the line with nothing read yet, the older "too early" card still
+ * speaks — that is a pile being read, not a pile that is too small.
  */
 async function BriefEmpty({
   brief,
   fresh,
   basePath,
   now,
+  readiness,
 }: {
   brief: Brief;
   fresh: FreshFeed | null;
   basePath: string;
   now: Date;
+  readiness: Readiness | null;
 }) {
   const t = await getTranslator();
   const some = (fresh?.total ?? 0) > 0;
+  const building = readiness !== null && !readiness.ready;
   return (
     <>
       <section
@@ -653,24 +664,28 @@ async function BriefEmpty({
             <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand-400" />
             {!some
               ? t('brief.status.ready')
-              : brief.header.watching > 0
+              : brief.header.watching > 0 && !building
                 ? t.plural('brief.status.watching', brief.header.watching)
                 : t('brief.status.patterns')}
           </p>
           <LiveLine live={fresh?.live ?? null} arrivedSinceVisit={brief.header.arrivedSinceVisit} t={t} />
         </div>
       </section>
-      <section className="mt-6 flex items-start gap-4 rounded-2xl border border-ink-200 bg-white p-5">
-        <HeadwayMark className="mt-0.5 h-8 w-8 shrink-0" />
-        <div>
-          <h2 className="font-display text-[22px] leading-tight font-semibold text-ink-900">
-            {some ? t('brief.early.someTitle') : t('brief.early.title')}
-          </h2>
-          <p className="mt-1.5 text-[15px] leading-snug text-ink-700">
-            {some ? t('brief.early.someBody') : t('brief.early.body')}
-          </p>
-        </div>
-      </section>
+      {building ? (
+        <InsightsBuilding readiness={readiness} basePath={basePath} className="mt-6" />
+      ) : (
+        <section className="mt-6 flex items-start gap-4 rounded-2xl border border-ink-200 bg-white p-5">
+          <HeadwayMark className="mt-0.5 h-8 w-8 shrink-0" />
+          <div>
+            <h2 className="font-display text-[22px] leading-tight font-semibold text-ink-900">
+              {some ? t('brief.early.someTitle') : t('brief.early.title')}
+            </h2>
+            <p className="mt-1.5 text-[15px] leading-snug text-ink-700">
+              {some ? t('brief.early.someBody') : t('brief.early.body')}
+            </p>
+          </div>
+        </section>
+      )}
       {fresh ? (
         <div className="mt-8">
           <Latest fresh={fresh} basePath={basePath} now={now} />
@@ -688,6 +703,7 @@ export async function OwnerBrief({
   fresh = null,
   stamp,
   now = new Date(),
+  readiness = null,
 }: {
   brief: Brief;
   clientId?: string;
@@ -702,13 +718,20 @@ export async function OwnerBrief({
   stamp?: string;
   /** The moment this page was rendered: the clock "2 min ago" is measured on. */
   now?: Date;
+  /**
+   * Whether this business has enough feedback for a reading at all. Below the
+   * line Home shows the shared readiness card and the customers' own words,
+   * and no counts, problem, strength or movement — even where the engine
+   * could already name one. See `src/lib/portal/readiness.ts`.
+   */
+  readiness?: Readiness | null;
 }) {
   const watcher = stamp ? <LiveRefresh stamp={stamp} reading={fresh?.live?.kind === 'READING'} /> : null;
-  if (brief.tooEarly) {
+  if (brief.tooEarly || (readiness && !readiness.ready)) {
     return (
       <>
         {watcher}
-        <BriefEmpty brief={brief} fresh={fresh} basePath={basePath} now={now} />
+        <BriefEmpty brief={brief} fresh={fresh} basePath={basePath} now={now} readiness={readiness ?? null} />
       </>
     );
   }

@@ -1,9 +1,7 @@
 import clsx from 'clsx';
-import { HeadwayMark } from '@/components/brand';
 import { buildGatewayCopy } from '@/lib/gateway/copy';
-import { generateQrSvg } from '@/lib/kit/qr';
+import { KIT_PRODUCTS } from '@/lib/kit/catalogue';
 import { DEMO_BUSINESS } from '@/lib/marketing/demo';
-import { siteUrl } from '@/lib/marketing/site';
 import { findPack } from '@/lib/packs';
 import { CARD_EYEBROW, Heading, Section } from './primitives';
 
@@ -15,11 +13,24 @@ import { CARD_EYEBROW, Heading, Section } from './primitives';
  * page (`buildGatewayCopy`) and the restaurant pack, so a customer who scans
  * a Headway card lands on exactly what is drawn here.
  *
- * The QR on the card is real. It encodes this site's own address — the one
- * setting every printed card also uses — so scanning the example opens the
- * page it is printed on. When that address is not configured the panel
- * carries the mark instead of a code that would lead nowhere.
+ * The card is the real one. The two photographs are the printed Headway
+ * card for the demo business in the two forms a business can order from its
+ * workspace — the same files, at the same widths, that the Kit page shows
+ * (`src/lib/kit/catalogue.ts`). Until the website refresh this was an HTML
+ * drawing of an older, cream card that Headway no longer prints.
  */
+
+/** What the photographs show, in the words the Kit page uses for them. */
+const KIT_PHOTOS: Record<(typeof KIT_PRODUCTS)[number]['key'], { name: string; alt: string }> = {
+  'card-qr-stand': {
+    name: 'Card in a clear stand',
+    alt: 'The Headway feedback card for Corner Cafe, standing in a clear acrylic holder on a cafe table.',
+  },
+  'folded-tent': {
+    name: 'Folded tent card',
+    alt: 'The Headway feedback card for Corner Cafe, folded into a standing tent on a cafe table.',
+  },
+};
 
 const PHONE =
   'flex min-w-0 flex-col rounded-[22px] border border-ink-200 bg-white p-4 shadow-[0_1px_2px_rgb(15_18_26/0.04),0_20px_40px_-24px_rgb(16_42_67/0.25)] sm:p-5';
@@ -50,46 +61,6 @@ function StarRow({ value, size = 'sm' }: { value: number | null; size?: 'sm' | '
   );
 }
 
-/** The card, drawn the way the printed tent is: cream face, navy base, the mark. */
-function Card({
-  qr,
-  headline,
-  subhead,
-  caption,
-  thanks,
-}: {
-  qr: string | null;
-  headline: string;
-  subhead: string;
-  caption: string;
-  thanks: { head: string; tail: string };
-}) {
-  return (
-    <div className="w-[214px] overflow-hidden rounded-md border border-ink-200 bg-brand-50 text-center shadow-[0_1px_2px_rgb(15_18_26/0.08),0_16px_32px_-20px_rgb(16_42_67/0.35)]">
-      <div className="px-4 pt-5">
-        <p className="text-[10px] font-semibold tracking-[0.2em] text-ink-700 uppercase">{DEMO_BUSINESS.name}</p>
-        <p className="mt-3 text-[16px] leading-tight font-bold text-ink-900">{headline}</p>
-        <p className="mt-1.5 text-[10.5px] leading-snug text-ink-700">{subhead}</p>
-        <div className="mx-auto mt-4 grid h-[104px] w-[104px] place-items-center rounded-sm bg-white p-1.5">
-          {qr ? (
-            <div className="h-full w-full [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qr }} />
-          ) : (
-            <HeadwayMark className="h-10 w-10" />
-          )}
-        </div>
-        <p className="mt-2 pb-4 text-[9.5px] tracking-wide text-ink-600">{caption}</p>
-      </div>
-      <div className="bg-ink-900 px-4 py-3">
-        <p className="text-[12px] font-bold text-white">{thanks.head}</p>
-        {thanks.tail ? <p className="mt-0.5 text-[9.5px] leading-snug text-ink-300">{thanks.tail}</p> : null}
-        <div className="mt-2 flex items-center justify-center gap-1 text-[8px] tracking-wide text-ink-300">
-          <HeadwayMark tone="dark" className="h-3 w-3" /> Headway
-        </div>
-      </div>
-    </div>
-  );
-}
-
 const POINTS = [
   { name: 'Quick', line: 'Three screens, counted. A single tap moves the first one on. About a minute.' },
   {
@@ -107,30 +78,12 @@ const POINTS = [
   },
 ] as const;
 
-export async function FeedbackExperience() {
+export function FeedbackExperience() {
   const pack = findPack('restaurant');
   if (!pack) throw new Error('The restaurant pack is required to draw the feedback experience.');
   const copy = buildGatewayCopy(pack, DEMO_BUSINESS.name);
   const dimensions = pack.gateway?.dimensions ?? [];
   const waiting = dimensions.find((d) => d.key === 'waiting') ?? null;
-
-  const home = siteUrl();
-  const qr = home ? await generateQrSvg(home) : null;
-  const qrSvg = qr && qr.ok ? qr.svg : null;
-
-  // The base of the card splits the pack's one sentence the way the printed
-  // tent does: the thanks in bold, the promise about where the words go under it.
-  const thanksLine = (pack.kit?.thankYou ?? copy.thanksNote).trim();
-  const match = /^(thank you|thanks)\s*[—–-]?\s*/i.exec(thanksLine);
-  const thanks = match
-    ? {
-        head: thanksLine.slice(0, match[1]!.length),
-        tail: (() => {
-          const rest = thanksLine.slice(match[0].length);
-          return rest.charAt(0).toUpperCase() + rest.slice(1);
-        })(),
-      }
-    : { head: thanksLine, tail: '' };
 
   const total = dimensions.length > 0 ? 3 : 2;
 
@@ -164,19 +117,33 @@ export async function FeedbackExperience() {
           </blockquote>
         </div>
 
-        <figure className="hw-rise flex flex-col items-start gap-2">
-          <figcaption className={CARD_EYEBROW}>The card</figcaption>
-          <Card
-            qr={qrSvg}
-            headline={copy.printHeadline}
-            subhead={copy.printLine}
-            caption={pack.kit?.qrCaption ?? 'Scan — it takes about a minute'}
-            thanks={thanks}
-          />
-          <p className="max-w-[214px] text-[12px] leading-relaxed text-ink-500">
-            {qrSvg
-              ? 'This one is real: scan it and it opens this page.'
-              : 'On a printed card the code opens the business’s own feedback page.'}
+        <figure className="hw-rise min-w-0 lg:w-[22rem]">
+          <figcaption className={CARD_EYEBROW}>The card Headway prints</figcaption>
+          <ul className="mt-3 grid grid-cols-2 gap-3">
+            {KIT_PRODUCTS.map((product) => (
+              <li key={product.key} className="overflow-hidden rounded-xl border border-ink-200 bg-white">
+                {/* A plain <img> for the same reason as the Kit page: images
+                    run unoptimized here, and this lets the browser choose the
+                    720 or 960 px copy instead of the 1312 px master. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={product.photo}
+                  srcSet={product.photoSrcSet}
+                  sizes="(min-width: 1024px) 176px, 50vw"
+                  alt={KIT_PHOTOS[product.key].alt}
+                  width={product.photoWidth}
+                  height={product.photoHeight}
+                  loading="lazy"
+                  decoding="async"
+                  className="aspect-[4/5] w-full bg-ink-50 object-cover"
+                />
+                <p className="px-3 py-2 text-[12px] font-medium text-ink-800">{KIT_PHOTOS[product.key].name}</p>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-[12px] leading-relaxed text-ink-500">
+            {DEMO_BUSINESS.name}&rsquo;s card. Yours carries your business&rsquo;s name and its own QR code,
+            and is ordered from your workspace.
           </p>
         </figure>
       </div>

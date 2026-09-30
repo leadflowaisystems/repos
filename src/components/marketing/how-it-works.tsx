@@ -2,57 +2,101 @@ import clsx from 'clsx';
 import { Heading, Section } from './primitives';
 
 /**
- * FOUR STEPS, ONE LOOP.
+ * FIVE STEPS, ONE LOOP — AND WHO DOES EACH ONE.
  *
- * The steps are what a visitor reads; the loop is what they should remember.
- * Most tools stop after the first step. Headway is built around the whole
- * circle, and the drawing says so: the last stop leads back to the first.
+ * The Smart Feedback lifecycle as the product actually runs it: customers
+ * speak, Headway reads, Headway surfaces what matters, the owner decides, and
+ * Headway checks what happened afterwards. Every step says whose work it is,
+ * because "how much effort is this?" is the question an owner is really
+ * asking when they read a how-it-works section.
+ *
+ * Every line is something the product does today: the one-minute page, the
+ * reading as feedback arrives, the naming floor (a topic is named only once
+ * three customers raise it — `MIN_MENTIONS_TO_NAME`), the decision buttons'
+ * own words, and the before-and-after that runs once enough new feedback has
+ * come in.
  */
 
-const STEPS = [
+type Who = 'Customers' | 'Headway' | 'You';
+
+const STEPS: Array<{ n: string; name: string; line: string; yours: string; who: Who }> = [
   {
     n: '01',
-    name: 'Listen',
-    line: 'Give customers a simple, honest way to tell you what they experienced.',
+    name: 'Customers give private feedback',
+    line: 'A QR card on your counter or table — or your feedback link — opens a page that takes about a minute. No app, no account, no name.',
+    yours: 'Put the card where customers can see it.',
+    who: 'Customers',
   },
   {
     n: '02',
-    name: 'Understand',
-    line: 'Headway finds recurring themes, changes over time, praise, frustration and signals that deserve attention.',
+    name: 'Headway reads every response',
+    line: 'The words, the stars and the taps, as each one arrives, grouped into the topics that matter for your kind of business.',
+    yours: 'Nothing. This is Headway’s job.',
+    who: 'Headway',
   },
   {
     n: '03',
-    name: 'Act',
-    line: 'Turn the important signal into one clear, practical next step.',
+    name: 'Headway shows what matters',
+    line: 'Home leads with the one thing that needs your attention and what customers love, each with the count and the customers’ words behind it.',
+    yours: 'Open Home on your phone.',
+    who: 'Headway',
   },
   {
     n: '04',
-    name: 'Improve',
-    line: 'Keep watching after you make a change so you can see what happened next.',
+    name: 'You decide what to do',
+    line: 'Every suggestion comes with a choice: I’ll handle this, or Not doing this. When the change is made, tap Done.',
+    yours: 'One tap per decision.',
+    who: 'You',
   },
-] as const;
+  {
+    n: '05',
+    name: 'Headway checks what changed',
+    line: 'Once enough new feedback has come in, Headway compares it with the feedback before your change, and tells you whether the topic came up more or less often.',
+    yours: 'Read the result.',
+    who: 'Headway',
+  },
+];
+
+const WHO_TONE: Record<Who, string> = {
+  Customers: 'text-ink-600',
+  Headway: 'text-brand-700',
+  You: 'text-ink-900',
+};
 
 const LOOP = [
   { who: 'Customer', what: 'Customer said' },
   { who: 'You', what: 'You decided' },
   { who: 'You', what: 'You changed it' },
-  { who: 'Headway', what: 'Headway watches' },
+  { who: 'Headway', what: 'Headway compares' },
   { who: 'Customer', what: 'Feedback comes back' },
 ] as const;
 
 export function HowItWorks() {
   return (
     <Section id="how-it-works" labelledBy="how-heading">
-      <Heading id="how-heading" eyebrow="How Headway works" title="Four steps. One loop." />
+      <Heading
+        id="how-heading"
+        eyebrow="How Headway works"
+        title="Five steps. Most of them are Headway’s."
+        lead="From a customer’s first tap to knowing whether your change helped — and what each step asks of you."
+      />
 
-      <ol className="mt-12 grid grid-cols-1 gap-x-8 gap-y-8 sm:grid-cols-2 lg:mt-16 lg:grid-cols-4">
+      <ol className="mt-12 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:mt-16 lg:grid-cols-5">
         {STEPS.map((step) => (
-          <li key={step.n} className="hw-rise border-t-2 border-ink-900 pt-5">
-            <p className="font-mono text-[13px] text-brand-700 tabular-nums">{step.n}</p>
-            <h3 className="mt-2 text-[13px] font-semibold tracking-[0.18em] text-ink-900 uppercase">
+          <li key={step.n} className="hw-rise flex flex-col border-t-2 border-ink-900 pt-5">
+            <p className="flex items-baseline justify-between gap-2">
+              <span className="font-mono text-[13px] text-brand-700 tabular-nums">{step.n}</span>
+              <span className={clsx('text-[11px] font-semibold tracking-[0.14em] uppercase', WHO_TONE[step.who])}>
+                {step.who}
+              </span>
+            </p>
+            <h3 className="mt-2 text-[18px] leading-snug font-semibold tracking-[-0.01em] text-ink-900">
               {step.name}
             </h3>
-            <p className="mt-3 text-[16px] leading-relaxed text-pretty text-ink-700">{step.line}</p>
+            <p className="mt-2.5 text-[15px] leading-relaxed text-pretty text-ink-700">{step.line}</p>
+            <p className="mt-auto pt-4 text-[13px] leading-snug text-ink-600">
+              <span className="font-semibold text-ink-900">Your part:</span> {step.yours}
+            </p>
           </li>
         ))}
       </ol>

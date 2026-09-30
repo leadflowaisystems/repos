@@ -487,24 +487,58 @@ describe('archiving', () => {
 });
 
 describe('permanent delete (delete-on-request)', () => {
-  it('requires the exact business name', async () => {
+  // Nothing here may reach Supabase. None of these clients has a generated
+  // login, so this is never called; it is here so a mistake fails loudly.
+  const noIdentity = {
+    removeIdentity: async () => {
+      throw new Error('no identity should be removed in this file');
+    },
+  };
+
+  it('refuses a client that is still in service, whatever is typed', async () => {
     const created = await create();
     expect(created.ok).toBe(true);
     if (!created.ok) return;
 
-    const wrong = await purgeClient(db, created.data.id, 'sunrise clinic');
+    const result = await purgeClient(db, created.data.id, 'Sunrise Clinic', noIdentity);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.message).toMatch(/archived/i);
+    expect(await db.client.count()).toBe(1);
+  });
+
+  it('requires the exact business name', async () => {
+    const created = await create();
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    expect((await archiveClient(db, created.data.id)).ok).toBe(true);
+
+    const wrong = await purgeClient(db, created.data.id, 'sunrise clinic', noIdentity);
     expect(wrong.ok).toBe(false);
+    if (!wrong.ok) expect(wrong.errors.confirm).toBeTruthy();
     expect(await db.client.count()).toBe(1);
 
-    const right = await purgeClient(db, created.data.id, 'Sunrise Clinic');
+    const right = await purgeClient(db, created.data.id, 'Sunrise Clinic', noIdentity);
     expect(right.ok).toBe(true);
     expect(await db.client.count()).toBe(0);
+  });
+
+  it('cannot be restored afterwards', async () => {
+    const created = await create();
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    await archiveClient(db, created.data.id);
+    expect((await purgeClient(db, created.data.id, 'Sunrise Clinic', noIdentity)).ok).toBe(true);
+
+    expect((await restoreClient(db, created.data.id)).ok).toBe(false);
+    expect(await listClients(db, { onlyArchived: true })).toEqual([]);
+    expect(await countClients(db)).toEqual({ active: 0, archived: 0 });
   });
 
   it('cascades to every related row', async () => {
     const created = await create();
     expect(created.ok).toBe(true);
     if (!created.ok) return;
+    await archiveClient(db, created.data.id);
 
     const snapshot = await db.snapshot.create({
       data: { clientId: created.data.id, capturedAt: new Date() },
@@ -528,7 +562,7 @@ describe('permanent delete (delete-on-request)', () => {
       },
     });
 
-    const result = await purgeClient(db, created.data.id, 'Sunrise Clinic');
+    const result = await purgeClient(db, created.data.id, 'Sunrise Clinic', noIdentity);
     expect(result.ok).toBe(true);
 
     expect(await db.client.count()).toBe(0);
@@ -542,7 +576,7 @@ describe('permanent delete (delete-on-request)', () => {
   });
 
   it('reports an unknown id instead of throwing', async () => {
-    const result = await purgeClient(db, 'nope', 'anything');
+    const result = await purgeClient(db, 'nope', 'anything', noIdentity);
     expect(result.ok).toBe(false);
   });
 });

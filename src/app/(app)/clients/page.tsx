@@ -10,6 +10,7 @@ import {
 import { DemoDataButton } from '@/components/demo-data-button';
 import {
   ArchiveClientButton,
+  DeleteArchivedClientButton,
   RestoreClientButton,
 } from '@/components/client-lifecycle';
 import { prisma } from '@/lib/db';
@@ -86,6 +87,7 @@ export default async function ClientsPage({
     view?: string;
     service?: string;
     deleted?: string;
+    login?: string;
     archived?: string;
     restored?: string;
     error?: string;
@@ -147,8 +149,13 @@ export default async function ClientsPage({
       <div className="mb-5 space-y-3">
         {params.deleted ? (
           <Notice tone="good">
-            Client deleted permanently. Every snapshot, pasted feedback item, kit
-            setting and time entry for that client was removed with it.
+            Client deleted permanently. Its workspace, feedback, check-ins,
+            improvements, QR link and every other stored record were removed with
+            it. People who had access keep their own sign-in, but no longer reach
+            this business.
+            {params.login === 'removed'
+              ? ' The temporary login Headway generated for it was removed too.'
+              : ''}
           </Notice>
         ) : null}
         {params.archived ? (
@@ -318,9 +325,15 @@ export default async function ClientsPage({
                         : 'None yet'}
                     </td>
                     <td className="px-5 py-3">
-                      <div className="flex justify-end">
+                      <div className="flex flex-wrap items-center justify-end gap-1.5">
                         {client.archivedAt ? (
-                          <RestoreClientButton clientId={client.id} />
+                          <>
+                            <RestoreClientButton clientId={client.id} />
+                            <DeleteArchivedClientButton
+                              clientId={client.id}
+                              businessName={client.businessName}
+                            />
+                          </>
                         ) : (
                           <ArchiveClientButton
                             clientId={client.id}

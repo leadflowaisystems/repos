@@ -1,0 +1,63 @@
+-- M44 — only Headway staff may delete a business, and only an archived one.
+--
+-- ONE POLICY, new and RESTRICTIVE. Nothing is dropped, no column changes, no
+-- row is read or written, no grant is widened, and no permissive policy is
+-- altered. Running it twice is the same as running it once.
+--
+-- Run as the OWNER, through DIRECT_DATABASE_URL. `repos_app` cannot create a
+-- policy and should not be able to.
+--
+--   psql -X -d "<DIRECT_DATABASE_URL>" -v ON_ERROR_STOP=1 -1 \
+--        -c "SET lock_timeout = '5s'" -f prisma/m44/migration.sql
+--
+-- (`prisma db execute` reads .env, which on a developer machine points at the
+-- LOCAL cluster, so it is the wrong tool for reaching production. See
+-- prisma/m20/README.md, "Applying SQL to production".)
+--
+-- REQUIRES an already-built database — one that has had `prisma/m20/rls.sql`
+-- applied, so `app.is_platform_admin()` and the `repos_app` role exist.
+--
+-- ORDER DOES NOT MATTER against the application. The one code path that
+-- deletes a business (`purgeClient`, behind `adminGate`) already refuses
+-- anything but an archived business for a platform admin, so the deployed
+-- build behaves identically before and after; this makes the database refuse
+-- the same things for itself.
+--
+--
+-- WHAT WAS OPEN
+--
+-- `client_write` is `FOR ALL USING (id IN app.owned_client_ids())`. That is
+-- the right rule for UPDATE — an owner edits their own business's details —
+-- and, because FOR ALL includes DELETE and `repos_app` holds DELETE on every
+-- table, it also let a BUSINESS_OWNER's connection delete their own business
+-- outright, with every row of history cascading after it. No page or action
+-- does that today; the only thing standing in the way was the absence of code.
+-- It also let an admin connection delete a business still in service.
+--
+--
+-- WHAT THIS CHANGES, EXACTLY
+--
+--   client_delete_admin_archived ON public."Client", AS RESTRICTIVE, FOR DELETE
+--     USING (app.is_platform_admin() AND "archivedAt" IS NOT NULL)
+--
+--   A restrictive policy is AND-ed with the permissive ones, so a DELETE now
+--   needs `client_write` AND this. For a business owner or member: refused.
+--   For a platform admin: permitted only once the business is archived. For a
+--   pipeline run or a signed-out connection: refused, as before.
+--
+-- WHAT IT DOES NOT CHANGE
+--
+--   * Reading, creating or editing a business. The policy is FOR DELETE only.
+--   * The cascade. Foreign-key actions run as the table owner and are not
+--     subject to row security, so deleting the business still removes every
+--     row that references it, including tables `repos_app` cannot delete
+--     from directly (AccountAccess).
+--   * Scripts that connect as the owner, which bypass row security entirely.
+--
+-- Afterwards the policy count the runtime-role test pins moves from 27 to 28.
+
+DROP POLICY IF EXISTS client_delete_admin_archived ON public."Client";
+CREATE POLICY client_delete_admin_archived ON public."Client"
+  AS RESTRICTIVE
+  FOR DELETE
+  USING (app.is_platform_admin() AND "archivedAt" IS NOT NULL);

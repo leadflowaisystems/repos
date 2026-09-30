@@ -167,7 +167,13 @@ export const config = {
   // `app.webmanifest` and `icons/` joined them with the installable app: the
   // phone fetches both before anyone has signed in, to draw the home-screen
   // icon, and the same static-files-about-nobody reasoning applies.
+  //
+  // `kit/` joined them with the website refresh: the photographs of the
+  // printed card, which the public site now shows in place of a drawing of an
+  // older one. Product pictures, nobody's data. `print-kit/` — the print
+  // masters — is deliberately NOT here: printing is Headway's job (M37), and
+  // those files stay behind a sign-in.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.svg|og.png|app.webmanifest|icons/|sitemap.xml|robots.txt).*)',
+    '/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.svg|og.png|app.webmanifest|icons/|kit/|sitemap.xml|robots.txt).*)',
   ],
 };

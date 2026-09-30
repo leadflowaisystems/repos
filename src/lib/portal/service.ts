@@ -17,6 +17,7 @@ import { oncePerRequest } from '@/lib/request-cache';
 import { buildPortalView, type PortalInput, type PortalView } from './view';
 import { EMPTY_EVIDENCE, buildEvidenceIndex, type EvidenceIndex } from './evidence';
 import { buildFreshFeed, type FreshFeed } from './fresh';
+import { readinessOf, usableResponses, type Readiness } from './readiness';
 import {
   buildAnalysisView,
   buildCheckinView,
@@ -329,4 +330,14 @@ export async function getPortalClient(
   const client = await findClient(db, clientId);
   if (!client) return null;
   return { businessName: client.businessName, verticalLabel: getPackOrFallback(client.vertical).label };
+}
+
+/**
+ * Whether this business has enough feedback for its pages to show a reading
+ * at all — the one answer every portal page asks before drawing one. See
+ * `./readiness`. Counted off the same request-memoised ledger the page has
+ * already loaded, so it costs no query of its own.
+ */
+export async function getReadiness(db: PrismaClient, clientId: string): Promise<Readiness> {
+  return readinessOf(usableResponses(await getAnalysisCoverage(db, clientId)));
 }

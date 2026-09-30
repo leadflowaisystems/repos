@@ -175,7 +175,7 @@ const CHIPS = {
   early: 'bg-ink-100 text-ink-600',
 } as const;
 
-/** The product's own group chip: Needs you, Watching, Protect, Not yet clear. */
+/** The product's own pile chip: Needs your attention, Watching, Going well, Not yet clear. */
 export function Chip({ tone, children }: { tone: keyof typeof CHIPS; children: ReactNode }) {
   return (
     <span

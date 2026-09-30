@@ -7,6 +7,7 @@ import { GET_STARTED, NAV_LINKS, SEE_HOW, SIGN_IN, TALK_TO_US } from '@/componen
 import {
   DEMO_BUSINESS,
   FOOD_PRAISE_QUOTES,
+  HOME_BRIEF,
   IMPROVEMENT,
   MEASUREMENT,
   PILE,
@@ -15,8 +16,19 @@ import {
   SLOW_SERVICE_QUOTES,
   TAPPED,
 } from '@/lib/marketing/demo';
-import { CONTACT_EMAIL_VAR, CONTACT_PHONE_VAR, DEFAULT_CONTACT, siteContact, siteUrl } from '@/lib/marketing/site';
+import {
+  CONTACT_EMAIL_VAR,
+  CONTACT_PHONE_VAR,
+  DEFAULT_CONTACT,
+  PRODUCT_RULES,
+  siteContact,
+  siteUrl,
+} from '@/lib/marketing/site';
 import { findPack } from '@/lib/packs';
+import { MESSAGES } from '@/lib/i18n/strings';
+import { FIRST_READING_AT } from '@/lib/portal/readiness';
+import { MIN_MENTIONS_TO_NAME } from '@/lib/intelligence/engine';
+import { KIT_PRODUCTS } from '@/lib/kit/catalogue';
 
 /**
  * THE PUBLIC WEBSITE (M26).
@@ -151,6 +163,17 @@ describe('the front door', () => {
       expect(source, file).toContain(file);
     }
   });
+
+  it('serves the kit photographs the page shows to a visitor with no session, and nothing else of the kit', async () => {
+    const { config } = await import('@/middleware');
+    const matcher = new RegExp(`^${config.matcher[0]}$`);
+    for (const file of KIT_PRODUCTS.flatMap((p) => p.photoSrcSet.split(',').map((s) => s.trim().split(' ')[0]!))) {
+      expect(matcher.test(file), file).toBe(false);
+    }
+    // The print masters stay behind the sign-in.
+    expect(matcher.test('/print-kit/headway-4x6-insert-PRINT-MASTER.pdf')).toBe(true);
+    expect(matcher.test('/workspace/abc/kit')).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -257,6 +280,41 @@ describe('every figure on the page is the demo business', () => {
     expect(SIGNALS.unhappy.count).toBe(SLOW_SERVICE.count);
   });
 
+  it('shows the three newest entries on the drawn Home, newest first, exactly as they arrived', () => {
+    // A review captured inside a check-in has no date of its own; it is dated
+    // by the check-in it arrived with.
+    const inCheckin = (c: typeof CORNER_CAFE.firstCheckin) => c.reviews.map((r) => ({ ...r, at: r.at || c.capturedAt }));
+    const all = [
+      ...CORNER_CAFE.earlyReviews,
+      ...inCheckin(CORNER_CAFE.firstCheckin),
+      ...CORNER_CAFE.midReviews,
+      ...CORNER_CAFE.lateReviews,
+      ...inCheckin(CORNER_CAFE.secondCheckin),
+      ...CORNER_CAFE.qr,
+    ]
+      .map((r) => ({ text: r.text, stars: r.stars, at: new Date(r.at).getTime() }))
+      .sort((a, b) => b.at - a.at)
+      .slice(0, 3);
+    expect(HOME_BRIEF.latest.map((e) => ({ text: e.text, stars: e.stars, at: e.at.getTime() }))).toEqual(all);
+  });
+
+  it('draws the Home card from the same figures the rest of the page uses', () => {
+    expect(HOME_BRIEF.attention.mentioned).toBe(SLOW_SERVICE.count);
+    expect(HOME_BRIEF.attention.suggestion).toBe(SLOW_SERVICE.suggestion);
+    expect(HOME_BRIEF.attention.quote.text).toBe(SLOW_SERVICE_QUOTES[0]!.text);
+    expect(HOME_BRIEF.loved.praised).toBe(SIGNALS.loved.count);
+    expect(HOME_BRIEF.change.about).toBe(CORNER_CAFE.action.description);
+    expect(HOME_BRIEF.change.before).toBe(`${MEASUREMENT.before.count}/${MEASUREMENT.before.total}`);
+    expect(HOME_BRIEF.change.after).toBe(`${MEASUREMENT.after.count}/${MEASUREMENT.after.total}`);
+    // A measured change has no buttons; the brief prints this line instead.
+    expect(HOME_BRIEF.attention.loopLine).toBe(MESSAGES['loop.state.watching'].en);
+  });
+
+  it('quotes the two thresholds the workspace applies, not its own', () => {
+    expect(PRODUCT_RULES.firstReadingAt).toBe(FIRST_READING_AT);
+    expect(PRODUCT_RULES.namedAt).toBe(MIN_MENTIONS_TO_NAME);
+  });
+
   it('dates every quotation inside the story', () => {
     const first = new Date(CORNER_CAFE.earlyReviews[0]!.at).getTime();
     const last = Math.max(...CORNER_CAFE.qr.map((r) => new Date(r.at).getTime()));
@@ -327,7 +385,7 @@ describe('the page offers exactly the destinations it says', () => {
   });
 
   it('names the demo business as a demonstration wherever its figures lead', () => {
-    const hero = read('src', 'components', 'marketing', 'right-now.tsx');
+    const hero = read('src', 'components', 'marketing', 'home-preview.tsx');
     expect(hero).toMatch(/demonstration business/);
   });
 
@@ -344,6 +402,75 @@ describe('the page offers exactly the destinations it says', () => {
     expect(businesses).toContain('listPacks()');
     for (const hardcoded of ['Salon', 'Gym', 'Clinic', 'Restaurant']) {
       expect(stripComments(businesses), hardcoded).not.toMatch(new RegExp(`['"]${hardcoded}`));
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The site describes the product as it is now (website refresh, Sep 2026)
+// ---------------------------------------------------------------------------
+
+describe('the site describes the workspace an owner opens today', () => {
+  const all = SITE_FILES.map((f) => f.code).join('\n');
+
+  it('names the five workspace tabs exactly as the workspace does', () => {
+    const tour = read('src', 'components', 'marketing', 'workspace-tour.tsx');
+    for (const key of [
+      'nav.section.home',
+      'nav.section.customers',
+      'nav.section.feedback',
+      'nav.section.improvements',
+      'nav.section.checkin',
+    ] as const) {
+      expect(tour, key).toContain(`name: '${MESSAGES[key].en}'`);
+    }
+  });
+
+  it('names the four Customers piles exactly as the workspace does', () => {
+    const tour = read('src', 'components', 'marketing', 'workspace-tour.tsx');
+    for (const key of [
+      'customers.group.needsAttention.label',
+      'customers.group.watching.label',
+      'customers.group.goingWell.label',
+      'customers.group.notClear.label',
+    ] as const) {
+      expect(tour, key).toContain(`label: '${MESSAGES[key].en}'`);
+    }
+  });
+
+  it('uses the decision buttons’ own words', () => {
+    for (const key of ['loop.choice.handle', 'loop.choice.notDoing', 'loop.choice.done'] as const) {
+      const words = MESSAGES[key].en.replace("'", '’');
+      expect(all, key).toContain(words);
+    }
+  });
+
+  it('no longer draws the retired Home block or its vocabulary', () => {
+    for (const retired of ["'Needs you'", '>Right now<', 'Product intelligence', 'The four signals', "chip: 'Protect'"]) {
+      expect(all, retired).not.toContain(retired);
+    }
+  });
+
+  it('shows the printed card as the real photographs the Kit page uses', () => {
+    const experience = read('src', 'components', 'marketing', 'feedback-experience.tsx');
+    expect(experience).toContain('KIT_PRODUCTS');
+    for (const product of KIT_PRODUCTS) {
+      for (const file of product.photoSrcSet.split(',').map((s) => s.trim().split(' ')[0]!)) {
+        expect(statSync(join(ROOT, 'public', file)).size, file).toBeGreaterThan(10_000);
+      }
+    }
+  });
+
+  it('answers the owner’s questions, including the one about a first few responses', () => {
+    const faq = read('src', 'components', 'marketing', 'faq.tsx');
+    expect(faq).toContain('id="faq"');
+    expect(faq).toContain('PRODUCT_RULES.firstReadingAt');
+    expect(faq).toMatch(/deleted permanently/);
+  });
+
+  it('reads nothing from the database, and holds no session', () => {
+    for (const { file, code } of SITE_FILES) {
+      expect(code, file).not.toMatch(/from '@\/lib\/db'|@prisma\/client|getTranslator|cookies\(|headers\(/);
     }
   });
 });

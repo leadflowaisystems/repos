@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { DEMO_BUSINESS, PILE, RIGHT_NOW, SLOW_SERVICE, type PileItem } from '@/lib/marketing/demo';
+import { DEMO_BUSINESS, HOME_BRIEF, PILE, SLOW_SERVICE, type PileItem } from '@/lib/marketing/demo';
 import { CARD_EYEBROW, Heading, Section, Stars } from './primitives';
 
 /**
@@ -7,8 +7,9 @@ import { CARD_EYEBROW, Heading, Section, Stars } from './primitives';
  *
  * On the left, feedback the way it arrives: eight real records from the
  * demo dataset, in three languages, one of them nothing but taps. On the
- * right, what Headway made of the whole pile: one sentence and one step. The
- * arrow between them is the product.
+ * right, what Headway made of the whole pile: the card Home leads with — the
+ * one thing that needs attention, how many raised it, which way it is going,
+ * and one step. The arrow between them is the product.
  */
 
 function Piece({ item }: { item: PileItem }) {
@@ -101,24 +102,32 @@ export function Problem() {
             </span>
           </figcaption>
           <div className="mt-3 flex flex-1 flex-col justify-center rounded-2xl border border-ink-200 bg-white p-6 shadow-[0_1px_2px_rgb(15_18_26/0.04)] sm:p-8">
-            <div className="flex items-center gap-2">
+            <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.14em] text-bad-700 uppercase">
               <span className="h-2 w-2 rounded-full bg-bad-600" aria-hidden />
-              <p className={CARD_EYEBROW}>Right now</p>
-            </div>
-            <p className="mt-3 text-[26px] leading-[1.12] font-semibold tracking-[-0.02em] text-balance text-ink-900 sm:text-[30px]">
-              {RIGHT_NOW.headline}
+              Needs your attention
             </p>
-            <p className="mt-2 text-[12px] text-ink-500">{RIGHT_NOW.basis}</p>
-            <div className="mt-6 border-t border-ink-200 pt-5">
+            <p className="mt-3 text-[28px] leading-[1.1] font-semibold tracking-[-0.02em] text-balance text-ink-900 sm:text-[32px]">
+              {HOME_BRIEF.attention.label}
+            </p>
+            <p className="mt-2 text-[17px] font-semibold text-ink-900 tabular-nums">
+              {HOME_BRIEF.attention.mentioned} customers mentioned it
+            </p>
+            <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
+              <span className="text-[15px] font-semibold text-bad-700">
+                <span aria-hidden>{HOME_BRIEF.attention.trend.mark}</span> {HOME_BRIEF.attention.trend.label}
+              </span>
+              <span className="text-[13px] text-ink-500 tabular-nums">{HOME_BRIEF.attention.trend.counts}</span>
+            </p>
+            <div className="mt-6 rounded-xl bg-canvas px-4 py-3.5">
               <p className={CARD_EYEBROW}>What to do</p>
               <p className="mt-1.5 text-[15px] leading-snug font-semibold text-pretty text-ink-900">
                 {SLOW_SERVICE.suggestion}
               </p>
-              <p className="mt-2 text-[12px] leading-relaxed text-ink-500">
-                What Headway suggested to {DEMO_BUSINESS.name} on 23 Jul 2026, with the {SLOW_SERVICE.count}{' '}
-                comments behind it one tap away.
-              </p>
             </div>
+            <p className="mt-3 text-[12px] leading-relaxed text-ink-500">
+              What Headway suggested to {DEMO_BUSINESS.name} on 23 Jul 2026, with the {SLOW_SERVICE.count}{' '}
+              comments behind it one tap away.
+            </p>
           </div>
         </figure>
       </div>

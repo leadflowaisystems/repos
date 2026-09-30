@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { getResponsibility } from '@/lib/responsibility/service';
 import { getEvidenceIndex, getFreshFeed } from '@/lib/portal/service';
 import { getAnalysisCoverage } from '@/lib/feedback/analysis';
+import { readinessOf, usableResponses } from '@/lib/portal/readiness';
 import type { Responsibility } from '@/lib/responsibility/engine';
 import { buildBrief } from '@/lib/portal/brief';
 import { Knows, Limits, Question, Section, SoFar } from '@/components/portal/portal-ui';
@@ -120,6 +121,8 @@ export async function PortalHome({
   ]);
   if (!bundle) notFound();
   const { view, responsibility: r } = bundle;
+  // Counted off the coverage just read, which is what getReadiness would read.
+  const readiness = readinessOf(usableResponses(coverage));
 
   // The visit and the clock are handed in, as everything is: the builder reads
   // no database and no clock of its own.
@@ -162,8 +165,13 @@ export async function PortalHome({
 
   // Whether the reveal has anything in it at all. An empty disclosure that
   // opens onto nothing is worse than no disclosure.
+  //
+  // Nothing at all before the first reading. Every list under the reveal is a
+  // reading of some kind, and below the line the brief has already said, in
+  // the one shared card, why there is none yet.
   const hasFullReading =
-    since !== null ||
+    readiness.ready &&
+    (since !== null ||
     alsoNeedsYou.length > 0 ||
     watching.length > 0 ||
     strengths.length > 0 ||
@@ -171,7 +179,7 @@ export async function PortalHome({
     view.question !== null ||
     view.knows.length > 0 ||
     r.did.length > 0 ||
-    view.basedOn > 0;
+    view.basedOn > 0);
 
   return (
     <>
@@ -182,6 +190,7 @@ export async function PortalHome({
         fresh={fresh}
         stamp={stamp}
         now={now}
+        readiness={readiness}
       />
 
       {hasFullReading ? (
