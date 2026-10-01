@@ -360,7 +360,7 @@ describe('the state machine is small and every state means one thing', () => {
 
   it('is versioned so a rule change is a deliberate act', () => {
     expect(ACTION_VERSION).toBe(1);
-    expect(MEASUREMENT_VERSION).toBe(1);
+    expect(MEASUREMENT_VERSION).toBe(2);
   });
 });
 

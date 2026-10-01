@@ -78,6 +78,10 @@ const NO_MOVEMENT: ThemeMovement = {
   note: '',
   pointNote: null,
   countNote: null,
+  previousTotal: null,
+  currentTotal: null,
+  previousPct: null,
+  currentPct: null,
 };
 
 // ---------------------------------------------------------------------------

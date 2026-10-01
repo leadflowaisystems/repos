@@ -175,21 +175,26 @@ export const intelligence = {
     mr: '{previous} ({count} फीडबॅक) या तुमच्या चेक-इनची तुलना {current} ({currentCount}) शी केली जात आहे.',
   },
   /**
-   * The volume caveat. It must keep saying that the movement is partly just
-   * more feedback and NOT a change in what customers think — a correlation
-   * held apart from a cause, in every language.
+   * The volume caveat. Movement is judged on shares, so more feedback on one
+   * side no longer inflates it — but the smaller side still limits how sure a
+   * comparison can be, and the owner is told so rather than left to assume.
    */
   'intelligence.window.volume_caveat': {
-    en: 'One check-in has far more feedback than the other ({previousCount} then, {currentCount} now). Some of this movement is just more feedback, not a change in what customers think.',
-    hi: 'एक चेक-इन में दूसरे के मुक़ाबले कहीं ज़्यादा फ़ीडबैक है (तब {previousCount}, अब {currentCount})। इस हलचल का कुछ हिस्सा सिर्फ़ ज़्यादा फ़ीडबैक है, ग्राहकों की सोच में हुआ बदलाव नहीं।',
-    mr: 'एका चेक-इनमध्ये दुसऱ्यापेक्षा कितीतरी जास्त फीडबॅक आहे (तेव्हा {previousCount}, आता {currentCount}). यातील काही हालचाल फक्त जास्त फीडबॅकमुळे आहे, ग्राहकांच्या विचारात झालेला बदल नाही.',
+    en: 'One check-in has far more feedback than the other ({previousCount} then, {currentCount} now). Headway compares the share of feedback, not the count, so this does not tilt the result, but the smaller side limits how sure it can be.',
+    hi: 'एक चेक-इन में दूसरे के मुक़ाबले कहीं ज़्यादा फ़ीडबैक है (तब {previousCount}, अब {currentCount})। Headway गिनती नहीं, फ़ीडबैक में हिस्से की तुलना करता है, इसलिए इससे नतीजा झुकता नहीं, पर छोटी तरफ़ की वजह से भरोसा सीमित रहता है।',
+    mr: 'एका चेक-इनमध्ये दुसऱ्यापेक्षा कितीतरी जास्त फीडबॅक आहे (तेव्हा {previousCount}, आता {currentCount}). Headway संख्येची नव्हे तर फीडबॅकमधल्या वाट्याची तुलना करतं, त्यामुळे निकाल झुकत नाही, पण लहान बाजूमुळे खात्री मर्यादित राहते.',
   },
 
   // -------------------------------------------------------------------------
   // How one theme moved between the two check-ins
   //
   // `{count}` is the count at the previous check-in, `{currentCount}` at the
-  // current one. Both labels are dates, and go in as values.
+  // current one; `{previousTotal}` and `{currentTotal}` are how much feedback
+  // each check-in held, and the percentages are the theme's share of it. The
+  // verdict is on the SHARE (health/compare.ts), so every sentence carries both
+  // denominators: "5 of 10, then 10 of 20" can be checked from the words alone.
+  // Both labels are dates, and go in as values. The .one and .other forms are
+  // the same sentence: "1 of 12" reads the same as "3 of 12" in all three.
   // -------------------------------------------------------------------------
   'intelligence.movement.absent': {
     en: '{theme} has not come up in the feedback attached to either check-in, so there is nothing to compare.',
@@ -197,54 +202,64 @@ export const intelligence = {
     mr: '{theme} चा उल्लेख कोणत्याही चेक-इनशी जोडलेल्या फीडबॅकमध्ये आलेला नाही, त्यामुळे तुलना करण्यासारखं काही नाही.',
   },
   'intelligence.movement.count_note.one': {
-    en: '{previousCount} → {count} mention',
-    hi: '{previousCount} → {count} ज़िक्र',
-    mr: '{previousCount} → {count} उल्लेख',
+    en: '{previousCount} of {previousTotal} → {count} of {currentTotal} · {previousPct}% → {currentPct}%',
+    hi: '{previousTotal} में से {previousCount} → {currentTotal} में से {count} · {previousPct}% → {currentPct}%',
+    mr: '{previousTotal} पैकी {previousCount} → {currentTotal} पैकी {count} · {previousPct}% → {currentPct}%',
   },
   'intelligence.movement.count_note.other': {
-    en: '{previousCount} → {count} mentions',
-    hi: '{previousCount} → {count} ज़िक्र',
-    mr: '{previousCount} → {count} उल्लेख',
+    en: '{previousCount} of {previousTotal} → {count} of {currentTotal} · {previousPct}% → {currentPct}%',
+    hi: '{previousTotal} में से {previousCount} → {currentTotal} में से {count} · {previousPct}% → {currentPct}%',
+    mr: '{previousTotal} पैकी {previousCount} → {currentTotal} पैकी {count} · {previousPct}% → {currentPct}%',
   },
   'intelligence.movement.steady.one': {
-    en: '{count} mention at your check-in on {previous}, {currentCount} at {current}. Holding steady.',
-    hi: 'आपके {previous} के चेक-इन पर {count} ज़िक्र, {current} पर {currentCount}। स्थिर बना हुआ है।',
-    mr: 'तुमच्या {previous} च्या चेक-इनला {count} उल्लेख, {current} ला {currentCount}. स्थिर आहे.',
+    en: '{count} of {previousTotal} at your check-in on {previous} ({previousPct}%), {currentCount} of {currentTotal} at {current} ({currentPct}%). About the same share of feedback.',
+    hi: 'आपके {previous} के चेक-इन पर {previousTotal} में से {count} ({previousPct}%), {current} पर {currentTotal} में से {currentCount} ({currentPct}%)। फ़ीडबैक में लगभग उतना ही हिस्सा।',
+    mr: 'तुमच्या {previous} च्या चेक-इनला {previousTotal} पैकी {count} ({previousPct}%), {current} ला {currentTotal} पैकी {currentCount} ({currentPct}%). फीडबॅकमधला वाटा जवळपास तेवढाच.',
   },
   'intelligence.movement.steady.other': {
-    en: '{count} mentions at your check-in on {previous}, {currentCount} at {current}. Holding steady.',
-    hi: 'आपके {previous} के चेक-इन पर {count} ज़िक्र, {current} पर {currentCount}। स्थिर बना हुआ है।',
-    mr: 'तुमच्या {previous} च्या चेक-इनला {count} उल्लेख, {current} ला {currentCount}. स्थिर आहे.',
+    en: '{count} of {previousTotal} at your check-in on {previous} ({previousPct}%), {currentCount} of {currentTotal} at {current} ({currentPct}%). About the same share of feedback.',
+    hi: 'आपके {previous} के चेक-इन पर {previousTotal} में से {count} ({previousPct}%), {current} पर {currentTotal} में से {currentCount} ({currentPct}%)। फ़ीडबैक में लगभग उतना ही हिस्सा।',
+    mr: 'तुमच्या {previous} च्या चेक-इनला {previousTotal} पैकी {count} ({previousPct}%), {current} ला {currentTotal} पैकी {currentCount} ({currentPct}%). फीडबॅकमधला वाटा जवळपास तेवढाच.',
   },
   'intelligence.movement.too_few.one': {
-    en: '{count} mention at your check-in on {previous}, {currentCount} at {current}. Too few either way to call it a change. Headway needs {needed} on one side.',
-    hi: 'आपके {previous} के चेक-इन पर {count} ज़िक्र, {current} पर {currentCount}। इसे बदलाव कहने के लिए दोनों ही तरफ़ बहुत कम हैं। Headway को एक तरफ़ {needed} चाहिए।',
-    mr: 'तुमच्या {previous} च्या चेक-इनला {count} उल्लेख, {current} ला {currentCount}. याला बदल म्हणण्यासाठी दोन्ही बाजूंनी हे फारच कमी आहेत. Headway ला एका बाजूला {needed} लागतात.',
+    en: '{count} of {previousTotal} at your check-in on {previous} ({previousPct}%), {currentCount} of {currentTotal} at {current} ({currentPct}%). Too few mentions either way to call it a change. Headway needs {needed} on one side.',
+    hi: 'आपके {previous} के चेक-इन पर {previousTotal} में से {count} ({previousPct}%), {current} पर {currentTotal} में से {currentCount} ({currentPct}%)। इसे बदलाव कहने के लिए दोनों ही तरफ़ ज़िक्र बहुत कम हैं। Headway को एक तरफ़ {needed} चाहिए।',
+    mr: 'तुमच्या {previous} च्या चेक-इनला {previousTotal} पैकी {count} ({previousPct}%), {current} ला {currentTotal} पैकी {currentCount} ({currentPct}%). याला बदल म्हणण्यासाठी दोन्ही बाजूंनी उल्लेख फारच कमी आहेत. Headway ला एका बाजूला {needed} लागतात.',
   },
   'intelligence.movement.too_few.other': {
-    en: '{count} mentions at your check-in on {previous}, {currentCount} at {current}. Too few either way to call it a change. Headway needs {needed} on one side.',
-    hi: 'आपके {previous} के चेक-इन पर {count} ज़िक्र, {current} पर {currentCount}। इसे बदलाव कहने के लिए दोनों ही तरफ़ बहुत कम हैं। Headway को एक तरफ़ {needed} चाहिए।',
-    mr: 'तुमच्या {previous} च्या चेक-इनला {count} उल्लेख, {current} ला {currentCount}. याला बदल म्हणण्यासाठी दोन्ही बाजूंनी हे फारच कमी आहेत. Headway ला एका बाजूला {needed} लागतात.',
+    en: '{count} of {previousTotal} at your check-in on {previous} ({previousPct}%), {currentCount} of {currentTotal} at {current} ({currentPct}%). Too few mentions either way to call it a change. Headway needs {needed} on one side.',
+    hi: 'आपके {previous} के चेक-इन पर {previousTotal} में से {count} ({previousPct}%), {current} पर {currentTotal} में से {currentCount} ({currentPct}%)। इसे बदलाव कहने के लिए दोनों ही तरफ़ ज़िक्र बहुत कम हैं। Headway को एक तरफ़ {needed} चाहिए।',
+    mr: 'तुमच्या {previous} च्या चेक-इनला {previousTotal} पैकी {count} ({previousPct}%), {current} ला {currentTotal} पैकी {currentCount} ({currentPct}%). याला बदल म्हणण्यासाठी दोन्ही बाजूंनी उल्लेख फारच कमी आहेत. Headway ला एका बाजूला {needed} लागतात.',
+  },
+  'intelligence.movement.unclear.one': {
+    en: '{count} of {previousTotal} at your check-in on {previous} ({previousPct}%), {currentCount} of {currentTotal} at {current} ({currentPct}%). It moved, but on this much feedback that could still be chance, so Headway is not calling it a change yet.',
+    hi: 'आपके {previous} के चेक-इन पर {previousTotal} में से {count} ({previousPct}%), {current} पर {currentTotal} में से {currentCount} ({currentPct}%)। इसमें हलचल हुई, पर इतने फ़ीडबैक पर यह संयोग भी हो सकता है, इसलिए Headway अभी इसे बदलाव नहीं कह रहा।',
+    mr: 'तुमच्या {previous} च्या चेक-इनला {previousTotal} पैकी {count} ({previousPct}%), {current} ला {currentTotal} पैकी {currentCount} ({currentPct}%). यात हालचाल झाली, पण इतक्या फीडबॅकवर हा योगायोगही असू शकतो, म्हणून Headway अजून याला बदल म्हणत नाही.',
+  },
+  'intelligence.movement.unclear.other': {
+    en: '{count} of {previousTotal} at your check-in on {previous} ({previousPct}%), {currentCount} of {currentTotal} at {current} ({currentPct}%). It moved, but on this much feedback that could still be chance, so Headway is not calling it a change yet.',
+    hi: 'आपके {previous} के चेक-इन पर {previousTotal} में से {count} ({previousPct}%), {current} पर {currentTotal} में से {currentCount} ({currentPct}%)। इसमें हलचल हुई, पर इतने फ़ीडबैक पर यह संयोग भी हो सकता है, इसलिए Headway अभी इसे बदलाव नहीं कह रहा।',
+    mr: 'तुमच्या {previous} च्या चेक-इनला {previousTotal} पैकी {count} ({previousPct}%), {current} ला {currentTotal} पैकी {currentCount} ({currentPct}%). यात हालचाल झाली, पण इतक्या फीडबॅकवर हा योगायोगही असू शकतो, म्हणून Headway अजून याला बदल म्हणत नाही.',
   },
   'intelligence.movement.up.one': {
-    en: '{count} mention at your check-in on {previous}, {currentCount} at {current} (up {delta}).',
-    hi: 'आपके {previous} के चेक-इन पर {count} ज़िक्र, {current} पर {currentCount} ({delta} ज़्यादा)।',
-    mr: 'तुमच्या {previous} च्या चेक-इनला {count} उल्लेख, {current} ला {currentCount} ({delta} जास्त).',
+    en: '{count} of {previousTotal} at your check-in on {previous} ({previousPct}%), {currentCount} of {currentTotal} at {current} ({currentPct}%). A larger share of feedback than before.',
+    hi: 'आपके {previous} के चेक-इन पर {previousTotal} में से {count} ({previousPct}%), {current} पर {currentTotal} में से {currentCount} ({currentPct}%)। फ़ीडबैक में पहले से बड़ा हिस्सा।',
+    mr: 'तुमच्या {previous} च्या चेक-इनला {previousTotal} पैकी {count} ({previousPct}%), {current} ला {currentTotal} पैकी {currentCount} ({currentPct}%). फीडबॅकमधला वाटा आधीपेक्षा मोठा.',
   },
   'intelligence.movement.up.other': {
-    en: '{count} mentions at your check-in on {previous}, {currentCount} at {current} (up {delta}).',
-    hi: 'आपके {previous} के चेक-इन पर {count} ज़िक्र, {current} पर {currentCount} ({delta} ज़्यादा)।',
-    mr: 'तुमच्या {previous} च्या चेक-इनला {count} उल्लेख, {current} ला {currentCount} ({delta} जास्त).',
+    en: '{count} of {previousTotal} at your check-in on {previous} ({previousPct}%), {currentCount} of {currentTotal} at {current} ({currentPct}%). A larger share of feedback than before.',
+    hi: 'आपके {previous} के चेक-इन पर {previousTotal} में से {count} ({previousPct}%), {current} पर {currentTotal} में से {currentCount} ({currentPct}%)। फ़ीडबैक में पहले से बड़ा हिस्सा।',
+    mr: 'तुमच्या {previous} च्या चेक-इनला {previousTotal} पैकी {count} ({previousPct}%), {current} ला {currentTotal} पैकी {currentCount} ({currentPct}%). फीडबॅकमधला वाटा आधीपेक्षा मोठा.',
   },
   'intelligence.movement.down.one': {
-    en: '{count} mention at your check-in on {previous}, {currentCount} at {current} (down {delta}).',
-    hi: 'आपके {previous} के चेक-इन पर {count} ज़िक्र, {current} पर {currentCount} ({delta} कम)।',
-    mr: 'तुमच्या {previous} च्या चेक-इनला {count} उल्लेख, {current} ला {currentCount} ({delta} कमी).',
+    en: '{count} of {previousTotal} at your check-in on {previous} ({previousPct}%), {currentCount} of {currentTotal} at {current} ({currentPct}%). A smaller share of feedback than before.',
+    hi: 'आपके {previous} के चेक-इन पर {previousTotal} में से {count} ({previousPct}%), {current} पर {currentTotal} में से {currentCount} ({currentPct}%)। फ़ीडबैक में पहले से छोटा हिस्सा।',
+    mr: 'तुमच्या {previous} च्या चेक-इनला {previousTotal} पैकी {count} ({previousPct}%), {current} ला {currentTotal} पैकी {currentCount} ({currentPct}%). फीडबॅकमधला वाटा आधीपेक्षा लहान.',
   },
   'intelligence.movement.down.other': {
-    en: '{count} mentions at your check-in on {previous}, {currentCount} at {current} (down {delta}).',
-    hi: 'आपके {previous} के चेक-इन पर {count} ज़िक्र, {current} पर {currentCount} ({delta} कम)।',
-    mr: 'तुमच्या {previous} च्या चेक-इनला {count} उल्लेख, {current} ला {currentCount} ({delta} कमी).',
+    en: '{count} of {previousTotal} at your check-in on {previous} ({previousPct}%), {currentCount} of {currentTotal} at {current} ({currentPct}%). A smaller share of feedback than before.',
+    hi: 'आपके {previous} के चेक-इन पर {previousTotal} में से {count} ({previousPct}%), {current} पर {currentTotal} में से {currentCount} ({currentPct}%)। फ़ीडबैक में पहले से छोटा हिस्सा।',
+    mr: 'तुमच्या {previous} च्या चेक-इनला {previousTotal} पैकी {count} ({previousPct}%), {current} ला {currentTotal} पैकी {currentCount} ({currentPct}%). फीडबॅकमधला वाटा आधीपेक्षा लहान.',
   },
 
   // -------------------------------------------------------------------------
@@ -598,6 +613,11 @@ export const intelligence = {
     en: 'Negative share moved from {previous} to {current}.',
     hi: 'नकारात्मक हिस्सा {previous} से {current} हुआ।',
     mr: 'नकारात्मक वाटा {previous} वरून {current} झाला.',
+  },
+  'intelligence.health.trend.negative.unclear': {
+    en: 'Negative share moved from {previous} to {current}, but on {previousCount} then and {currentCount} now that could still be chance. Not counted as a direction.',
+    hi: 'नकारात्मक हिस्सा {previous} से {current} हुआ, पर तब {previousCount} और अब {currentCount} फ़ीडबैक पर यह संयोग भी हो सकता है। इसे दिशा नहीं माना गया।',
+    mr: 'नकारात्मक वाटा {previous} वरून {current} झाला, पण तेव्हा {previousCount} आणि आता {currentCount} फीडबॅकवर हा योगायोगही असू शकतो. याला दिशा मानलं नाही.',
   },
   'intelligence.health.trend.negative.flat': {
     en: 'Negative share moved from {previous} to {current} — under the {needed} needed to call a direction.',

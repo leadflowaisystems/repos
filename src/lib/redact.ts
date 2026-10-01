@@ -26,6 +26,9 @@ const PHONE_RE =
 /** Any remaining run of 7+ digits (account numbers, IDs, order numbers). */
 const LONG_DIGITS_RE = /\d[\d\s.-]{6,}\d/g;
 
+/** One or more clock times and nothing else: "10.30 - 11.15", "7:45 to 8:30" is two runs. */
+const CLOCK_TIMES_RE = /^(?:[01]?\d|2[0-3])[.:][0-5]\d(?:\s*-\s*(?:[01]?\d|2[0-3])[.:][0-5]\d)*$/;
+
 /** Social handles. Runs after emails so it cannot eat an address. */
 const HANDLE_RE = /(^|[^\w@])@[a-z0-9._]{2,30}\b/gi;
 
@@ -97,7 +100,16 @@ export function redactPii(input: string): RedactionResult {
   apply(REFERENCE_RE, '[reference removed]', 'booking or order reference');
 
   apply(PHONE_RE, '[number removed]', 'phone number');
-  apply(LONG_DIGITS_RE, '[number removed]', 'long number');
+  // Clock times are evidence, not identifiers: "waited from 10.30 - 11.15".
+  {
+    let hit = false;
+    text = text.replace(LONG_DIGITS_RE, (match) => {
+      if (CLOCK_TIMES_RE.test(match.trim())) return match;
+      hit = true;
+      return '[number removed]';
+    });
+    if (hit) removed.push('long number');
+  }
 
   text = text.replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
 

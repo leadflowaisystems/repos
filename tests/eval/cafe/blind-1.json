@@ -1,0 +1,4446 @@
+[
+  {
+    "id": "cb1-attribution-temporal-01",
+    "text": "giving 1 star coz the swiggy rider took almost 1 hr 15 min and kept calling me for directions even tho the location was pinned. yes it was raining but still. the club sandwich and hazelnut cold brew were honestly great when they finally came, packed really neatly, nothing spilled. not the cafe's fault i guess",
+    "stars": 1,
+    "lang": "en",
+    "categories": [
+      "positive",
+      "attribution",
+      "third_party",
+      "rating_conflict",
+      "negation",
+      "food",
+      "drink",
+      "operations",
+      "colloquial"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "food_taste+",
+      "drink_quality+",
+      "delivery_takeaway+"
+    ],
+    "ok": [],
+    "never": [
+      "food_taste-",
+      "drink_quality-",
+      "delivery_takeaway-"
+    ],
+    "traps": [
+      "service_speed-",
+      "delivery_takeaway-",
+      "professionalism-",
+      "attentiveness-"
+    ],
+    "abstain": false,
+    "ratingConflict": true,
+    "note": "The 1 star punishes the Swiggy rider and the rain; everything said about the cafe (food, cold brew, neat packing) is praise."
+  },
+  {
+    "id": "cb1-attribution-temporal-02",
+    "text": "Zomato pe 2 waffles aur ek iced mocha order kiya tha, app ne 'delivered' dikha diya but kuch aaya hi nahi. Rider ka phone switch off. Cafe ko directly call kiya toh manager ne bola tension mat lo, hum dobara bhejte hain, aur 30 min me naya order aa gaya bina extra charge ke. Waffles mast the. Ye support ke liye 4 star.",
+    "stars": 4,
+    "lang": "hinglish",
+    "categories": [
+      "positive",
+      "attribution",
+      "third_party",
+      "hinglish",
+      "food",
+      "service",
+      "operations",
+      "colloquial"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "professionalism+",
+      "food_taste+"
+    ],
+    "ok": [
+      "staff_friendliness+",
+      "service_speed+",
+      "delivery_takeaway+"
+    ],
+    "never": [
+      "professionalism-",
+      "food_taste-"
+    ],
+    "traps": [
+      "delivery_takeaway-",
+      "order_accuracy-",
+      "service_speed-",
+      "refund-"
+    ],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The missing delivery is the Zomato rider's failure; the cafe resending the order free of charge is praise for how it handled it."
+  },
+  {
+    "id": "cb1-attribution-temporal-03",
+    "text": "Stuck in rain + traffic on FC road for almost an hour, reached fully drenched and grumpy. Pune monsoon man.",
+    "stars": null,
+    "lang": "en",
+    "categories": [
+      "neutral",
+      "attribution",
+      "third_party",
+      "short",
+      "colloquial",
+      "context"
+    ],
+    "sentiment": "NEUTRAL",
+    "alsoSentiment": [],
+    "must": [],
+    "ok": [],
+    "never": [],
+    "traps": [
+      "service_speed-",
+      "table_wait-",
+      "delivery_takeaway-"
+    ],
+    "abstain": true,
+    "ratingConflict": false,
+    "note": "Only the commute and the weather are described, so nothing about the cafe can be filed."
+  },
+  {
+    "id": "cb1-attribution-temporal-04",
+    "text": "We'd booked a table for 7 but my cousin got held up at office so we only placed our order around 8. They didn't hurry us or give our table to the waiting crowd. Once we ordered, the paneer tikka sandwiches and 3 filter coffees were out in 10 minutes. Lovely staff.",
+    "stars": 5,
+    "lang": "en",
+    "categories": [
+      "positive",
+      "attribution",
+      "customer_vs_business",
+      "negation",
+      "service",
+      "operations",
+      "context"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "reservation+",
+      "service_speed+",
+      "staff_friendliness+"
+    ],
+    "ok": [
+      "attentiveness+",
+      "professionalism+"
+    ],
+    "never": [
+      "reservation-",
+      "service_speed-",
+      "staff_friendliness-",
+      "table_wait-"
+    ],
+    "traps": [
+      "table_wait-",
+      "attentiveness-",
+      "service_speed-"
+    ],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The hour-long gap came from the customer's own party running late; the cafe held the booking and served within 10 minutes of ordering."
+  },
+  {
+    "id": "cb1-attribution-temporal-05",
+    "text": "Totally my fault, I knocked my cappuccino over with my elbow while clicking pics lol. Before I could even say anything one of the boys came with a cloth, wiped it up and brought a fresh one, didn't charge for it. Small thing but made my day.",
+    "stars": null,
+    "lang": "en",
+    "categories": [
+      "positive",
+      "attribution",
+      "customer_vs_business",
+      "implicit_praise",
+      "service",
+      "colloquial"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "attentiveness+"
+    ],
+    "ok": [
+      "staff_friendliness+",
+      "professionalism+",
+      "service_speed+"
+    ],
+    "never": [
+      "attentiveness-",
+      "staff_friendliness-",
+      "professionalism-",
+      "order_accuracy-",
+      "billing_accuracy-"
+    ],
+    "traps": [
+      "cleanliness-",
+      "drink_quality-",
+      "delivery_takeaway-"
+    ],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The customer caused the spill; the unprompted clean-up and free replacement are clear attentiveness praise, while warmth of manner is only implied."
+  },
+  {
+    "id": "cb1-attribution-temporal-06",
+    "text": "Placed a takeaway order at the counter: 2 misal pav, 1 poha. It took 40 minutes. The place was half empty so you can't even blame a rush. Every time I asked it was '5 more mins sir'. Misal was good but not worth standing around that long for a parcel.",
+    "stars": 2,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "mixed",
+      "attribution",
+      "context",
+      "negation",
+      "implicit_complaint",
+      "service",
+      "food",
+      "operations"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "service_speed-",
+      "food_taste+"
+    ],
+    "ok": [
+      "delivery_takeaway-",
+      "professionalism-"
+    ],
+    "never": [
+      "service_speed+",
+      "food_taste-",
+      "crowding-",
+      "value_for_money-",
+      "table_wait-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The 40-minute delay is the cafe's (the place was half empty), and 'not worth' refers to the waiting time, not money."
+  },
+  {
+    "id": "cb1-attribution-temporal-07",
+    "text": "Aaj service khup slow hoti. Ek cold coffee ani ek veg grilled sandwich sathi 35 min thambava lagla, ani counter var staff pan confuse vatat hota. Normally ithe asa kadhich hot nahi mhanun 3 star.",
+    "stars": 3,
+    "lang": "mr-en",
+    "categories": [
+      "negative",
+      "temporal",
+      "marathi_english",
+      "service",
+      "context",
+      "colloquial"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "service_speed-"
+    ],
+    "ok": [
+      "professionalism-"
+    ],
+    "never": [
+      "service_speed+",
+      "table_wait-",
+      "professionalism+",
+      "staff_friendliness-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Today's 35-minute wait is the clear complaint; 'staff seemed confused' is hedged so professionalism- stays in ok, and the usual good service is only background."
+  },
+  {
+    "id": "cb1-attribution-temporal-08",
+    "text": "Been coming here since my college days. Ever since the new management took over around July the filter coffee tastes like dishwater, they've dropped sabudana khichdi from the menu, and the guys at the counter don't even look up when you walk in. Not the same place anymore. Won't be back.",
+    "stars": 1,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "temporal",
+      "multi_issue",
+      "implicit_complaint",
+      "drink",
+      "food",
+      "service",
+      "colloquial"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "drink_quality-",
+      "menu_variety-",
+      "staff_friendliness-",
+      "return_intent-"
+    ],
+    "ok": [
+      "attentiveness-"
+    ],
+    "never": [
+      "drink_quality+",
+      "menu_variety+",
+      "staff_friendliness+",
+      "return_intent+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Ever since the new management' describes the cafe now, so every complaint is current; the college-days fondness is past background."
+  },
+  {
+    "id": "cb1-attribution-temporal-09",
+    "text": "First time I came here the waffle was lukewarm and kinda soggy, nearly wrote the place off. Gave it one more shot today and wow, piping hot, crisp edges, and the nutella banana one is a must. Glad I came back.",
+    "stars": 4,
+    "lang": "en",
+    "categories": [
+      "positive",
+      "temporal",
+      "food",
+      "context"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "temperature_served+",
+      "texture+",
+      "food_taste+"
+    ],
+    "ok": [
+      "return_intent+",
+      "recommend_intent+"
+    ],
+    "never": [
+      "temperature_served-",
+      "texture-",
+      "food_taste-",
+      "return_intent-",
+      "recommend_intent-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The lukewarm, soggy waffle was an earlier visit that today's visit replaced, so the current reading is hot, crisp and tasty."
+  },
+  {
+    "id": "cb1-attribution-temporal-10",
+    "text": "Usually love this place, the baristas know my order by heart. Yesterday though I clearly asked for oat milk in my latte (I'm lactose intolerant) and got regular milk. Found out the hard way an hour later. Please be more careful.",
+    "stars": 3,
+    "lang": "en",
+    "categories": [
+      "mixed",
+      "negative",
+      "temporal",
+      "implicit_complaint",
+      "context",
+      "service",
+      "drink"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "NEGATIVE"
+    ],
+    "must": [
+      "order_accuracy-"
+    ],
+    "ok": [
+      "attentiveness+",
+      "staff_friendliness+",
+      "professionalism-",
+      "food_safety-"
+    ],
+    "never": [
+      "order_accuracy+",
+      "drink_quality-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Yesterday's wrong milk is the concrete complaint; the habitual barista praise is real but secondary, and the after-effect only arguably counts as food_safety-."
+  },
+  {
+    "id": "cb1-attribution-temporal-11",
+    "text": "Whole of Gangapur Road had a power cut when we went, so no AC and the coffee machine wasn't working. Still they made us kadak chai on the gas and the kanda poha was super. Kids were sweating but the owner uncle kept apologising and got them free nimbu pani. Nice people, will come again.",
+    "stars": 5,
+    "lang": "en",
+    "categories": [
+      "positive",
+      "attribution",
+      "third_party",
+      "context",
+      "food",
+      "drink",
+      "service"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "food_taste+",
+      "staff_friendliness+",
+      "return_intent+"
+    ],
+    "ok": [
+      "drink_quality+",
+      "attentiveness+",
+      "professionalism+"
+    ],
+    "never": [
+      "food_taste-",
+      "staff_friendliness-",
+      "return_intent-"
+    ],
+    "traps": [
+      "ac_temperature-",
+      "menu_variety-",
+      "drink_quality-",
+      "service_speed-"
+    ],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The area power cut caused the missing AC and machine coffee, so neither is the cafe's fault; how the cafe handled it is the praise."
+  },
+  {
+    "id": "cb1-attribution-temporal-12",
+    "text": "Bagal wali table pe 6-7 log full volume pe reels dekh rahe the aur chilla rahe the, ek banda entrance pe khade hoke smoke kar raha tha aur smell andar tak aa rahi thi. Staff ne unko kuch bola bhi nahi. Cheesecake accha tha but poora mood off ho gaya.",
+    "stars": 2,
+    "lang": "hinglish",
+    "categories": [
+      "negative",
+      "mixed",
+      "attribution",
+      "third_party",
+      "hinglish",
+      "multi_issue",
+      "colloquial",
+      "ambience",
+      "food",
+      "service"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "food_taste+",
+      "noise-"
+    ],
+    "ok": [
+      "smell-",
+      "attentiveness-",
+      "professionalism-",
+      "ambience-"
+    ],
+    "never": [
+      "food_taste-",
+      "noise+",
+      "smell+"
+    ],
+    "traps": [
+      "staff_friendliness-",
+      "music-",
+      "cleanliness-"
+    ],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Other customers made the noise and the smoke, so noise- is fair for the room while smell- and staff not intervening are debatable; the reels are not the cafe's music."
+  },
+  {
+    "id": "cb1-attribution-temporal-13",
+    "text": "Parking in the mall basement is a joke, circled for 20 mins and paid ₹80 for two hours. Anyway, the café on the 2nd floor was calm, we got a corner sofa straight away and the blueberry cheesecake was spot on.",
+    "stars": 4,
+    "lang": "en",
+    "categories": [
+      "positive",
+      "attribution",
+      "third_party",
+      "context",
+      "food",
+      "ambience"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "food_taste+",
+      "table_wait+"
+    ],
+    "ok": [
+      "noise+",
+      "ambience+",
+      "crowding+",
+      "seating_comfort+"
+    ],
+    "never": [
+      "food_taste-",
+      "table_wait-",
+      "noise-"
+    ],
+    "traps": [
+      "price-",
+      "value_for_money-",
+      "service_speed-",
+      "table_wait-"
+    ],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The parking time and fee belong to the mall; 'calm' could be read as noise+ or ambience+, so both stay in ok."
+  },
+  {
+    "id": "cb1-attribution-temporal-14",
+    "text": "used to be worth it. now the cold brew is half ice and they hiked the prize by 40 rs",
+    "stars": null,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "temporal",
+      "implicit_complaint",
+      "short",
+      "typo",
+      "colloquial",
+      "drink",
+      "value"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "portion-",
+      "price-",
+      "value_for_money-"
+    ],
+    "ok": [
+      "drink_quality-"
+    ],
+    "never": [
+      "portion+",
+      "price+",
+      "value_for_money+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Used to be worth it' set against 'now' means it is no longer worth it: half ice means less drink, and 'prize' is a typo for price."
+  },
+  {
+    "id": "cb1-attribution-temporal-15",
+    "text": "आमचा तीन वर्षांचा मुलगा जेवताना खूप रडायला लागला, आजूबाजूचे लोक बघत होते. पण वेटर दादांनी स्वतःहून त्याला कलरिंगची पानं आणि क्रेयॉन्स आणून दिले, पाच मिनिटांत तो शांत. मिसळ पण झणझणीत आणि मस्त होती. फॅमिलीसोबत यायला नाशिकमधली बेस्ट जागा.",
+    "stars": 5,
+    "lang": "mr",
+    "categories": [
+      "positive",
+      "marathi",
+      "attribution",
+      "customer_vs_business",
+      "implicit_praise",
+      "service",
+      "food"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "attentiveness+",
+      "staff_friendliness+",
+      "food_taste+"
+    ],
+    "ok": [
+      "seasoning+",
+      "professionalism+",
+      "recommend_intent+",
+      "ambience+"
+    ],
+    "never": [
+      "attentiveness-",
+      "staff_friendliness-",
+      "food_taste-",
+      "seasoning-"
+    ],
+    "traps": [
+      "noise-"
+    ],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The crying child was the reviewer's own, so noise- would blame the cafe; the fiery misal reads as a compliment but seasoning+ stays in ok since the praise attaches to the dish overall."
+  },
+  {
+    "id": "cb1-attribution-temporal-16",
+    "text": "बगल वाली दुकान में रेनोवेशन चल रहा था, पूरे टाइम ड्रिल की आवाज़। लेकिन कैफ़े वालों ने खुद आकर सॉरी बोला और हमें अंदर पीछे वाले कोने में शिफ्ट कर दिया जहाँ थोड़ा शांत था। फ़िल्टर कॉफ़ी हमेशा की तरह बढ़िया।",
+    "stars": 4,
+    "lang": "hi",
+    "categories": [
+      "positive",
+      "attribution",
+      "third_party",
+      "hindi_devanagari",
+      "temporal",
+      "drink",
+      "service",
+      "ambience"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "attentiveness+",
+      "drink_quality+"
+    ],
+    "ok": [
+      "staff_friendliness+",
+      "professionalism+",
+      "noise-"
+    ],
+    "never": [
+      "attentiveness-",
+      "drink_quality-"
+    ],
+    "traps": [
+      "ambience-",
+      "professionalism-",
+      "staff_friendliness-"
+    ],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The drilling came from the neighbouring shop; the cafe apologising and moving them to a quieter corner, plus the usual good filter coffee, are the praise."
+  },
+  {
+    "id": "cb1-conflict-sarcasm-typos-01",
+    "text": "ordered the belgian waffle n paneer tikka sandwich. waffle was chewy like rubber and the bread in the sandwich was def yesterday's. not coming back",
+    "stars": 5,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "rating_conflict",
+      "food",
+      "multi_issue",
+      "implicit_complaint",
+      "typo",
+      "colloquial"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "texture-",
+      "freshness-",
+      "return_intent-"
+    ],
+    "ok": [
+      "food_taste-"
+    ],
+    "never": [
+      "texture+",
+      "freshness+",
+      "return_intent+",
+      "food_taste+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": true,
+    "note": "Every statement is a complaint (rubbery waffle, day-old bread, not returning), so the 5 stars conflict with the text and the labels follow the words."
+  },
+  {
+    "id": "cb1-conflict-sarcasm-typos-02",
+    "text": "cold brew here is honestly the smoothest in Baner, zero bitterness, not too acidic either. coming back this weekend for sure",
+    "stars": 1,
+    "lang": "en",
+    "categories": [
+      "positive",
+      "rating_conflict",
+      "drink",
+      "negation"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "drink_quality+",
+      "return_intent+"
+    ],
+    "ok": [],
+    "never": [
+      "drink_quality-",
+      "return_intent-",
+      "seasoning-",
+      "temperature_served-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": true,
+    "note": "'Zero bitterness' and 'not too acidic' negate flaws and are praise; 'cold brew' is the drink's name, not a temperature complaint; 1 star conflicts with fully positive text."
+  },
+  {
+    "id": "cb1-conflict-sarcasm-typos-03",
+    "text": "Found a hair in my misal. showed the waiter, he took it inside and brought back the SAME plate, just picked the hair out. manager didnt even say sorry. disgusting",
+    "stars": 3,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "multi_issue",
+      "food",
+      "service",
+      "cleanliness",
+      "implicit_complaint",
+      "typo"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "food_safety-",
+      "professionalism-"
+    ],
+    "ok": [
+      "staff_friendliness-",
+      "cleanliness-"
+    ],
+    "never": [
+      "food_safety+",
+      "professionalism+",
+      "staff_friendliness+",
+      "order_accuracy-",
+      "service_speed-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Hair is food_safety and re-serving the same plate is careless handling; 3 stars is a middle rating, so the gap with 'disgusting' is not a clear contradiction."
+  },
+  {
+    "id": "cb1-conflict-sarcasm-typos-04",
+    "text": "Filter coffee was proper strong, tasted like my aaji's kitchen. Only issue - bill had a 10% 'service charge' nobody mentioned, had to ask them to remove it. Still 4 coz the coffee",
+    "stars": 4,
+    "lang": "en",
+    "categories": [
+      "mixed",
+      "drink",
+      "billing",
+      "typo",
+      "colloquial"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "POSITIVE"
+    ],
+    "must": [
+      "drink_quality+",
+      "billing_accuracy-"
+    ],
+    "ok": [
+      "price-",
+      "professionalism-"
+    ],
+    "never": [
+      "drink_quality-",
+      "billing_accuracy+",
+      "refund-",
+      "seasoning-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "An undisclosed service charge is billing_accuracy-; it was removed on request, so it is not a refund issue, and 'proper strong' is coffee praise, not seasoning."
+  },
+  {
+    "id": "cb1-conflict-sarcasm-typos-05",
+    "text": "Loved how my 'quick bite' of poha took 35 mins to reach the table. truly slow food. 10/10 would wait again",
+    "stars": 2,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "sarcasm",
+      "service",
+      "colloquial"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "service_speed-"
+    ],
+    "ok": [
+      "return_intent-"
+    ],
+    "never": [
+      "service_speed+",
+      "food_taste+",
+      "return_intent+",
+      "table_wait-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Loved', '10/10' and 'would wait again' are sarcastic; the 35 minutes is the food reaching the table (service_speed), not a seating wait, and the poha's taste is never judged."
+  },
+  {
+    "id": "cb1-conflict-sarcasm-typos-06",
+    "text": "ordered a hot chocolate, got lukewarm chocolate milk. very innovative. thank u so much",
+    "stars": 1,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "sarcasm",
+      "drink",
+      "short",
+      "colloquial",
+      "typo"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "temperature_served-"
+    ],
+    "ok": [
+      "drink_quality-"
+    ],
+    "never": [
+      "temperature_served+",
+      "drink_quality+",
+      "staff_friendliness+",
+      "menu_variety+",
+      "order_accuracy-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Sarcastic; lukewarm is certain, while 'chocolate milk' hints the drink was thin, so drink_quality- is defensible but not required; it is a poorly made drink, not a wrong item."
+  },
+  {
+    "id": "cb1-conflict-sarcasm-typos-07",
+    "text": "the gulkand cheesecake was.... interesting. still figuring out what i ate",
+    "stars": null,
+    "lang": "en",
+    "categories": [
+      "ambiguous",
+      "neutral",
+      "implicit_complaint",
+      "food",
+      "short"
+    ],
+    "sentiment": "NEUTRAL",
+    "alsoSentiment": [
+      "NEGATIVE"
+    ],
+    "must": [],
+    "ok": [
+      "food_taste-"
+    ],
+    "never": [
+      "food_taste+"
+    ],
+    "traps": [],
+    "abstain": true,
+    "ratingConflict": false,
+    "note": "A veiled 'interesting....' with no rating leans toward dislike but is too vague to file safely; a tentative food_taste- is tolerable and reading it as praise is wrong."
+  },
+  {
+    "id": "cb1-conflict-sarcasm-typos-08",
+    "text": "Super attentive staff, only had to wave at them like 6 times to get the bill. fastest billing in pune fr",
+    "stars": 2,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "sarcasm",
+      "service",
+      "implicit_complaint",
+      "multi_issue",
+      "colloquial",
+      "short"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "attentiveness-",
+      "service_speed-"
+    ],
+    "ok": [],
+    "never": [
+      "attentiveness+",
+      "service_speed+",
+      "professionalism+",
+      "billing_accuracy-",
+      "payment-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Both compliments are sarcastic: waving 6 times means staff ignored them and the bill was slow; nothing was wrong with the bill amount or payment."
+  },
+  {
+    "id": "cb1-conflict-sarcasm-typos-09",
+    "text": "coffe ws luke warm n took 25 min to come. wtr forgot my club sandwch too. not cmng bk",
+    "stars": 1,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "multi_issue",
+      "typo",
+      "colloquial",
+      "context",
+      "drink",
+      "service",
+      "food",
+      "short"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "temperature_served-",
+      "service_speed-",
+      "order_accuracy-",
+      "return_intent-"
+    ],
+    "ok": [
+      "drink_quality-",
+      "attentiveness-"
+    ],
+    "never": [
+      "temperature_served+",
+      "service_speed+",
+      "order_accuracy+",
+      "return_intent+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Heavy textspeak: lukewarm coffee, 25 minute wait, forgotten sandwich, and not returning."
+  },
+  {
+    "id": "cb1-conflict-sarcasm-typos-10",
+    "text": "guy at the countr was soo rude bro, rolled his eyes wen i askd for less sugar in my cold coffee. coffee itself was fire tho ngl",
+    "stars": 3,
+    "lang": "en",
+    "categories": [
+      "mixed",
+      "service",
+      "drink",
+      "typo",
+      "colloquial"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "NEGATIVE"
+    ],
+    "must": [
+      "staff_friendliness-",
+      "drink_quality+"
+    ],
+    "ok": [
+      "professionalism-"
+    ],
+    "never": [
+      "staff_friendliness+",
+      "drink_quality-",
+      "seasoning-",
+      "order_accuracy-",
+      "temperature_served-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Fire' is slang praise; the less-sugar request is only context for the eye-roll, nothing says the drink came wrong or too sweet, and 'cold coffee' is the drink's name."
+  },
+  {
+    "id": "cb1-conflict-sarcasm-typos-11",
+    "text": "khana tasty tha bt rates bahut zyada hai yaar. 2 waffles aur 2 cold coffee ka bill 1100 aaya, thoda kam karo",
+    "stars": 3,
+    "lang": "hinglish",
+    "categories": [
+      "mixed",
+      "hinglish",
+      "food",
+      "value",
+      "typo",
+      "colloquial"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [],
+    "must": [
+      "food_taste+",
+      "price-"
+    ],
+    "ok": [
+      "value_for_money-"
+    ],
+    "never": [
+      "food_taste-",
+      "price+",
+      "billing_accuracy-",
+      "temperature_served-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The 1100 bill illustrates the high price level, not a billing error."
+  },
+  {
+    "id": "cb1-conflict-sarcasm-typos-12",
+    "text": "the fairy lights + lofi playlist combo here is unreal, vibe check passed. food was mid tho, pesto sandwich had like a teaspoon of pesto",
+    "stars": 4,
+    "lang": "en",
+    "categories": [
+      "mixed",
+      "ambience",
+      "food",
+      "colloquial",
+      "multi_issue"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "POSITIVE"
+    ],
+    "must": [
+      "ambience+",
+      "music+",
+      "food_taste-"
+    ],
+    "ok": [
+      "lighting+",
+      "portion-",
+      "seasoning-"
+    ],
+    "never": [
+      "ambience-",
+      "music-",
+      "lighting-",
+      "food_taste+",
+      "portion+",
+      "noise-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Fairy lights may read as decor or as lighting, and the skimpy pesto as portion or quality, so lighting+ and portion- are defensible but not required; 'mid' is a mild food complaint."
+  },
+  {
+    "id": "cb1-conflict-sarcasm-typos-13",
+    "text": "180 rs for a plate of poha thats basically 4 spoons. total loot yaar. taste kinda meh too",
+    "stars": null,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "multi_issue",
+      "value",
+      "food",
+      "colloquial",
+      "typo",
+      "short"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "portion-",
+      "value_for_money-",
+      "food_taste-"
+    ],
+    "ok": [
+      "price-"
+    ],
+    "never": [
+      "portion+",
+      "value_for_money+",
+      "price+",
+      "food_taste+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Total loot' (rip-off) is about a tiny portion for the price, i.e. value; 'kinda meh' is a mild but clear taste complaint."
+  },
+  {
+    "id": "cb1-conflict-sarcasm-typos-14",
+    "text": "Bhari service aahe yanchi, table sathi fakt 50 minute ubha hoto. Misal mast hoti pan, tarri ekdum perfect.",
+    "stars": 3,
+    "lang": "mr-en",
+    "categories": [
+      "mixed",
+      "sarcasm",
+      "marathi_english",
+      "food",
+      "service",
+      "colloquial"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [],
+    "must": [
+      "table_wait-",
+      "food_taste+"
+    ],
+    "ok": [
+      "service_speed-",
+      "seasoning+"
+    ],
+    "never": [
+      "table_wait+",
+      "service_speed+",
+      "food_taste-",
+      "seasoning-",
+      "staff_friendliness+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Bhari service' is sarcastic about standing 50 minutes for a table; the praise for the misal and its tarri is sincere."
+  },
+  {
+    "id": "cb1-conflict-sarcasm-typos-15",
+    "text": "it was an experience lol. bday group at the next table screaming the whole hour, couldnt hear my own friend. cheese grill sandwich came crispy n piping hot tho so cant complain much",
+    "stars": null,
+    "lang": "en",
+    "categories": [
+      "positive",
+      "mixed",
+      "third_party",
+      "customer_vs_business",
+      "attribution",
+      "ambiguous",
+      "context",
+      "food",
+      "ambience",
+      "typo",
+      "colloquial"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "texture+",
+      "temperature_served+"
+    ],
+    "ok": [
+      "noise-",
+      "food_taste+"
+    ],
+    "never": [
+      "texture-",
+      "temperature_served-",
+      "music-"
+    ],
+    "traps": [
+      "staff_friendliness-",
+      "professionalism-",
+      "attentiveness-"
+    ],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The noise came from other customers, so noise- is optional and blaming staff is a trap; everything the café controlled was praised and the writer 'cant complain much'."
+  },
+  {
+    "id": "cb1-conflict-sarcasm-typos-16",
+    "text": "5 stars for my patience not for this place. wifi painfully slow, the one charging point near my table was dead, had to pack my laptop and leave midway",
+    "stars": 5,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "rating_conflict",
+      "sarcasm",
+      "multi_issue",
+      "operations",
+      "context"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "wifi_workspace-"
+    ],
+    "ok": [
+      "return_intent-"
+    ],
+    "never": [
+      "wifi_workspace+",
+      "service_speed-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": true,
+    "note": "The writer says the 5 stars are not for the café; 'slow' is the wifi, not the service, and leaving midway only weakly implies not returning."
+  },
+  {
+    "id": "cb1-hinglish-hindi-01",
+    "text": "Cold brew ekdum paani jaisa tha, koi kick hi nahi thi. 220 rs mein ye? bilkul worth nahi hai bhai",
+    "stars": 2,
+    "lang": "hinglish",
+    "categories": [
+      "hinglish",
+      "negative",
+      "colloquial",
+      "drink",
+      "value",
+      "multi_issue"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "drink_quality-",
+      "value_for_money-"
+    ],
+    "ok": [
+      "price-"
+    ],
+    "never": [
+      "drink_quality+",
+      "value_for_money+",
+      "temperature_served-",
+      "portion-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Cold brew is meant to be cold, so 'cold' names the drink rather than a temperature complaint; watery with no kick is drink_quality- and 'not worth it at 220' is value_for_money-."
+  },
+  {
+    "id": "cb1-hinglish-hindi-02",
+    "text": "Nashik mein itni badhiya misal kahin nahi khayi! Tarri ekdum zabardast, pav bhi fresh tha. Bas tikha thoda kam hota toh full marks",
+    "stars": 4,
+    "lang": "hinglish",
+    "categories": [
+      "hinglish",
+      "positive",
+      "food",
+      "colloquial",
+      "implicit_complaint"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "food_taste+",
+      "freshness+",
+      "seasoning-"
+    ],
+    "ok": [],
+    "never": [
+      "food_taste-",
+      "freshness-",
+      "seasoning+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Tikha thoda kam hota toh full marks' means it was slightly too spicy: a mild seasoning complaint inside strong praise."
+  },
+  {
+    "id": "cb1-hinglish-hindi-03",
+    "text": "Waffle order kiya tha, 35 min baad aaya aur woh bhi thanda. Manager ko bataya toh bas sorry bol ke chala gaya",
+    "stars": 2,
+    "lang": "hinglish",
+    "categories": [
+      "hinglish",
+      "negative",
+      "context",
+      "multi_issue",
+      "food",
+      "service",
+      "implicit_complaint"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "service_speed-",
+      "temperature_served-"
+    ],
+    "ok": [
+      "professionalism-",
+      "attentiveness-"
+    ],
+    "never": [
+      "service_speed+",
+      "temperature_served+",
+      "table_wait-",
+      "professionalism+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The 35-minute wait was for the food, not a table, and it arrived cold; the manager's brush-off is a complaint but which concept it maps to is debatable, so professionalism-/attentiveness- stay optional."
+  },
+  {
+    "id": "cb1-hinglish-hindi-04",
+    "text": "poha bura nahi tha, theek hi tha. par chai bhi garam nahi thi yaar, aadhi chhod di",
+    "stars": 3,
+    "lang": "hinglish",
+    "categories": [
+      "hinglish",
+      "negative",
+      "negation",
+      "colloquial",
+      "food",
+      "drink",
+      "implicit_complaint"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "temperature_served-"
+    ],
+    "ok": [
+      "food_taste+",
+      "drink_quality-"
+    ],
+    "never": [
+      "temperature_served+",
+      "food_taste-",
+      "drink_quality+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Bura nahi tha' is negated and at most weak praise for the poha; 'garam nahi thi' means the chai was not hot, and leaving half makes drink_quality+ wrong."
+  },
+  {
+    "id": "cb1-hinglish-hindi-05",
+    "text": "बिल में दो कोल्ड कॉफी ज़्यादा जोड़ दी थीं, बताने पर ठीक कर दिया। वैसे ग्रिल सैंडविच अच्छा था।",
+    "stars": 3,
+    "lang": "hi",
+    "categories": [
+      "hindi_devanagari",
+      "mixed",
+      "billing",
+      "food",
+      "operations"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [],
+    "must": [
+      "billing_accuracy-",
+      "food_taste+"
+    ],
+    "ok": [
+      "professionalism+"
+    ],
+    "never": [
+      "billing_accuracy+",
+      "food_taste-",
+      "temperature_served-",
+      "order_accuracy-",
+      "refund-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Two extra cold coffees on the bill is a billing error (not a wrong order or refund issue) even though it was fixed; 'cold coffee' is only an item name."
+  },
+  {
+    "id": "cb1-hinglish-hindi-06",
+    "text": "स्टाफ बहुत प्यार से बात कर रहा था, बच्चों के लिए अलग से कम तीखा पोहा बनवा दिया। फैमिली के साथ आने के लिए बढ़िया जगह है।",
+    "stars": 5,
+    "lang": "hi",
+    "categories": [
+      "hindi_devanagari",
+      "positive",
+      "service",
+      "food",
+      "ambience",
+      "implicit_praise"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "staff_friendliness+"
+    ],
+    "ok": [
+      "attentiveness+",
+      "professionalism+",
+      "menu_variety+",
+      "ambience+",
+      "recommend_intent+"
+    ],
+    "never": [
+      "staff_friendliness-",
+      "attentiveness-",
+      "seasoning-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'कम तीखा' was a special request the café met, not a spice complaint; the accommodation is clear praise but its concept (attentiveness/professionalism/menu) is debatable, so it stays in ok."
+  },
+  {
+    "id": "cb1-hinglish-hindi-07",
+    "text": "एसी बंद पड़ा था, अंदर इतनी गर्मी कि बैठना मुश्किल। कोल्ड कॉफी भी पाँच मिनट में गुनगुनी हो गई। दोबारा नहीं आऊँगी।",
+    "stars": 1,
+    "lang": "hi",
+    "categories": [
+      "hindi_devanagari",
+      "negative",
+      "ambience",
+      "drink",
+      "context",
+      "multi_issue"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "ac_temperature-",
+      "return_intent-"
+    ],
+    "ok": [
+      "temperature_served-"
+    ],
+    "never": [
+      "ac_temperature+",
+      "return_intent+",
+      "service_speed-",
+      "seating_comfort-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The hot room is the root problem; the coffee warming up follows from it (optional temperature_served-), and 'hard to sit' is about heat, not chairs."
+  },
+  {
+    "id": "cb1-hinglish-hindi-08",
+    "text": "वाह भाई, आधा घंटा बाहर लाइन में खड़े रहे और अंदर जाकर पता चला चीज़केक ही खत्म है। क्या सर्विस है!",
+    "stars": null,
+    "lang": "hi",
+    "categories": [
+      "hindi_devanagari",
+      "negative",
+      "sarcasm",
+      "colloquial",
+      "multi_issue",
+      "operations",
+      "food"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "table_wait-",
+      "menu_variety-"
+    ],
+    "ok": [
+      "service_speed-",
+      "crowding-"
+    ],
+    "never": [
+      "table_wait+",
+      "menu_variety+",
+      "service_speed+",
+      "staff_friendliness+",
+      "attentiveness+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'वाह' and 'क्या सर्विस है' are sarcastic; queuing outside to get in is table_wait- and the sold-out cheesecake is menu_variety-."
+  },
+  {
+    "id": "cb1-hinglish-hindi-09",
+    "text": "Cheesecake dekhte hi dil khush ho gaya, plating cute aur taste ekdum mast. Jagah bhi full insta wali hai. Bas ek slice ka 380?? thoda zyada ho gaya yaar",
+    "stars": 4,
+    "lang": "hinglish",
+    "categories": [
+      "hinglish",
+      "positive",
+      "colloquial",
+      "food",
+      "ambience",
+      "value"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "presentation+",
+      "food_taste+",
+      "ambience+",
+      "price-"
+    ],
+    "ok": [
+      "value_for_money-"
+    ],
+    "never": [
+      "presentation-",
+      "food_taste-",
+      "ambience-",
+      "price+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Strong praise for plating, taste and the setting plus a clear but mild price-level complaint; value_for_money- is defensible."
+  },
+  {
+    "id": "cb1-hinglish-hindi-10",
+    "text": "Zomato se order kiya tha, rider 1 ghanta late aaya toh sandwich thande ho gaye, usme cafe ki galti nahi. Packing badhiya thi, chutney bhi alag dabbe mein, kuch leak nahi hua",
+    "stars": 4,
+    "lang": "hinglish",
+    "categories": [
+      "hinglish",
+      "positive",
+      "third_party",
+      "attribution",
+      "operations",
+      "food",
+      "context"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "delivery_takeaway+"
+    ],
+    "ok": [],
+    "never": [
+      "delivery_takeaway-"
+    ],
+    "traps": [
+      "service_speed-",
+      "temperature_served-",
+      "delivery_takeaway-"
+    ],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The customer blames the Zomato rider for the delay and cold sandwiches and explicitly clears the café; only the café's packing is judged, and it is praised."
+  },
+  {
+    "id": "cb1-hinglish-hindi-11",
+    "text": "Bola tha sugar mat daalna, phir bhi meethi cold coffee aayi. Waapis bheji toh bhaiya muh bana ke le gaye. Table pe bhi pichle logon ke cups pade the",
+    "stars": 2,
+    "lang": "hinglish",
+    "categories": [
+      "hinglish",
+      "negative",
+      "colloquial",
+      "multi_issue",
+      "service",
+      "cleanliness",
+      "drink",
+      "implicit_complaint"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "order_accuracy-",
+      "staff_friendliness-",
+      "cleanliness-"
+    ],
+    "ok": [
+      "attentiveness-",
+      "seasoning-"
+    ],
+    "never": [
+      "order_accuracy+",
+      "staff_friendliness+",
+      "cleanliness+",
+      "temperature_served-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Sugar despite a no-sugar request is a wrong customisation, 'muh bana ke' is a rude attitude, and uncleared previous cups are the café's cleanliness lapse; 'cold coffee' is an item name."
+  },
+  {
+    "id": "cb1-hinglish-hindi-12",
+    "text": "UPI scanner kaam nahi kar raha tha aur card machine bhi band. Cash nahi tha toh bahar ATM dhundhna pada. Filter coffee strong aur badhiya thi tho, wo maanna padega",
+    "stars": 3,
+    "lang": "hinglish",
+    "categories": [
+      "hinglish",
+      "mixed",
+      "colloquial",
+      "operations",
+      "billing",
+      "drink",
+      "typo"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [],
+    "must": [
+      "payment-",
+      "drink_quality+"
+    ],
+    "ok": [],
+    "never": [
+      "payment+",
+      "drink_quality-",
+      "billing_accuracy-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "UPI and card machines both down is payment-, not a wrong bill; the filter coffee is explicitly praised."
+  },
+  {
+    "id": "cb1-hinglish-hindi-13",
+    "text": "theek thaak tha sab",
+    "stars": null,
+    "lang": "hinglish",
+    "categories": [
+      "hinglish",
+      "neutral",
+      "short",
+      "colloquial",
+      "ambiguous"
+    ],
+    "sentiment": "NEUTRAL",
+    "alsoSentiment": [],
+    "must": [],
+    "ok": [],
+    "never": [],
+    "traps": [],
+    "abstain": true,
+    "ratingConflict": false,
+    "note": "'Everything was so-so' names no aspect and has no rating, so nothing can be filed."
+  },
+  {
+    "id": "cb1-hinglish-hindi-14",
+    "text": "Laptop leke kaam karne aaya tha, wifi chalta hi nahi tha aur ek bhi plug point nahi mila. Upar se music itna loud ki call pe kuch sunai nahi diya. Coffee achhi thi but kaam ke liye mat aana",
+    "stars": 2,
+    "lang": "hinglish",
+    "categories": [
+      "hinglish",
+      "mixed",
+      "colloquial",
+      "multi_issue",
+      "ambience",
+      "drink",
+      "context"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "NEGATIVE"
+    ],
+    "must": [
+      "wifi_workspace-",
+      "music-",
+      "drink_quality+"
+    ],
+    "ok": [
+      "noise-",
+      "recommend_intent-"
+    ],
+    "never": [
+      "wifi_workspace+",
+      "music+",
+      "drink_quality-",
+      "service_speed-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Dead wifi and no plug points are wifi_workspace-, never service_speed-; 'kaam ke liye mat aana' is a non-recommendation limited to working, so recommend_intent- is optional."
+  },
+  {
+    "id": "cb1-hinglish-hindi-15",
+    "text": "Sunday tha toh bheed thi, samajh sakte hain. Par order aane mein 40 min lage aur do baar yaad dilana pada. Khana average tha",
+    "stars": 5,
+    "lang": "hinglish",
+    "categories": [
+      "hinglish",
+      "negative",
+      "rating_conflict",
+      "colloquial",
+      "service",
+      "food",
+      "context",
+      "multi_issue",
+      "implicit_complaint"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "service_speed-",
+      "attentiveness-"
+    ],
+    "ok": [
+      "crowding-",
+      "food_taste-"
+    ],
+    "never": [
+      "service_speed+",
+      "attentiveness+",
+      "food_taste+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": true,
+    "note": "5 stars clash with a 40-minute wait and two reminders; the crowd is excused by the customer and 'average' food is not praise."
+  },
+  {
+    "id": "cb1-hinglish-hindi-16",
+    "text": "Har baar yahan ki cold coffee best hoti hai, but aaj pata nahi kya hua, bahut zyada meethi aur patli thi. Shayad counter pe naya banda tha",
+    "stars": 3,
+    "lang": "hinglish",
+    "categories": [
+      "hinglish",
+      "negative",
+      "temporal",
+      "colloquial",
+      "drink",
+      "attribution",
+      "context"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "drink_quality-",
+      "seasoning-"
+    ],
+    "ok": [
+      "professionalism-",
+      "texture-"
+    ],
+    "never": [
+      "drink_quality+",
+      "seasoning+",
+      "temperature_served-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Habitual praise and today's complaint hit the same concept, and this visit's verdict wins: 'zyada meethi' is too sweet and 'patli' is watery; the new-staff guess is speculation."
+  },
+  {
+    "id": "cb1-marathi-01",
+    "text": "Filter coffee ekdam kadak ani mast hoti. Misal pan chavdar, tikhat ekdam barobar. Parat nakki yeu.",
+    "stars": 5,
+    "lang": "mr",
+    "categories": [
+      "positive",
+      "marathi",
+      "food",
+      "drink",
+      "colloquial"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "drink_quality+",
+      "food_taste+",
+      "seasoning+",
+      "return_intent+"
+    ],
+    "ok": [],
+    "never": [
+      "drink_quality-",
+      "food_taste-",
+      "seasoning-",
+      "return_intent-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'kadak' means strong in a good way, 'chavdar' means tasty, 'tikhat ekdam barobar' means the spice was just right, and 'parat nakki yeu' means will surely come back."
+  },
+  {
+    "id": "cb1-marathi-02",
+    "text": "कोल्ड ब्रू एकदम पाणचट होती, आणि ती यायला पण अर्धा तास लागला. पैसे वाया गेले.",
+    "stars": 1,
+    "lang": "mr",
+    "categories": [
+      "negative",
+      "marathi",
+      "drink",
+      "service",
+      "value",
+      "multi_issue",
+      "context"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "drink_quality-",
+      "service_speed-",
+      "value_for_money-"
+    ],
+    "ok": [],
+    "never": [
+      "drink_quality+",
+      "service_speed+",
+      "value_for_money+",
+      "table_wait-",
+      "temperature_served-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'पाणचट' (watery) is drink_quality-, half an hour for the drink to arrive is preparation time, not seating, and 'पैसे वाया गेले' (money wasted) is poor value; 'cold' is part of the drink's name, not a temperature complaint."
+  },
+  {
+    "id": "cb1-marathi-03",
+    "text": "Waffle vait navhta, pan itka special pan nahi. Filter coffee matra garam navhti, komat hoti.",
+    "stars": 3,
+    "lang": "mr",
+    "categories": [
+      "negative",
+      "negation",
+      "marathi",
+      "food",
+      "drink"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [
+      "MIXED",
+      "NEUTRAL"
+    ],
+    "must": [
+      "temperature_served-"
+    ],
+    "ok": [
+      "food_taste+",
+      "drink_quality-"
+    ],
+    "never": [
+      "temperature_served+",
+      "food_taste-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'garam navhti, komat hoti' (not hot, lukewarm) is the clear complaint; 'vait navhta' (wasn't bad) plus 'not that special' is a negated, lukewarm verdict, so food_taste+ is only ok and food_taste- is a misread."
+  },
+  {
+    "id": "cb1-marathi-04",
+    "text": "FC road outlet la staff khup polite hota ani order pan patkan ala. Pan cheesecake chya eka slice la 380 rupaye? Jara jastach hota yaar.",
+    "stars": 3,
+    "lang": "mr-en",
+    "categories": [
+      "mixed",
+      "marathi_english",
+      "service",
+      "value",
+      "multi_issue",
+      "colloquial"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [],
+    "must": [
+      "staff_friendliness+",
+      "service_speed+",
+      "price-"
+    ],
+    "ok": [
+      "value_for_money-"
+    ],
+    "never": [
+      "staff_friendliness-",
+      "service_speed-",
+      "price+",
+      "billing_accuracy-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'patkan ala' means it came quickly; Rs 380 a slice being 'a bit too much' is a price-level complaint, not a wrong bill."
+  },
+  {
+    "id": "cb1-marathi-05",
+    "text": "पोह्यात केस निघाला. वेटरला सांगितलं तर तो उलट आमच्यावरच चिडला. परत कधीच जाणार नाही.",
+    "stars": null,
+    "lang": "mr",
+    "categories": [
+      "negative",
+      "marathi",
+      "food",
+      "service",
+      "multi_issue"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "food_safety-",
+      "staff_friendliness-",
+      "return_intent-"
+    ],
+    "ok": [
+      "professionalism-"
+    ],
+    "never": [
+      "food_safety+",
+      "staff_friendliness+",
+      "return_intent+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Hair in the poha is food_safety-; the waiter getting angry at the customers is rude (bad complaint handling is also defensibly professionalism-); will never go back."
+  },
+  {
+    "id": "cb1-marathi-06",
+    "text": "Jaga khup sundar sajavleli aahe, photo sathi mast. Pan washroom ekdam ghaan hota ani aamchya table var adhichya lokancha sandlela sugar tasach hota.",
+    "stars": 2,
+    "lang": "mr",
+    "categories": [
+      "mixed",
+      "marathi",
+      "ambience",
+      "cleanliness",
+      "attribution"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "NEGATIVE"
+    ],
+    "must": [
+      "ambience+",
+      "cleanliness-"
+    ],
+    "ok": [
+      "attentiveness-"
+    ],
+    "never": [
+      "ambience-",
+      "cleanliness+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'ghaan' means filthy; earlier guests spilled the sugar, but the cafe left the table uncleaned, so cleanliness- is attributable to the cafe."
+  },
+  {
+    "id": "cb1-marathi-07",
+    "text": "Cold coffee ekdam bhaari, thick ani creamy. Grilled sandwich pan baherun crispy hota. Full paisa vasool.",
+    "stars": 5,
+    "lang": "mr-en",
+    "categories": [
+      "positive",
+      "marathi_english",
+      "drink",
+      "food",
+      "value"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "drink_quality+",
+      "texture+",
+      "value_for_money+"
+    ],
+    "ok": [
+      "food_taste+"
+    ],
+    "never": [
+      "drink_quality-",
+      "texture-",
+      "value_for_money-",
+      "temperature_served-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Cold coffee' is a menu item, not a temperature complaint; crispy is texture praise and 'paisa vasool' is value for money."
+  },
+  {
+    "id": "cb1-marathi-08",
+    "text": "Shejarchya table var ek college group itka aawaj karat hota ki aamhala ekmekanche bolnach aiku yet navhta. Cafe walyanchi tyat kahi chuk nahi mhana, cappuccino changla hota.",
+    "stars": 4,
+    "lang": "mr",
+    "categories": [
+      "positive",
+      "third_party",
+      "customer_vs_business",
+      "attribution",
+      "marathi",
+      "drink"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "drink_quality+"
+    ],
+    "ok": [
+      "noise-"
+    ],
+    "never": [
+      "drink_quality-",
+      "music-"
+    ],
+    "traps": [
+      "staff_friendliness-",
+      "professionalism-",
+      "attentiveness-"
+    ],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Another customer group made the noise and the reviewer explicitly clears the cafe; noise- is defensible as a fact about the place, but blaming staff is a trap."
+  },
+  {
+    "id": "cb1-marathi-09",
+    "text": "एरवी इथला स्टाफ खूप प्रेमळ असतो, पण काल रविवारी दोन प्लेट पोहे यायला ४० मिनिटं लागली आणि माझा चहा तर ते विसरूनच गेले.",
+    "stars": 2,
+    "lang": "mr",
+    "categories": [
+      "negative",
+      "temporal",
+      "marathi",
+      "service",
+      "multi_issue"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "service_speed-",
+      "order_accuracy-"
+    ],
+    "ok": [
+      "staff_friendliness+",
+      "attentiveness-"
+    ],
+    "never": [
+      "service_speed+",
+      "order_accuracy+",
+      "staff_friendliness-",
+      "table_wait-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'एरवी' (usually) marks habitual staff praise, so it is ok only; the specific visit had 40-minute poha and a forgotten tea."
+  },
+  {
+    "id": "cb1-marathi-10",
+    "text": "Wah, kay service! Pani sathi teen vela haak marli tevha kuthe ek glass ala. Ekdam bhaari.",
+    "stars": null,
+    "lang": "mr",
+    "categories": [
+      "negative",
+      "sarcasm",
+      "implicit_complaint",
+      "marathi",
+      "service",
+      "colloquial"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "attentiveness-"
+    ],
+    "ok": [
+      "service_speed-"
+    ],
+    "never": [
+      "attentiveness+",
+      "service_speed+",
+      "staff_friendliness+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Wah, kay service' and 'ekdam bhaari' are sarcastic; calling three times before one glass of water came is attentiveness-."
+  },
+  {
+    "id": "cb1-marathi-11",
+    "text": "Sandwich ekdam sukka zala hota ani bread shila vatat hota. Paise parat nakot, pan kahi tari sudhara.",
+    "stars": 5,
+    "lang": "mr",
+    "categories": [
+      "negative",
+      "rating_conflict",
+      "negation",
+      "marathi",
+      "food"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "freshness-",
+      "texture-"
+    ],
+    "ok": [
+      "food_taste-"
+    ],
+    "never": [
+      "freshness+",
+      "texture+",
+      "refund-",
+      "refund+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": true,
+    "note": "5 stars contradict a dried-out sandwich on stale ('shila') bread; 'paise parat nakot' means the customer does not want a refund, so no refund concept applies."
+  },
+  {
+    "id": "cb1-marathi-12",
+    "text": "नाशिकमध्ये इतक्या स्वस्तात इतकी भारी मिसळ कुठे मिळणार? १२० रुपयांत पोट भरलं, पाव पण हवे तेवढे दिले.",
+    "stars": 5,
+    "lang": "mr",
+    "categories": [
+      "positive",
+      "implicit_praise",
+      "marathi",
+      "food",
+      "value"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "food_taste+",
+      "price+",
+      "value_for_money+",
+      "portion+"
+    ],
+    "ok": [],
+    "never": [
+      "food_taste-",
+      "price-",
+      "value_for_money-",
+      "portion-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The rhetorical question is praise; 'स्वस्तात' means cheap, and a full stomach for Rs 120 with as much pav as wanted is a generous portion and good value."
+  },
+  {
+    "id": "cb1-marathi-13",
+    "text": "UPI scanner chalat navhta, counter var mhanale cash dya. Amchyakade cash navhti mhanun ATM shodhat 10 min firlo. Counter cha mulga udhat navhta, sorry mhanala. Waffle mast hota tari.",
+    "stars": 3,
+    "lang": "mr-en",
+    "categories": [
+      "mixed",
+      "negation",
+      "marathi_english",
+      "operations",
+      "food",
+      "billing"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "NEGATIVE"
+    ],
+    "must": [
+      "payment-",
+      "food_taste+"
+    ],
+    "ok": [
+      "staff_friendliness+",
+      "professionalism+"
+    ],
+    "never": [
+      "payment+",
+      "food_taste-",
+      "staff_friendliness-",
+      "service_speed-",
+      "table_wait-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The broken UPI scanner is the complaint; the 10 minutes were spent finding an ATM, not waiting on service; 'udhat navhta' (not rude) plus an apology is weak praise at most."
+  },
+  {
+    "id": "cb1-marathi-14",
+    "text": "Bara hota.",
+    "stars": null,
+    "lang": "mr",
+    "categories": [
+      "neutral",
+      "short",
+      "ambiguous",
+      "marathi"
+    ],
+    "sentiment": "NEUTRAL",
+    "alsoSentiment": [
+      "POSITIVE"
+    ],
+    "must": [],
+    "ok": [],
+    "never": [],
+    "traps": [],
+    "abstain": true,
+    "ratingConflict": false,
+    "note": "'Bara hota' means 'it was okay', with no rating and no aspect, so nothing can be filed safely."
+  },
+  {
+    "id": "cb1-marathi-15",
+    "text": "AC बंद होता आणि आत नुसतं उकडत होतं. laptop घेऊन काम करायला गेलो होतो पण wifi पण चालत नव्हतं. Coffee मात्र खरंच चांगली होती.",
+    "stars": 2,
+    "lang": "mr-en",
+    "categories": [
+      "mixed",
+      "multi_issue",
+      "marathi_english",
+      "ambience",
+      "drink"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "NEGATIVE"
+    ],
+    "must": [
+      "ac_temperature-",
+      "wifi_workspace-",
+      "drink_quality+"
+    ],
+    "ok": [],
+    "never": [
+      "ac_temperature+",
+      "wifi_workspace+",
+      "drink_quality-",
+      "temperature_served-",
+      "service_speed-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'उकडत होतं' (stuffy and hot) with the AC off is room temperature, not food; wifi not working is a workspace issue, not service speed; the coffee is genuinely praised."
+  },
+  {
+    "id": "cb1-marathi-16",
+    "text": "Zomato varun order kela hota. Delivery wala jawal jawal ek taas usheera ala, tyamule waffle thanda zala. Pan cafe ne packing ekdam vyavasthit keli hoti, syrup vegla dila, kahi sandla nahi.",
+    "stars": 4,
+    "lang": "mr-en",
+    "categories": [
+      "positive",
+      "third_party",
+      "attribution",
+      "customer_vs_business",
+      "operations",
+      "context",
+      "marathi_english"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "delivery_takeaway+"
+    ],
+    "ok": [],
+    "never": [
+      "delivery_takeaway-"
+    ],
+    "traps": [
+      "service_speed-",
+      "temperature_served-",
+      "delivery_takeaway-"
+    ],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The Zomato rider's hour-long delay made the waffle cold, which is not the cafe's fault; the cafe's own packing (syrup separate, nothing spilled) is praised."
+  },
+  {
+    "id": "cb1-mixed-multi-01",
+    "text": "Cold brew was smooth, zero bitterness, easily the best I've had in Baner. The belgian waffle though was soggy in the middle and the nutella was one sad thin line across it. Girl at the counter was super sweet and remembered my name from last time.",
+    "stars": 3,
+    "lang": "en",
+    "categories": [
+      "mixed",
+      "multi_issue",
+      "negation",
+      "food",
+      "drink",
+      "service"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "POSITIVE"
+    ],
+    "must": [
+      "drink_quality+",
+      "texture-",
+      "staff_friendliness+"
+    ],
+    "ok": [
+      "portion-",
+      "presentation-",
+      "food_taste-",
+      "attentiveness+",
+      "professionalism+"
+    ],
+    "never": [
+      "drink_quality-",
+      "texture+",
+      "staff_friendliness-",
+      "seasoning-",
+      "portion+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Zero bitterness' praises the cold brew and 'super sweet' describes the staff, not seasoning; the thin Nutella line could be portion or presentation, so both are only ok."
+  },
+  {
+    "id": "cb1-mixed-multi-02",
+    "text": "Ordered a hazelnut hot chocolate and a veg club. The club came out first and the hot choc took another 20 min, so I sat there waiting to have them together and the sandwich went cold and the bread turned chewy. Hot chocolate itself was rich and thick, no complaints there.",
+    "stars": 2,
+    "lang": "en",
+    "categories": [
+      "mixed",
+      "multi_issue",
+      "context",
+      "attribution",
+      "negation",
+      "food",
+      "drink",
+      "service"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "NEGATIVE"
+    ],
+    "must": [
+      "service_speed-",
+      "drink_quality+"
+    ],
+    "ok": [
+      "temperature_served-",
+      "texture-",
+      "food_taste-"
+    ],
+    "never": [
+      "service_speed+",
+      "drink_quality-",
+      "temperature_served+",
+      "texture+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The 20-minute delay for the drink is the clear complaint; the sandwich went cold and chewy only because the customer chose to wait, so those are ok rather than must."
+  },
+  {
+    "id": "cb1-mixed-multi-03",
+    "text": "Misal ekdum jhakaas tha, tarri perfect teekhi thi. Lekin pav ekdum sukhe aur kal ke lag rahe the. Aur bill mein 2 cutting chai add thi jo humne li hi nahi, counter pe bataya toh turant hata di.",
+    "stars": 3,
+    "lang": "hinglish",
+    "categories": [
+      "hinglish",
+      "mixed",
+      "multi_issue",
+      "colloquial",
+      "food",
+      "billing",
+      "operations"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [],
+    "must": [
+      "food_taste+",
+      "seasoning+",
+      "freshness-",
+      "billing_accuracy-"
+    ],
+    "ok": [
+      "texture-",
+      "professionalism+"
+    ],
+    "never": [
+      "food_taste-",
+      "seasoning-",
+      "freshness+",
+      "billing_accuracy+",
+      "refund-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Perfect teekhi' praises the spice level and 'kal ke' means stale pav; charging for unordered chai is billing_accuracy- even though it was removed at once."
+  },
+  {
+    "id": "cb1-mixed-multi-04",
+    "text": "Spent the afternoon working from here. Wifi is genuinely fast and there's a charging point at almost every table, which is rare around KP. My V60 was bright and fruity and the barista walked me through the beans without being snobby about it. However by 2 pm the AC just gave up and it got really stuffy, and the music kept getting louder as more people came in till I couldn't hear my own zoom call. Also ₹380 for a pour over plus ₹290 for one slice of basque cheesecake is steep. Would still come back on a weekday morning.",
+    "stars": 4,
+    "lang": "en",
+    "categories": [
+      "long",
+      "mixed",
+      "multi_issue",
+      "temporal",
+      "negation",
+      "drink",
+      "service",
+      "ambience",
+      "value"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "POSITIVE"
+    ],
+    "must": [
+      "wifi_workspace+",
+      "drink_quality+",
+      "professionalism+",
+      "ac_temperature-",
+      "music-",
+      "price-",
+      "return_intent+"
+    ],
+    "ok": [
+      "staff_friendliness+",
+      "noise-",
+      "crowding-",
+      "value_for_money-"
+    ],
+    "never": [
+      "wifi_workspace-",
+      "drink_quality-",
+      "professionalism-",
+      "staff_friendliness-",
+      "ac_temperature+",
+      "music+",
+      "price+",
+      "return_intent-",
+      "temperature_served-",
+      "service_speed+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Fast' describes the wifi, not service, and 'stuffy' is room temperature, not food; 'without being snobby' is a negation, so staff_friendliness+ is only ok."
+  },
+  {
+    "id": "cb1-mixed-multi-05",
+    "text": "asked for extra cheese and jalapenos in the bombay grilled, came with no jalapenos. sent it back. by the time the new one came my cappuccino was cold since i was waiting to have both together. remade sandwich was really good tho and the boy said sorry twice so its ok",
+    "stars": 3,
+    "lang": "en",
+    "categories": [
+      "mixed",
+      "multi_issue",
+      "context",
+      "attribution",
+      "colloquial",
+      "typo",
+      "food",
+      "drink",
+      "service"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [],
+    "must": [
+      "order_accuracy-",
+      "food_taste+"
+    ],
+    "ok": [
+      "temperature_served-",
+      "service_speed-",
+      "drink_quality-",
+      "staff_friendliness+",
+      "professionalism+"
+    ],
+    "never": [
+      "order_accuracy+",
+      "food_taste-",
+      "temperature_served+",
+      "staff_friendliness-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The missing jalapenos are a clear order error; the cappuccino went cold because the customer chose to wait for the remake, so temperature_served- is only ok."
+  },
+  {
+    "id": "cb1-mixed-multi-06",
+    "text": "Poha fresh n piping hot; chai was basically sugar water; service quick.",
+    "stars": null,
+    "lang": "en",
+    "categories": [
+      "short",
+      "mixed",
+      "multi_issue",
+      "colloquial",
+      "food",
+      "drink",
+      "service"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "POSITIVE"
+    ],
+    "must": [
+      "freshness+",
+      "temperature_served+",
+      "drink_quality-",
+      "service_speed+"
+    ],
+    "ok": [
+      "seasoning-",
+      "food_taste+"
+    ],
+    "never": [
+      "freshness-",
+      "temperature_served-",
+      "drink_quality+",
+      "service_speed-",
+      "seasoning+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Three independent clauses; 'sugar water' clearly condemns the chai, and whether it also means too sweet (seasoning-) is debatable, so that is only ok."
+  },
+  {
+    "id": "cb1-mixed-multi-07",
+    "text": "Sunday family lunch - sabudana vada, thalipeeth, kids had the choco waffles. Everything was lovely except the washroom. No water in the flush, floor wet and the smell was so bad my daughter refused to go in. Please fix this, it spoils an otherwise nice place.",
+    "stars": 4,
+    "lang": "en",
+    "categories": [
+      "mixed",
+      "implicit_complaint",
+      "food",
+      "cleanliness",
+      "ambience"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "POSITIVE"
+    ],
+    "must": [
+      "cleanliness-",
+      "smell-"
+    ],
+    "ok": [
+      "food_taste+",
+      "ambience+"
+    ],
+    "never": [
+      "cleanliness+",
+      "smell+",
+      "food_taste-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The washroom's hygiene and smell are the clear complaints; 'everything was lovely' is generic praise around the listed dishes, so food_taste+ and ambience+ are only ok."
+  },
+  {
+    "id": "cb1-mixed-multi-08",
+    "text": "Loved how the barista spent a good 10 min on his phone while six of us stood at the counter. To be fair the cold brew was excellent. The almond croissant was not — dense, greasy, tasted a day old.",
+    "stars": 2,
+    "lang": "en",
+    "categories": [
+      "sarcasm",
+      "mixed",
+      "multi_issue",
+      "negation",
+      "implicit_complaint",
+      "food",
+      "drink",
+      "service"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "NEGATIVE"
+    ],
+    "must": [
+      "professionalism-",
+      "drink_quality+",
+      "texture-",
+      "freshness-"
+    ],
+    "ok": [
+      "service_speed-",
+      "attentiveness-",
+      "seasoning-",
+      "food_taste-"
+    ],
+    "never": [
+      "professionalism+",
+      "drink_quality-",
+      "texture+",
+      "freshness+",
+      "service_speed+",
+      "attentiveness+",
+      "staff_friendliness+",
+      "table_wait-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Loved how' is sarcastic, so the barista on his phone is professionalism-; the queue was at the counter, not for a table; 'greasy' could be texture or oily seasoning."
+  },
+  {
+    "id": "cb1-mixed-multi-09",
+    "text": "waited around 40 min for 2 filter coffees and a cheese chilli toast. toast was still cold in the centre, like microwaved straight from the freezer. our table had dried sugar and coffee rings all over it. staff were polite at least, the girl at billing was nice",
+    "stars": 5,
+    "lang": "en",
+    "categories": [
+      "rating_conflict",
+      "negative",
+      "multi_issue",
+      "implicit_complaint",
+      "colloquial",
+      "food",
+      "service",
+      "cleanliness"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "service_speed-",
+      "temperature_served-",
+      "cleanliness-",
+      "staff_friendliness+"
+    ],
+    "ok": [
+      "freshness-",
+      "texture-",
+      "food_taste-"
+    ],
+    "never": [
+      "service_speed+",
+      "temperature_served+",
+      "cleanliness+",
+      "staff_friendliness-",
+      "table_wait-",
+      "billing_accuracy-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": true,
+    "note": "Five stars contradict a text of mostly complaints; the 40-minute wait was for the order, not a table, and 'girl at billing' is staff praise, not a billing issue."
+  },
+  {
+    "id": "cb1-mixed-multi-10",
+    "text": "Sunday la table milayla 35 min lagle, ani order dyayla gelo tar misal sampli hoti. Poha ani sabudana khichdi mast hoti though. Owner kaka swatah yeun sorry mhanale ani free tak dila, te khup avadla.",
+    "stars": 3,
+    "lang": "mr-en",
+    "categories": [
+      "marathi_english",
+      "mixed",
+      "multi_issue",
+      "context",
+      "implicit_complaint",
+      "colloquial",
+      "food",
+      "service",
+      "operations"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [],
+    "must": [
+      "table_wait-",
+      "menu_variety-",
+      "food_taste+",
+      "staff_friendliness+"
+    ],
+    "ok": [
+      "professionalism+",
+      "offers+",
+      "crowding-"
+    ],
+    "never": [
+      "table_wait+",
+      "menu_variety+",
+      "food_taste-",
+      "staff_friendliness-",
+      "service_speed-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The 35 minutes was to get a table (table_wait-, not service_speed-) and 'misal sampli hoti' means it had sold out; the free buttermilk is goodwill, so offers+ is only ok."
+  },
+  {
+    "id": "cb1-mixed-multi-11",
+    "text": "Ordered cold brew and a waffle sundae on Swiggy. Delivery took ages but it was pouring so not blaming the cafe for that. What I do blame them for: the cold brew lid wasn't sealed so half of it leaked into the bag, and they packed the waffle in a closed box with the ice cream sitting right on top so it was a soggy mess by the time it reached. Whatever was left tasted good.",
+    "stars": 2,
+    "lang": "en",
+    "categories": [
+      "third_party",
+      "attribution",
+      "context",
+      "operations",
+      "negative",
+      "mixed",
+      "multi_issue",
+      "food",
+      "drink"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "delivery_takeaway-",
+      "food_taste+"
+    ],
+    "ok": [
+      "texture-",
+      "drink_quality+"
+    ],
+    "never": [
+      "delivery_takeaway+",
+      "food_taste-",
+      "texture+"
+    ],
+    "traps": [
+      "service_speed-"
+    ],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The customer excuses the slow delivery (rain, Swiggy) but blames the café for the unsealed lid and packing; the soggy waffle stems from that packing, so texture- is only ok."
+  },
+  {
+    "id": "cb1-mixed-multi-12",
+    "text": "Been coming to this outlet for over a year, it's usually my go-to for a flat white. Yesterday was a mess. Asked for oat milk, they made it with regular — I'm lactose intolerant and only realised after a few sips. When I pointed it out the barista argued that I must have said regular. They remade it eventually, no apology. Then the bill still had the ₹60 oat milk surcharge on the first cup too, so I paid extra for a drink I couldn't even drink. The coffee itself is still lovely, I'll give them that. Not sure I'll be back.",
+    "stars": 1,
+    "lang": "en",
+    "categories": [
+      "long",
+      "temporal",
+      "context",
+      "multi_issue",
+      "negative",
+      "mixed",
+      "service",
+      "billing",
+      "drink"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "order_accuracy-",
+      "professionalism-",
+      "billing_accuracy-",
+      "drink_quality+"
+    ],
+    "ok": [
+      "staff_friendliness-",
+      "food_safety-",
+      "return_intent-",
+      "service_speed-"
+    ],
+    "never": [
+      "order_accuracy+",
+      "professionalism+",
+      "billing_accuracy+",
+      "drink_quality-",
+      "return_intent+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "A year of loyalty is background; this visit had the wrong milk, an arguing barista and a surcharge on the rejected cup, while 'still lovely' is present-tense drink praise and 'not sure I'll be back' is hedged."
+  },
+  {
+    "id": "cb1-mixed-multi-13",
+    "text": "Kids loved the chocolate waffle; filter coffee was strong, proper decoction style; place is spotless and bright. Only thing is the seating is very cramped, my chair kept bumping into the next table's chair the whole time.",
+    "stars": 4,
+    "lang": "en",
+    "categories": [
+      "mixed",
+      "multi_issue",
+      "food",
+      "drink",
+      "cleanliness",
+      "ambience"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "POSITIVE"
+    ],
+    "must": [
+      "food_taste+",
+      "drink_quality+",
+      "cleanliness+",
+      "seating_comfort-"
+    ],
+    "ok": [
+      "lighting+",
+      "ambience+"
+    ],
+    "never": [
+      "food_taste-",
+      "drink_quality-",
+      "cleanliness-",
+      "seating_comfort+",
+      "seasoning-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Strong' filter coffee is praise, not a seasoning complaint; the bumping chairs reflect the cramped layout (seating_comfort-), and 'bright' could be lighting or ambience, so both are ok."
+  },
+  {
+    "id": "cb1-mixed-multi-14",
+    "text": "Cold coffee mast thi, thick aur zyada meethi nahi. Sandwich mein itna mayo daal diya ki bread poora geela ho gaya. Waiter bhaiya bahut friendly the, lekin paani 3 baar maangna pada.",
+    "stars": null,
+    "lang": "hinglish",
+    "categories": [
+      "hinglish",
+      "mixed",
+      "multi_issue",
+      "negation",
+      "implicit_complaint",
+      "colloquial",
+      "food",
+      "drink",
+      "service"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [],
+    "must": [
+      "drink_quality+",
+      "texture-",
+      "staff_friendliness+",
+      "attentiveness-"
+    ],
+    "ok": [
+      "seasoning+",
+      "seasoning-",
+      "food_taste-"
+    ],
+    "never": [
+      "drink_quality-",
+      "texture+",
+      "staff_friendliness-",
+      "attentiveness+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Zyada meethi nahi' (not too sweet) praises the drink; the excess mayo made the bread soggy (texture-); asking for water three times implies poor attentiveness despite the friendly waiter."
+  },
+  {
+    "id": "cb1-mixed-multi-15",
+    "text": "Zomato Gold 1+1 wasn't applied — manager said not valid on weekends even though the app clearly showed it. Apart from that, lovely hazelnut latte and the staff were really patient with my mom asking 20 questions about what's eggless on the menu.",
+    "stars": 4,
+    "lang": "en",
+    "categories": [
+      "attribution",
+      "third_party",
+      "customer_vs_business",
+      "mixed",
+      "multi_issue",
+      "value",
+      "drink",
+      "service"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "POSITIVE"
+    ],
+    "must": [
+      "offers-",
+      "drink_quality+",
+      "staff_friendliness+"
+    ],
+    "ok": [
+      "professionalism+",
+      "billing_accuracy-"
+    ],
+    "never": [
+      "offers+",
+      "drink_quality-",
+      "staff_friendliness-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The café's manager refused a deal the app showed, so offers- is on the café; menu prices were not wrong, so billing_accuracy- is at most ok."
+  },
+  {
+    "id": "cb1-mixed-multi-16",
+    "text": "Took my parents here for their anniversary dinner. The terrace with the fairy lights is gorgeous and they were playing old Marathi bhavgeet softly in the background, my parents loved that. Thalipeeth and kothimbir vadi were crisp and properly gharguti, and the blueberry cheesecake was honestly better than what we get in Mumbai. The one hiccup: I had reserved the corner table on call and when we reached it had been given to another family, took about 15 min to sort out. Staff handled it very politely though and sent a dessert on the house. Will definitely be bringing friends next time.",
+    "stars": 5,
+    "lang": "en",
+    "categories": [
+      "long",
+      "positive",
+      "mixed",
+      "multi_issue",
+      "context",
+      "operations",
+      "food",
+      "service",
+      "ambience"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "ambience+",
+      "music+",
+      "food_taste+",
+      "texture+",
+      "reservation-",
+      "staff_friendliness+",
+      "return_intent+"
+    ],
+    "ok": [
+      "lighting+",
+      "table_wait-",
+      "professionalism+",
+      "offers+",
+      "recommend_intent+"
+    ],
+    "never": [
+      "ambience-",
+      "music-",
+      "food_taste-",
+      "texture-",
+      "reservation+",
+      "staff_friendliness-",
+      "return_intent-",
+      "noise-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Giving away the reserved table was the café's doing, not the other family's; the polite recovery and dessert on the house are praise, and 'bringing friends' signals return (must) and recommendation (ok)."
+  },
+  {
+    "id": "cb1-negation-implicit-01",
+    "text": "Filter coffee ajibat garam navhti, komat hoti. Counter la sangitla tar kakanni lagech navin karun dili, kahi argument nahi. Mhanun 4 star.",
+    "stars": 4,
+    "lang": "mr-en",
+    "categories": [
+      "mixed",
+      "negation",
+      "implicit_praise",
+      "marathi_english",
+      "drink",
+      "service",
+      "colloquial",
+      "context"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "POSITIVE"
+    ],
+    "must": [
+      "temperature_served-"
+    ],
+    "ok": [
+      "professionalism+",
+      "service_speed+",
+      "staff_friendliness+",
+      "attentiveness+",
+      "drink_quality-"
+    ],
+    "never": [
+      "temperature_served+",
+      "professionalism-",
+      "staff_friendliness-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The lukewarm coffee is the clear complaint; the quick, no-argument remake is real praise but it is debatable which concept it fits (professionalism, speed or friendliness), so those stay in ok."
+  },
+  {
+    "id": "cb1-negation-implicit-02",
+    "text": "Baked blueberry cheesecake was 100% not from today. Edges had gone hard n it had that fridge smell to it. Rs 360 for a slice like that?? No thanks.",
+    "stars": 2,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "negation",
+      "implicit_complaint",
+      "multi_issue",
+      "food",
+      "value",
+      "colloquial"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "freshness-",
+      "texture-",
+      "value_for_money-"
+    ],
+    "ok": [
+      "food_taste-",
+      "price-",
+      "return_intent-"
+    ],
+    "never": [
+      "freshness+",
+      "texture+",
+      "value_for_money+",
+      "smell-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Not from today' means stale and 'edges had gone hard' is a plain texture complaint; the fridge smell belongs to the cake, not the premises, so smell- is wrong."
+  },
+  {
+    "id": "cb1-negation-implicit-03",
+    "text": "Stood at the door almost 5 min. 3 staff behind the counter, not one of them looked up. Finally just grabbed a table ourselves and someone came 10 min after that.",
+    "stars": 1,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "negation",
+      "implicit_complaint",
+      "service"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "attentiveness-"
+    ],
+    "ok": [
+      "table_wait-",
+      "service_speed-",
+      "staff_friendliness-",
+      "professionalism-"
+    ],
+    "never": [
+      "attentiveness+",
+      "table_wait+",
+      "service_speed+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "No opinion words, but being ignored at the door and then waiting 10 minutes at the table is an implied attentiveness complaint; waiting to be seated is a defensible second reading."
+  },
+  {
+    "id": "cb1-negation-implicit-04",
+    "text": "Paani ka refill 2 baar bola, aaya hi nahi end tak. Misal ekdum solid thi though, tarri proper teekhi aur pav fresh. Bas service pe thoda dhyaan do yaar.",
+    "stars": 3,
+    "lang": "hinglish",
+    "categories": [
+      "mixed",
+      "negation",
+      "implicit_complaint",
+      "multi_issue",
+      "hinglish",
+      "colloquial",
+      "food",
+      "service"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [],
+    "must": [
+      "attentiveness-",
+      "food_taste+",
+      "freshness+",
+      "seasoning+"
+    ],
+    "ok": [
+      "professionalism-"
+    ],
+    "never": [
+      "attentiveness+",
+      "food_taste-",
+      "freshness-",
+      "seasoning-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Tarri proper teekhi' explicitly praises the spice level (seasoning+), not a too-spicy complaint; a water refill asked for twice and never brought is attentiveness-."
+  },
+  {
+    "id": "cb1-negation-implicit-05",
+    "text": "Not the cafe's fault but the group next to us was on a speakerphone call for like 40 min. The floor manager went over on his own and politely asked them to use earphones, we didn't even have to say anything. Cold brew excellent as always.",
+    "stars": 5,
+    "lang": "en",
+    "categories": [
+      "positive",
+      "third_party",
+      "customer_vs_business",
+      "attribution",
+      "negation",
+      "implicit_praise",
+      "temporal",
+      "service",
+      "drink"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "attentiveness+",
+      "drink_quality+"
+    ],
+    "ok": [
+      "professionalism+",
+      "staff_friendliness+",
+      "noise-",
+      "return_intent+"
+    ],
+    "never": [
+      "attentiveness-",
+      "drink_quality-",
+      "temperature_served-"
+    ],
+    "traps": [
+      "staff_friendliness-",
+      "professionalism-",
+      "attentiveness-"
+    ],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The noise came from other customers and the manager stepped in unprompted, so blaming staff is a trap; 'cold brew' is the drink's name, not a temperature complaint."
+  },
+  {
+    "id": "cb1-negation-implicit-06",
+    "text": "Went round both floors looking for one table without someone else's cups and crumbs on it. Couldn't find any, wiped one down with our own tissues. Cappuccino was honestly lovely tho, only reason it's not lower.",
+    "stars": 3,
+    "lang": "en",
+    "categories": [
+      "mixed",
+      "negation",
+      "implicit_complaint",
+      "cleanliness",
+      "drink",
+      "colloquial"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "NEGATIVE"
+    ],
+    "must": [
+      "cleanliness-",
+      "drink_quality+"
+    ],
+    "ok": [
+      "attentiveness-",
+      "professionalism-"
+    ],
+    "never": [
+      "cleanliness+",
+      "drink_quality-",
+      "crowding-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "No uncleared table anywhere and wiping one themselves implies cleanliness- without the word 'dirty'; the tables were free but uncleared, so this is not a crowding complaint."
+  },
+  {
+    "id": "cb1-negation-implicit-07",
+    "text": "Staff weren't rude, food wasn't late, nothing really went wrong. But the paneer tikka sandwich was nothing special and definitely not worth Rs 480 with an americano.",
+    "stars": 3,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "negation",
+      "implicit_complaint",
+      "ambiguous",
+      "food",
+      "value"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [
+      "NEUTRAL",
+      "MIXED"
+    ],
+    "must": [
+      "value_for_money-"
+    ],
+    "ok": [
+      "price-",
+      "food_taste-",
+      "staff_friendliness+",
+      "service_speed+"
+    ],
+    "never": [
+      "value_for_money+",
+      "staff_friendliness-",
+      "service_speed-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Weren't rude' and 'wasn't late' only say nothing went wrong and are not complaints; the one clear opinion is 'not worth Rs 480'."
+  },
+  {
+    "id": "cb1-negation-implicit-08",
+    "text": "not bad",
+    "stars": null,
+    "lang": "en",
+    "categories": [
+      "neutral",
+      "short",
+      "negation",
+      "ambiguous"
+    ],
+    "sentiment": "NEUTRAL",
+    "alsoSentiment": [
+      "POSITIVE"
+    ],
+    "must": [],
+    "ok": [],
+    "never": [
+      "food_taste-"
+    ],
+    "traps": [],
+    "abstain": true,
+    "ratingConflict": false,
+    "note": "A bare 'not bad' with no subject and no rating names no concept; it is mildly positive at most and must not be read as a complaint."
+  },
+  {
+    "id": "cb1-negation-implicit-09",
+    "text": "Waved for the bill, nothing. Waved again maybe 10 min later, still nothing. In the end walked up and paid at the counter myself. Shame coz the filter coffee and the biscoff waffle were both really good.",
+    "stars": 3,
+    "lang": "en",
+    "categories": [
+      "mixed",
+      "negation",
+      "implicit_complaint",
+      "multi_issue",
+      "service",
+      "food",
+      "drink",
+      "colloquial"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [],
+    "must": [
+      "attentiveness-",
+      "service_speed-",
+      "drink_quality+",
+      "food_taste+"
+    ],
+    "ok": [
+      "professionalism-"
+    ],
+    "never": [
+      "attentiveness+",
+      "service_speed+",
+      "drink_quality-",
+      "food_taste-",
+      "billing_accuracy-",
+      "payment-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Waving twice over 10+ minutes is both being ignored and the bill taking forever (service_speed-); the bill amount and the payment method were not at fault."
+  },
+  {
+    "id": "cb1-negation-implicit-10",
+    "text": "My iced spanish latte reached the table with all the ice melted, basically milky water by then. Pickup counter is literally 10 steps from where I was sitting.",
+    "stars": 2,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "implicit_complaint",
+      "context",
+      "drink",
+      "service"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "service_speed-",
+      "drink_quality-"
+    ],
+    "ok": [
+      "temperature_served-",
+      "attentiveness-",
+      "professionalism-"
+    ],
+    "never": [
+      "service_speed+",
+      "drink_quality+",
+      "delivery_takeaway-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Ice fully melted with the counter only 10 steps away implies the drink sat waiting (slow service), and 'milky water' means watery; this was dine-in, not delivery."
+  },
+  {
+    "id": "cb1-negation-implicit-11",
+    "text": "We were 5 of us, sat almost 2 hrs. They went to every table around us asking 'anything else?' but walked right past ours every single time. Maybe coz we're students and only ordered cold coffees? Idk, felt weird.",
+    "stars": 1,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "implicit_complaint",
+      "context",
+      "service",
+      "colloquial"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "attentiveness-"
+    ],
+    "ok": [
+      "staff_friendliness-",
+      "professionalism-"
+    ],
+    "never": [
+      "attentiveness+",
+      "temperature_served-",
+      "drink_quality-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Being skipped while every other table was checked on is implied attentiveness-; the suspected bias is the customer's guess, and 'cold coffees' is just what they ordered."
+  },
+  {
+    "id": "cb1-negation-implicit-12",
+    "text": "3rd time this week at the Baner outlet and the guy at the counter had my oat flat white going before I even reached the till. Didn't have to say a word. Zero complaints.",
+    "stars": 5,
+    "lang": "en",
+    "categories": [
+      "positive",
+      "implicit_praise",
+      "negation",
+      "temporal",
+      "context",
+      "service"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "attentiveness+"
+    ],
+    "ok": [
+      "staff_friendliness+",
+      "professionalism+",
+      "service_speed+",
+      "return_intent+"
+    ],
+    "never": [
+      "attentiveness-",
+      "service_speed-",
+      "staff_friendliness-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Starting a regular's usual drink before they order is implied attentiveness praise; 'zero complaints' and 'didn't have to say a word' are negations used as praise."
+  },
+  {
+    "id": "cb1-negation-implicit-13",
+    "text": "फिल्टर कॉफी बनवण्याआधी ताईंनी विचारलं, साखर कमी हवी का आणि डिकॉक्शन स्ट्रॉंग हवं का. अगदी तशीच मिळाली. इतक्या वर्षांत असं कोणी विचारलं नव्हतं.",
+    "stars": null,
+    "lang": "mr",
+    "categories": [
+      "positive",
+      "implicit_praise",
+      "negation",
+      "temporal",
+      "marathi",
+      "service",
+      "drink"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "attentiveness+",
+      "order_accuracy+"
+    ],
+    "ok": [
+      "professionalism+",
+      "staff_friendliness+",
+      "drink_quality+"
+    ],
+    "never": [
+      "attentiveness-",
+      "order_accuracy-",
+      "seasoning-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Staff asked about sugar and decoction strength and delivered exactly that; 'less sugar' is a customisation request, not a too-sweet complaint, and 'nobody had asked in years' is praise."
+  },
+  {
+    "id": "cb1-negation-implicit-14",
+    "text": "पोहे के साथ सेव और नींबू अलग से मांगा था, वो आया ही नहीं। फिर भी बिल में 'extra sev ₹20' जुड़ा हुआ था। काउंटर पे बोला तो हटा दिया, पर ये ध्यान तो रखना चाहिए।",
+    "stars": null,
+    "lang": "hi",
+    "categories": [
+      "negative",
+      "negation",
+      "implicit_complaint",
+      "multi_issue",
+      "hindi_devanagari",
+      "billing",
+      "food",
+      "service",
+      "operations"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "order_accuracy-",
+      "billing_accuracy-"
+    ],
+    "ok": [
+      "attentiveness-",
+      "professionalism+"
+    ],
+    "never": [
+      "order_accuracy+",
+      "billing_accuracy+",
+      "price-",
+      "refund-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The sev and lemon never came but were still billed; removing the charge on request does not cancel the billing error, and it is neither a price complaint nor a refund issue."
+  },
+  {
+    "id": "cb1-negation-implicit-15",
+    "text": "Cold brew was sour and flat, def not the best I've had. Nutella waffle wasn't crisp at all, soggy in the middle. Won't be ordering either of these again.",
+    "stars": 5,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "rating_conflict",
+      "negation",
+      "multi_issue",
+      "food",
+      "drink",
+      "colloquial"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "drink_quality-",
+      "texture-"
+    ],
+    "ok": [
+      "food_taste-",
+      "return_intent-"
+    ],
+    "never": [
+      "drink_quality+",
+      "texture+",
+      "temperature_served-",
+      "return_intent+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": true,
+    "note": "5 stars clash with an entirely negative text; 'cold brew' is the drink's name, and 'won't be ordering these again' is about the two items, so return_intent- is only ok."
+  },
+  {
+    "id": "cb1-negation-implicit-16",
+    "text": "Came to work from here for the afternoon. Wasn't crowded, music wasn't blaring, AC wasn't freezing like most cafes on FC Road. Only thing - had to ask 3 times for the wifi password and then it kept dropping every 10 min.",
+    "stars": 4,
+    "lang": "en",
+    "categories": [
+      "mixed",
+      "negation",
+      "implicit_praise",
+      "implicit_complaint",
+      "multi_issue",
+      "context",
+      "ambience",
+      "service"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "POSITIVE"
+    ],
+    "must": [
+      "wifi_workspace-",
+      "attentiveness-"
+    ],
+    "ok": [
+      "crowding+",
+      "music+",
+      "ac_temperature+",
+      "noise+",
+      "professionalism-"
+    ],
+    "never": [
+      "wifi_workspace+",
+      "attentiveness+",
+      "crowding-",
+      "music-",
+      "ac_temperature-",
+      "service_speed-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Having to ask 3 times for the password is attentiveness- (like reminding for water) and the dropping wifi is wifi_workspace-, not service_speed-; the negated positives are mild praise, so they stay in ok."
+  },
+  {
+    "id": "cb1-operations-environment-01",
+    "text": "bill had a 10% 'service charge' added at the bottom. not on the menu, not on any board, nobody said anything. asked the counter guy to remove it and he got all huffy about it but did remove it eventually. the cold brew tonic was really good tho, shame.",
+    "stars": 3,
+    "lang": "en",
+    "categories": [
+      "mixed",
+      "multi_issue",
+      "billing",
+      "operations",
+      "service",
+      "drink",
+      "colloquial"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "NEGATIVE"
+    ],
+    "must": [
+      "billing_accuracy-",
+      "staff_friendliness-",
+      "drink_quality+"
+    ],
+    "ok": [
+      "professionalism-"
+    ],
+    "never": [
+      "billing_accuracy+",
+      "staff_friendliness+",
+      "drink_quality-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "A service charge that was never disclosed is billing_accuracy-, even though it was removed later. 'Got all huffy' is about the staff member's manner, and the drink is clearly praised."
+  },
+  {
+    "id": "cb1-operations-environment-02",
+    "text": "UPI scanner band tha aur card machine pe 'network nahi hai' aa raha tha. Ye sab order lene ke baad bataya!! 10 min ATM dhundhne gaya, dost ko wahi bitha ke. Pehle bata dete toh itna jhanjhat nahi hota.",
+    "stars": 2,
+    "lang": "hinglish",
+    "categories": [
+      "negative",
+      "hinglish",
+      "operations",
+      "billing",
+      "colloquial",
+      "implicit_complaint"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "payment-"
+    ],
+    "ok": [
+      "professionalism-"
+    ],
+    "never": [
+      "payment+",
+      "service_speed-",
+      "table_wait-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The café could not take UPI or card. Telling the customer only after ordering is a defensible professionalism-. The 10 minutes were the customer's own trip to the ATM, not slow service."
+  },
+  {
+    "id": "cb1-operations-environment-03",
+    "text": "Placed a pickup order on their website — Belgian waffle + 2 cappuccinos, paid online. Got a call 10 min later that waffle batter is finished so order cancelled, refund in 24 hours. That was 9 days back. 3 emails, 2 calls, still 'under process'. ₹540 isn't a lot but come on.",
+    "stars": 1,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "multi_issue",
+      "operations",
+      "billing",
+      "food",
+      "temporal",
+      "colloquial"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "refund-"
+    ],
+    "ok": [
+      "menu_variety-",
+      "delivery_takeaway-",
+      "professionalism-"
+    ],
+    "never": [
+      "refund+",
+      "menu_variety+",
+      "price-",
+      "value_for_money-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The complaint is a refund still pending after 9 days. The waffle running out is stated as fact rather than complained about, so menu_variety- is only ok. '₹540 isn't a lot' is about the amount owed, not the price level."
+  },
+  {
+    "id": "cb1-operations-environment-04",
+    "text": "Sunday sathi 8 jananchi booking keli hoti phone var, tyani confirm pan kela. Gelo tar mhantat booking chi entry ch nahi, 40 min thamba. Lahan mulansobat baher ubha rahava lagla. Misal mast hoti pan sagla mood gela.",
+    "stars": 2,
+    "lang": "mr-en",
+    "categories": [
+      "negative",
+      "mixed",
+      "multi_issue",
+      "marathi_english",
+      "marathi",
+      "operations",
+      "food",
+      "colloquial"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "reservation-",
+      "table_wait-",
+      "food_taste+"
+    ],
+    "ok": [],
+    "never": [
+      "reservation+",
+      "table_wait+",
+      "food_taste-",
+      "service_speed-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The café lost a confirmed booking and the family waited 40 minutes outside for a table, not for service. The misal is praised, but the reviewer says it spoiled the mood, so NEGATIVE dominates."
+  },
+  {
+    "id": "cb1-operations-environment-05",
+    "text": "Took 2 cold brews to go. lid wasnt pressed on properly and half of one emptied into my car cup holder + seat. no straws, no napkins in the bag either. the coffee itself was smooth and strong so 3 stars",
+    "stars": 3,
+    "lang": "en",
+    "categories": [
+      "mixed",
+      "multi_issue",
+      "operations",
+      "drink",
+      "typo",
+      "colloquial"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "NEGATIVE"
+    ],
+    "must": [
+      "delivery_takeaway-",
+      "drink_quality+"
+    ],
+    "ok": [
+      "professionalism-"
+    ],
+    "never": [
+      "delivery_takeaway+",
+      "drink_quality-",
+      "portion-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The loose lid and the missing straws and napkins are the café's own takeaway handling. The spill is not a portion complaint, and the coffee's taste is praised."
+  },
+  {
+    "id": "cb1-operations-environment-06",
+    "text": "Ordered on Swiggy. Rider took ages and called me 4 times for the location, that's on him not the cafe. Packing was actually top notch – grilled sandwich still crisp, green chutney in a sealed cup, fork and tissues inside. Would order again.",
+    "stars": 4,
+    "lang": "en",
+    "categories": [
+      "positive",
+      "third_party",
+      "attribution",
+      "operations",
+      "food"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "delivery_takeaway+",
+      "return_intent+"
+    ],
+    "ok": [
+      "texture+"
+    ],
+    "never": [
+      "delivery_takeaway-",
+      "return_intent-",
+      "texture-"
+    ],
+    "traps": [
+      "service_speed-",
+      "delivery_takeaway-",
+      "professionalism-"
+    ],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The reviewer explicitly blames the delay on the Swiggy rider. 'Still crisp' is given as evidence of good packing, so texture+ is only ok."
+  },
+  {
+    "id": "cb1-operations-environment-07",
+    "text": "Looks gorgeous on insta, reality not so much. Sticky tables, flies hovering over the cheesecake counter, and the washroom had no water and stank. Asked twice for our table to be wiped, nobody came.",
+    "stars": 1,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "multi_issue",
+      "cleanliness",
+      "service",
+      "ambience",
+      "implicit_complaint",
+      "context"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "cleanliness-",
+      "smell-",
+      "attentiveness-"
+    ],
+    "ok": [
+      "ambience-",
+      "food_safety-"
+    ],
+    "never": [
+      "cleanliness+",
+      "smell+",
+      "attentiveness+",
+      "ambience+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Gorgeous on insta' is set up only to be contradicted, so it is not ambience+. Flies over the counter are not flies in the food, so food_safety- is only defensible."
+  },
+  {
+    "id": "cb1-operations-environment-08",
+    "text": "Perfect work spot. Playlist was old Hindi songs redone lo-fi plus some jazz, low enough that I could take calls. Plug point at every table, wifi didn't drop once in 3 hrs. Filter coffee refill for ₹60 which is unheard of in Baner.",
+    "stars": 5,
+    "lang": "en",
+    "categories": [
+      "positive",
+      "multi_issue",
+      "ambience",
+      "value",
+      "drink",
+      "implicit_praise",
+      "negation",
+      "context"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "music+",
+      "wifi_workspace+",
+      "price+"
+    ],
+    "ok": [
+      "noise+",
+      "value_for_money+",
+      "ambience+"
+    ],
+    "never": [
+      "music-",
+      "wifi_workspace-",
+      "price-",
+      "drink_quality+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Both the choice and the volume of the music are praised. A ₹60 refill is called unusually cheap for the area, so it is price+, but the coffee's taste is never judged."
+  },
+  {
+    "id": "cb1-operations-environment-09",
+    "text": "AC was set to arctic. I was shivering in a hoodie by hour two. Asked if they could raise it a bit, was told 'manager has the remote, he's not here'. lol ok. Also only the window seats have charging points and those were all taken so laptop died.",
+    "stars": 2,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "multi_issue",
+      "ambience",
+      "service",
+      "operations",
+      "sarcasm",
+      "colloquial"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "ac_temperature-",
+      "wifi_workspace-"
+    ],
+    "ok": [
+      "professionalism-",
+      "attentiveness-"
+    ],
+    "never": [
+      "ac_temperature+",
+      "wifi_workspace+",
+      "temperature_served-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The cold is the room temperature, not the food, so it is ac_temperature- and never temperature_served-. Too few charging points is wifi_workspace-."
+  },
+  {
+    "id": "cb1-operations-environment-10",
+    "text": "ॲपवर 'पहिल्या ऑर्डरवर २०% सूट' दाखवत होते, काउंटरवर सांगितलं की ही ऑफर या शाखेत चालत नाही. मग ॲपवर दाखवता कशाला? पोहे आणि चहा मात्र एकदम मस्त होते.",
+    "stars": 3,
+    "lang": "mr",
+    "categories": [
+      "mixed",
+      "multi_issue",
+      "marathi",
+      "operations",
+      "value",
+      "food",
+      "drink"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [],
+    "must": [
+      "offers-",
+      "food_taste+",
+      "drink_quality+"
+    ],
+    "ok": [],
+    "never": [
+      "offers+",
+      "food_taste-",
+      "drink_quality-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "This branch would not honour the 20% offer shown in its own app. The poha and chai are both clearly praised."
+  },
+  {
+    "id": "cb1-operations-environment-11",
+    "text": "3 to 6 happy hours = buy 1 get 1 on all cold coffees. Came on a Tuesday afternoon, place was half empty and nice and quiet. Steal.",
+    "stars": null,
+    "lang": "en",
+    "categories": [
+      "positive",
+      "value",
+      "ambience",
+      "drink",
+      "short",
+      "colloquial",
+      "implicit_praise"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "offers+",
+      "noise+"
+    ],
+    "ok": [
+      "crowding+",
+      "value_for_money+",
+      "price+"
+    ],
+    "never": [
+      "offers-",
+      "noise-",
+      "crowding-",
+      "value_for_money-",
+      "price-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Half empty' reads as pleasantly uncrowded, not as a complaint, but it is debatable. 'Steal' praises the deal and could be filed as either value_for_money+ or price+."
+  },
+  {
+    "id": "cb1-operations-environment-12",
+    "text": "billing guy added 2 extra blueberry cheesecakes to our bill, noticed only after reaching home. called them, they said come to outlet with the bill, can't do anything on phone. waste of an evening",
+    "stars": 5,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "rating_conflict",
+      "billing",
+      "operations",
+      "colloquial"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "billing_accuracy-"
+    ],
+    "ok": [
+      "refund-",
+      "professionalism-"
+    ],
+    "never": [
+      "billing_accuracy+",
+      "food_taste+",
+      "food_taste-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": true,
+    "note": "A 5-star rating sits on an entirely negative overcharge story, so the labels follow the text. Asking the customer to come in is not an outright refund denial, and the cheesecake's taste is never judged."
+  },
+  {
+    "id": "cb1-operations-environment-13",
+    "text": "Sat 11am – 30 min on the waitlist, then they squeezed 4 of us onto a 2-seater with those tall metal bar stools. Back was done by the end. To be fair, once we ordered the food came out quick.",
+    "stars": 3,
+    "lang": "en",
+    "categories": [
+      "mixed",
+      "multi_issue",
+      "operations",
+      "ambience",
+      "service",
+      "colloquial"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [
+      "NEGATIVE"
+    ],
+    "must": [
+      "table_wait-",
+      "seating_comfort-",
+      "service_speed+"
+    ],
+    "ok": [
+      "crowding-"
+    ],
+    "never": [
+      "table_wait+",
+      "seating_comfort+",
+      "service_speed-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The 30-minute wait was for a table (table_wait-), which is separate from the kitchen's speed once they had ordered (service_speed+)."
+  },
+  {
+    "id": "cb1-operations-environment-14",
+    "text": "Finally a cafe that isn't so dim you need your phone torch to read the menu — warm lights but bright enough. Sofas are super comfy and the place smells of fresh ground coffee when you walk in. Only niggle: wifi password changes daily and you have to ask each time.",
+    "stars": 4,
+    "lang": "en",
+    "categories": [
+      "positive",
+      "negation",
+      "ambience",
+      "multi_issue"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [
+      "MIXED"
+    ],
+    "must": [
+      "lighting+",
+      "seating_comfort+",
+      "smell+",
+      "wifi_workspace-"
+    ],
+    "ok": [
+      "ambience+"
+    ],
+    "never": [
+      "lighting-",
+      "seating_comfort-",
+      "smell-",
+      "wifi_workspace+",
+      "freshness+",
+      "drink_quality+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Isn't so dim' is lighting praise expressed through negation. The coffee aroma is smell+, not freshness or drink quality. The wifi password is explicitly flagged as a niggle, so it is a real but minor complaint."
+  },
+  {
+    "id": "cb1-operations-environment-15",
+    "text": "दोस्तों के साथ गए थे, बाहर बहुत तेज़ बारिश हो रही थी तो डेढ़ घंटा वहीं बैठे रहे।",
+    "stars": null,
+    "lang": "hi",
+    "categories": [
+      "neutral",
+      "hindi_devanagari",
+      "context"
+    ],
+    "sentiment": "NEUTRAL",
+    "alsoSentiment": [],
+    "must": [],
+    "ok": [],
+    "never": [
+      "table_wait-"
+    ],
+    "traps": [
+      "service_speed-",
+      "table_wait-"
+    ],
+    "abstain": true,
+    "ratingConflict": false,
+    "note": "They stayed 1.5 hours because of the rain, not because of slow service or a wait, and the text gives no opinion of the café."
+  },
+  {
+    "id": "cb1-operations-environment-16",
+    "text": "Love how a group of 15 college kids took over the entire back section with their own bluetooth speaker blasting reels. Staff saw it and just smiled. Very peaceful Sunday coffee, thanks.",
+    "stars": null,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "sarcasm",
+      "third_party",
+      "customer_vs_business",
+      "attribution",
+      "ambience",
+      "service",
+      "implicit_complaint"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "noise-"
+    ],
+    "ok": [
+      "attentiveness-",
+      "professionalism-",
+      "crowding-"
+    ],
+    "never": [
+      "noise+",
+      "staff_friendliness-",
+      "staff_friendliness+"
+    ],
+    "traps": [
+      "music-"
+    ],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "This is sarcasm, and other customers caused the noise with their own speaker, so noise- applies but music- would wrongly blame the café. Staff smiling is neither rudeness nor friendliness, and their failure to step in is only a debatable service issue."
+  },
+  {
+    "id": "cb1-plain-01",
+    "text": "Filter coffee was bang on 👌",
+    "stars": 5,
+    "lang": "en",
+    "categories": [
+      "positive",
+      "drink",
+      "short",
+      "colloquial"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "drink_quality+"
+    ],
+    "ok": [],
+    "never": [
+      "drink_quality-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Bang on' is Indian slang for spot-on, which is clear praise for the coffee."
+  },
+  {
+    "id": "cb1-plain-02",
+    "text": "Worst.",
+    "stars": 1,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "one_word",
+      "short"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [],
+    "ok": [],
+    "never": [
+      "food_taste-",
+      "staff_friendliness-"
+    ],
+    "traps": [],
+    "abstain": true,
+    "ratingConflict": false,
+    "note": "A bare one-word verdict names no aspect, so only the sentiment is safe and any concept would be invented."
+  },
+  {
+    "id": "cb1-plain-03",
+    "text": "😋😋",
+    "stars": 5,
+    "lang": "en",
+    "categories": [
+      "positive",
+      "implicit_praise",
+      "one_word",
+      "short",
+      "ambiguous",
+      "food"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [],
+    "ok": [
+      "food_taste+",
+      "drink_quality+"
+    ],
+    "never": [
+      "food_taste-",
+      "drink_quality-"
+    ],
+    "traps": [],
+    "abstain": true,
+    "ratingConflict": false,
+    "note": "The yum emoji suggests something tasted good but not whether it was food or drink, so taste praise is allowed but not required."
+  },
+  {
+    "id": "cb1-plain-04",
+    "text": "Was here for a client call, had a cold brew.",
+    "stars": null,
+    "lang": "en",
+    "categories": [
+      "neutral",
+      "context",
+      "drink",
+      "short"
+    ],
+    "sentiment": "NEUTRAL",
+    "alsoSentiment": [],
+    "must": [],
+    "ok": [],
+    "never": [
+      "drink_quality+",
+      "drink_quality-",
+      "wifi_workspace+",
+      "wifi_workspace-",
+      "temperature_served-",
+      "temperature_served+"
+    ],
+    "traps": [],
+    "abstain": true,
+    "ratingConflict": false,
+    "note": "Purely factual; 'cold brew' is the drink's name and the client call says nothing about the workspace."
+  },
+  {
+    "id": "cb1-plain-05",
+    "text": "Sandwich ekdum soggy tha",
+    "stars": 2,
+    "lang": "hinglish",
+    "categories": [
+      "negative",
+      "food",
+      "hinglish",
+      "short",
+      "colloquial"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "texture-"
+    ],
+    "ok": [
+      "food_taste-"
+    ],
+    "never": [
+      "texture+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Ekdum soggy tha' means 'was totally soggy', a texture complaint; a general taste judgement is defensible but not stated."
+  },
+  {
+    "id": "cb1-plain-06",
+    "text": "Misal jara jast tikhat hoti",
+    "stars": 3,
+    "lang": "mr",
+    "categories": [
+      "negative",
+      "food",
+      "marathi",
+      "short"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "seasoning-"
+    ],
+    "ok": [
+      "food_taste-"
+    ],
+    "never": [
+      "seasoning+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Romanised Marathi for 'the misal was a bit too spicy', a mild seasoning complaint consistent with 3 stars."
+  },
+  {
+    "id": "cb1-plain-07",
+    "text": "Overpriced.",
+    "stars": 2,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "value",
+      "one_word",
+      "short"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "price-"
+    ],
+    "ok": [
+      "value_for_money-"
+    ],
+    "never": [
+      "price+",
+      "value_for_money+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "One word, but it clearly names the price level, so it is not an abstain; poor value is also defensible."
+  },
+  {
+    "id": "cb1-plain-08",
+    "text": "Okayish",
+    "stars": 3,
+    "lang": "en",
+    "categories": [
+      "neutral",
+      "one_word",
+      "short",
+      "ambiguous",
+      "colloquial"
+    ],
+    "sentiment": "NEUTRAL",
+    "alsoSentiment": [],
+    "must": [],
+    "ok": [],
+    "never": [
+      "food_taste+",
+      "food_taste-"
+    ],
+    "traps": [],
+    "abstain": true,
+    "ratingConflict": false,
+    "note": "A lukewarm verdict with no aspect; it is not MIXED because there is no clear praise and clear complaint."
+  },
+  {
+    "id": "cb1-plain-09",
+    "text": "Staff were super sweet n helpful",
+    "stars": 5,
+    "lang": "en",
+    "categories": [
+      "positive",
+      "service",
+      "short",
+      "colloquial"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "staff_friendliness+"
+    ],
+    "ok": [
+      "attentiveness+",
+      "professionalism+"
+    ],
+    "never": [
+      "staff_friendliness-",
+      "seasoning-",
+      "seasoning+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Sweet' describes the staff's manner, not food sweetness; 'helpful' could support attentiveness or professionalism."
+  },
+  {
+    "id": "cb1-plain-10",
+    "text": "Pahilyanda alo hoto gharchyansobat.",
+    "stars": 4,
+    "lang": "mr",
+    "categories": [
+      "neutral",
+      "marathi",
+      "context",
+      "short"
+    ],
+    "sentiment": "NEUTRAL",
+    "alsoSentiment": [
+      "POSITIVE"
+    ],
+    "must": [],
+    "ok": [],
+    "never": [
+      "return_intent+",
+      "return_intent-"
+    ],
+    "traps": [],
+    "abstain": true,
+    "ratingConflict": false,
+    "note": "Marathi for 'came for the first time with family'; no opinion in the text, only the 4 stars hint at a positive view."
+  },
+  {
+    "id": "cb1-plain-11",
+    "text": "Took ages for 1 coffee",
+    "stars": 2,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "service",
+      "short",
+      "colloquial"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "service_speed-"
+    ],
+    "ok": [],
+    "never": [
+      "service_speed+",
+      "drink_quality-",
+      "table_wait-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The complaint is how long the café took to make one coffee, not its taste and not waiting for a table."
+  },
+  {
+    "id": "cb1-plain-12",
+    "text": "Full paisa vasool",
+    "stars": 4,
+    "lang": "hinglish",
+    "categories": [
+      "positive",
+      "value",
+      "hinglish",
+      "short",
+      "colloquial"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "value_for_money+"
+    ],
+    "ok": [
+      "price+"
+    ],
+    "never": [
+      "value_for_money-",
+      "price-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Paisa vasool' is an idiom for 'fully worth the money', about value rather than a cheap price."
+  },
+  {
+    "id": "cb1-plain-13",
+    "text": "Picked up a cheesecake for mom's bday.",
+    "stars": null,
+    "lang": "en",
+    "categories": [
+      "neutral",
+      "context",
+      "food",
+      "short"
+    ],
+    "sentiment": "NEUTRAL",
+    "alsoSentiment": [],
+    "must": [],
+    "ok": [],
+    "never": [
+      "delivery_takeaway+",
+      "delivery_takeaway-",
+      "food_taste+",
+      "food_taste-"
+    ],
+    "traps": [],
+    "abstain": true,
+    "ratingConflict": false,
+    "note": "A takeaway purchase is mentioned with no judgement of the cheesecake or how it was handled."
+  },
+  {
+    "id": "cb1-plain-14",
+    "text": "Nutella waffle was divine!!",
+    "stars": 5,
+    "lang": "en",
+    "categories": [
+      "positive",
+      "food",
+      "short"
+    ],
+    "sentiment": "POSITIVE",
+    "alsoSentiment": [],
+    "must": [
+      "food_taste+"
+    ],
+    "ok": [],
+    "never": [
+      "food_taste-"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "Plain, strong praise for how the waffle tasted."
+  },
+  {
+    "id": "cb1-plain-15",
+    "text": "Cold brew wasnt even cold",
+    "stars": 2,
+    "lang": "en",
+    "categories": [
+      "negative",
+      "drink",
+      "negation",
+      "short",
+      "typo"
+    ],
+    "sentiment": "NEGATIVE",
+    "alsoSentiment": [],
+    "must": [
+      "temperature_served-"
+    ],
+    "ok": [
+      "drink_quality-"
+    ],
+    "never": [
+      "temperature_served+",
+      "ac_temperature-",
+      "ac_temperature+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "The negation means the drink was served at the wrong temperature; 'cold' refers to the drink, not the room's AC."
+  },
+  {
+    "id": "cb1-plain-16",
+    "text": "Poha mast, chai bekaar",
+    "stars": null,
+    "lang": "hinglish",
+    "categories": [
+      "mixed",
+      "food",
+      "drink",
+      "hinglish",
+      "short",
+      "colloquial"
+    ],
+    "sentiment": "MIXED",
+    "alsoSentiment": [],
+    "must": [
+      "food_taste+",
+      "drink_quality-"
+    ],
+    "ok": [],
+    "never": [
+      "food_taste-",
+      "drink_quality+"
+    ],
+    "traps": [],
+    "abstain": false,
+    "ratingConflict": false,
+    "note": "'Mast' means great and 'bekaar' means useless, so the food is praised and the drink is criticised."
+  }
+]

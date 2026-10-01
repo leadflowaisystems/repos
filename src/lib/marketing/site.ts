@@ -15,7 +15,7 @@ import { checkPublicBaseUrl, PUBLIC_BASE_URL_VAR } from '@/lib/config/public-url
 export const SITE_NAME = 'Headway';
 export const SITE_TITLE = 'Headway — Turn customer feedback into better decisions';
 /**
- * Two rules the workspace applies, quoted by the site in plain words.
+ * Three rules the workspace applies, quoted by the site in plain words.
  *
  * Written here rather than imported: the product keeps them beside code that
  * reads the database, and this site reads nothing. The marketing test holds
@@ -25,8 +25,14 @@ export const SITE_TITLE = 'Headway — Turn customer feedback into better decisi
 export const PRODUCT_RULES = {
   /** The first reading appears at this many responses (FIRST_READING_AT). */
   firstReadingAt: 5,
-  /** A topic is named once this many customers raise it (MIN_MENTIONS_TO_NAME). */
+  /** A topic is named once this many responses mention it (MIN_MENTIONS_TO_NAME). */
   namedAt: 3,
+  /**
+   * A change over time needs two check-ins holding at least this many
+   * responses each (MIN_PERIOD_FEEDBACK_TO_COMPARE). Five responses are a
+   * first reading, never a trend.
+   */
+  compareAt: 10,
 } as const;
 
 export const SITE_DESCRIPTION =

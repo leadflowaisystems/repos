@@ -91,7 +91,7 @@ describe('what the owner is told', () => {
     const copy = readinessCopy(readinessOf(2), EN);
     expect(copy?.title).toBe('Your insights are still building');
     expect(copy?.body).toBe(
-      "You've received 2 responses so far. Headway needs a little more customer feedback before it can show meaningful patterns and trends.",
+      "You've received 2 responses so far. Headway needs a little more customer feedback before it gives a first reading of what customers are saying.",
     );
     expect(copy?.progress).toBe('2 / 5 responses');
     expect(copy?.remaining).toBe('3 more responses to go');
@@ -101,7 +101,7 @@ describe('what the owner is told', () => {
     const copy = readinessCopy(readinessOf(4), EN);
     expect(copy?.title).toBe('Almost there');
     expect(copy?.body).toBe(
-      "You've received 4 responses. Headway will start showing your strongest customer patterns and trends once you reach 5 responses.",
+      "You've received 4 responses. Headway will give its first reading of what customers are saying once you reach 5 responses.",
     );
     expect(copy?.remaining).toBe('1 more response to go');
   });

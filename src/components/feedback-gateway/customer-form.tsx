@@ -79,6 +79,10 @@ export function CustomerFeedbackForm({
   const [state, formAction, pending] = useActionState(submitCustomerFeedbackAction, IDLE);
   const [stars, setStars] = useState<number | null>(null);
   const [ratings, setRatings] = useState<Record<string, number>>({});
+  // Held in state, not left to the browser: a form action resets every
+  // uncontrolled field when it returns, so a customer told "please send
+  // again" would otherwise find what they wrote gone.
+  const [words, setWords] = useState('');
   const [step, setStep] = useState<Step>('overall');
 
   // False through the server render and the first paint, so a browser with no
@@ -219,6 +223,8 @@ export function CustomerFeedbackForm({
           name="text"
           rows={4}
           maxLength={MAX_TEXT}
+          value={words}
+          onChange={(event) => setWords(event.target.value)}
           placeholder={copy.placeholder}
           aria-invalid={state.errors.text ? true : undefined}
           className={clsx(

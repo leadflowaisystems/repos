@@ -48,6 +48,8 @@ export type AiRouteReason =
   | 'KEYWORDS_CONFIDENT'
   | 'NO_KEYWORD_MATCH'
   | 'CONTRADICTS_RATING'
+  | 'POSSIBLE_SARCASM'
+  | 'CONTRAST_UNREAD'
   | 'UNCOVERED_SCRIPT';
 
 export type AiRoute = {
@@ -98,6 +100,13 @@ export function routeForAi(item: RoutableItem, pack: Pack): AiRoute {
   if (item.stars !== null && contradicts(item.stars, keyword)) {
     return { needsAi: true, reason: 'CONTRADICTS_RATING', keyword };
   }
+
+  // Level 3c — a sarcastic opener ("Great, another hour waiting"). The
+  // deterministic pass discounted it; a second reader should read the rest.
+  if (keyword.sarcasm) return { needsAi: true, reason: 'POSSIBLE_SARCASM', keyword };
+  // Level 3d — "X, but …" where the second half was not understood.
+  if (keyword.unreadContrast) return { needsAi: true, reason: 'CONTRAST_UNREAD', keyword };
+  if (keyword.unreadAfterPause && item.stars === 3) return { needsAi: true, reason: 'CONTRAST_UNREAD', keyword };
 
   // Level 2 — the deterministic pass is confident. Nothing is sent.
   return { needsAi: false, reason: 'KEYWORDS_CONFIDENT', keyword };

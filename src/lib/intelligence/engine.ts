@@ -3,6 +3,8 @@ import { EN } from '@/lib/i18n/translator';
 import type { PortalTranslator } from '@/lib/i18n/translator';
 import { LOW_RATING_AT, type ThemeSummary, type ThemeSummaryRow } from '@/lib/feedback/analysis';
 import type { Pulse, PulsePeriod, ThemeCount } from '@/lib/health/health';
+import { compareShares, wholePercent } from '@/lib/health/compare';
+import { MIN_FEEDBACK_FOR_TREND_CLAIMS } from '@/lib/health/rules';
 import {
   TIER_LIMITED_MIN,
   TIER_STANDARD_MIN,
@@ -34,8 +36,14 @@ import {
  * Pure by construction: everything it needs is passed in.
  */
 
-/** Bump when the shape or the derivation rules change. */
-export const INTELLIGENCE_VERSION = 1;
+/**
+ * Bump when the shape or the derivation rules change.
+ *
+ * 2 — theme movement compares SHARES of each check-in's feedback, not raw
+ *     mention counts, through the one rule in health/compare.ts; each side
+ *     needs 10 pieces of feedback, not 3 (intelligence quality pass, Sep 2026).
+ */
+export const INTELLIGENCE_VERSION = 2;
 
 // ---------------------------------------------------------------------------
 // Evidence floors
@@ -50,17 +58,15 @@ export const INTELLIGENCE_VERSION = 1;
 export const MIN_MENTIONS_TO_NAME = 3;
 
 /**
- * A theme's count must move by this much between two check-ins before it is
- * called a change. A single mention either way is noise at SMB volumes.
+ * Both check-ins need at least this much feedback attached before a theme can
+ * be compared between them at all — the same floor every share claim in
+ * Headway uses. It was 3 until Sep 2026, which let "1 of 3 then, 3 of 3 now"
+ * become a trend; a share of three is not a share.
+ *
+ * What counts as a change once both sides clear it is not decided here: see
+ * `compareShares` in health/compare.ts, the one rule for every comparison.
  */
-export const MIN_CHANGE_TO_REPORT = 2;
-
-/**
- * Both check-ins need at least this much feedback attached before theme counts
- * can be compared at all. Comparing "1 mention" with "2 mentions" is not a
- * trend, it is arithmetic.
- */
-export const MIN_PERIOD_FEEDBACK_TO_COMPARE = MIN_MENTIONS_TO_NAME;
+export const MIN_PERIOD_FEEDBACK_TO_COMPARE = MIN_FEEDBACK_FOR_TREND_CLAIMS;
 
 /**
  * When one check-in holds this many times more feedback than the other, raw
@@ -198,8 +204,14 @@ export type ThemeMovement = {
    * stutter.
    */
   pointNote: string | null;
-  /** The bare "2 → 6 mentions" form the owner update already uses. */
+  /** The bare "2 of 12 → 6 of 30 (17% → 20%)" form the owner update uses. */
   countNote: string | null;
+  /** How much feedback each check-in held: the denominators, always stated. */
+  previousTotal: number | null;
+  currentTotal: number | null;
+  /** The theme's share of each check-in's feedback, whole percent. */
+  previousPct: number | null;
+  currentPct: number | null;
 };
 
 export type InsightEvidence = {
@@ -499,6 +511,10 @@ const NO_MOVEMENT = (reason: string): ThemeMovement => ({
   note: reason,
   pointNote: null,
   countNote: null,
+  previousTotal: null,
+  currentTotal: null,
+  previousPct: null,
+  currentPct: null,
 });
 
 function countIn(period: PulsePeriod, sentiment: Sentiment, key: string): number {
@@ -510,9 +526,19 @@ function countIn(period: PulsePeriod, sentiment: Sentiment, key: string): number
  * How one theme moved between the two check-ins.
  *
  * "Improving" always means good for the business: fewer complaints, or more
- * praise. A change smaller than the reporting floor is STABLE — genuinely
- * compared and genuinely flat — which is a different statement from
- * INSUFFICIENT_DATA, and the wording keeps them apart.
+ * praise. It is judged on the theme's SHARE of each check-in's feedback, never
+ * on the raw count — 5 of 10 then and 10 of 20 now is the same half of
+ * customers, not a problem that doubled — by the one rule in
+ * health/compare.ts:
+ *
+ *   FLAT               → STABLE: compared, and the share held within 5 points
+ *   ROSE / FELL        → IMPROVING or WORSENING, depending on the kind
+ *   TOO_FEW_MENTIONS   → INSUFFICIENT_DATA: neither side reaches 3 mentions
+ *   UNCLEAR            → INSUFFICIENT_DATA: it moved, but not by enough on this
+ *                        much feedback to rule out chance
+ *
+ * STABLE and INSUFFICIENT_DATA are different statements and the wording keeps
+ * them apart: one is "the same", the other is "cannot tell yet".
  */
 export function movementFor(
   pulse: Pulse,
@@ -528,6 +554,8 @@ export function movementFor(
 
   const previousCount = countIn(pulse.previous, sentiment, themeKey);
   const currentCount = countIn(pulse.current, sentiment, themeKey);
+  const previousTotal = pulse.previous.feedbackCount;
+  const currentTotal = pulse.current.feedbackCount;
 
   // A check-in only holds the feedback attached to it; the theme counts on an
   // insight come from the whole pile. A theme can be well evidenced in one and
@@ -537,71 +565,77 @@ export function movementFor(
     return NO_MOVEMENT(t('intelligence.movement.absent', { theme: themeLabel }));
   }
 
+  const comparison = compareShares(
+    { count: previousCount, total: previousTotal },
+    { count: currentCount, total: currentTotal },
+    { minTotal: MIN_PERIOD_FEEDBACK_TO_COMPARE, minCount: MIN_MENTIONS_TO_NAME },
+  );
+  const previousPct = wholePercent(comparison.before);
+  const currentPct = wholePercent(comparison.after);
   const delta = currentCount - previousCount;
-  const countNote = t.plural('intelligence.movement.count_note', currentCount, {
-    previousCount,
-  });
 
-  // The two points a movement sentence names. `String` rather than a fallback:
-  // an unlabelled window is a bug worth seeing, not one worth papering over.
+  // Both points, both totals and both shares, in every sentence: an owner can
+  // check the arithmetic from the words alone.
   const point = {
     previous: String(window.previousLabel),
     current: String(window.currentLabel),
     currentCount,
+    previousTotal,
+    currentTotal,
+    previousPct: previousPct ?? 0,
+    currentPct: currentPct ?? 0,
   };
-
-  if (Math.abs(delta) < MIN_CHANGE_TO_REPORT) {
-    const pointNote = t.plural('intelligence.movement.steady', previousCount, point);
-    return {
-      available: true,
-      previousCount,
-      currentCount,
-      delta,
-      state: 'STABLE',
-      note: `${themeLabel} — ${pointNote}`,
-      pointNote,
-      countNote,
-    };
-  }
-
-  // A move from two mentions to none is a large percentage of almost nothing.
-  // The naming floor applies to movement for the same reason it applies to
-  // themes: at least one side has to be a pattern before a direction is real.
-  if (Math.max(previousCount, currentCount) < MIN_MENTIONS_TO_NAME) {
-    const pointNote = t.plural('intelligence.movement.too_few', previousCount, {
-      ...point,
-      needed: MIN_MENTIONS_TO_NAME,
-    });
-    return {
-      available: true,
-      previousCount,
-      currentCount,
-      delta,
-      state: 'INSUFFICIENT_DATA',
-      note: `${themeLabel} — ${pointNote}`,
-      pointNote,
-      countNote,
-    };
-  }
-
-  const rose = delta > 0;
-  const good = sentiment === 'ISSUE' ? !rose : rose;
-  const pointNote = t.plural(
-    rose ? 'intelligence.movement.up' : 'intelligence.movement.down',
+  const countNote = t.plural('intelligence.movement.count_note', currentCount, {
     previousCount,
-    { ...point, delta: Math.abs(delta) },
-  );
-
-  return {
-    available: true,
+    previousTotal,
+    currentTotal,
+    previousPct: point.previousPct,
+    currentPct: point.currentPct,
+  });
+  const shape = {
     previousCount,
     currentCount,
     delta,
-    state: good ? 'IMPROVING' : 'WORSENING',
-    note: `${themeLabel} — ${pointNote}`,
-    pointNote,
     countNote,
+    previousTotal,
+    currentTotal,
+    previousPct,
+    currentPct,
   };
+
+  const say = (
+    key: string,
+    state: TrendState,
+    extra: Record<string, string | number> = {},
+  ): ThemeMovement => {
+    const pointNote = t.plural(key, previousCount, { ...point, ...extra });
+    return { available: true, ...shape, state, note: `${themeLabel} — ${pointNote}`, pointNote };
+  };
+
+  switch (comparison.verdict) {
+    case 'FLAT':
+      return say('intelligence.movement.steady', 'STABLE');
+    case 'TOO_FEW_MENTIONS':
+      return say('intelligence.movement.too_few', 'INSUFFICIENT_DATA', {
+        needed: MIN_MENTIONS_TO_NAME,
+      });
+    case 'UNCLEAR':
+      return say('intelligence.movement.unclear', 'INSUFFICIENT_DATA');
+    case 'ROSE':
+    case 'FELL': {
+      const rose = comparison.verdict === 'ROSE';
+      const good = sentiment === 'ISSUE' ? !rose : rose;
+      return say(
+        rose ? 'intelligence.movement.up' : 'intelligence.movement.down',
+        good ? 'IMPROVING' : 'WORSENING',
+      );
+    }
+    case 'TOO_THIN':
+    default:
+      // The window already refused thin check-ins; reaching here means the
+      // two disagree, and the honest answer is that it cannot be told.
+      return NO_MOVEMENT(window.reason || t('intelligence.trend.unknown'));
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -918,9 +952,11 @@ export function overallTrendFrom(
         note: `${t('intelligence.trend.stable')}${scope}`,
       };
     default:
+      // Two check-ins exist but nothing in them could be measured (no rating,
+      // too little feedback): not "steady", unknown.
       return {
         state: 'INSUFFICIENT_DATA',
-        note: pulse.reason || t('intelligence.trend.unknown'),
+        note: t('intelligence.trend.unknown'),
       };
   }
 }
@@ -1195,6 +1231,10 @@ export function intelligenceNumbers(intel: ClientIntelligence): Set<string> {
     add(insight.movement.previousCount);
     add(insight.movement.currentCount);
     if (insight.movement.delta !== null) add(Math.abs(insight.movement.delta));
+    add(insight.movement.previousTotal);
+    add(insight.movement.currentTotal);
+    add(insight.movement.previousPct);
+    add(insight.movement.currentPct);
   }
 
   return out;

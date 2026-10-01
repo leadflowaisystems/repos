@@ -22,6 +22,7 @@ import {
   type SignalLevel,
   type TrendDirection,
 } from './rules';
+import { compareShares } from './compare';
 
 /**
  * HEALTH CARD + PULSE — deterministic.
@@ -114,6 +115,12 @@ export type TrendMetric = {
   goodDirection: 'up' | 'down';
   /** Did this metric move enough, with enough evidence, to count? */
   contributes: boolean;
+  /**
+   * Was it genuinely compared — both sides present and, for a share of
+   * feedback, enough of it to read? A metric that was never measured cannot
+   * make the business "stable"; only one that was measured and stayed put can.
+   */
+  measured: boolean;
   /** +1 improving, -1 declining, 0 flat or not counted. */
   score: number;
   note: string;
@@ -419,6 +426,7 @@ function buildTrendMetrics(
       delta,
       goodDirection: 'up',
       contributes,
+      measured: comparable,
       score: contributes && delta !== null ? (delta > 0 ? 1 : -1) : 0,
       note,
     });
@@ -436,8 +444,17 @@ function buildTrendMetrics(
     const bigEnough =
       currentDist.total >= MIN_FEEDBACK_FOR_TREND_CLAIMS &&
       previousDist.total >= MIN_FEEDBACK_FOR_TREND_CLAIMS;
-    const contributes =
-      bigEnough && delta !== null && Math.abs(delta) >= TREND_SHARE_DELTA;
+    // The same rule every other comparison of two piles of feedback uses
+    // (compare.ts): a share, both totals, a five-point move AND a move large
+    // enough for this much feedback. "1 of 10 unhappy, then 2 of 10" is not a
+    // business getting worse.
+    const verdict = compareShares(
+      { count: previousDist.counts.NEGATIVE, total: previousDist.total },
+      { count: currentDist.counts.NEGATIVE, total: currentDist.total },
+    ).verdict;
+    const contributes = bigEnough && delta !== null && (verdict === 'ROSE' || verdict === 'FELL');
+    const unclear = bigEnough && delta !== null && (verdict === 'UNCLEAR' || verdict === 'TOO_FEW_MENTIONS') &&
+      Math.abs(delta) >= TREND_SHARE_DELTA;
 
     metrics.push({
       key: 'negativeShare',
@@ -447,6 +464,7 @@ function buildTrendMetrics(
       delta,
       goodDirection: 'down',
       contributes,
+      measured: bigEnough && delta !== null && !unclear,
       score: contributes && delta !== null ? (delta < 0 ? 1 : -1) : 0,
       note:
         delta === null
@@ -457,6 +475,13 @@ function buildTrendMetrics(
                 currentCount: currentDist.total,
                 needed: MIN_FEEDBACK_FOR_TREND_CLAIMS,
               })
+            : unclear
+              ? t('intelligence.health.trend.negative.unclear', {
+                  previous: pct(then as number),
+                  current: pct(now as number),
+                  previousCount: previousDist.total,
+                  currentCount: currentDist.total,
+                })
             : contributes
               ? t('intelligence.health.trend.negative.moved', {
                   previous: pct(then as number),
@@ -484,6 +509,7 @@ function buildTrendMetrics(
       delta,
       goodDirection: 'down',
       contributes,
+      measured: delta !== null,
       score: contributes && delta !== null ? (delta < 0 ? 1 : -1) : 0,
       note:
         delta === null
@@ -506,7 +532,10 @@ function buildTrendMetrics(
 
 function directionFromMetrics(metrics: TrendMetric[]): TrendDirection {
   const contributing = metrics.filter((m) => m.contributes);
-  if (contributing.length === 0) return 'STABLE';
+  // Nothing moved. That is "stable" only if something was actually measured;
+  // two check-ins with no rating and too little feedback are not a steady
+  // business, they are an unknown one (intelligence audit, Sep 2026).
+  if (contributing.length === 0) return metrics.some((m) => m.measured) ? 'STABLE' : 'NONE';
   const score = contributing.reduce((sum, m) => sum + m.score, 0);
   if (score > 0) return 'IMPROVING';
   if (score < 0) return 'DECLINING';

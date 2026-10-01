@@ -624,6 +624,7 @@ export async function measureClientAction(
       id: true,
       themesJson: true,
       analysisStatus: true,
+      analysisVersion: true,
       reviewDate: true,
       createdAt: true,
     },
@@ -633,6 +634,7 @@ export async function measureClientAction(
     id: row.id,
     themesJson: row.themesJson,
     analysisStatus: row.analysisStatus,
+    analysisVersion: row.analysisVersion,
     evidenceAt: evidenceDateOf(row),
   }));
 

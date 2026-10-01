@@ -370,8 +370,15 @@ export async function resolvePublicGateway(
 // --- Submission --------------------------------------------------------------
 
 export const MAX_CUSTOMER_TEXT = 1500;
-/** Same wording again within this window is the same person tapping twice. */
-export const TEXT_DUPLICATE_WINDOW_MS = 10 * 60_000;
+/**
+ * Same wording again within this window is the same person tapping twice.
+ * A minute, not ten: at a busy café two different customers write "Good
+ * coffee" within ten minutes, and the second one's ratings were being thrown
+ * away (café handover pass). A double tap or a retry lands within seconds.
+ */
+export const TEXT_DUPLICATE_WINDOW_MS = 60_000;
+/** Said when the response could not be saved. The form keeps what they wrote. */
+export const SAVE_FAILED_MESSAGE = 'Sorry, that did not go through. Please tap Send again.';
 /** Same rating, no words, within this window is the same tap twice. */
 export const RATING_DUPLICATE_WINDOW_MS = 30_000;
 
@@ -485,11 +492,18 @@ export async function submitCustomerFeedback(
   pageLimiter.record(pageKey, now);
   if (addressKey) addressLimiter.record(addressKey, now);
 
-  // The same form posted twice lands once.
-  if (typeof raw.nonce === 'string' && raw.nonce.length > 0 && raw.nonce.length <= 64) {
-    if (!nonces.useOnce(`${gateway.token}:${raw.nonce}`, now)) {
-      return ok({ token: gateway.token, clientId: gateway.clientId, stored: false, itemId: null });
-    }
+  // The same form posted twice lands once. The key is the form's nonce AND
+  // what was sent, so a second, different response from the same page —
+  // someone else on the same phone, or a customer who went Back to add
+  // something — is not mistaken for the first. The nonce is only recorded
+  // once the response is stored: a save that failed can be sent again
+  // (café handover pass; it used to answer "thank you" and store nothing).
+  const nonceKey =
+    typeof raw.nonce === 'string' && raw.nonce.length > 0 && raw.nonce.length <= 64
+      ? `${gateway.token}:${raw.nonce}:${hashKey(JSON.stringify([stars, text, structured.dimensions, structured.signals]))}`
+      : null;
+  if (nonceKey && nonces.has(nonceKey, now)) {
+    return ok({ token: gateway.token, clientId: gateway.clientId, stored: false, itemId: null });
   }
 
   // Two or more links is advertising, not feedback.
@@ -515,10 +529,21 @@ export async function submitCustomerFeedback(
   // how the row reaches the database. The anonymous one goes through a
   // function that resolves the business from the token again, on its own, and
   // so is never told which client to write to.
-  const ingested = isPublicClient(db)
-    ? await ingestAsPublic(db, gateway.token, input, { now, dedupe })
-    : await ingestFeedback(db, gateway.clientId, input, { now, allowEmptyText: true, dedupe });
+  let ingested: Awaited<ReturnType<typeof ingestAsPublic>>;
+  try {
+    ingested = isPublicClient(db)
+      ? await ingestAsPublic(db, gateway.token, input, { now, dedupe })
+      : await ingestFeedback(db, gateway.clientId, input, { now, allowEmptyText: true, dedupe });
+  } catch (error) {
+    // A database hiccup is the customer's problem only if they are told
+    // nothing: say so plainly, keep the form, and let them send it again.
+    console.error(
+      `[gateway] could not store a response for client ${gateway.clientId}: ${error instanceof Error ? error.message.slice(0, 200) : 'unknown error'}`,
+    );
+    return err(SAVE_FAILED_MESSAGE);
+  }
   if (!ingested.ok) return err(ingested.message, ingested.errors);
+  if (nonceKey) nonces.remember(nonceKey, now);
 
   return ok({
     token: gateway.token,

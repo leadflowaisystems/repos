@@ -435,7 +435,8 @@ describe('vertical pack labels are translated without being changed', () => {
 
   it('reads every pack', () => {
     expect(packs.length).toBe(7);
-    expect(entries.length).toBe(119);
+    // 119, plus the café handover pass's five restaurant topics (Oct 2026).
+    expect(entries.length).toBe(124);
   });
 
   it('has a translation for every theme label', () => {

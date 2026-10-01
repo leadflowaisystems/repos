@@ -98,9 +98,12 @@ export const evidence = {
   // CUSTOMERS — what cannot be said yet, and why.
   // -------------------------------------------------------------------------
   'evidence.recurrence.noCheckin': {
-    en: 'You have not recorded a check-in yet. Headway cannot tell you what keeps coming back until you do.',
-    hi: 'आपने अभी तक कोई चेक-इन दर्ज नहीं किया है। जब तक आप ऐसा नहीं करते, Headway यह नहीं बता सकता कि बार-बार क्या लौटकर आता है।',
-    mr: 'तुम्ही अजून एकही चेक-इन नोंदवलेला नाही. तोपर्यंत Headway तुम्हाला काय पुन्हा पुन्हा येतं हे सांगू शकत नाही.',
+    // Not "you have not recorded… until you do": a business cannot record a
+    // check-in. Headway does, so the sentence says what is missing, not whose
+    // job the reader has supposedly left undone.
+    en: 'No check-in has been recorded yet. Once two are on record, Headway can tell you what keeps coming back.',
+    hi: 'अभी तक कोई चेक-इन दर्ज नहीं हुआ है। दो चेक-इन दर्ज होने पर Headway बता सकेगा कि बार-बार क्या लौटकर आता है।',
+    mr: 'अजून एकही चेक-इन नोंदवलेला नाही. दोन चेक-इन नोंदवल्यावर Headway सांगू शकेल की काय पुन्हा पुन्हा येतं.',
   },
   'evidence.recurrence.oneCheckin': {
     en: 'You have only one check-in so far. After your next one, Headway can tell you what keeps coming back and what is new.',
@@ -108,14 +111,14 @@ export const evidence = {
     mr: 'सध्या तुमच्याकडे फक्त एकच चेक-इन आहे. पुढच्या चेक-इननंतर Headway सांगू शकेल की काय पुन्हा पुन्हा येतं आणि काय नवीन आहे.',
   },
   'evidence.steady.none': {
-    en: 'Nothing moved by 2 or more mentions between these check-ins.',
-    hi: 'इन चेक-इन के बीच किसी भी चीज़ में 2 या उससे ज़्यादा ज़िक्र का बदलाव नहीं हुआ।',
-    mr: 'या चेक-इनदरम्यान कशातही 2 किंवा त्याहून जास्त उल्लेखांचा बदल झालेला नाही.',
+    en: 'Nothing moved enough between these check-ins to call it a change.',
+    hi: 'इन चेक-इन के बीच कुछ भी इतना नहीं बदला कि उसे बदलाव कहा जा सके।',
+    mr: 'या चेक-इनदरम्यान काहीही इतकं बदललं नाही की त्याला बदल म्हणता येईल.',
   },
   'evidence.steady.with': {
-    en: 'Nothing moved by 2 or more mentions between these check-ins. Your {things} held steady.',
-    hi: 'इन चेक-इन के बीच किसी भी चीज़ में 2 या उससे ज़्यादा ज़िक्र का बदलाव नहीं हुआ। आपके {things} स्थिर रहे।',
-    mr: 'या चेक-इनदरम्यान कशातही 2 किंवा त्याहून जास्त उल्लेखांचा बदल झालेला नाही. तुमचे {things} स्थिर राहिले.',
+    en: 'Nothing moved enough between these check-ins to call it a change. Your {things} held about the same share of feedback.',
+    hi: 'इन चेक-इन के बीच कुछ भी इतना नहीं बदला कि उसे बदलाव कहा जा सके। फ़ीडबैक में आपके {things} का हिस्सा लगभग उतना ही रहा।',
+    mr: 'या चेक-इनदरम्यान काहीही इतकं बदललं नाही की त्याला बदल म्हणता येईल. फीडबॅकमध्ये तुमच्या {things} चा वाटा जवळपास तेवढाच राहिला.',
   },
 
   // -------------------------------------------------------------------------

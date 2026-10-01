@@ -69,9 +69,9 @@ function build(
   return { brief, view };
 }
 
-describe('trendOf: the arrow is the count, the colour is the news', () => {
+describe('trendOf: the arrow is the direction of the share, the colour is the news', () => {
   // The engine's `movementDirection` is GOOD-OR-BAD for the owner, not
-  // up-or-down: for praise, IMPROVING means the count ROSE.
+  // up-or-down: for praise, IMPROVING means the share ROSE.
   const signal = (
     kind: 'ISSUE' | 'PRAISE',
     direction: 'IMPROVING' | 'WORSENING' | 'STABLE' | null,

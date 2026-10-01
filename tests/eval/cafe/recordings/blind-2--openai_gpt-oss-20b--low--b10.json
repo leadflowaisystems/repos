@@ -1,0 +1,255 @@
+{
+  "readerVersion": 3,
+  "config": {
+    "model": "openai/gpt-oss-20b",
+    "effort": "low"
+  },
+  "recordedAt": "2026-10-01T08:44:06.025Z",
+  "batches": [
+    {
+      "ids": [
+        "cb2-attribution-temporal-01",
+        "cb2-attribution-temporal-02",
+        "cb2-attribution-temporal-03",
+        "cb2-attribution-temporal-04",
+        "cb2-attribution-temporal-05",
+        "cb2-attribution-temporal-06",
+        "cb2-attribution-temporal-07",
+        "cb2-attribution-temporal-08",
+        "cb2-attribution-temporal-09",
+        "cb2-attribution-temporal-10"
+      ],
+      "raw": "{\"results\":[{\"i\":0,\"abstain\":true,\"sentiment\":\"NEUTRAL\",\"confidence\":\"HIGH\",\"topics\":[]},{\"i\":1,\"abstain\":true,\"sentiment\":\"NEUTRAL\",\"confidence\":\"HIGH\",\"topics\":[]},{\"i\":2,\"abstain\":true,\"sentiment\":\"NEUTRAL\",\"confidence\":\"HIGH\",\"topics\":[]},{\"i\":3,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"ambience_noise\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"the table behind us had like 8 guys blasting songs on their own jbl and yelling over each other, couldnt hear my friend at all. staff did go tell them to lower it, they did for 5 min then back to same\"}]},{\"i\":4,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"staff_warmth\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"The boy came running with a cloth, cleaned everything and brought a fresh cold coffee without me even asking. Didn't add it to the bill also\"}]},{\"i\":5,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"base was kinda chewy and very less cheese, but it was ok\"}]},{\"i\":6,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"service_speed\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Today the kitchen took 35 min for a parcel of 4 chicken frankies. Was told 10 min at the counter, and I watched 3 orders placed after mine go out first\"}]},{\"i\":7,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"bun was dry like it was from yesterday, butter barely a smear\"},{\"key\":\"pricing_value\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"price is nearly double\"}]},{\"i\":8,\"abstain\":false,\"sentiment\":\"MIXED\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"served_cold\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"First time I came the chicken frankie was ice cold in the middle\"},{\"key\":\"food_taste\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"roti crisp, filling spicy and juicy\"}]},{\"i\":9,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"cleanliness_praise\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"tables wiped as soon as people leave, washroom finally has soap n tissue\"}]}]}",
+      "error": null,
+      "ms": 2228,
+      "inputTokens": 1565,
+      "outputTokens": 1455
+    },
+    {
+      "ids": [
+        "cb2-attribution-temporal-11",
+        "cb2-attribution-temporal-12",
+        "cb2-attribution-temporal-13",
+        "cb2-attribution-temporal-14",
+        "cb2-attribution-temporal-15",
+        "cb2-attribution-temporal-16",
+        "cb2-conflict-sarcasm-typos-01",
+        "cb2-conflict-sarcasm-typos-02",
+        "cb2-conflict-sarcasm-typos-03",
+        "cb2-conflict-sarcasm-typos-04"
+      ],
+      "raw": "{\"results\":[{\"i\":0,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"order_accuracy\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"came full of sugar\"}]},\"\",{\"i\":1,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"service_quality\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"took our order with a smile, didn't rush us at all\"},{\"key\":\"food_taste\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Walnut brownie was super fudgy\"}]},\"\",{\"i\":2,\"abstain\":true,\"sentiment\":\"NEUTRAL\",\"confidence\":\"HIGH\",\"topics\":[]},\"\",{\"i\":3,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"value_for_money\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Chai + bun maska for ₹60 on the expressway stretch is a steal\"}]},\"\",{\"i\":4,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"service_speed\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"pizza aane mein 45 min laga\"},{\"key\":\"served_cold\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"aadha thanda\"}]},\"\",{\"i\":5,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"delivery_packaging\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"the cold coffee leaked everywhere\"}]},\"\",{\"i\":6,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"base was like cardboard and the cheese tasted like plastic\"}]},\"\",{\"i\":7,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"drink_praise\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Their cold coffee is honestly the best I've had\"}]},\"\",{\"i\":8,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"cleanliness\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Found a long hair in my bun maska\"},{\"key\":\"staff_behaviour\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"he just shrugged\"}]},\"\",{\"i\":9,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"cleanliness\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"the ladies washroom was filthy\"}]}]}",
+      "error": null,
+      "ms": 2226,
+      "inputTokens": 1500,
+      "outputTokens": 1433
+    },
+    {
+      "ids": [
+        "cb2-conflict-sarcasm-typos-05",
+        "cb2-conflict-sarcasm-typos-06",
+        "cb2-conflict-sarcasm-typos-07",
+        "cb2-conflict-sarcasm-typos-08",
+        "cb2-conflict-sarcasm-typos-09",
+        "cb2-conflict-sarcasm-typos-10",
+        "cb2-conflict-sarcasm-typos-11",
+        "cb2-conflict-sarcasm-typos-12",
+        "cb2-conflict-sarcasm-typos-13",
+        "cb2-conflict-sarcasm-typos-14"
+      ],
+      "raw": "{\"results\":[{\"i\":0,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"service_speed\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"pizza turned up a solid 50 min after we ordered\"}]},{\"i\":1,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"served_cold\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"got it at room temperature\"}]},{\"i\":2,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"drink_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"The cold coffee had an... interesting aftertaste\"}]},{\"i\":3,\"abstain\":true,\"sentiment\":\"NEUTRAL\",\"confidence\":\"LOW\",\"topics\":[]},{\"i\":4,\"abstain\":true,\"sentiment\":\"NEUTRAL\",\"confidence\":\"LOW\",\"topics\":[]},{\"i\":5,\"abstain\":false,\"sentiment\":\"MIXED\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"service_speed\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"it took 25 min to come out\"},{\"key\":\"served_cold\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"chai ws lukewrm\"},{\"key\":\"staff_warmth\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"young guy at countr ws v sweet, gave xtra chutney wthout asking\"}]},{\"i\":6,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"pricing_value\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"850 fr 1 medium pizza n 2 cofees?? bit too much\"}]},{\"i\":7,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"staff_behaviour\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"stff at billing countr ws sooo rude, literally threw the change on the table n rolled his eyes\"}]},{\"i\":8,\"abstain\":false,\"sentiment\":\"MIXED\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"ambience\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"vibe on the terrace is unreal, fairy lights + old bollywood songs at night hit different\"},{\"key\":\"drink_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"cold coffee was kinda mid tho, tasted watered down\"}]},{\"i\":9,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"pricing_value\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"₹240 for a brownie the size of a matchbox\"}]}]}",
+      "error": null,
+      "ms": 2099,
+      "inputTokens": 1264,
+      "outputTokens": 1445
+    },
+    {
+      "ids": [
+        "cb2-conflict-sarcasm-typos-15",
+        "cb2-conflict-sarcasm-typos-16",
+        "cb2-hinglish-hindi-01",
+        "cb2-hinglish-hindi-02",
+        "cb2-hinglish-hindi-03",
+        "cb2-hinglish-hindi-04",
+        "cb2-hinglish-hindi-05",
+        "cb2-hinglish-hindi-06",
+        "cb2-hinglish-hindi-07",
+        "cb2-hinglish-hindi-08"
+      ],
+      "raw": "{\"results\":[{\"i\":0,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_taste\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"peri peri frankie was straight fire\"},{\"key\":\"drink_praise\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"cutting chai hit the spot\"}]},{\"i\":1,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"bun maska was hard as a brick\"},{\"key\":\"order_accuracy\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"chai came with sugar even though I asked for it without\"}]},{\"i\":2,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"140 ka frankie aur size dekho toh ungli jitna\"},{\"key\":\"billing_issue\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"GPay band hai cash hi chalega\"}]},{\"i\":3,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"served_cold\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"chai garam nahi thi bilkul\"},{\"key\":\"order_accuracy\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"shakkar itni ki aadha cup chhod diya\"}]},{\"i\":4,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"pricing_value\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"180 रुपये में इतनी सी, बिल्कुल पैसा वसूल नहीं\"}]},{\"i\":5,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"staff_warmth\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"staff bahut sweet tha\"}]},{\"i\":6,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_taste\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"garma garam chai aur bun maska\"}]},{\"i\":7,\"abstain\":false,\"sentiment\":\"MIXED\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"billing_issue\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"bill mein teen cold coffee chadha di\"},{\"key\":\"food_taste\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"brownie gooey thi ekdum\"}]},{\"i\":8,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"पिज़्ज़ा बुरा नहीं था, पर नीचे से बेस कच्चा रह गया था\"}]},{\"i\":9,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"staff_behaviour\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"tone thoda rude tha\"},{\"key\":\"wait_for_table\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"3 ghante एक cold coffee pe baithe\"}]}]}",
+      "error": null,
+      "ms": 2198,
+      "inputTokens": 1410,
+      "outputTokens": 1496
+    },
+    {
+      "ids": [
+        "cb2-hinglish-hindi-09",
+        "cb2-hinglish-hindi-10",
+        "cb2-hinglish-hindi-11",
+        "cb2-hinglish-hindi-12",
+        "cb2-hinglish-hindi-13",
+        "cb2-hinglish-hindi-14",
+        "cb2-hinglish-hindi-15",
+        "cb2-hinglish-hindi-16",
+        "cb2-marathi-01",
+        "cb2-marathi-02"
+      ],
+      "raw": "{\"results\":[{\"i\":0,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"service_speed\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"35 min baad poocha toh pata chala order likha hi nahi tha\"},{\"key\":\"order_accuracy\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"35 min baad poocha toh pata chala order likha hi nahi tha\"}]},{\"i\":1,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"ब्राउनी एकदम सूखी और कड़क थी\"},{\"key\":\"pricing_value\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"ऐसे पैसे लेना ठीक नहीं\"}]},{\"i\":2,\"abstain\":true,\"sentiment\":\"NEUTRAL\",\"confidence\":\"LOW\",\"topics\":[]},{\"i\":3,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"drink_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"पानी जaisi thi\"}]},{\"i\":4,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"drink_praise\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"अदरक वाली चाय बढ़िया थी\"},{\"key\":\"staff_warmth\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"लड़कों ने बड़े आदर से बात की\"},{\"key\":\"cleanliness_praise\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"जगह भी साफ़ सुथरी थी\"}]},{\"i\":5,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"ambience_noise\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"bagal wali table pe ek group birthday mana raha tha, poora time cheekh chilla\"},{\"key\":\"drink_praise\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"cold coffee hamesha ki tarah top class thi\"}]},{\"i\":6,\"abstain\":true,\"sentiment\":\"NEUTRAL\",\"confidence\":\"LOW\",\"topics\":[]},{\"i\":7,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"order_accuracy\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"pizza mein baal nikla\"},{\"key\":\"food_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"pizza mein baal nikla\"}]},{\"i\":8,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"drink_praise\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Chaha ekdam kadak ani garmagaram hota\"}]},{\"i\":9,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"staff_behaviour\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"काउंटरवरचा मुलगा खूप उर्मटपणे बोलला\"}]}]}",
+      "error": null,
+      "ms": 2381,
+      "inputTokens": 1348,
+      "outputTokens": 1651
+    },
+    {
+      "ids": [
+        "cb2-marathi-03",
+        "cb2-marathi-04",
+        "cb2-marathi-05",
+        "cb2-marathi-06",
+        "cb2-marathi-07",
+        "cb2-marathi-08",
+        "cb2-marathi-09",
+        "cb2-marathi-10",
+        "cb2-marathi-11",
+        "cb2-marathi-12"
+      ],
+      "raw": "{\"results\":[{\"i\":0,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"served_cold\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Cold coffee vait navhti\"},{\"key\":\"food_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"brownie garam navhti\"}]},{\"i\":1,\"abstain\":false,\"sentiment\":\"MIXED\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"मस्का बन शिळा होता\"},{\"key\":\"drink_praise\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"चहा मात्र झकास\"},{\"key\":\"cleanliness\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"टेबल पण चिकट होतं\"}]},{\"i\":2,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"pricing_value\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"240 rs\"},{\"key\":\"billing_issue\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"service charge vegla lavla\"}]},{\"i\":3,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"service_speed\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"35 min nantar aali\"},{\"key\":\"served_cold\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"ti pan thandgaar\"},{\"key\":\"staff_behaviour\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Waiter la 2 da vicharla\"}]},{\"i\":4,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"ambience\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Wifi barobar chalat hota\"},{\"key\":\"drink_praise\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"cold coffee pan bhari hoti\"}]},{\"i\":5,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"cleanliness\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"वॉशरूम एकदम घाण\"}]},{\"i\":6,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Brownie dagda sarkhi kadak\"},{\"key\":\"served_cold\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Cold coffee madhe nusta barf ani doodh\"},{\"key\":\"pricing_value\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Paise vaaya\"}]},{\"i\":7,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"staff_warmth\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Baki malak mandali nehmi aaplepanane chaukashi kartat\"}]},{\"i\":8,\"abstain\":true,\"sentiment\":\"NEUTRAL\",\"confidence\":\"HIGH\",\"topics\":[]},{\"i\":9,\"abstain\":false,\"sentiment\":\"MIXED\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"wait_for_table\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"pura vel aaradaorad\"},{\"key\":\"staff_behaviour\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Staff bichare don-teen da halu bola\"},{\"key\":\"food_taste\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Pizza mast hota\"}]}]}",
+      "error": null,
+      "ms": 3053,
+      "inputTokens": 1456,
+      "outputTokens": 2126
+    },
+    {
+      "ids": [
+        "cb2-marathi-13",
+        "cb2-marathi-14",
+        "cb2-marathi-15",
+        "cb2-marathi-16",
+        "cb2-mixed-multi-01",
+        "cb2-mixed-multi-02",
+        "cb2-mixed-multi-03",
+        "cb2-mixed-multi-04",
+        "cb2-mixed-multi-05",
+        "cb2-mixed-multi-06"
+      ],
+      "raw": "{\"results\":[{\"i\":0,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"value_for_money\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"एकदम परवडणारं\"}]},{\"i\":1,\"abstain\":false,\"sentiment\":\"MIXED\",\"confidence\":\"MEDIUM\",\"topics\":[{\"key\":\"food_taste\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"MEDIUM\",\"evidence\":\"maska bun matra chhan\"}]},{\"i\":2,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"billing_issue\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"UPI chalat nahi\"}]},{\"i\":3,\"abstain\":true,\"sentiment\":\"NEUTRAL\",\"confidence\":\"LOW\",\"topics\":[]},{\"i\":4,\"abstain\":false,\"sentiment\":\"MIXED\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"drink_praise\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Chai was proper strong\"},{\"key\":\"food_taste\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Bun maska fresh and soft\"},{\"key\":\"cleanliness\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"washroom though was in a horrible state\"}]},{\"i\":5,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"order_accuracy\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"coffee didn't\"},{\"key\":\"served_cold\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"frankie had gone cold and soggy\"}]},{\"i\":6,\"abstain\":false,\"sentiment\":\"MIXED\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"ambience\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Lovely vibe, fairy lights and old Bollywood posters\"},{\"key\":\"service_speed\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"sat for almost 20 minutes before anyone came to take our order\"},{\"key\":\"food_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"margherita was underbaked in the centre, dough still raw\"}]},{\"i\":7,\"abstain\":false,\"sentiment\":\"MIXED\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"service_speed\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"pura 30 min baitha raha\"},{\"key\":\"served_cold\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"chai ... ekदम thandi\"},{\"key\":\"food_taste\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Maska bun mast tha\"}]},{\"i\":8,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"ambience_noise\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"music, way too loud for 9 in the morning\"},{\"key\":\"drink_praise\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Masala chai perfect\"},{\"key\":\"staff_warmth\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"staff were super warm\"},{\"key\":\"cleanliness_praise\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"the whole place was spotless\"}]},{\"i\":9,\"abstain\":false,\"sentiment\":\"MIXED\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"served_cold\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Pizza showed up lukewarm\"},{\"key\":\"service_speed\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"after 40 mins\"},{\"key\":\"food_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"crust was hard like a papad\"},{\"key\":\"ambience\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Decor is cute\"}]}]}",
+      "error": null,
+      "ms": 3089,
+      "inputTokens": 1409,
+      "outputTokens": 2104
+    },
+    {
+      "ids": [
+        "cb2-mixed-multi-07",
+        "cb2-mixed-multi-08",
+        "cb2-mixed-multi-09",
+        "cb2-mixed-multi-10",
+        "cb2-mixed-multi-11",
+        "cb2-mixed-multi-12",
+        "cb2-mixed-multi-13",
+        "cb2-mixed-multi-14",
+        "cb2-mixed-multi-15",
+        "cb2-mixed-multi-16"
+      ],
+      "raw": "{\"results\":[{\"i\":0,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"cleanliness\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Washroom though was filthy\"},{\"key\":\"billing_issue\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Bill had one extra frankie added, they corrected it\"}]},{\"i\":1,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"drink_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Cold coffee was basically milk with ice cubes\"},{\"key\":\"billing_issue\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"UPI scanner was 'not working'\"}]},{\"i\":2,\"abstain\":true,\"sentiment\":\"NEUTRAL\",\"confidence\":\"HIGH\",\"topics\":[]},{\"i\":3,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"drink_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"got it full sweet\"},{\"key\":\"service_speed\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"replacement took another 20 minutes\"}]},{\"i\":4,\"abstain\":false,\"sentiment\":\"MIXED\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"drink_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"tea came with sugar even after I told them twice no sugar\"},{\"key\":\"ambience\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"hall has been freshly painted and looks much brighter\"}]},{\"i\":5,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_taste\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Chaha ekdum kadak ani mast\"}]},{\"i\":6,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"service_speed\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"slow servce\"},{\"key\":\"cleanliness\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"sticky table\"}]},{\"i\":7,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"delivery_packaging\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"cold coffee had leaked all over the bag since the lid wasn't sealed properly\"}]},{\"i\":8,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"staff_behaviour\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"waiter was busy on his phone, we had to wave three times just to get water\"},{\"key\":\"order_accuracy\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"my mother's sandwich came with a hair in it\"}]},{\"i\":9,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"ambience_noise\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"bagal wali table wale itna chilla rahe the ki apni baat bhi sunai nahi de rahi thi\"},{\"key\":\"service_quality\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"staff ne order fatafat laaya\"},{\"key\":\"value_for_money\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Paisa vasool\"},{\"key\":\"food_taste\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"cheese burst pizza ekdum garam aur cheesy\"}]}]}",
+      "error": null,
+      "ms": 2690,
+      "inputTokens": 1540,
+      "outputTokens": 2224
+    },
+    {
+      "ids": [
+        "cb2-negation-implicit-01",
+        "cb2-negation-implicit-02",
+        "cb2-negation-implicit-03",
+        "cb2-negation-implicit-04",
+        "cb2-negation-implicit-05",
+        "cb2-negation-implicit-06",
+        "cb2-negation-implicit-07",
+        "cb2-negation-implicit-08",
+        "cb2-negation-implicit-09",
+        "cb2-negation-implicit-10"
+      ],
+      "raw": "{\"results\":[{\"i\":0,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"served_cold\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"chai wasnt even warm\"},{\"key\":\"service_speed\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"6 of us sitting with empty cups for 20 min\"}]},{\"i\":1,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"paneer frankie was just about ok\"},{\"key\":\"pricing_value\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"190 rs for that size is a joke\"}]},{\"i\":2,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"service_quality\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"had my cutting chai with less sugar on the stove before I even sat down\"}]},{\"i\":3,\"abstain\":false,\"sentiment\":\"MIXED\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"billing_issue\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Had to walk up to the counter twice for the bill\"},{\"key\":\"drink_praise\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"cold coffee itself was really good\"}]},{\"i\":4,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"cleanliness_praise\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"washroom was actually clean\"}]},{\"i\":5,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"service_speed\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Coffee showed up 4:40\"},{\"key\":\"order_accuracy\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Brownie never came\"}]},{\"i\":6,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"cleanliness\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Ek bhi table saaf nahi mila\"}]},{\"i\":7,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"chai ... tasted like it had been boiling since morning\"}]},{\"i\":8,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_taste\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"schezwan frankie khup bhari hoti, ekdum crispy\"}]},{\"i\":9,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"staff_warmth\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"girl at the counter brought out a regular chair\"}]}]}",
+      "error": null,
+      "ms": 2641,
+      "inputTokens": 1347,
+      "outputTokens": 1746
+    },
+    {
+      "ids": [
+        "cb2-negation-implicit-11",
+        "cb2-negation-implicit-12",
+        "cb2-negation-implicit-13",
+        "cb2-negation-implicit-14",
+        "cb2-negation-implicit-15",
+        "cb2-negation-implicit-16",
+        "cb2-operations-environment-01",
+        "cb2-operations-environment-02",
+        "cb2-operations-environment-03",
+        "cb2-operations-environment-04"
+      ],
+      "raw": "{\"results\":[{\"i\":0,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"staff_behaviour\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"None of the 3 guys behind the counter looked up from their phones\"}]},{\"i\":1,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"order_accuracy\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"no chilli flakes or oregano, no tissues\"},{\"key\":\"delivery_packaging\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"brownie box wasn't even sealed, half of it was stuck to the lid\"}]},{\"i\":2,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"billing_issue\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"बिल में दो कोल्ड कॉफी जोड़ दी\"}]},{\"i\":3,\"abstain\":true},{\"i\":4,\"abstain\":true},{\"i\":5,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"staff_behaviour\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"new boy put sugar in my chai though I told him twice, no sugar\"},{\"key\":\"food_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"tasted like yesterday's\"}]},{\"i\":6,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"billing_issue\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"10% service charge laga hua tha\"}]},{\"i\":7,\"abstain\":true},{\"i\":8,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"delivery_packaging\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"cold coffee lid was just loosely pressed on\"}]},{\"i\":9,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"cleanliness\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"floor pe keechad, aur badbu\"}]}]}",
+      "error": null,
+      "ms": 6134,
+      "inputTokens": 1501,
+      "outputTokens": 1704
+    },
+    {
+      "ids": [
+        "cb2-operations-environment-05",
+        "cb2-operations-environment-06",
+        "cb2-operations-environment-07",
+        "cb2-operations-environment-08",
+        "cb2-operations-environment-09",
+        "cb2-operations-environment-10",
+        "cb2-operations-environment-11",
+        "cb2-operations-environment-12",
+        "cb2-operations-environment-13",
+        "cb2-operations-environment-14"
+      ],
+      "raw": "{\"results\":[{\"i\":0,\"abstain\":false,\"sentiment\":\"MIXED\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"drink_praise\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"cold coffee is the only reason I still come here\"}]},{\"i\":1,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"wait_for_table\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"max 20 minutes, it was close to 45\"},{\"key\":\"service_speed\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"max 20 minutes, it was close to 45\"},{\"key\":\"food_taste\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"the pizzas and the brownie cake, when they finally came, were really good\"}]},{\"i\":2,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"ambience\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Old Bollywood unplugged, not too loud, we could actually talk\"}]},{\"i\":3,\"abstain\":false,\"sentiment\":\"MIXED\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"wait_for_table\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"20 min baad seat mili\"},{\"key\":\"ambience_noise\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Music itna loud ki saamne wale ki baat sunne ke liye chillana pad raha tha\"},{\"key\":\"food_taste\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Paneer frankie mast tha\"}]},{\"i\":4,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"billing_issue\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"money got debited but their machine kept showing failed\"}]},{\"i\":5,\"abstain\":true,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\"},{\"i\":6,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"cleanliness\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Every table we tried was sticky, flies hovering over the brownie counter\"}]},{\"i\":7,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"staff_behaviour\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Staff matra nehmi sarkhe gode\"}]},{\"i\":8,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"pricing_value\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Rs 280 for a cold coffee is steep\"}]},{\"i\":9,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_taste\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"चाय आणि मस्का बन सिर्फ़ 90 रुपये में\"},{\"key\":\"ambience\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"ताज़ी ब्रेड आणि मक्खन की खुशबू, लकड़ी की टेबलें, खिड़की से पहाड़ दिख रहे थे\"},{\"key\":\"value_for_money\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"चाय आणि मस्का बन सिर्फ़ 90 रुपये में\"}]}]}",
+      "error": null,
+      "ms": 2551,
+      "inputTokens": 1673,
+      "outputTokens": 1493
+    },
+    {
+      "ids": [
+        "cb2-operations-environment-15",
+        "cb2-operations-environment-16",
+        "cb2-plain-01",
+        "cb2-plain-02",
+        "cb2-plain-03",
+        "cb2-plain-04",
+        "cb2-plain-05",
+        "cb2-plain-06",
+        "cb2-plain-07",
+        "cb2-plain-08"
+      ],
+      "raw": "{\"results\":[{\"i\":0,\"abstain\":false,\"sentiment\":\"NEUTRAL\",\"confidence\":\"HIGH\",\"topics\":[]},{\"i\":1,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"billing_issue\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"turn into 3 on the bill\"}]},{\"i\":2,\"abstain\":true},{\"i\":3,\"abstain\":true},{\"i\":4,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"drink_praise\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Chai was proper kadak, loved it\"}]},{\"i\":5,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"drink_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"cold coffee was way too sweet\"}]},{\"i\":6,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"chicken frankie soggy n too oily\"}]},{\"i\":7,\"abstain\":true},{\"i\":8,\"abstain\":true},{\"i\":9,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"value_for_money\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Bun maska + chai for 60 bucks. Paisa vasool!\"}]}]}",
+      "error": null,
+      "ms": 1642,
+      "inputTokens": 1149,
+      "outputTokens": 900
+    },
+    {
+      "ids": [
+        "cb2-plain-09",
+        "cb2-plain-10",
+        "cb2-plain-11",
+        "cb2-plain-12",
+        "cb2-plain-13",
+        "cb2-plain-14",
+        "cb2-plain-15",
+        "cb2-plain-16"
+      ],
+      "raw": "{\"results\":[{\"i\":0,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"service_quality\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Quick service\"}]},{\"i\":1,\"abstain\":true,\"sentiment\":\"NEUTRAL\",\"confidence\":\"HIGH\",\"topics\":[]},{\"i\":2,\"abstain\":false,\"sentiment\":\"POSITIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"staff_warmth\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Counter guys were super sweet n helpful\"}]},{\"i\":3,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"pricing_value\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Overpriced\"}]},{\"i\":4,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_quality\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Brownie was stale\"}]},{\"i\":5,\"abstain\":false,\"sentiment\":\"NEGATIVE\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"cleanliness\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Sticky tables and flies everywhere\"}]},{\"i\":6,\"abstain\":true,\"sentiment\":\"NEUTRAL\",\"confidence\":\"HIGH\",\"topics\":[]},{\"i\":7,\"abstain\":false,\"sentiment\":\"MIXED\",\"confidence\":\"HIGH\",\"topics\":[{\"key\":\"food_taste\",\"polarity\":\"POSITIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"Tasty pizza\"},{\"key\":\"billing_issue\",\"polarity\":\"NEGATIVE\",\"about\":\"BUSINESS\",\"confidence\":\"HIGH\",\"evidence\":\"getting the bill took ages\"}]}]}",
+      "error": null,
+      "ms": 1480,
+      "inputTokens": 1036,
+      "outputTokens": 741
+    }
+  ]
+}

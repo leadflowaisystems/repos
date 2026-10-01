@@ -1,9 +1,13 @@
 import type { Pack } from '@/lib/packs';
 import { summariseThemeRows } from '@/lib/feedback/analysis';
+import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
+import { parseJson } from '@/lib/format';
 import {
   MIN_FEEDBACK_FOR_SHARE_CLAIMS,
+  MIN_MENTIONS_FOR_TREND_CLAIMS,
   TREND_SHARE_DELTA,
 } from '@/lib/health/rules';
+import { compareShares } from '@/lib/health/compare';
 import {
   evidenceLine,
   measurementWindowStart,
@@ -50,8 +54,16 @@ import type { PortalTranslator } from '@/lib/i18n/translator';
  * forever, and no amount of translating this file would reach it.
  */
 
-/** Bump when the verdict rules change. Stored with each frozen result. */
-export const MEASUREMENT_VERSION = 1;
+/**
+ * Bump when the verdict rules change. Stored with each frozen result.
+ *
+ * 2 — a direction also needs at least MIN_MENTIONS_FOR_TREND_CLAIMS mentions
+ *     on one side and a move too large, on this much feedback, to be chance:
+ *     the one rule in health/compare.ts that every comparison now uses
+ *     (Sep 2026). Under version 1, "2 of 20 before, 0 of 20 after" was
+ *     IMPROVED. Results frozen under version 1 keep their verdict.
+ */
+export const MEASUREMENT_VERSION = 2;
 
 export {
   RESULT_LABELS,
@@ -86,9 +98,25 @@ export type MeasurableRow = {
   id: string;
   themesJson: string;
   analysisStatus: string;
+  /**
+   * The reader version that produced the row's topics. A row read by an
+   * older reader is not read evidence until it has been read again (the same
+   * rule as every other surface: `feedback/state.ts`). Absent in callers that
+   * only ever hold current rows.
+   */
+  analysisVersion?: number;
   /** The customer's own date where it was parsed, otherwise when it arrived. */
   evidenceAt: Date;
 };
+
+/** Read by the current reader: the one definition of read evidence. */
+function isRead(row: MeasurableRow): boolean {
+  return row.analysisStatus === 'ANALYSED' && (row.analysisVersion === undefined || row.analysisVersion >= ANALYSIS_VERSION);
+}
+
+function hasTheme(row: MeasurableRow, themeKey: string): boolean {
+  return parseJson<Array<{ key?: string }>>(row.themesJson, []).some((t) => t?.key === themeKey);
+}
 
 export type MeasurementInput = {
   pack: Pack;
@@ -116,7 +144,7 @@ export type MeasurementInput = {
 function countTheme(rows: MeasurableRow[], pack: Pack, themeKey: string): number {
   const summary = summariseThemeRows(
     rows
-      .filter((row) => row.analysisStatus === 'ANALYSED')
+      .filter(isRead)
       .map((row) => ({ id: row.id, themesJson: row.themesJson })),
     pack,
   );
@@ -127,7 +155,7 @@ function countTheme(rows: MeasurableRow[], pack: Pack, themeKey: string): number
 }
 
 function analysedCount(rows: MeasurableRow[]): number {
-  return rows.filter((row) => row.analysisStatus === 'ANALYSED').length;
+  return rows.filter(isRead).length;
 }
 
 const MONTHS = [
@@ -179,15 +207,33 @@ export function measureAction(input: MeasurementInput): Measurement {
   // in neither figure. Small and usually zero, but stated rather than hidden.
   const betweenCount = input.rows.filter(
     (row) =>
-      row.analysisStatus === 'ANALYSED' &&
+      isRead(row) &&
       row.evidenceAt.getTime() >= baseline.capturedAt.getTime() &&
       row.evidenceAt.getTime() < windowStart,
   ).length;
 
+  // LIKE WITH LIKE. The baseline was frozen by whatever reader was current
+  // when the decision was made. If the reader has changed since — a response
+  // behind the baseline no longer carries the topic as it is read now — the
+  // frozen count and today's count were read two different ways, and
+  // comparing them would report a change in the reader as a change in the
+  // business (the café taxonomy split "served cold" out of "food & taste").
+  // The before side is then counted again, from the same rows, as they are
+  // read now.
+  const byId = new Map(input.rows.map((row) => [row.id, row]));
+  const readDifferently = baseline.itemIds.some((id) => {
+    const row = byId.get(id);
+    return row !== undefined && isRead(row) && !hasTheme(row, themeKey);
+  });
+  const beforeRows = input.rows.filter((row) => row.evidenceAt.getTime() < baseline.capturedAt.getTime());
+  const recounted = readDifferently
+    ? { count: countTheme(beforeRows, pack, themeKey), total: analysedCount(beforeRows) }
+    : { count: baseline.count, total: baseline.total };
+
   const beforeCounts: MeasurementCounts = {
-    count: baseline.count,
-    total: baseline.total,
-    share: shareOf(baseline.count, baseline.total),
+    count: recounted.count,
+    total: recounted.total,
+    share: shareOf(recounted.count, recounted.total),
   };
 
   const afterCounts: MeasurementCounts = {
@@ -208,8 +254,13 @@ export function measureAction(input: MeasurementInput): Measurement {
   // measurement can restate the verdict but never reach a different one.
   const thinBefore = beforeCounts.total < MIN_FEEDBACK_TO_MEASURE;
   const thinAfter = afterCounts.total < MIN_FEEDBACK_TO_MEASURE;
-  const moved = shareDelta !== null && Math.abs(shareDelta) >= MIN_SHARE_MOVE;
-  const rose = (shareDelta ?? 0) > 0;
+  const verdict = compareShares(
+    { count: beforeCounts.count, total: beforeCounts.total },
+    { count: afterCounts.count, total: afterCounts.total },
+    { minTotal: MIN_FEEDBACK_TO_MEASURE },
+  ).verdict;
+  const moved = verdict === 'ROSE' || verdict === 'FELL';
+  const rose = verdict === 'ROSE';
   const good = sentiment === 'ISSUE' ? !rose : rose;
 
   const result: ActionResult =
@@ -393,7 +444,7 @@ export function measurementWords(
       ...sides,
       resultLabel: resultLabel('INSUFFICIENT_DATA', t),
       headline: t('improve.headline.insufficient', { theme }),
-      why,
+      why: [...why, t('improve.why.level.insufficient')],
       limits: [...limits, t('improve.limit.addMore')],
     };
   }
@@ -414,17 +465,21 @@ export function measurementWords(
     afterLine,
   });
 
+  // Which sentence describes a "no clear change" is read off the frozen
+  // figures — it cannot move the verdict, only name why it is what it is:
+  // the share barely moved, too few mentions on either side, or a move that
+  // this much feedback cannot tell from chance.
+  const delta = formatShare(Math.abs(shareDelta ?? 0));
+  const min = formatShare(MIN_SHARE_MOVE);
   const why = [
     comparison,
     moved
-      ? t('improve.why.moved', {
-          delta: formatShare(Math.abs(shareDelta as number)),
-          min: formatShare(MIN_SHARE_MOVE),
-        })
-      : t('improve.why.notMoved', {
-          delta: formatShare(Math.abs(shareDelta ?? 0)),
-          min: formatShare(MIN_SHARE_MOVE),
-        }),
+      ? t('improve.why.moved', { delta, min })
+      : Math.abs(shareDelta ?? 0) < MIN_SHARE_MOVE
+        ? t('improve.why.notMoved', { delta, min })
+        : Math.max(before.count, after.count) < MIN_MENTIONS_FOR_TREND_CLAIMS
+          ? t('improve.why.fewMentions', { theme, needed: MIN_MENTIONS_FOR_TREND_CLAIMS })
+          : t('improve.why.chance', { delta, beforeTotal: before.total, afterTotal: after.total }),
   ];
 
   if (!moved) {
@@ -432,7 +487,7 @@ export function measurementWords(
       ...sides,
       resultLabel: resultLabel('NO_CLEAR_CHANGE', t),
       headline: t('improve.headline.noClearChange', { theme }),
-      why,
+      why: [...why, t('improve.why.level.unclear')],
       limits,
     };
   }
@@ -456,7 +511,8 @@ export function measurementWords(
     ...sides,
     resultLabel: resultLabel(result, t),
     headline,
-    why,
+    // Every result states its evidence level, not only its direction.
+    why: [...why, t('improve.why.level.clear')],
     limits,
   };
 }

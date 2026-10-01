@@ -8,7 +8,7 @@ import {
   PROCESSING_STALE_MS,
 } from '@/lib/feedback/state';
 import { getPackOrFallback, type Pack } from '@/lib/packs';
-import { sanitiseSentiment, sanitiseTags, type Sentiment } from '@/lib/analysis/classify';
+import type { Sentiment } from '@/lib/analysis/classify';
 import {
   ANALYSIS_VERSION,
   normalizeFeedback,
@@ -61,6 +61,14 @@ function ok<T>(data: T): ServiceOk<T> {
 /** How many items go to the provider in one request. */
 const AI_BATCH_SIZE = 20;
 
+/**
+ * How many times the run's limit a run may re-read, on top of the new
+ * responses it reads. Re-reading is deterministic and touches only the
+ * analysis columns, so a version upgrade clears a café's history in a few
+ * runs instead of dozens.
+ */
+const RE_READ_FACTOR = 4;
+
 export type AnalysisRunResult = {
   /** Items considered for this run. */
   considered: number;
@@ -93,6 +101,13 @@ export type AnalyseOptions = {
   now?: Date;
   /** Safety cap so one click cannot start an unbounded run. */
   limit?: number;
+  /**
+   * Re-read only rows an older reader already read, and nothing new. For the
+   * one-off catch-up after an upgrade (scripts/reread-after-upgrade.ts):
+   * never-read feedback is left to the pipeline, which can give it the second
+   * reader; a re-read never goes to a provider either way.
+   */
+  onlyReRead?: boolean;
 };
 
 /**
@@ -151,6 +166,7 @@ export async function analyseClientFeedback(
 
   const pending: ItemRow[] = all.filter((row) => {
     if (inProgressIds.has(row.id)) return false;
+    if (options.onlyReRead) return row.analysisStatus === 'ANALYSED' && analysisStateOf(row, now) === 'COLLECTED';
     if (options.force) return true;
     const state = analysisStateOf(row, now);
     if (state === 'COLLECTED') return true;
@@ -163,7 +179,23 @@ export async function analyseClientFeedback(
   });
 
   const skippedUpToDate = all.length - pending.length - inProgressIds.size;
-  const queue = options.limit ? pending.slice(0, options.limit) : pending;
+  // NEVER-READ FIRST. A row nobody has read yet — a customer's response from
+  // a minute ago — comes before a row an older reader already read and that
+  // is only waiting to be read again after an upgrade. Without this, the
+  // re-read backlog of a café's history stood in front of every new response,
+  // 50 at a time, and new feedback stayed unread for hours (café handover
+  // pass). Within each group, the stored order.
+  const neverRead = pending.filter((row) => row.analysisStatus !== 'ANALYSED');
+  const reRead = pending.filter((row) => row.analysisStatus === 'ANALYSED');
+  const ordered = [...neverRead, ...reRead];
+  // A re-read is the deterministic reader alone (no provider call; see the AI
+  // pass below), so it can take a larger share of a run than new feedback.
+  const queue = options.limit
+    ? [...neverRead.slice(0, options.limit), ...reRead.slice(0, options.limit * RE_READ_FACTOR)].slice(
+        0,
+        Math.max(options.limit, Math.min(ordered.length, options.limit * RE_READ_FACTOR)),
+      )
+    : ordered;
 
   if (queue.length === 0) {
     return ok({
@@ -294,11 +326,10 @@ export async function analyseClientFeedback(
             if (!result) return;
             // Belt and braces: re-filter against the taxonomy here too, so a
             // malformed or hallucinated tag can never reach the database.
-            suggestions.set(row.id, {
-              issueTags: sanitiseTags(result.issueTags, pack.issueTaxonomy),
-              praiseTags: sanitiseTags(result.praiseTags, pack.praiseTaxonomy),
-              sentiment: sanitiseSentiment(result.sentiment),
-            });
+            // The validated structured reading (AI contract 2) when there is
+            // one; a keyword fallback for this row carries none, and the row
+            // is read deterministically below.
+            if (result.ai) suggestions.set(row.id, result.ai);
           });
         } else if (outcome.notes.length > 0) {
           notes.push(...outcome.notes);

@@ -45,10 +45,18 @@ function MovementNote({ theme, t }: { theme: PeriodTheme; t: Translator<MessageK
       </span>
     );
   }
+  const counts = { before: theme.before, total: theme.total, beforeTotal: theme.beforeTotal };
   if (theme.movement === 'STEADY') {
     return (
       <span className="text-[13px] text-ink-500">
-        {t.plural('pulse.report.mentions.same', theme.count, { before: theme.before })}
+        {t.plural('pulse.report.mentions.same', theme.count, counts)}
+      </span>
+    );
+  }
+  if (theme.movement === 'UNCLEAR') {
+    return (
+      <span className="text-[13px] text-ink-500">
+        {t.plural('pulse.report.mentions.unclear', theme.count, counts)}
       </span>
     );
   }
@@ -62,7 +70,7 @@ function MovementNote({ theme, t }: { theme: PeriodTheme; t: Translator<MessageK
             : 'text-[13px] text-ink-600'
       }
     >
-      {t.plural('pulse.report.mentions.changed', theme.count, { before: theme.before })}
+      {t.plural('pulse.report.mentions.changed', theme.count, counts)}
     </span>
   );
 }

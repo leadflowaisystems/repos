@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
+import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { completeOnboarding } from '@/lib/onboarding/service';
 import { getWeeklyPulse, getMonthlyReview, periodWindows } from '@/lib/reporting/service';
@@ -47,6 +48,28 @@ async function business(name = 'Anand Tiffin', vertical = 'restaurant') {
   return { clientId: result.data.clientId, userId: user.id };
 }
 
+/**
+ * Analysed feedback that names no problem at all, placed a given number of
+ * days ago. A period is compared on the SHARE of its feedback that mentions a
+ * theme (health/compare.ts), so a window made only of complaints is 100% either
+ * way; real windows hold other feedback too.
+ */
+async function other(clientId: string, daysAgo: number, count: number) {
+  for (let i = 0; i < count; i += 1) {
+    await db.reviewItem.create({
+      data: {
+        clientId,
+        text: `other feedback #${i}`,
+        analysisStatus: 'ANALYSED',
+        analysisVersion: ANALYSIS_VERSION,
+        themesJson: JSON.stringify([]),
+        createdAt: new Date(NOW.getTime() - daysAgo * DAY),
+        updatedAt: NOW,
+      },
+    });
+  }
+}
+
 /** Analysed feedback carrying one theme, placed a given number of days ago. */
 async function feedback(clientId: string, themeKey: string, daysAgo: number, count: number) {
   for (let i = 0; i < count; i += 1) {
@@ -55,6 +78,7 @@ async function feedback(clientId: string, themeKey: string, daysAgo: number, cou
         clientId,
         text: `feedback about ${themeKey} #${i}`,
         analysisStatus: 'ANALYSED',
+        analysisVersion: ANALYSIS_VERSION,
         themesJson: JSON.stringify([
           { key: themeKey, label: themeKey, kind: 'ISSUE', severity: 'high' },
         ]),
@@ -114,6 +138,34 @@ describe('the weekly pulse', () => {
     expect(report.worsened).toEqual([]);
   });
 
+  it('compares shares, not counts: a busier week with the same share is not worse', async () => {
+    const b = await business();
+    // 5 of 10 last week, 10 of 20 this week. The count doubled; the share did not.
+    await feedback(b.clientId, 'service_speed', 2, 10);
+    await other(b.clientId, 2, 10);
+    await feedback(b.clientId, 'service_speed', 9, 5);
+    await other(b.clientId, 9, 5);
+
+    const report = (await getWeeklyPulse(db, b.clientId, { now: NOW }))!;
+    expect(report.comparable).toBe(true);
+    expect(report.worsened).toEqual([]);
+    expect(report.issues[0]).toMatchObject({ count: 10, total: 20, before: 5, beforeTotal: 10, movement: 'STEADY' });
+  });
+
+  it('will not call a move a change when it could be chance', async () => {
+    const b = await business();
+    // 5 of 20, then 7 of 20: ten points on twenty is not enough to tell.
+    await feedback(b.clientId, 'service_speed', 2, 7);
+    await other(b.clientId, 2, 13);
+    await feedback(b.clientId, 'service_speed', 9, 5);
+    await other(b.clientId, 9, 15);
+
+    const report = (await getWeeklyPulse(db, b.clientId, { now: NOW }))!;
+    expect(report.issues[0]?.movement).toBe('UNCLEAR');
+    expect(report.worsened).toEqual([]);
+    expect(report.improved).toEqual([]);
+  });
+
   it('will not compare against a previous week that is too thin', async () => {
     const b = await business();
     await feedback(b.clientId, 'service_speed', 2, 6);
@@ -131,8 +183,11 @@ describe('the weekly pulse', () => {
 
   it('says there was no major change when nothing moved much', async () => {
     const b = await business();
+    // 5 of 12 both weeks: the same share.
     await feedback(b.clientId, 'service_speed', 2, 5);
+    await other(b.clientId, 2, 7);
     await feedback(b.clientId, 'service_speed', 9, 5);
+    await other(b.clientId, 9, 7);
 
     const report = (await getWeeklyPulse(db, b.clientId, { now: NOW }))!;
     expect(report.comparable).toBe(true);
@@ -142,8 +197,11 @@ describe('the weekly pulse', () => {
 
   it('reports a complaint coming up more often', async () => {
     const b = await business();
+    // 3 of 20 last week, 9 of 20 this week: 15% to 45%.
     await feedback(b.clientId, 'service_speed', 2, 9);
+    await other(b.clientId, 2, 11);
     await feedback(b.clientId, 'service_speed', 9, 3);
+    await other(b.clientId, 9, 17);
 
     const report = (await getWeeklyPulse(db, b.clientId, { now: NOW }))!;
     expect(report.worsened.map((t) => t.key)).toContain('service_speed');
@@ -155,8 +213,11 @@ describe('the weekly pulse', () => {
 
   it('reports a complaint coming up less often', async () => {
     const b = await business();
+    // 9 of 20 last week, 3 of 20 this week.
     await feedback(b.clientId, 'service_speed', 2, 3);
+    await other(b.clientId, 2, 17);
     await feedback(b.clientId, 'service_speed', 9, 9);
+    await other(b.clientId, 9, 11);
 
     const report = (await getWeeklyPulse(db, b.clientId, { now: NOW }))!;
     expect(report.improved.map((t) => t.key)).toContain('service_speed');
@@ -253,8 +314,11 @@ describe('the monthly review', () => {
 
   it('names what is still unresolved', async () => {
     const b = await business();
+    // 8 of 12 in both months.
     await feedback(b.clientId, 'service_speed', 10, 8);
+    await other(b.clientId, 10, 4);
     await feedback(b.clientId, 'service_speed', 40, 8);
+    await other(b.clientId, 40, 4);
 
     const month = (await getMonthlyReview(db, b.clientId, { now: NOW }))!;
     expect(month.comparable).toBe(true);
@@ -263,8 +327,11 @@ describe('the monthly review', () => {
 
   it('does not call something unresolved when it improved', async () => {
     const b = await business();
+    // 12 of 14 last month, 3 of 12 this month.
     await feedback(b.clientId, 'service_speed', 10, 3);
+    await other(b.clientId, 10, 9);
     await feedback(b.clientId, 'service_speed', 40, 12);
+    await other(b.clientId, 40, 2);
 
     const month = (await getMonthlyReview(db, b.clientId, { now: NOW }))!;
     expect(month.improved.map((t) => t.key)).toContain('service_speed');

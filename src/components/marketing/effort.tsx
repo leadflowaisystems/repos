@@ -40,8 +40,8 @@ const COLUMNS = [
     who: 'Headway',
     items: [
       'Reads every response as it arrives.',
-      `Starts showing patterns once you have ${PRODUCT_RULES.firstReadingAt} responses, and tells you how many are left until then.`,
-      `Names a topic only once at least ${PRODUCT_RULES.namedAt} customers raise it.`,
+      `Gives a first reading once you have ${PRODUCT_RULES.firstReadingAt} responses, and tells you how many are left until then.`,
+      `Names a topic only once at least ${PRODUCT_RULES.namedAt} responses mention it.`,
       'Compares the feedback before and after every change you mark done.',
     ],
   },

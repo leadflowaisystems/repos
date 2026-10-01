@@ -274,7 +274,7 @@ describe('every theme carries its layers, kept apart', () => {
     expect(after.first?.returning).toBe(true);
     expect(after.first?.meaning).toMatch(/It came up less often after your earlier change\. Now it is coming up more again/);
     expect(after.first?.nextStep).toMatch(/Before you make another change, check what else has changed/);
-    expect(after.actions[0]?.sinceThen).toMatch(/^At check-ins after the change: 3 mentions/);
+    expect(after.actions[0]?.sinceThen).toMatch(/^At check-ins after the change: 3 of \d+ at your check-in/);
     expect(after.watching.find((w) => w.themeKey === 'wait_time')?.state).toBe('coming up again');
   });
 

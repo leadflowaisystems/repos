@@ -231,7 +231,9 @@ describe('the insight is built from stored rows only', () => {
     expect(insight.changes.length).toBe(1);
     expect(insight.changes[0]?.direction).toBe('BETTER');
     // Same movement, same wording as the intelligence panel shows.
-    expect(insight.changes[0]?.note).toBe('9 → 4 mentions');
+    // 9 of 24 then, 4 of 22 now: both totals and both shares, so the owner
+    // can check the arithmetic from the words.
+    expect(insight.changes[0]?.note).toBe('9 of 24 → 4 of 22 · 38% → 18%');
     expect(insight.changes[0]?.previous).toBe(9);
     expect(insight.changes[0]?.current).toBe(4);
   });
@@ -307,7 +309,7 @@ describe('the owner update is useful and honest', () => {
     expect(message.body).toContain('What changed between your last two check-ins:');
     // A bare "4 → 9" tells the owner nothing; the theme has to be named.
     expect(message.body).toContain('Long waiting time');
-    expect(message.body).toContain('9 → 4 mentions');
+    expect(message.body).toContain('9 of 24 → 4 of 22 · 38% → 18%');
   });
 
   it('never claims the recommended step worked', () => {

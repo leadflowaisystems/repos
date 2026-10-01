@@ -104,8 +104,10 @@ describe('sentiment is never decided by the rating alone', () => {
     expect(result.confidence).toBe('LOW');
   });
 
-  it('treats a middle rating with no detail as Mixed', () => {
-    expect(run('Went on Tuesday', 3).sentiment).toBe('MIXED');
+  it('treats a middle rating with no detail as Neutral, not Mixed', () => {
+    // Mixed would claim the customer said good and bad things. They said
+    // neither (final semantic correctness pass).
+    expect(run('Went on Tuesday', 3).sentiment).toBe('NEUTRAL');
   });
 
   it('always explains itself in plain language', () => {
@@ -334,7 +336,8 @@ describe('negation is read across the whole clause', () => {
 
 describe('AI suggestions are contained, never trusted blindly', () => {
   it('uses AI tags when supplied and marks the method', () => {
-    const result = run('Something vague', null, clinic, {
+    // A middle rating corroborates a MEDIUM suggestion either way.
+    const result = run('Something vague', 3, clinic, {
       issueTags: ['wait_time'],
       praiseTags: ['staff_friendly'],
       sentiment: 'MIXED',
@@ -357,8 +360,42 @@ describe('AI suggestions are contained, never trusted blindly', () => {
       issueTags: ['wait_time'],
       praiseTags: [],
       sentiment: 'POSITIVE',
+      topics: [{ key: 'wait_time', kind: 'ISSUE', confidence: 'HIGH', evidence: null }],
     });
     expect(result.sentiment).toBe('MIXED');
+  });
+
+  it('drops a MEDIUM suggestion nothing corroborates, and its tone with it', () => {
+    // No rating, no opinion word: "different from last time" is not a complaint.
+    const result = run('The paneer was different from last time.', null, getPackOrFallback('restaurant'), {
+      issueTags: ['food_quality'],
+      praiseTags: [],
+      sentiment: 'NEGATIVE',
+      topics: [{ key: 'food_quality', kind: 'ISSUE', confidence: 'MEDIUM', evidence: 'different from last time' }],
+    });
+    expect(result.issueTags).toEqual([]);
+    expect(result.sentiment).toBe('NEUTRAL');
+  });
+
+  it('refuses a suggestion whose evidence is a clause set aside as about someone else', () => {
+    const result = run('Classes stopped for a week because of the city-wide strike.', 3, getPackOrFallback('coaching'), {
+      issueTags: ['schedule_reliability'],
+      praiseTags: [],
+      sentiment: 'NEGATIVE',
+      topics: [{ key: 'schedule_reliability', kind: 'ISSUE', confidence: 'HIGH', evidence: 'Classes stopped for a week' }],
+    });
+    expect(result.issueTags).toEqual([]);
+  });
+
+  it('never lets a topic only the second reader found make a reading HIGH', () => {
+    const result = run('The doctor was in and out in a flash, barely looked at me.', 1, clinic, {
+      issueTags: ['consultation_rush'],
+      praiseTags: [],
+      sentiment: 'NEGATIVE',
+      topics: [{ key: 'consultation_rush', kind: 'ISSUE', confidence: 'HIGH', evidence: 'in and out in a flash' }],
+    });
+    expect(result.issueTags).toEqual(['consultation_rush']);
+    expect(result.confidence).not.toBe('HIGH');
   });
 
   it('ignores an AI sentiment that arrives as null', () => {

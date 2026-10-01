@@ -23,6 +23,7 @@ import {
 import { getAnalysisCoverage } from '@/lib/feedback/analysis';
 import { getAccountState } from '@/lib/commercial/service';
 import { pendingRequestFor } from '@/lib/continuation/service';
+import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
 
 /**
  * A CLIENT'S PAGES COST WHAT THAT CLIENT HOLDS, AND NOTHING MORE (perf pass).
@@ -125,7 +126,7 @@ async function seedBusiness(
       issueTags: JSON.stringify(negative ? ['service_speed'] : []),
       praiseTags: JSON.stringify(negative ? [] : ['service_quality']),
       analysisStatus: 'ANALYSED',
-      analysisVersion: 2,
+      analysisVersion: ANALYSIS_VERSION,
       analysedAt: createdAt,
       themesJson: JSON.stringify([
         negative

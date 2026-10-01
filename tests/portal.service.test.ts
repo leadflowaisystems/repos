@@ -270,7 +270,7 @@ describe('the portal is truthful when there is little to say', () => {
     expect(analysis?.loved).toEqual([]);
     expect(analysis?.unhappy).toEqual([]);
     expect(analysis?.telling).toEqual([]);
-    expect(analysis?.recurrenceNote).toMatch(/not recorded a check-in/);
+    expect(analysis?.recurrenceNote).toMatch(/No check-in has been recorded yet/);
     const improvements = await getImprovementsView(db, id, { now: NOW });
     expect(improvements?.record).toBe('You have not agreed to any change yet.');
     const checkin = await getCheckinView(db, id, { now: NOW });

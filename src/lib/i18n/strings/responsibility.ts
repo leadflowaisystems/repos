@@ -556,9 +556,11 @@ export const responsibility = {
     mr: 'Headway आता तुमच्या {count} बदलांची आधी आणि नंतरची तुलना करू शकतं.',
   },
   'responsibility.next.firstCheckin': {
-    en: 'Once feedback starts coming in, do a first check-in. It gives Headway something to compare against later.',
-    hi: 'फ़ीडबैक आना शुरू हो जाए, तो पहला चेक-इन कर लें। इससे Headway को बाद में तुलना करने के लिए कुछ मिल जाता है।',
-    mr: 'फीडबॅक येऊ लागल्यावर पहिलं चेक-इन करा. त्यामुळे Headway ला नंतर तुलना करण्यासाठी काहीतरी मिळतं.',
+    // Not "do a first check-in": the same sentence is read by a business,
+    // which cannot record one. Said as what happens, true for both readers.
+    en: 'Once feedback starts coming in, a first check-in gives Headway something to compare against later.',
+    hi: 'फ़ीडबैक आना शुरू होने पर, पहला चेक-इन Headway को बाद में तुलना करने के लिए कुछ देता है।',
+    mr: 'फीडबॅक येऊ लागल्यावर, पहिला चेक-इन Headway ला नंतर तुलना करण्यासाठी काहीतरी देतो.',
   },
   'responsibility.next.firstNow': {
     en: 'A first check-in now would give Headway something to compare your next one against.',

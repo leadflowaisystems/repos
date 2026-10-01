@@ -1,10 +1,11 @@
 import type { PrismaClient } from '@prisma/client';
+import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
 import { summariseThemeRows, type ThemeSummaryRow } from '@/lib/feedback/analysis';
 import {
-  MIN_CHANGE_TO_REPORT,
   MIN_MENTIONS_TO_NAME,
   MIN_PERIOD_FEEDBACK_TO_COMPARE,
 } from '@/lib/intelligence/engine';
+import { compareShares } from '@/lib/health/compare';
 import { getPackOrFallback } from '@/lib/packs';
 import { RESULT_LABELS, type ActionResult } from '@/lib/improve/model';
 import { EN } from '@/lib/i18n/translator';
@@ -82,8 +83,16 @@ export type PeriodTheme = {
   /** Mentions inside the window before it. */
   before: number;
   delta: number;
-  /** Null when neither window has enough feedback to compare. */
-  movement: 'UP' | 'DOWN' | 'STEADY' | null;
+  /** How much feedback each window held: the denominators of both shares. */
+  total: number;
+  beforeTotal: number;
+  /**
+   * Judged on the topic's SHARE of each window's feedback (health/compare.ts),
+   * never on the raw count: a busy week is not a worse week. UNCLEAR when it
+   * moved but not by enough, on this much feedback, to call; null when the
+   * windows cannot be compared at all.
+   */
+  movement: 'UP' | 'DOWN' | 'STEADY' | 'UNCLEAR' | null;
 };
 
 export type PeriodAction = {
@@ -132,25 +141,34 @@ function compare(
   previous: ThemeSummaryRow[],
   kind: 'PRAISE' | 'ISSUE',
   comparable: boolean,
+  volume: { current: number; previous: number },
 ): PeriodTheme[] {
   const before = themeRows(previous);
   return current.map((row) => {
     const was = before.get(row.key)?.count ?? 0;
-    const delta = row.count - was;
+    const verdict = compareShares(
+      { count: was, total: volume.previous },
+      { count: row.count, total: volume.current },
+      { minTotal: MIN_PERIOD_FEEDBACK_TO_COMPARE, minCount: MIN_MENTIONS_TO_NAME },
+    ).verdict;
     return {
       key: row.key,
       label: row.label,
       kind,
       count: row.count,
       before: was,
-      delta,
+      delta: row.count - was,
+      total: volume.current,
+      beforeTotal: volume.previous,
       movement: !comparable
         ? null
-        : Math.abs(delta) < MIN_CHANGE_TO_REPORT
+        : verdict === 'FLAT'
           ? 'STEADY'
-          : delta > 0
+          : verdict === 'ROSE'
             ? 'UP'
-            : 'DOWN',
+            : verdict === 'FELL'
+              ? 'DOWN'
+              : 'UNCLEAR',
     };
   });
 }
@@ -191,6 +209,7 @@ export async function buildPeriodReport(
       where: {
         clientId,
         analysisStatus: 'ANALYSED',
+        analysisVersion: { gte: ANALYSIS_VERSION },
         createdAt: { gte: current.from, lt: current.to },
       },
       select,
@@ -199,6 +218,7 @@ export async function buildPeriodReport(
       where: {
         clientId,
         analysisStatus: 'ANALYSED',
+        analysisVersion: { gte: ANALYSIS_VERSION },
         createdAt: { gte: previous.from, lt: previous.to },
       },
       select,
@@ -230,12 +250,15 @@ export async function buildPeriodReport(
   const beforeSummary = summariseThemeRows(previousRows, pack);
 
   const volume = { current: currentRows.length, previous: previousRows.length };
-  const enoughEvidence = volume.current >= MIN_PERIOD_FEEDBACK_TO_COMPARE;
+  // Enough to name a topic at all is the naming floor; enough to COMPARE two
+  // windows is the share floor on both sides. Two different questions.
+  const enoughEvidence = volume.current >= MIN_MENTIONS_TO_NAME;
   const comparable =
-    enoughEvidence && volume.previous >= MIN_PERIOD_FEEDBACK_TO_COMPARE;
+    volume.current >= MIN_PERIOD_FEEDBACK_TO_COMPARE &&
+    volume.previous >= MIN_PERIOD_FEEDBACK_TO_COMPARE;
 
-  const praise = named(compare(nowSummary.praises, beforeSummary.praises, 'PRAISE', comparable));
-  const issues = named(compare(nowSummary.issues, beforeSummary.issues, 'ISSUE', comparable));
+  const praise = named(compare(nowSummary.praises, beforeSummary.praises, 'PRAISE', comparable, volume));
+  const issues = named(compare(nowSummary.issues, beforeSummary.issues, 'ISSUE', comparable, volume));
 
   // "Improved" means a complaint is raised less often than before; "worsened"
   // means more often. Praise moving is reported under praise, not as a fix.

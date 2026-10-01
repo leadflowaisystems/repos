@@ -64,6 +64,11 @@ export type InsightChange = {
   current: number;
   previous: number;
   delta: number;
+  /** How much feedback each check-in held, and the theme's share of it. */
+  currentTotal: number | null;
+  previousTotal: number | null;
+  currentPct: number | null;
+  previousPct: number | null;
   direction: 'BETTER' | 'WORSE' | 'FLAT';
   /** Already written in plain language by the pulse engine. */
   note: string;
@@ -224,6 +229,10 @@ function changesFrom(intel: ClientIntelligence): {
     current: insight.movement.currentCount ?? 0,
     previous: insight.movement.previousCount ?? 0,
     delta: insight.movement.delta ?? 0,
+    currentTotal: insight.movement.currentTotal,
+    previousTotal: insight.movement.previousTotal,
+    currentPct: insight.movement.currentPct,
+    previousPct: insight.movement.previousPct,
     direction:
       insight.movement.state === 'IMPROVING'
         ? 'BETTER'
@@ -322,6 +331,9 @@ export function insightNumbers(insight: OwnerInsight): Set<string> {
     add(change.current);
     add(change.previous);
     add(change.delta);
+    for (const n of [change.currentTotal, change.previousTotal, change.currentPct, change.previousPct]) {
+      if (n !== null) add(n);
+    }
   }
   if (insight.recommendation) add(insight.recommendation.mentions);
 

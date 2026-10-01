@@ -9,7 +9,6 @@ import type { Pulse, PulsePeriod } from '@/lib/health/health';
 import {
   HEADLINE_LIMIT,
   INTELLIGENCE_VERSION,
-  MIN_CHANGE_TO_REPORT,
   MIN_MENTIONS_TO_NAME,
   MIN_PERIOD_FEEDBACK_TO_COMPARE,
   SIGNAL_WEIGHTS,
@@ -367,10 +366,11 @@ describe('a trend is never manufactured', () => {
     expect(movement.state).toBe('IMPROVING');
   });
 
-  it('calls a small movement stable rather than a trend', () => {
+  it('calls a small movement in the SHARE stable rather than a trend', () => {
+    // One more mention, on more feedback: 20% then, 21% now.
     const p = pulse(
       period('s1', '1 Feb', 20, [['wait_time', 'Long waiting time', 4]]),
-      period('s2', '1 Mar', 20, [['wait_time', 'Long waiting time', 5]]),
+      period('s2', '1 Mar', 24, [['wait_time', 'Long waiting time', 5]]),
     );
     const movement = movementFor(
       p,
@@ -379,7 +379,8 @@ describe('a trend is never manufactured', () => {
       'wait_time',
       'Long waiting time',
     );
-    expect(Math.abs(movement.delta ?? 0)).toBeLessThan(MIN_CHANGE_TO_REPORT);
+    expect(movement.previousPct).toBe(20);
+    expect(movement.currentPct).toBe(21);
     expect(movement.state).toBe('STABLE');
     expect(movement.available).toBe(true);
   });
@@ -401,7 +402,7 @@ describe('a trend is never manufactured', () => {
     expect(movement.available).toBe(true);
     expect(movement.delta).toBe(-2);
     expect(movement.state).toBe('INSUFFICIENT_DATA');
-    expect(movement.note).toMatch(/too few either way/i);
+    expect(movement.note).toMatch(/too few mentions either way/i);
 
     // ...and it never reaches "what is changing".
     const intel = build({
@@ -457,9 +458,9 @@ describe('a trend is never manufactured', () => {
   });
 
   it('never lets a jump in feedback volume read as customers being happier', () => {
-    // Same complaint share, three times the feedback. The pulse engine reads
-    // proportions, so it reports no direction; the engine must not invent one
-    // from the mention counts having risen.
+    // Same complaint share, three times the feedback. Every comparison reads
+    // shares (health/compare.ts), so there is no direction to report; the
+    // mention count tripling is volume, not customers.
     const p = pulse(
       period('s1', '1 Feb', 10, [['wait_time', 'Long waiting time', 2]]),
       period('s2', '1 Mar', 30, [['wait_time', 'Long waiting time', 6]]),
@@ -469,11 +470,12 @@ describe('a trend is never manufactured', () => {
 
     expect(intel.overallTrend).toBe('STABLE');
     expect(intel.overallTrendNote).not.toMatch(/improv|better/i);
-    // The movement is still reported — with the caveat attached, never silently.
+    // The theme itself reads as the same share: 2 of 10 and 6 of 30 are both 20%.
+    const wait = [...intel.unhappy, ...intel.changing].find((i) => i.themeKey === 'wait_time');
+    if (wait) expect(wait.movement.state).not.toBe('WORSENING');
+    // The lopsided pair is still stated — as a limit on certainty, never silently.
     expect(intel.window.volumeCaveat).toBeTruthy();
-    expect(intel.limits.join(' ')).toMatch(
-      /just more feedback, not a change in what customers think/,
-    );
+    expect(intel.limits.join(' ')).toMatch(/compares the share of feedback, not the count/);
   });
 });
 
@@ -497,7 +499,11 @@ describe('before and after always names both points', () => {
     expect(change.movement.note).toContain('12 Mar');
     expect(change.movement.note).toContain('9');
     expect(change.movement.note).toContain('3');
-    expect(change.movement.note).toContain('down 6');
+    expect(change.movement.note).toContain('9 of 20');
+    expect(change.movement.note).toContain('3 of 22');
+    expect(change.movement.note).toContain('(45%)');
+    expect(change.movement.note).toContain('(14%)');
+    expect(change.movement.note).toContain('A smaller share of feedback than before');
   });
 
   it('says which two check-ins the whole comparison is between', () => {

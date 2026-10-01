@@ -16,7 +16,7 @@ import {
   type PortalWatch,
 } from './view';
 import { EN } from '@/lib/i18n/translator';
-import { buildTrends, type Trends } from './trends';
+import { buildTrendReadiness, buildTrends, type TrendReadiness, type Trends } from './trends';
 import type { PortalTranslator } from '@/lib/i18n/translator';
 
 /**
@@ -205,6 +205,21 @@ export type ImprovementsView = {
   keepDoing: PortalSignal[];
   /** What is getting worse, better, or holding steady — see `portal/trends.ts`. */
   trends: Trends;
+  /**
+   * Why there is or is not a trend to show: which check-ins exist, how much
+   * each holds, and what has arrived since. See `buildTrendReadiness`.
+   */
+  trendReadiness: TrendReadiness;
+  /**
+   * WHAT CUSTOMERS ARE SAYING NOW — deliberately separate from the trends.
+   *
+   * Counted over everything Headway has read, so it needs no check-in: the
+   * topics that are already a pattern, and the ones mentioned often enough to
+   * notice but not yet to be sure of. The same signals, in the same piles, the
+   * Customers page shows — carried here so the Trends page is never blank
+   * merely because there is nothing to compare yet.
+   */
+  current: { patterns: PortalSignal[]; early: PortalSignal[] };
 };
 
 export function buildImprovementsView(input: PortalInput): ImprovementsView {
@@ -253,6 +268,11 @@ export function buildImprovementsView(input: PortalInput): ImprovementsView {
     // becomes a row in the improvement table. Nobody decided to be good at it.
     keepDoing: v.loved.filter((s) => s.bucket === 'KEEP'),
     trends: buildTrends(v, input.intelligence.window.available),
+    trendReadiness: buildTrendReadiness(input),
+    current: {
+      patterns: [...v.unhappy, ...v.loved].filter((s) => s.bucket !== 'EARLY'),
+      early: v.early,
+    },
   };
 }
 
@@ -750,6 +770,8 @@ export type CheckinView = {
   /** What RepOS will look at next, for the themes that moved. */
   next: PortalWatch[];
   limits: string[];
+  /** Why there is or is not a comparison to show. See `buildTrendReadiness`. */
+  trendReadiness: TrendReadiness;
 };
 
 /**
@@ -849,5 +871,6 @@ export function buildCheckinView(
     unchangedNote,
     next,
     limits: v.limits,
+    trendReadiness: buildTrendReadiness(input),
   };
 }

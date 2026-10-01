@@ -27,6 +27,12 @@ export type AiCompleteOptions = {
   json?: boolean;
   maxOutputTokens?: number;
   temperature?: number;
+  /**
+   * How hard a reasoning model thinks before it answers, where the model has
+   * the setting. Reasoning is paid from the same output allowance as the
+   * answer, so a long think can cut the answer short.
+   */
+  reasoningEffort?: 'low' | 'medium' | 'high';
 };
 
 /**
@@ -44,6 +50,8 @@ export type AiUsage = {
 export type AiCompletion = {
   text: string;
   usage: AiUsage | null;
+  /** The model that actually answered, when the provider chose another than the configured one. */
+  model?: string;
 };
 
 export type AiProvider = {
@@ -56,15 +64,30 @@ export type AiProvider = {
   complete(options: AiCompleteOptions): Promise<AiCompletion>;
 };
 
+/**
+ * Why a call failed, where the reason changes what the caller should do.
+ *
+ *   TRUNCATED        the answer hit the output limit and was cut off. Never
+ *                    parsed: half a JSON reply is not a reading. A smaller
+ *                    batch may fit.
+ *   MODEL_NOT_FOUND  the configured model id no longer exists.
+ *   RATE_LIMITED     the provider's per-minute or per-day allowance is spent.
+ *   INVALID_JSON     the provider refused the model's own reply as broken
+ *                    JSON. A smaller batch usually comes back whole.
+ */
+export type AiErrorCode = 'TRUNCATED' | 'MODEL_NOT_FOUND' | 'RATE_LIMITED' | 'INVALID_JSON';
+
 export class AiError extends Error {
   readonly providerId: AiProviderId;
   readonly status?: number;
+  readonly code?: AiErrorCode;
 
-  constructor(providerId: AiProviderId, message: string, status?: number) {
+  constructor(providerId: AiProviderId, message: string, status?: number, code?: AiErrorCode) {
     super(message);
     this.name = 'AiError';
     this.providerId = providerId;
     this.status = status;
+    this.code = code;
   }
 }
 

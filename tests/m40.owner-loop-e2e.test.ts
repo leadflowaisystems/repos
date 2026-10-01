@@ -15,6 +15,7 @@ import { getResponsibility } from '@/lib/responsibility/service';
 import { movesFor } from '@/lib/improve/owner-moves';
 import { CAUSAL } from '@/lib/portal/test-fixtures';
 import { enoughToCheck, shelvesFor } from '@/components/workspace/improvements';
+import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
 
 /**
  * THE OWNER LOOP, AGAINST A REAL DATABASE (owner action-loop pass).
@@ -120,7 +121,7 @@ async function seed(
       issueTags: JSON.stringify(bad ? ['service_speed'] : []),
       praiseTags: JSON.stringify(bad ? [] : ['service_quality']),
       analysisStatus: 'ANALYSED',
-      analysisVersion: 2,
+      analysisVersion: ANALYSIS_VERSION,
       analysedAt: at,
       themesJson: JSON.stringify([
         bad
@@ -177,7 +178,7 @@ async function arrive(
       issueTags: JSON.stringify(bad ? ['service_speed'] : []),
       praiseTags: JSON.stringify(bad ? [] : ['service_quality']),
       analysisStatus: 'ANALYSED',
-      analysisVersion: 2,
+      analysisVersion: ANALYSIS_VERSION,
       analysedAt: at,
       themesJson: JSON.stringify([
         bad

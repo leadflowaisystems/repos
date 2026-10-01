@@ -455,7 +455,8 @@ describe('the translation layer stays out of everything else', () => {
     const budget = readFileSync(joinPath(ROOT, 'src', 'lib', 'ai', 'budget.ts'), 'utf8');
     expect(budget).toContain('AI_DAILY_TOKEN_BUDGET = 50_000');
     const groq = readFileSync(joinPath(ROOT, 'src', 'lib', 'ai', 'groq.ts'), 'utf8');
-    expect(groq).toContain("DEFAULT_MODEL = 'openai/gpt-oss-120b'");
+    // The default model moved once since M30, by measurement (café handover pass).
+    expect(groq).toContain("DEFAULT_MODEL = 'openai/gpt-oss-20b'");
     const route = readFileSync(joinPath(ROOT, 'src', 'lib', 'ai', 'route.ts'), 'utf8');
     expect(route).toContain('MIN_TEXT_FOR_AI');
   });

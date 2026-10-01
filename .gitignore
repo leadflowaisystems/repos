@@ -84,3 +84,6 @@ supabase/.branches/
 
 .vercel
 .env*.local
+
+# Live AI-reader evaluation replies (synthetic data only); regenerate with scripts/eval-ai-reader.mjs
+tests/eval/ai-recordings.json

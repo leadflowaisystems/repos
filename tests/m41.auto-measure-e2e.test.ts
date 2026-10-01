@@ -6,6 +6,7 @@ import { createRlsTestDb, hasRlsRuntimeDb, type RlsTestDb } from './helpers/rls-
 import { runInRequestScope } from '@/lib/request-cache';
 import { createActionForTheme, decideAction, getAction, moveAction } from '@/lib/improve/service';
 import { measureReadyActions } from '@/lib/improve/auto-measure';
+import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
 
 /**
  * HEADWAY CHECKS A CHANGE ITSELF, ONCE ENOUGH FEEDBACK HAS ARRIVED.
@@ -63,7 +64,7 @@ function feedback(id: string, prefix: string, at: Date, counts: { bad: number; g
       issueTags: JSON.stringify(bad ? ['service_speed'] : []),
       praiseTags: JSON.stringify(bad ? [] : ['service_quality']),
       analysisStatus: 'ANALYSED',
-      analysisVersion: 2,
+      analysisVersion: ANALYSIS_VERSION,
       analysedAt: at,
       themesJson: JSON.stringify([
         bad

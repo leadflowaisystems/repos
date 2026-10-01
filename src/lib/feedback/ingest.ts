@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import { cleanReviewText } from '@/lib/redact';
+import { cleanReviewText, redactPii } from '@/lib/redact';
 import { fingerprintFeedback } from './fingerprint';
 import { type IngestSource, INGEST_SOURCES } from './service';
 
@@ -127,7 +127,12 @@ export function prepareIngest(
   }
 
   const raw = (input.text ?? '').slice(0, MAX_TEXT);
-  const cleaned = cleanReviewText(raw);
+  // A pasted public review may open with its reviewer's name, and that line
+  // is dropped. A customer's own response from the QR form never does: its
+  // first line is theirs, and on a phone it is often just the dish —
+  // "Cappuccino" — which the name heuristic would delete (café handover
+  // pass). Identifiers are still redacted either way.
+  const cleaned = input.source === 'REP_OS_QR' ? redactPii(raw) : cleanReviewText(raw);
   const text = collapse(cleaned.text);
   const fingerprint = fingerprintFeedback(text);
 

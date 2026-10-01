@@ -97,6 +97,21 @@ export class OnceSet {
     return true;
   }
 
+  /**
+   * Whether an id was presented within the window, WITHOUT using it up. The
+   * caller records it with `remember` only once the thing it guards has
+   * actually happened: a form whose save failed must be sendable again.
+   */
+  has(id: string, now: Date = new Date()): boolean {
+    const stamp = this.seen.get(id);
+    return stamp !== undefined && stamp + this.ttlMs >= now.getTime();
+  }
+
+  /** Records an id as used. */
+  remember(id: string, now: Date = new Date()): void {
+    this.useOnce(id, now);
+  }
+
   reset(): void {
     this.seen.clear();
   }
@@ -104,8 +119,14 @@ export class OnceSet {
 
 /** Per feedback page: a whole business's customers, at a busy counter. */
 export const PAGE_LIMIT = { limit: 60, windowMs: 10 * 60_000 } as const;
-/** Per network address, when one is known: one phone, one stuck finger. */
-export const ADDRESS_LIMIT = { limit: 15, windowMs: 10 * 60_000 } as const;
+/**
+ * Per network address, when one is known. Every customer on a café's Wi-Fi
+ * shares one public address, so this is sized for a full room during a rush
+ * — four responses a minute from the one network — not for one phone (it was
+ * 15, which refused real customers at peak). Below the page's own ceiling, so
+ * one network still cannot use up a whole page.
+ */
+export const ADDRESS_LIMIT = { limit: 40, windowMs: 10 * 60_000 } as const;
 /** How long a form's nonce is remembered. */
 export const NONCE_TTL_MS = 30 * 60_000;
 

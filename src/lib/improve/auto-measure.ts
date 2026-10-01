@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
 import { listActionsWithProgress, measureClientAction } from './service';
+import { hasUnprocessedFeedback } from '@/lib/pipeline/feedback';
 
 /**
  * HEADWAY MEASURES A CHANGE ITSELF, ONCE THE EVIDENCE IS THERE.
@@ -44,6 +45,10 @@ export async function measureReadyActions(
     where: { clientId, status: 'DONE' },
   });
   if (waiting === 0) return { measured: [] };
+  // Never while feedback is still being read: a verdict saved halfway
+  // through a re-read would compare responses read two different ways, and
+  // it is saved for good. The next run, once everything is read, measures.
+  if (await hasUnprocessedFeedback(db, clientId, options.now)) return { measured: [] };
 
   const progress = await listActionsWithProgress(db, clientId);
   const ready = progress.filter((p) => p.action.status === 'DONE' && p.canMeasure);

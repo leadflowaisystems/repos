@@ -1,5 +1,4 @@
 import {
-  MIN_CHANGE_TO_REPORT,
   MIN_MENTIONS_TO_NAME,
   type ClientIntelligence,
   type Insight,
@@ -1122,7 +1121,7 @@ function watchLineFor(
       : t('insight.watch.early.issue', { theme, need: MIN_MENTIONS_TO_NAME });
   }
   if (insight.sentiment === 'PRAISE') {
-    return t('insight.watch.praise', { theme, change: MIN_CHANGE_TO_REPORT });
+    return t('insight.watch.praise', { theme });
   }
   if (state === 'CHECKED' && outcome?.result === 'IMPROVED') {
     return t('insight.watch.improved', { theme });
@@ -1130,7 +1129,7 @@ function watchLineFor(
   if (state === 'IN_PROGRESS') {
     return t('insight.watch.inProgress', { theme });
   }
-  return t('insight.watch.default', { theme, change: MIN_CHANGE_TO_REPORT });
+  return t('insight.watch.default', { theme });
 }
 
 /**

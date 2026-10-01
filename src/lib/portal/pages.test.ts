@@ -50,7 +50,7 @@ describe('customers — why Headway is saying this', () => {
   it('says what held steady when the two check-ins were compared and nothing moved', () => {
     const v = buildAnalysisView(input({ intelligence: intel({ pulse: pulseWith({ waitThen: 9, waitNow: 9 }) }) }));
     expect(v.steadyLine).toBe(
-      "Nothing moved by 2 or more mentions between these check-ins. Your doctor's care and explanation (4 → 4 mentions) and long waiting time (9 → 9 mentions) held steady.",
+      "Nothing moved enough between these check-ins to call it a change. Your doctor's care and explanation (4 of 20 → 4 of 20 · 20% → 20%) and long waiting time (9 of 20 → 9 of 20 · 45% → 45%) held about the same share of feedback.",
     );
   });
 
@@ -58,7 +58,7 @@ describe('customers — why Headway is saying this', () => {
     const v = buildAnalysisView(input());
     expect(v.recurring).toEqual([]);
     expect(v.fresh).toEqual([]);
-    expect(v.recurrenceNote).toMatch(/You have not recorded a check-in yet/);
+    expect(v.recurrenceNote).toMatch(/No check-in has been recorded yet/);
   });
 
   it('puts early themes under not-yet-clear with the no-action sentence', () => {
@@ -118,7 +118,9 @@ describe('improvements — what did we do, and did it help', () => {
       }),
     );
     expect(v.returning).toHaveLength(1);
-    expect(v.returning[0]?.sinceThen).toMatch(/^At check-ins after the change: 3 mentions at your check-in on March, 9 at May/);
+    expect(v.returning[0]?.sinceThen).toMatch(
+      /^At check-ins after the change: 3 of 20 at your check-in on March \(15%\), 9 of 20 at May \(45%\)\. A larger share/,
+    );
   });
 
   it('never leaks internals or causes', () => {

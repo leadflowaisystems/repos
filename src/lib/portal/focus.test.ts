@@ -178,7 +178,7 @@ describe('the proofs', () => {
     });
     const movement = compared.focus.proofs.find((p) => p.key === 'movement');
     expect(movement?.label).toBe('More often at your latest check-in');
-    expect(movement?.comparison).toBe('3 → 9 mentions at your last two check-ins');
+    expect(movement?.comparison).toBe('3 of 20 → 9 of 20 · 15% → 45% at your last two check-ins');
     expect(movement?.tone).toBe('bad');
   });
 

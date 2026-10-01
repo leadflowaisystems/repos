@@ -1,5 +1,4 @@
 import {
-  MIN_CHANGE_TO_REPORT,
   MIN_MENTIONS_TO_NAME,
   MIN_PERIOD_FEEDBACK_TO_COMPARE,
   type ClientIntelligence,
@@ -1102,10 +1101,9 @@ export function responsibilityNumbers(input: ResponsibilityInput): Set<string> {
   add(input.feedbackSince.total);
   add(input.needsYourWords);
   // The floors the watch lines name: the pattern floor, the strength floor
-  // (twice the pattern floor), the reporting floor and the comparison floor.
+  // (twice the pattern floor) and the comparison floor.
   add(MIN_MENTIONS_TO_NAME);
   add(MIN_MENTIONS_TO_NAME * 2);
-  add(MIN_CHANGE_TO_REPORT);
   add(MIN_FEEDBACK_TO_MEASURE);
   add(MIN_PERIOD_FEEDBACK_TO_COMPARE);
   for (const s of [...input.view.loved, ...input.view.unhappy, ...input.view.early]) {

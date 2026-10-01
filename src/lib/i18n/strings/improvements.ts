@@ -351,6 +351,136 @@ export const improvements = {
     hi: 'रुझान आपके दूसरे चेक-इन के बाद दिखेंगे।',
     mr: 'तुमच्या दुसऱ्या चेक-इननंतर कल दिसतील.',
   },
+
+  // -------------------------------------------------------------------------
+  // WHAT CUSTOMERS ARE SAYING NOW — kept apart from the trends
+  //
+  // A current pattern is counted over everything Headway has read and needs no
+  // check-in. A trend is a comparison and needs two. The page says both, in
+  // that order, so "no trend yet" is never mistaken for "nothing to say".
+  // -------------------------------------------------------------------------
+  'improvements.now.title': {
+    en: 'What customers are saying now',
+    hi: 'ग्राहक अभी क्या कह रहे हैं',
+    mr: 'ग्राहक सध्या काय सांगत आहेत',
+  },
+  'improvements.now.note': {
+    en: 'Counted across everything Headway has read. This is where things stand today, not which way they are moving.',
+    hi: 'Headway ने जो कुछ पढ़ा है, उस सबमें से गिना गया। यह आज की स्थिति है, यह नहीं कि चीज़ें किस तरफ़ जा रही हैं।',
+    mr: 'Headway ने वाचलेल्या सगळ्यातून मोजलेलं. ही आजची स्थिती आहे, गोष्टी कोणत्या दिशेने जात आहेत ते नाही.',
+  },
+  'improvements.now.none': {
+    en: 'No strong pattern yet. Nothing has been raised by enough customers for Headway to call it a pattern.',
+    hi: 'अभी कोई पक्का पैटर्न नहीं है। कोई भी बात इतने ग्राहकों ने नहीं कही कि Headway उसे पैटर्न कहे।',
+    mr: 'अजून कोणताही ठोस पॅटर्न नाही. कोणतीही गोष्ट पुरेशा ग्राहकांनी सांगितलेली नाही की Headway तिला पॅटर्न म्हणेल.',
+  },
+  'improvements.now.early.title': {
+    en: 'Early signs',
+    hi: 'शुरुआती संकेत',
+    mr: 'सुरुवातीचे संकेत',
+  },
+  'improvements.now.early.note': {
+    en: 'Mentioned a few times. Headway is not calling these a pattern until more feedback confirms them.',
+    hi: 'कुछ बार कहा गया। और फ़ीडबैक से पुष्टि होने तक Headway इन्हें पैटर्न नहीं कह रहा।',
+    mr: 'काही वेळा सांगितलं गेलं. आणखी फीडबॅकने खात्री होईपर्यंत Headway यांना पॅटर्न म्हणत नाही.',
+  },
+  'improvements.now.all': {
+    en: 'See every topic on Customers',
+    hi: 'हर विषय ग्राहक पेज पर देखें',
+    mr: 'प्रत्येक विषय ग्राहक पानावर पाहा',
+  },
+
+  // -------------------------------------------------------------------------
+  // TRENDS AREN'T READY YET — why, with the counts, and what happens next
+  //
+  // Not an error and not an apology: a trend is a comparison, and this says
+  // which half of the comparison is still missing.
+  // -------------------------------------------------------------------------
+  'improvements.notReady.eyebrow': {
+    en: 'Trend comparison',
+    hi: 'रुझान की तुलना',
+    mr: 'कलांची तुलना',
+  },
+  'improvements.notReady.title': {
+    en: 'Trends aren’t ready yet',
+    hi: 'रुझान अभी तैयार नहीं हैं',
+    mr: 'कल अजून तयार नाहीत',
+  },
+  'improvements.notReady.body': {
+    en: 'Headway can already read your customer feedback. To tell whether something is getting better, worse, or staying about the same, we need two comparable periods with enough feedback in each.',
+    hi: 'Headway आपके ग्राहकों का फ़ीडबैक अभी से पढ़ सकता है। कोई चीज़ बेहतर हो रही है, बिगड़ रही है या लगभग वैसी ही है, यह बताने के लिए हमें तुलना लायक़ दो अवधियाँ चाहिए, और दोनों में पर्याप्त फ़ीडबैक।',
+    mr: 'Headway तुमच्या ग्राहकांचा फीडबॅक आत्ताच वाचू शकतं. एखादी गोष्ट सुधारत आहे, बिघडत आहे की जवळपास तशीच आहे हे सांगण्यासाठी आम्हाला तुलना करता येतील असे दोन कालावधी लागतात, आणि दोन्हींमध्ये पुरेसा फीडबॅक.',
+  },
+  'improvements.notReady.explain': {
+    en: 'A check-in is a dated reading of your feedback that Headway records for you. Comparing two of them is what shows a trend.',
+    hi: 'चेक-इन आपके फ़ीडबैक की एक तारीख़ वाली रीडिंग है, जो Headway आपके लिए दर्ज करता है। ऐसे दो की तुलना से ही रुझान दिखता है।',
+    mr: 'चेक-इन म्हणजे तुमच्या फीडबॅकचं तारीख असलेलं वाचन, जे Headway तुमच्यासाठी नोंदवतं. अशा दोन वाचनांच्या तुलनेतूनच कल दिसतो.',
+  },
+  'improvements.notReady.fact.read': {
+    en: 'Responses read',
+    hi: 'पढ़े गए जवाब',
+    mr: 'वाचलेले प्रतिसाद',
+  },
+  'improvements.notReady.fact.checkins': {
+    en: 'Check-ins recorded',
+    hi: 'दर्ज चेक-इन',
+    mr: 'नोंदवलेले चेक-इन',
+  },
+  'improvements.notReady.fact.since': {
+    en: 'New responses since your last check-in',
+    hi: 'पिछले चेक-इन के बाद आए नए जवाब',
+    mr: 'मागच्या चेक-इननंतर आलेले नवे प्रतिसाद',
+  },
+  'improvements.notReady.fact.waiting': {
+    en: 'Responses waiting for your first check-in',
+    hi: 'पहले चेक-इन का इंतज़ार कर रहे जवाब',
+    mr: 'पहिल्या चेक-इनची वाट पाहणारे प्रतिसाद',
+  },
+  'improvements.notReady.checkins.none': {
+    en: 'None yet',
+    hi: 'अभी कोई नहीं',
+    mr: 'अजून एकही नाही',
+  },
+  'improvements.notReady.checkins.single': {
+    en: '1 — {label}',
+    hi: '1 — {label}',
+    mr: '1 — {label}',
+  },
+  'improvements.notReady.checkins.several': {
+    en: '{count} — latest {label}',
+    hi: '{count} — सबसे नया {label}',
+    mr: '{count} — सर्वात नवा {label}',
+  },
+  'improvements.notReady.progress': {
+    en: '{count} of {need}',
+    hi: '{need} में से {count}',
+    mr: '{need} पैकी {count}',
+  },
+  'improvements.notReady.next.title': {
+    en: 'What happens next',
+    hi: 'आगे क्या होगा',
+    mr: 'पुढे काय होईल',
+  },
+  'improvements.notReady.next.none': {
+    en: 'Headway records your first check-in, covering everything received so far. Trends appear after a second one.',
+    hi: 'Headway आपका पहला चेक-इन दर्ज करेगा, जिसमें अब तक आया सब कुछ शामिल होगा। रुझान दूसरे चेक-इन के बाद दिखेंगे।',
+    mr: 'Headway तुमचा पहिला चेक-इन नोंदवेल, ज्यात आतापर्यंत आलेलं सगळं असेल. दुसऱ्या चेक-इननंतर कल दिसतील.',
+  },
+  'improvements.notReady.next.oneWaiting': {
+    en: 'A second check-in, once {need} new responses have arrived since the first. Then trends appear here.',
+    hi: 'पहले चेक-इन के बाद {need} नए जवाब आने पर दूसरा चेक-इन होगा। फिर रुझान यहाँ दिखेंगे।',
+    mr: 'पहिल्या चेक-इननंतर {need} नवे प्रतिसाद आले की दुसरा चेक-इन होईल. मग कल इथे दिसतील.',
+  },
+  'improvements.notReady.next.oneDue': {
+    en: 'Enough new responses have arrived for a second check-in. Once Headway records it, trends appear here.',
+    hi: 'दूसरे चेक-इन के लिए काफ़ी नए जवाब आ चुके हैं। Headway के उसे दर्ज करते ही रुझान यहाँ दिखेंगे।',
+    mr: 'दुसऱ्या चेक-इनसाठी पुरेसे नवे प्रतिसाद आले आहेत. Headway ने तो नोंदवताच कल इथे दिसतील.',
+  },
+  'improvements.notReady.next.thin': {
+    en: 'Your last two check-ins hold {previous} and {current} responses. Headway needs at least {need} in each before it compares them. Your next check-in will include everything received since.',
+    hi: 'आपके पिछले दो चेक-इन में {previous} और {current} जवाब हैं। तुलना से पहले Headway को हर एक में कम से कम {need} चाहिए। अगले चेक-इन में उसके बाद आया सब कुछ शामिल होगा।',
+    mr: 'तुमच्या मागच्या दोन चेक-इनमध्ये {previous} आणि {current} प्रतिसाद आहेत. तुलना करण्याआधी Headway ला प्रत्येकात किमान {need} लागतात. पुढच्या चेक-इनमध्ये त्यानंतर आलेलं सगळं असेल.',
+  },
   'improvements.trends.changes': {
     en: 'Your changes',
     hi: 'आपके बदलाव',

@@ -39,7 +39,7 @@ export const EVERAFTER_WEDDINGS: DemoStory = {
     r('2026-06-21T12:40:00+05:30', 5, 'Excellent work and very well managed on the wedding day.'),
     r('2026-06-24T17:15:00+05:30', null, 'Kaam accha tha, but planning ke time pe phone not picked up, koi jawab nahi milta tha.'),
     r('2026-06-27T16:30:00+05:30', 4, 'Flexible with our last minute changes and the stage looked lovely.'),
-    r('2026-06-30T20:20:00+05:30', 2, 'Hard to reach before the event. Nobody told us the colour scheme had changed.'),
+    r('2026-06-30T20:20:00+05:30', 2, 'The setup crew came late and the lights were still going up when guests arrived.'),
     r('2026-07-04T14:00:00+05:30', 5, 'Stunning decor, smooth coordination on the day.'),
   ],
 
@@ -65,11 +65,11 @@ export const EVERAFTER_WEDDINGS: DemoStory = {
   },
 
   midReviews: [
-    r('2026-07-11T19:00:00+05:30', 2, 'Our coordinator ignored three messages about the guest count.'),
+    r('2026-07-11T19:00:00+05:30', 2, 'The crew came late for the reception setup and the stage was not ready on time.'),
     r('2026-07-14T13:15:00+05:30', 5, 'The decor was beautiful and the team handled the rain perfectly.'),
     r('2026-07-17T18:20:00+05:30', 2, 'No updates at all in the final week. Very stressful for the family.'),
     r('2026-07-20T12:05:00+05:30', 4, 'Amazing photos of the decor, and they adjusted everything we asked.'),
-    r('2026-07-23T20:40:00+05:30', 3, 'Good decor, but hard to reach anyone after the advance was paid.'),
+    r('2026-07-23T20:40:00+05:30', 3, 'Good decor, but an extra charge for the stage lights appeared on the final bill.'),
     r('2026-07-25T15:30:00+05:30', 3, 'They asked more for extra lighting on the day.'),
   ],
 

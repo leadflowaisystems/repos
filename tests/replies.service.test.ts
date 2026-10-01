@@ -606,7 +606,8 @@ describe('replies adapt to the vertical through the same code path', () => {
       vertical: 'restaurant',
       name: 'Corner Cafe',
       raw: '1 star\nThe food was cold and the waiter was rude.',
-      expect: /khane ki quality|staff ke vyavhaar/i,
+      // "The food was cold" is "served cold" since the café handover pass.
+      expect: /khane ki quality|staff ke vyavhaar|order garam na milne/i,
     },
     {
       vertical: 'clinic',

@@ -278,7 +278,7 @@ describe('what the owner sees', () => {
     const analysis = await getAnalysisView(db, clientId);
     expect(analysis?.better).toEqual([]);
     expect(analysis?.worse).toEqual([]);
-    expect(analysis?.recurrenceNote).toMatch(/have not recorded a check-in yet/);
+    expect(analysis?.recurrenceNote).toMatch(/No check-in has been recorded yet/);
     expect(analysis?.soFar.mentions.length).toBeGreaterThan(0);
 
     const improvements = await getImprovementsView(db, clientId);

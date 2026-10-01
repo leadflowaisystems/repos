@@ -249,34 +249,34 @@ export const brief = {
   // while rows are genuinely waiting for the pipeline, "just read" only for
   // rows read in the last few minutes, and "waiting" when reading is paused.
   'brief.live.reading.one': {
-    en: '{count} new customer response · Headway is reading it',
-    hi: 'ग्राहक का {count} नया जवाब · Headway इसे पढ़ रहा है',
-    mr: 'ग्राहकाचा {count} नवा प्रतिसाद · Headway तो वाचत आहे',
+    en: '{count} customer response not read yet · Headway is reading it',
+    hi: 'ग्राहक का {count} जवाब अभी पढ़ा नहीं गया · Headway इसे पढ़ रहा है',
+    mr: 'ग्राहकाचा {count} प्रतिसाद अजून वाचलेला नाही · Headway तो वाचत आहे',
   },
   'brief.live.reading.other': {
-    en: '{count} new customer responses · Headway is reading them',
-    hi: 'ग्राहकों के {count} नए जवाब · Headway इन्हें पढ़ रहा है',
-    mr: 'ग्राहकांचे {count} नवे प्रतिसाद · Headway ते वाचत आहे',
+    en: '{count} customer responses not read yet · Headway is reading them',
+    hi: 'ग्राहकों के {count} जवाब अभी पढ़े नहीं गए · Headway इन्हें पढ़ रहा है',
+    mr: 'ग्राहकांचे {count} प्रतिसाद अजून वाचलेले नाहीत · Headway ते वाचत आहे',
   },
   'brief.live.held.one': {
-    en: '{count} new customer response · waiting to be read',
-    hi: 'ग्राहक का {count} नया जवाब · पढ़े जाने का इंतज़ार',
-    mr: 'ग्राहकाचा {count} नवा प्रतिसाद · वाचला जाण्याची वाट',
+    en: '{count} customer response not read yet · reading is paused',
+    hi: 'ग्राहक का {count} जवाब अभी पढ़ा नहीं गया · पढ़ना रुका हुआ है',
+    mr: 'ग्राहकाचा {count} प्रतिसाद अजून वाचलेला नाही · वाचन थांबलेलं आहे',
   },
   'brief.live.held.other': {
-    en: '{count} new customer responses · waiting to be read',
-    hi: 'ग्राहकों के {count} नए जवाब · पढ़े जाने का इंतज़ार',
-    mr: 'ग्राहकांचे {count} नवे प्रतिसाद · वाचले जाण्याची वाट',
+    en: '{count} customer responses not read yet · reading is paused',
+    hi: 'ग्राहकों के {count} जवाब अभी पढ़े नहीं गए · पढ़ना रुका हुआ है',
+    mr: 'ग्राहकांचे {count} प्रतिसाद अजून वाचलेले नाहीत · वाचन थांबलेलं आहे',
   },
   'brief.live.justRead.one': {
-    en: 'Headway just read {count} new customer response',
-    hi: 'Headway ने अभी ग्राहक का {count} नया जवाब पढ़ा',
-    mr: 'Headway ने आत्ताच ग्राहकाचा {count} नवा प्रतिसाद वाचला',
+    en: 'Headway just read {count} customer response from the last day',
+    hi: 'Headway ने अभी पिछले एक दिन का ग्राहक का {count} जवाब पढ़ा',
+    mr: 'Headway ने आत्ताच गेल्या एका दिवसातला ग्राहकाचा {count} प्रतिसाद वाचला',
   },
   'brief.live.justRead.other': {
-    en: 'Headway just read {count} new customer responses',
-    hi: 'Headway ने अभी ग्राहकों के {count} नए जवाब पढ़े',
-    mr: 'Headway ने आत्ताच ग्राहकांचे {count} नवे प्रतिसाद वाचले',
+    en: 'Headway just read {count} customer responses from the last day',
+    hi: 'Headway ने अभी पिछले एक दिन के ग्राहकों के {count} जवाब पढ़े',
+    mr: 'Headway ने आत्ताच गेल्या एका दिवसातले ग्राहकांचे {count} प्रतिसाद वाचले',
   },
 
   // LATEST FROM CUSTOMERS — the newest few, in their own words, read or not.
@@ -402,6 +402,37 @@ export const brief = {
     en: 'New feedback is still coming in, and Headway is reading it.',
     hi: 'नया फ़ीडबैक अभी आ रहा है, और Headway उसे पढ़ रहा है।',
     mr: 'नवा फीडबॅक अजून येत आहे, आणि Headway तो वाचत आहे.',
+  },
+
+  // WHILE THE EVIDENCE IS THIN (intelligence audit). Below the engine's
+  // "enough to spot patterns" line, "Nothing needs your attention" is a
+  // conclusion Headway has not earned. This says the state of the evidence
+  // instead, and lists anything mentioned a few times as an early sign — never
+  // as a problem to act on.
+  'brief.thin.title': {
+    en: 'No strong pattern yet',
+    hi: 'अभी कोई पक्का पैटर्न नहीं',
+    mr: 'अजून कोणताही ठोस पॅटर्न नाही',
+  },
+  'brief.thin.body.one': {
+    en: 'Headway has read {count} response. Nothing has come up often enough yet to be sure of.',
+    hi: 'Headway ने {count} जवाब पढ़ा है। अभी कोई बात इतनी बार नहीं आई कि उस पर भरोसा किया जा सके।',
+    mr: 'Headway ने {count} प्रतिसाद वाचला आहे. अजून कोणतीही गोष्ट खात्री वाटेल इतक्या वेळा आलेली नाही.',
+  },
+  'brief.thin.body.other': {
+    en: 'Headway has read {count} responses. Nothing has come up often enough yet to be sure of.',
+    hi: 'Headway ने {count} जवाब पढ़े हैं। अभी कोई बात इतनी बार नहीं आई कि उस पर भरोसा किया जा सके।',
+    mr: 'Headway ने {count} प्रतिसाद वाचले आहेत. अजून कोणतीही गोष्ट खात्री वाटेल इतक्या वेळा आलेली नाही.',
+  },
+  'brief.earlySigns.title': {
+    en: 'Early signs',
+    hi: 'शुरुआती संकेत',
+    mr: 'सुरुवातीचे संकेत',
+  },
+  'brief.earlySigns.note': {
+    en: 'Mentioned a few times. Not a pattern yet. Headway will confirm or drop these as more feedback arrives.',
+    hi: 'कुछ बार कहा गया। अभी पैटर्न नहीं है। और फ़ीडबैक आने पर Headway इनकी पुष्टि करेगा या इन्हें हटा देगा।',
+    mr: 'काही वेळा सांगितलं गेलं. अजून पॅटर्न नाही. आणखी फीडबॅक आल्यावर Headway यांची खात्री करेल किंवा हे काढून टाकेल.',
   },
 
   // -------------------------------------------------------------------------

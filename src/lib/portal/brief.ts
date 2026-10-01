@@ -7,6 +7,7 @@ import type { Responsibility } from '@/lib/responsibility/engine';
 import type { AnalysisCoverage } from '@/lib/feedback/analysis';
 import { EN } from '@/lib/i18n/translator';
 import type { PortalTranslator } from '@/lib/i18n/translator';
+import { TIER_LIMITED_MIN } from '@/lib/intelligence/engine';
 
 /**
  * THE OWNER'S BRIEF — what Home says in the first ten seconds (mobile pass).
@@ -248,6 +249,25 @@ export type Brief = {
   /** How many topics moved in all, of which `changed` shows three. */
   changedTotal: number;
   /**
+   * EARLY SIGNS — complaints mentioned often enough to notice, not yet often
+   * enough, or across enough feedback, for Headway to stand behind them.
+   *
+   * The engine grades these EARLY and the Customers page files them under
+   * "Not yet clear". Home used to promote the top one to the full "Needs your
+   * attention" card — count, suggestion and decision buttons — on three
+   * mentions out of five, while its own header said nothing needed attention
+   * and every other page said it was too soon. Now they are listed here,
+   * plainly, as what they are. At most three; the full pile is on Customers.
+   */
+  earlySigns: Array<{ themeKey: string; label: string; count: number; href: string }>;
+  /**
+   * True while fewer than the engine's "enough to spot patterns" line has been
+   * read (`TIER_LIMITED_MIN`). The calm state reads differently then: not
+   * "nothing needs your attention", which is a conclusion, but "no strong
+   * pattern yet", which is the state of the evidence.
+   */
+  thin: boolean;
+  /**
    * True when there is feedback but nothing needs the owner.
    *
    * A tool that is willing to say "nothing needs you today" is a tool an
@@ -315,17 +335,17 @@ export function trendOf(signal: PortalSignal, t: PortalTranslator): BriefTrend |
   // comes from `intelligence/engine.ts`, which sets
   //   good = sentiment === 'ISSUE' ? !rose : rose
   //   state = good ? 'IMPROVING' : 'WORSENING'
-  // so for PRAISE, IMPROVING means the count ROSE. The first version of this
+  // so for PRAISE, IMPROVING means the share ROSE. The first version of this
   // function read the state as a direction, which drew praise that had fallen
   // as a green "↑ more than last check-in" — a false signal on the one screen
-  // an owner trusts at a glance. The arrow is the count's direction; the tone
+  // an owner trusts at a glance. The arrow is the share's direction; the tone
   // is whether that is good news. They are recovered separately here.
   const rose = signal.kind === 'ISSUE' ? direction === 'WORSENING' : direction === 'IMPROVING';
   return {
     mark: rose ? '↑' : '↓',
     // The words are the verdict an owner acts on — "Getting worse" for a
     // complaint that rose AND for praise that fell. The arrow beside them is
-    // the count's own direction, so the two can never be confused.
+    // the share's own direction (health/compare.ts), so the two can never be confused.
     label: direction === 'IMPROVING' ? t('brief.trend.better') : t('brief.trend.worse'),
     counts: signal.movementCounts,
     tone: direction === 'IMPROVING' ? 'good' : 'bad',
@@ -498,12 +518,19 @@ export function buildBrief(input: BriefInput): Brief {
   // first, not the one with the biggest number. The engine already weighs
   // recurrence, severity and whether a decision is outstanding; picking by
   // count here would quietly overrule it on the one screen that matters.
+  //
+  // AN EARLY SIGN IS NEVER THE LEAD. The old last resort here was
+  // `view.unhappy[0]` whatever its standing, which put a complaint the engine
+  // graded EARLY — three mentions in five responses — on Home as the thing to
+  // act on, with a suggestion and buttons, while Customers filed the same
+  // topic under "Not yet clear". Early signs are listed as early signs below.
   const leadKey = r.needsYou[0]?.themeKey ?? null;
-  const lead =
+  const candidate =
     (leadKey ? view.unhappy.find((s) => s.themeKey === leadKey) : null) ??
     view.first ??
     view.unhappy[0] ??
     null;
+  const lead = candidate && candidate.bucket !== 'EARLY' ? candidate : null;
 
   // The strength is chosen the same way, from the pile the view already
   // ranked. `keep` is the engine's own answer to "what would I protect".
@@ -569,6 +596,16 @@ export function buildBrief(input: BriefInput): Brief {
     alsoLoved: strength ? alsoStrong.map((s) => cardFor(s, evidence, basePath, t)) : [],
     changed,
     changedTotal: moved.length,
+    earlySigns: view.early
+      .filter((s) => s.kind === 'ISSUE')
+      .slice(0, 3)
+      .map((s) => ({
+        themeKey: s.themeKey,
+        label: s.themeLabel,
+        count: s.evidenceCount,
+        href: `${basePath}/reviews?theme=${encodeURIComponent(s.themeKey)}`,
+      })),
+    thin: view.basedOn < TIER_LIMITED_MIN,
     calm: !tooEarly && attention === null,
     memory: memoryOf(view.actions, now),
     tooEarly,

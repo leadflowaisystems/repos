@@ -82,6 +82,19 @@ export const TREND_RATING_DELTA = 0.1;
 /** Share moves smaller than 5 percentage points are treated as flat. */
 export const TREND_SHARE_DELTA = 0.05;
 
+/**
+ * A share move must also clear this two-proportion z-score before it is called
+ * a direction: the 80% two-sided bar. See `compare.ts` for why not 95%, and
+ * for what keeps 80% honest.
+ */
+export const TREND_MIN_Z = 1.28;
+
+/**
+ * At least one side of a comparison must hold this many mentions before a
+ * move is called anything. The same floor that names a theme at all.
+ */
+export const MIN_MENTIONS_FOR_TREND_CLAIMS = 3;
+
 // ---------------------------------------------------------------------------
 // Vocabulary
 // ---------------------------------------------------------------------------

@@ -52,14 +52,14 @@ export const readiness = {
     mr: 'तुमची माहिती अजून तयार होत आहे',
   },
   'readiness.building.body.one': {
-    en: "You've received {count} response so far. Headway needs a little more customer feedback before it can show meaningful patterns and trends.",
-    hi: 'अब तक आपको {count} जवाब मिला है। सही पैटर्न और रुझान दिखाने से पहले Headway को ग्राहकों से थोड़ा और फ़ीडबैक चाहिए।',
-    mr: 'आतापर्यंत तुम्हाला {count} प्रतिसाद मिळाला आहे. ठोस पॅटर्न आणि ट्रेंड दाखवण्याआधी Headway ला ग्राहकांकडून थोडा आणखी फीडबॅक हवा आहे.',
+    en: "You've received {count} response so far. Headway needs a little more customer feedback before it gives a first reading of what customers are saying.",
+    hi: 'अब तक आपको {count} जवाब मिला है। ग्राहक क्या कह रहे हैं, इसकी पहली झलक देने से पहले Headway को ग्राहकों से थोड़ा और फ़ीडबैक चाहिए।',
+    mr: 'आतापर्यंत तुम्हाला {count} प्रतिसाद मिळाला आहे. ग्राहक काय म्हणत आहेत याचं पहिलं वाचन देण्याआधी Headway ला ग्राहकांकडून थोडा आणखी फीडबॅक हवा आहे.',
   },
   'readiness.building.body.other': {
-    en: "You've received {count} responses so far. Headway needs a little more customer feedback before it can show meaningful patterns and trends.",
-    hi: 'अब तक आपको {count} जवाब मिले हैं। सही पैटर्न और रुझान दिखाने से पहले Headway को ग्राहकों से थोड़ा और फ़ीडबैक चाहिए।',
-    mr: 'आतापर्यंत तुम्हाला {count} प्रतिसाद मिळाले आहेत. ठोस पॅटर्न आणि ट्रेंड दाखवण्याआधी Headway ला ग्राहकांकडून थोडा आणखी फीडबॅक हवा आहे.',
+    en: "You've received {count} responses so far. Headway needs a little more customer feedback before it gives a first reading of what customers are saying.",
+    hi: 'अब तक आपको {count} जवाब मिले हैं। ग्राहक क्या कह रहे हैं, इसकी पहली झलक देने से पहले Headway को ग्राहकों से थोड़ा और फ़ीडबैक चाहिए।',
+    mr: 'आतापर्यंत तुम्हाला {count} प्रतिसाद मिळाले आहेत. ग्राहक काय म्हणत आहेत याचं पहिलं वाचन देण्याआधी Headway ला ग्राहकांकडून थोडा आणखी फीडबॅक हवा आहे.',
   },
 
   // One short of the line. Its own words, because "still building" at four of
@@ -70,14 +70,14 @@ export const readiness = {
     mr: 'जवळजवळ पूर्ण',
   },
   'readiness.almost.body.one': {
-    en: "You've received {count} response. Headway will start showing your strongest customer patterns and trends once you reach {target} responses.",
-    hi: 'आपको {count} जवाब मिला है। {target} जवाब पूरे होते ही Headway आपके ग्राहकों के सबसे साफ़ पैटर्न और रुझान दिखाना शुरू कर देगा।',
-    mr: 'तुम्हाला {count} प्रतिसाद मिळाला आहे. {target} प्रतिसाद पूर्ण होताच Headway तुमच्या ग्राहकांचे सर्वात ठळक पॅटर्न आणि ट्रेंड दाखवायला सुरुवात करेल.',
+    en: "You've received {count} response. Headway will give its first reading of what customers are saying once you reach {target} responses.",
+    hi: 'आपको {count} जवाब मिला है। {target} जवाब पूरे होते ही Headway बताएगा कि ग्राहक क्या कह रहे हैं, इसकी पहली झलक।',
+    mr: 'तुम्हाला {count} प्रतिसाद मिळाला आहे. {target} प्रतिसाद पूर्ण होताच ग्राहक काय म्हणत आहेत याचं पहिलं वाचन Headway देईल.',
   },
   'readiness.almost.body.other': {
-    en: "You've received {count} responses. Headway will start showing your strongest customer patterns and trends once you reach {target} responses.",
-    hi: 'आपको {count} जवाब मिले हैं। {target} जवाब पूरे होते ही Headway आपके ग्राहकों के सबसे साफ़ पैटर्न और रुझान दिखाना शुरू कर देगा।',
-    mr: 'तुम्हाला {count} प्रतिसाद मिळाले आहेत. {target} प्रतिसाद पूर्ण होताच Headway तुमच्या ग्राहकांचे सर्वात ठळक पॅटर्न आणि ट्रेंड दाखवायला सुरुवात करेल.',
+    en: "You've received {count} responses. Headway will give its first reading of what customers are saying once you reach {target} responses.",
+    hi: 'आपको {count} जवाब मिले हैं। {target} जवाब पूरे होते ही Headway बताएगा कि ग्राहक क्या कह रहे हैं, इसकी पहली झलक।',
+    mr: 'तुम्हाला {count} प्रतिसाद मिळाले आहेत. {target} प्रतिसाद पूर्ण होताच ग्राहक काय म्हणत आहेत याचं पहिलं वाचन Headway देईल.',
   },
 
   // -------------------------------------------------------------------------
@@ -114,9 +114,9 @@ export const readiness = {
     mr: 'ग्राहकांना तुमच्या QR कार्ड किंवा लिंकवरून फीडबॅक द्यायला सांगत राहा. प्रत्येक प्रतिसाद येताच Headway तो वाचतं.',
   },
   'readiness.promise': {
-    en: 'At {target} responses, Headway starts showing what customers like, what needs attention, and how it changes over time.',
-    hi: '{target} जवाब होने पर Headway दिखाना शुरू करेगा कि ग्राहकों को क्या पसंद है, किस पर ध्यान देना है, और समय के साथ क्या बदलता है।',
-    mr: '{target} प्रतिसाद झाल्यावर ग्राहकांना काय आवडतं, कशाकडे लक्ष द्यायला हवं आणि कालांतराने काय बदलतं, हे Headway दाखवायला सुरुवात करेल.',
+    en: 'Headway reads every response as it arrives. Some insights only appear when enough evidence supports them: a first reading at {target} responses, patterns as more feedback comes in, and changes over time once two check-ins can be compared.',
+    hi: 'Headway हर जवाब आते ही पढ़ता है। कुछ जानकारी तभी दिखती है जब उसके लिए पर्याप्त सबूत हो: {target} जवाब पर पहली झलक, ज़्यादा फ़ीडबैक आने पर पैटर्न, और दो चेक-इन की तुलना हो सके तब समय के साथ बदलाव।',
+    mr: 'प्रत्येक प्रतिसाद येताच Headway तो वाचतं. काही माहिती तेव्हाच दिसते जेव्हा तिला पुरेसा पुरावा असतो: {target} प्रतिसादांवर पहिलं वाचन, जास्त फीडबॅक आल्यावर पॅटर्न, आणि दोन चेक-इनची तुलना करता आल्यावर कालांतराने झालेले बदल.',
   },
   'readiness.cta.kit': {
     en: 'Get your QR card and link',

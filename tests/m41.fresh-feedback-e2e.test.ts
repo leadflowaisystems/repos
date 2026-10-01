@@ -15,6 +15,7 @@ import { getEvidenceIndex, getFeedbackEntry, getFreshFeed } from '@/lib/portal/s
 import { getResponsibility } from '@/lib/responsibility/service';
 import { buildBrief } from '@/lib/portal/brief';
 import { newPublicToken } from '@/lib/tokens';
+import { ANALYSIS_VERSION } from '@/lib/analysis/normalize';
 
 /**
  * A CUSTOMER'S FEEDBACK, FROM THE CARD TO HOME — AGAINST A REAL DATABASE.
@@ -137,7 +138,7 @@ async function seed(
       issueTags: JSON.stringify(bad ? ['service_speed'] : []),
       praiseTags: JSON.stringify(bad ? [] : ['service_quality']),
       analysisStatus: 'ANALYSED',
-      analysisVersion: 2,
+      analysisVersion: ANALYSIS_VERSION,
       analysedAt: long,
       themesJson: JSON.stringify([
         bad

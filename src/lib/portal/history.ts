@@ -1,6 +1,6 @@
 import type { Pack } from '@/lib/packs';
 import { summariseThemes, type StoredSnapshot } from '@/lib/health/health';
-import { MIN_PERIOD_FEEDBACK_TO_COMPARE } from '@/lib/intelligence/engine';
+import { MIN_MENTIONS_TO_NAME } from '@/lib/intelligence/engine';
 import { formatDate } from '@/lib/format';
 import { EN } from '@/lib/i18n/translator';
 import type { PortalTranslator } from '@/lib/i18n/translator';
@@ -56,7 +56,10 @@ export function presenceFrom(snapshots: StoredSnapshot[], pack: Pack): PresenceM
   const ordered = [...snapshots].sort(
     (a, b) => b.capturedAt.getTime() - a.capturedAt.getTime() || a.id.localeCompare(b.id),
   );
-  const readable = ordered.filter((s) => s.feedback.length >= MIN_PERIOD_FEEDBACK_TO_COMPARE);
+  // A check-in that could name a theme at all. Recurrence says "named at two
+  // check-ins", a count claim, so it keeps the naming floor; comparing SHARES
+  // between two check-ins needs more (MIN_PERIOD_FEEDBACK_TO_COMPARE).
+  const readable = ordered.filter((s) => s.feedback.length >= MIN_MENTIONS_TO_NAME);
 
   const build = (which: 'issues' | 'praises'): Map<string, ThemePresence> => {
     const out = new Map<string, ThemePresence>();

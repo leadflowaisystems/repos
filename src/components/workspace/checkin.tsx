@@ -21,6 +21,7 @@ import { SignalCard, type SignalGroupKey } from '@/components/workspace/signal-b
 import type { EvidenceIndex } from '@/lib/portal/evidence';
 import { getTranslator } from '@/lib/i18n/request';
 import { InsightsBuilding } from '@/components/workspace/insights-building';
+import { TrendsNotReady } from '@/components/workspace/trends-not-ready';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Check-in' };
@@ -194,11 +195,18 @@ export async function PortalCheckin({
       ) : null}
 
       <div className="mt-10 max-w-3xl space-y-6">
+        {/* Nothing was compared: say why, in the open, with the counts — the
+            same card Trends shows — rather than one line behind a reveal. */}
+        {!compared ? <TrendsNotReady readiness={view.trendReadiness} /> : null}
+
+        {compared || hasDetail ? (
         <Reveal summary={t('checkin.reveal.changed')} tone="strong">
           <div className="rounded-xl border border-ink-200 bg-white p-4 sm:p-5">
-            <Callout tone={view.worse.length > 0 || view.returning.length > 0 ? 'bad' : moved ? 'good' : 'neutral'}>
-              {view.movementLine}
-            </Callout>
+            {compared ? (
+              <Callout tone={view.worse.length > 0 || view.returning.length > 0 ? 'bad' : moved ? 'good' : 'neutral'}>
+                {view.movementLine}
+              </Callout>
+            ) : null}
             {view.unchangedNote ? (
               <p className="mt-2 pl-4 text-[13px] leading-relaxed text-ink-500">{view.unchangedNote}</p>
             ) : null}
@@ -261,6 +269,7 @@ export async function PortalCheckin({
             ) : null}
           </div>
         </Reveal>
+        ) : null}
 
         {since.did.length > 0 || r.basedOn > 0 ? (
           <Reveal summary={t('checkin.reveal.did', { since: since.sinceLabel.replace(/^Since /, 'since ') })}>

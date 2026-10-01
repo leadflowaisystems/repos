@@ -155,6 +155,31 @@ export const improve = {
     hi: 'इसका ज़िक्र करने वाले फ़ीडबैक के हिस्से में {delta} का बदलाव आया। ऊपर गया या नीचे, यह कहने से पहले Headway को {min} का बदलाव चाहिए।',
     mr: 'याचा उल्लेख करणाऱ्या फीडबॅकचा हिस्सा {delta} ने बदलला. वर गेलं की खाली, हे सांगण्याआधी Headway ला {min} चा बदल लागतो.',
   },
+  'improve.why.level.clear': {
+    en: 'Evidence level: clear. Each side has enough feedback, and the move is too large to be chance.',
+    hi: 'सबूत का स्तर: साफ़। दोनों तरफ़ पर्याप्त फ़ीडबैक है, और बदलाव इतना बड़ा है कि संयोग नहीं हो सकता।',
+    mr: 'पुराव्याची पातळी: स्पष्ट. दोन्ही बाजूंना पुरेसा फीडबॅक आहे, आणि बदल योगायोग असण्याइतका लहान नाही.',
+  },
+  'improve.why.level.unclear': {
+    en: 'Evidence level: comparable, not conclusive. Each side has enough feedback, but not enough of a move to call it a change.',
+    hi: 'सबूत का स्तर: तुलना लायक, पर निर्णायक नहीं। दोनों तरफ़ पर्याप्त फ़ीडबैक है, पर इसे बदलाव कहने लायक हलचल नहीं है।',
+    mr: 'पुराव्याची पातळी: तुलना करण्याजोगी, पण निर्णायक नाही. दोन्ही बाजूंना पुरेसा फीडबॅक आहे, पण याला बदल म्हणण्याइतकी हालचाल नाही.',
+  },
+  'improve.why.level.insufficient': {
+    en: 'Evidence level: too little feedback to compare yet.',
+    hi: 'सबूत का स्तर: तुलना करने के लिए अभी फ़ीडबैक बहुत कम है।',
+    mr: 'पुराव्याची पातळी: तुलना करण्यासाठी अजून फीडबॅक फारच कमी आहे.',
+  },
+  'improve.why.fewMentions': {
+    en: 'Fewer than {needed} feedback entries mentioned {theme} on either side, which is too few to call a change in either direction.',
+    hi: 'किसी भी तरफ़ {needed} से कम फ़ीडबैक में {theme} का ज़िक्र था, जो किसी भी दिशा में बदलाव कहने के लिए बहुत कम है।',
+    mr: 'कोणत्याही बाजूला {needed} पेक्षा कमी फीडबॅकमध्ये {theme} चा उल्लेख होता, जो कोणत्याही दिशेने बदल म्हणण्यासाठी फारच कमी आहे.',
+  },
+  'improve.why.chance': {
+    en: 'The share of feedback mentioning it moved by {delta}, but with {beforeTotal} feedback entries before and {afterTotal} after, a move that size could still be chance.',
+    hi: 'इसका ज़िक्र करने वाले फ़ीडबैक के हिस्से में {delta} का बदलाव आया, पर पहले {beforeTotal} और बाद में {afterTotal} फ़ीडबैक पर इतना बदलाव संयोग भी हो सकता है।',
+    mr: 'याचा उल्लेख करणाऱ्या फीडबॅकचा हिस्सा {delta} ने बदलला, पण आधी {beforeTotal} आणि नंतर {afterTotal} फीडबॅकवर एवढा बदल योगायोगही असू शकतो.',
+  },
   'improve.why.notMoved': {
     en: 'The share of feedback mentioning it moved by {delta}. That is under the {min} Headway needs before it will say it went up or down.',
     hi: 'इसका ज़िक्र करने वाले फ़ीडबैक के हिस्से में {delta} का बदलाव आया। ऊपर गया या नीचे यह कहने से पहले Headway को जो {min} चाहिए, यह उससे कम है।',

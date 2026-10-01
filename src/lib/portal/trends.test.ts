@@ -7,7 +7,8 @@ import type { PortalSignal, PortalView } from './view';
  *
  * The shelves take the engine's direction as given; this pins that nothing is
  * promoted onto a shelf the engine did not put it on, that the numbers shown are
- * the recorded counts, and that no percentage is made up from nothing.
+ * the recorded counts, and that the percentages are each check-in's SHARE —
+ * never a change in the raw count, which called 5 of 10 → 10 of 20 a doubling.
  */
 
 function signal(
@@ -52,23 +53,34 @@ describe('buildTrends', () => {
     expect(trends.stable.map((r) => r.key)).toEqual(['parking']);
   });
 
-  it('carries the recorded counts and a change worked out from them', () => {
+  it('carries the recorded counts and each side\'s share of its check-in', () => {
     const [row] = buildTrends(view([signal('waiting', 'ISSUE', 'WORSENING', 14, 20)]), true).worse;
     expect(row).toMatchObject({
       previous: 14,
       current: 20,
       previousTotal: 44,
       currentTotal: 43,
-      changePct: 43,
+      previousPct: 32,
+      currentPct: 47,
       moved: 'UP',
     });
     const [praise] = buildTrends(view([], [signal('staff', 'PRAISE', 'WORSENING', 12, 5)]), true).worse;
-    expect(praise).toMatchObject({ kind: 'PRAISE', changePct: -58, moved: 'DOWN' });
+    expect(praise).toMatchObject({ kind: 'PRAISE', previousPct: 27, currentPct: 12, moved: 'DOWN' });
   });
 
-  it('shows no percentage when there was nothing before', () => {
+  it('shows a zero share as zero, not as a missing figure', () => {
     const [row] = buildTrends(view([signal('price', 'ISSUE', 'WORSENING', 0, 7)]), true).worse;
-    expect(row!.changePct).toBeNull();
+    expect(row).toMatchObject({ previousPct: 0, currentPct: 16 });
+  });
+
+  it('reads the direction from the share, not the count', () => {
+    // More mentions on far more feedback is a smaller share.
+    const s = {
+      ...signal('busy', 'ISSUE', 'IMPROVING', 10, 12),
+      movementPoints: { previous: 10, current: 12, previousTotal: 20, currentTotal: 40 },
+    } as unknown as PortalSignal;
+    const [row] = buildTrends(view([s]), true).better;
+    expect(row).toMatchObject({ previousPct: 50, currentPct: 30, moved: 'DOWN' });
   });
 
   it('leaves out what the engine could not read, rather than forcing a verdict', () => {

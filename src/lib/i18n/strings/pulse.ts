@@ -90,24 +90,34 @@ export const pulse = {
     mr: '{count} वेळा उल्लेख झाला.',
   },
   'pulse.report.mentions.same.one': {
-    en: 'Mentioned {count} time, was {before}. About the same.',
-    hi: '{count} बार ज़िक्र हुआ, पहले {before} बार। लगभग वैसा ही।',
-    mr: '{count} वेळा उल्लेख झाला, आधी {before} वेळा. साधारण तसंच.',
+    en: 'In {count} of {total} this time, {before} of {beforeTotal} before. About the same share.',
+    hi: 'इस बार {total} में से {count} में, पहले {beforeTotal} में से {before} में। लगभग उतना ही हिस्सा।',
+    mr: 'या वेळी {total} पैकी {count} मध्ये, आधी {beforeTotal} पैकी {before} मध्ये. साधारण तेवढाच वाटा.',
   },
   'pulse.report.mentions.same.other': {
-    en: 'Mentioned {count} times, was {before}. About the same.',
-    hi: '{count} बार ज़िक्र हुआ, पहले {before} बार। लगभग वैसा ही।',
-    mr: '{count} वेळा उल्लेख झाला, आधी {before} वेळा. साधारण तसंच.',
+    en: 'In {count} of {total} this time, {before} of {beforeTotal} before. About the same share.',
+    hi: 'इस बार {total} में से {count} में, पहले {beforeTotal} में से {before} में। लगभग उतना ही हिस्सा।',
+    mr: 'या वेळी {total} पैकी {count} मध्ये, आधी {beforeTotal} पैकी {before} मध्ये. साधारण तेवढाच वाटा.',
   },
   'pulse.report.mentions.changed.one': {
-    en: 'Mentioned {count} time, was {before}.',
-    hi: '{count} बार ज़िक्र हुआ, पहले {before} बार।',
-    mr: '{count} वेळा उल्लेख झाला, आधी {before} वेळा.',
+    en: 'In {count} of {total} this time, {before} of {beforeTotal} before.',
+    hi: 'इस बार {total} में से {count} में, पहले {beforeTotal} में से {before} में।',
+    mr: 'या वेळी {total} पैकी {count} मध्ये, आधी {beforeTotal} पैकी {before} मध्ये.',
   },
   'pulse.report.mentions.changed.other': {
-    en: 'Mentioned {count} times, was {before}.',
-    hi: '{count} बार ज़िक्र हुआ, पहले {before} बार।',
-    mr: '{count} वेळा उल्लेख झाला, आधी {before} वेळा.',
+    en: 'In {count} of {total} this time, {before} of {beforeTotal} before.',
+    hi: 'इस बार {total} में से {count} में, पहले {beforeTotal} में से {before} में।',
+    mr: 'या वेळी {total} पैकी {count} मध्ये, आधी {beforeTotal} पैकी {before} मध्ये.',
+  },
+  'pulse.report.mentions.unclear.one': {
+    en: 'In {count} of {total} this time, {before} of {beforeTotal} before. Too little feedback to call that a change.',
+    hi: 'इस बार {total} में से {count} में, पहले {beforeTotal} में से {before} में। इसे बदलाव कहने के लिए फ़ीडबैक बहुत कम है।',
+    mr: 'या वेळी {total} पैकी {count} मध्ये, आधी {beforeTotal} पैकी {before} मध्ये. याला बदल म्हणण्यासाठी फीडबॅक फारच कमी आहे.',
+  },
+  'pulse.report.mentions.unclear.other': {
+    en: 'In {count} of {total} this time, {before} of {beforeTotal} before. Too little feedback to call that a change.',
+    hi: 'इस बार {total} में से {count} में, पहले {beforeTotal} में से {before} में। इसे बदलाव कहने के लिए फ़ीडबैक बहुत कम है।',
+    mr: 'या वेळी {total} पैकी {count} मध्ये, आधी {beforeTotal} पैकी {before} मध्ये. याला बदल म्हणण्यासाठी फीडबॅक फारच कमी आहे.',
   },
 
   // Section headings. Each one says what the list under it counts.

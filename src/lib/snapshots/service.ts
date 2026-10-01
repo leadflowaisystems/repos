@@ -1,6 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
 import { oncePerRequest } from '@/lib/request-cache';
-import { loadFeedbackLedger } from '@/lib/feedback/ledger';
+import { analysedRows, loadFeedbackLedger } from '@/lib/feedback/ledger';
 import { z } from 'zod';
 import {
   aggregate,
@@ -13,6 +13,7 @@ import type { Sentiment } from '@/lib/analysis/classify';
 import { parseReviews, type ParseSummary } from '@/lib/analysis/parse-reviews';
 import type { LanguageCode } from '@/lib/analysis/language';
 import { classifyReviews } from '@/lib/ai/classify-reviews';
+import { normalizeFeedback, type NormalizedFeedback } from '@/lib/analysis/normalize';
 import { buildNarrative, type Narrative } from '@/lib/ai/narrative';
 import { aiStatus } from '@/lib/ai';
 import { aiBudget, recordAiUsage } from '@/lib/ai/budget';
@@ -171,9 +172,17 @@ export async function loadHealthSnapshots(
     }),
     loadFeedbackLedger(db, clientId),
   ]);
-  const arrived = ledger.filter((item) => item.snapshotId === null);
+  // ONLY READ FEEDBACK IS EVIDENCE (final correctness gate). A response not
+  // yet read has no topics and no tone; counting it would make it a response
+  // that "did not mention" every topic, inflating the denominator of every
+  // share a trend compares — and Customers, the before/after measurement and
+  // the reports already count read rows only. One definition, every surface.
+  // A pasted check-in review is read by the same pipeline as everything else
+  // before it counts here, so no second classification reaches a trend.
+  const eligible = analysedRows(ledger);
+  const arrived = eligible.filter((item) => item.snapshotId === null);
   const pasted = new Map<string, StoredFeedback[]>();
-  for (const item of ledger) {
+  for (const item of eligible) {
     if (item.snapshotId === null) continue;
     const list = pasted.get(item.snapshotId) ?? [];
     list.push(toStoredFeedback(item));
@@ -521,16 +530,25 @@ export async function createSnapshot(
   };
   notes.push(...classification.notes);
 
+  // ONE READER (final correctness gate). A pasted review is read by exactly
+  // the reader every other response goes through — normalizeFeedback, with
+  // the second reader's validated suggestion arbitrated the same way — and is
+  // stored as read. Before this, a check-in's reviews carried the
+  // classifier's provisional tags until the pipeline read them again, so the
+  // same sentence could mean one thing on a trend and another on Customers.
+  const readings: NormalizedFeedback[] = parseSummary.reviews.map((review, i) =>
+    normalizeFeedback({ text: review.text, stars: review.stars, pack, ai: classification.results[i]?.ai ?? null }),
+  );
   const classified: ClassifiedReview[] = parseSummary.reviews.map((review, i) => {
-    const result = classification.results[i];
+    const reading = readings[i]!;
     return {
       text: review.text,
       stars: review.stars,
       reviewDate: review.reviewDate,
       language: review.language as LanguageCode,
-      sentiment: result?.sentiment ?? 'UNKNOWN',
-      issueTags: result?.issueTags ?? [],
-      praiseTags: result?.praiseTags ?? [],
+      sentiment: reading.sentiment,
+      issueTags: reading.issueTags,
+      praiseTags: reading.praiseTags,
     };
   });
 
@@ -631,8 +649,14 @@ export async function createSnapshot(
           sentiment: review.sentiment,
           issueTags: JSON.stringify(review.issueTags),
           praiseTags: JSON.stringify(review.praiseTags),
-          classifiedBy: classification.source,
-          classifierModel: classification.model,
+          themesJson: JSON.stringify(readings[index]!.themes),
+          confidence: readings[index]!.confidence,
+          analysisReasonsJson: JSON.stringify(readings[index]!.reasons),
+          analysisStatus: 'ANALYSED',
+          analysisVersion: readings[index]!.version,
+          analysedAt: options.now ?? new Date(),
+          classifiedBy: readings[index]!.method,
+          classifierModel: readings[index]!.method === 'AI' ? classification.model : null,
           redacted: parseSummary.reviews[index]?.redacted ?? false,
           sortIndex: index,
         })),

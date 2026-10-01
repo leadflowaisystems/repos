@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { oncePerRequest } from '@/lib/request-cache';
+import { isCurrentAnalysis } from '@/lib/feedback/state';
 
 /**
  * ONE CLIENT'S FEEDBACK, READ ONCE PER REQUEST.
@@ -105,5 +106,11 @@ export function loadFeedbackLedger(db: PrismaClient, clientId: string): Promise<
 
 /** The rows the analysis layer has read. The predicate every "analysed" scan used. */
 export function analysedRows(ledger: LedgerRow[]): LedgerRow[] {
-  return ledger.filter((row) => row.analysisStatus === 'ANALYSED');
+  // ONE DEFINITION OF READ (café handover pass). Read by the CURRENT reader:
+  // a row the previous reader read is waiting to be read again, exactly as the
+  // Home mood strip, Reviews' "read" count, "since your check-in" and the
+  // fresh-feedback line already counted it (`isCurrentAnalysis`). Counting it
+  // here as well let one screen say "0 read" beside patterns built from the
+  // same rows, and let a trend compare old readings with new ones.
+  return ledger.filter(isCurrentAnalysis);
 }

@@ -2,6 +2,7 @@ import { groqProvider } from './groq';
 import {
   AiError,
   assertServerOnly,
+  type AiErrorCode,
   type AiCompleteOptions,
   type AiProvider,
   type AiProviderId,
@@ -98,7 +99,13 @@ export type AiRun =
       /** What the provider says it cost. Null when it did not say. */
       usage: AiUsage | null;
     }
-  | { ok: false; reason: string; attempts: string[] };
+  | {
+      ok: false;
+      reason: string;
+      attempts: string[];
+      /** The coded reasons among the failures, e.g. TRUNCATED, so a caller can try a smaller request. */
+      codes?: AiErrorCode[];
+    };
 
 /**
  * Runs a completion across the provider chain, returning the first success.
@@ -119,6 +126,7 @@ export async function runCompletion(options: AiCompleteOptions): Promise<AiRun> 
   }
 
   const attempts: string[] = [];
+  const codes: AiErrorCode[] = [];
   for (const provider of chain) {
     try {
       const completion = await provider.complete(options);
@@ -126,7 +134,7 @@ export async function runCompletion(options: AiCompleteOptions): Promise<AiRun> 
         ok: true,
         text: completion.text,
         providerId: provider.id,
-        model: provider.model,
+        model: completion.model ?? provider.model,
         usage: completion.usage,
       };
     } catch (error) {
@@ -135,6 +143,7 @@ export async function runCompletion(options: AiCompleteOptions): Promise<AiRun> 
           ? `${provider.label}: ${error.message}${error.status ? ` (HTTP ${error.status})` : ''}`
           : `${provider.label}: ${error instanceof Error ? error.message : 'unknown error'}`;
       attempts.push(message);
+      if (error instanceof AiError && error.code) codes.push(error.code);
     }
   }
 
@@ -142,6 +151,7 @@ export async function runCompletion(options: AiCompleteOptions): Promise<AiRun> 
     ok: false,
     reason: 'Every configured AI provider failed.',
     attempts,
+    codes,
   };
 }
 

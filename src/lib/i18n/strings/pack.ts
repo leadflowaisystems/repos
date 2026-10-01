@@ -25,6 +25,21 @@ export const pack = {
     hi: 'खाना और स्वाद',
     mr: 'जेवण आणि चव',
   },
+  'pack.restaurant.drink_quality': {
+    en: 'Coffee & drinks',
+    hi: 'कॉफ़ी और ड्रिंक्स',
+    mr: 'कॉफी आणि पेये',
+  },
+  'pack.restaurant.served_cold': {
+    en: 'Served cold / not hot',
+    hi: 'ठंडा परोसा / गरम नहीं',
+    mr: 'थंड दिले / गरम नव्हते',
+  },
+  'pack.restaurant.portion_size': {
+    en: 'Small portions',
+    hi: 'कम मात्रा',
+    mr: 'कमी प्रमाण',
+  },
   'pack.restaurant.service_speed': {
     en: 'Slow service',
     hi: 'धीमी सर्विस',
@@ -66,14 +81,24 @@ export const pack = {
     mr: 'डिलिव्हरी / पॅकिंगच्या अडचणी',
   },
   'pack.restaurant.billing_issue': {
-    en: 'Billing errors / hidden charges',
-    hi: 'बिलिंग की ग़लतियाँ / छुपे हुए चार्ज',
-    mr: 'बिलिंगमधल्या चुका / छुपे चार्ज',
+    en: 'Billing & payment problems',
+    hi: 'बिल और पेमेंट की दिक़्क़तें',
+    mr: 'बिल आणि पेमेंटच्या अडचणी',
   },
   'pack.restaurant.food_taste': {
     en: 'Food & taste',
     hi: 'खाना और स्वाद',
     mr: 'जेवण आणि चव',
+  },
+  'pack.restaurant.drink_praise': {
+    en: 'Great coffee & drinks',
+    hi: 'बढ़िया कॉफ़ी और ड्रिंक्स',
+    mr: 'उत्तम कॉफी आणि पेये',
+  },
+  'pack.restaurant.generous_portions': {
+    en: 'Generous portions',
+    hi: 'भरपूर मात्रा',
+    mr: 'भरपूर प्रमाण',
   },
   'pack.restaurant.service_quality': {
     en: 'Attentive service',
@@ -2055,6 +2080,51 @@ export const pack = {
     en: 'Not sure yet',
     hi: 'अभी पक्का नहीं',
     mr: 'अजून नक्की सांगता येत नाही',
+  },
+  'pack.restaurant.drink_quality.ask': {
+    en: 'Which drinks do complaints mention most?',
+    hi: 'शिकायतों में सबसे ज़्यादा कौन-सी ड्रिंक्स आती हैं?',
+    mr: 'तक्रारींमध्ये सर्वात जास्त कोणती पेये येतात?',
+  },
+  'pack.restaurant.drink_quality.ask.0': {
+    en: 'Coffee',
+    hi: 'कॉफ़ी',
+    mr: 'कॉफी',
+  },
+  'pack.restaurant.drink_quality.ask.1': {
+    en: 'Tea or chai',
+    hi: 'चाय',
+    mr: 'चहा',
+  },
+  'pack.restaurant.drink_quality.ask.2': {
+    en: 'Shakes, juices or cold drinks',
+    hi: 'शेक, जूस या ठंडे पेय',
+    mr: 'शेक, ज्यूस किंवा थंड पेये',
+  },
+  'pack.restaurant.drink_quality.ask.3': {
+    en: 'Not sure yet',
+    hi: 'अभी पक्का नहीं',
+    mr: 'अजून नक्की सांगता येत नाही',
+  },
+  'pack.restaurant.served_cold.ask': {
+    en: 'What arrives cold most often?',
+    hi: 'सबसे ज़्यादा क्या ठंडा पहुँचता है?',
+    mr: 'सर्वात जास्त वेळा काय थंड येते?',
+  },
+  'pack.restaurant.served_cold.ask.0': {
+    en: 'Coffee and hot drinks',
+    hi: 'कॉफ़ी और गरम पेय',
+    mr: 'कॉफी आणि गरम पेये',
+  },
+  'pack.restaurant.served_cold.ask.1': {
+    en: 'Food',
+    hi: 'खाना',
+    mr: 'जेवण',
+  },
+  'pack.restaurant.served_cold.ask.2': {
+    en: 'Both',
+    hi: 'दोनों',
+    mr: 'दोन्ही',
   },
   'pack.restaurant.service_speed.ask': {
     en: 'When is service slowest?',

@@ -12,7 +12,8 @@ import type { PortalAction, PortalSignal } from '@/lib/portal/view';
 import type { EvidenceIndex } from '@/lib/portal/evidence';
 import type { TrendRow, Trends } from '@/lib/portal/trends';
 import { trendOf, type BriefTrend } from '@/lib/portal/brief';
-import { Quiet, Section } from '@/components/portal/portal-ui';
+import { Quiet, Section, ThemeRows } from '@/components/portal/portal-ui';
+import { TrendsNotReady } from '@/components/workspace/trends-not-ready';
 import { Reveal } from '@/components/portal/disclose';
 import { ImprovementStory } from '@/components/workspace/improvement-story';
 import { SignalCard } from '@/components/workspace/signal-board';
@@ -455,7 +456,7 @@ const TREND = {
   stable: { dot: 'bg-ink-300', head: 'text-ink-500', figure: 'text-ink-500' },
 } as const;
 
-/** "Mentioned more than before" — which way the count moved, for this kind of topic. */
+/** "Mentioned more than before" — which way the share moved, for this kind of topic. */
 function movedPhrase(row: TrendRow, t: Translator<MessageKey>): string {
   // Mobile polish pass: which way the count went, in two words. Whether that
   // is good or bad news is the shelf's heading — the engine's verdict — so the
@@ -489,9 +490,11 @@ function TrendCard({
   t: Translator<MessageKey>;
 }) {
   const colour = TREND[tone];
+  // The share of each check-in's feedback — what the verdict was judged on —
+  // then the counts it came from.
   const pct =
-    tone !== 'stable' && row.changePct !== null && row.changePct !== 0
-      ? `${row.changePct > 0 ? '+' : '−'}${Math.abs(row.changePct)}%`
+    row.previousPct !== null && row.currentPct !== null
+      ? `${row.previousPct}% → ${row.currentPct}%`
       : null;
   return (
     <Link
@@ -518,7 +521,7 @@ function TrendCard({
         </span>
         {/* The two check-ins it rests on, quietly. */}
         <span className="mt-0.5 block text-[12px] text-ink-500 tabular-nums">
-          {pct ? <span className={clsx('font-semibold', colour.figure)}>{pct} · </span> : null}
+          {pct ? <span className={clsx(tone !== 'stable' && 'font-semibold', colour.figure)}>{pct} · </span> : null}
           {countOf(row.previous, row.previousTotal)} → {countOf(row.current, row.currentTotal)}
         </span>
       </span>
@@ -611,6 +614,56 @@ export function TrendsBoard({ trends, basePath, t }: { trends: Trends; basePath:
   );
 }
 
+/**
+ * WHAT CUSTOMERS ARE SAYING NOW — shown while there is no trend to show.
+ *
+ * The topics that are already a pattern, then the early signs, each with its
+ * count and a way to the feedback behind it. Never a direction: nothing here
+ * says better or worse, because nothing has been compared.
+ */
+function CurrentPatterns({
+  current,
+  basePath,
+  t,
+}: {
+  current: ImprovementsView['current'];
+  basePath: string;
+  t: Translator<MessageKey>;
+}) {
+  return (
+    <section aria-labelledby="trends-now" className="mt-6">
+      <h2 id="trends-now" className="font-display text-[20px] leading-tight font-semibold text-ink-900">
+        {t('improvements.now.title')}
+      </h2>
+      <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-ink-600">{t('improvements.now.note')}</p>
+      <div className="mt-3">
+        {current.patterns.length > 0 ? (
+          <ThemeRows signals={current.patterns} basePath={basePath} line="brief" />
+        ) : (
+          <Quiet>{t('improvements.now.none')}</Quiet>
+        )}
+      </div>
+      {current.early.length > 0 ? (
+        <div className="mt-6">
+          <p className="text-[11px] font-semibold tracking-[0.14em] text-ink-500 uppercase">
+            {t('improvements.now.early.title')}
+          </p>
+          <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-ink-600">{t('improvements.now.early.note')}</p>
+          <div className="mt-2">
+            <ThemeRows signals={current.early} basePath={basePath} line="none" />
+          </div>
+        </div>
+      ) : null}
+      <Link
+        href={`${basePath}/analysis`}
+        className="mt-1 inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-ink-700 hover:text-ink-900"
+      >
+        {t('improvements.now.all')} <span aria-hidden>→</span>
+      </Link>
+    </section>
+  );
+}
+
 export async function PortalImprovements({
   clientId,
   basePath,
@@ -660,10 +713,18 @@ export async function PortalImprovements({
 
       {/* TRENDS — the page's first answer: what is changing. Before the first
           reading, the shared card says why there is no answer yet. */}
-      {readiness.ready ? (
+      {!readiness.ready ? (
+        <InsightsBuilding readiness={readiness} basePath={basePath} className="mt-6" />
+      ) : view.trends.comparable ? (
         <TrendsBoard trends={view.trends} basePath={basePath} t={t} />
       ) : (
-        <InsightsBuilding readiness={readiness} basePath={basePath} className="mt-6" />
+        // Enough to read, nothing to compare yet. Two separate things, said
+        // separately: what customers are saying NOW — which needs no check-in
+        // — and then why there is no trend, with the counts behind it.
+        <>
+          <CurrentPatterns current={view.current} basePath={basePath} t={t} />
+          <TrendsNotReady readiness={view.trendReadiness} className="mt-8" />
+        </>
       )}
 
       {/* YOUR CHANGES — the decisions the owner made about those trends, and

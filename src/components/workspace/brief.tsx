@@ -173,9 +173,13 @@ async function Band({ brief, live }: { brief: Brief; live: LiveState }) {
         <p className="flex items-center gap-2 text-[14px] font-medium text-white">
           <span
             aria-hidden
-            className={clsx('h-2 w-2 shrink-0 rounded-full', header.needsYou > 0 ? 'bg-bad-200' : 'bg-good-200')}
+            className={clsx('h-2 w-2 shrink-0 rounded-full', header.needsYou > 0 ? 'bg-bad-200' : brief.thin ? 'bg-brand-400' : 'bg-good-200')}
           />
-          {header.needsYou > 0 ? t.plural('brief.status.needs', header.needsYou) : t('brief.calm.title')}
+          {header.needsYou > 0
+            ? t.plural('brief.status.needs', header.needsYou)
+            : brief.thin
+              ? t('brief.thin.title')
+              : t('brief.calm.title')}
         </p>
         <LiveLine live={live} arrivedSinceVisit={header.arrivedSinceVisit} t={t} />
       </div>
@@ -328,17 +332,51 @@ async function Story({ card, clientId }: { card: BriefCard; clientId?: string })
 async function Calm({ brief }: { brief: Brief }) {
   const t = await getTranslator();
   return (
-    <section aria-labelledby="brief-calm" className="rounded-2xl border border-good-200 bg-white p-5 sm:p-6">
-      <p className={clsx(EYEBROW, 'flex items-center gap-2 text-good-700')}>
-        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-good-600" />
+    <section
+      aria-labelledby="brief-calm"
+      className={clsx('rounded-2xl border bg-white p-5 sm:p-6', brief.thin ? 'border-ink-200' : 'border-good-200')}
+    >
+      {/* Green says "all clear", which thin evidence has not earned. */}
+      <p className={clsx(EYEBROW, 'flex items-center gap-2', brief.thin ? 'text-ink-600' : 'text-good-700')}>
+        <span
+          aria-hidden
+          className={clsx('h-1.5 w-1.5 rounded-full', brief.thin ? 'bg-ink-400' : 'bg-good-600')}
+        />
         {t('brief.calm.eyebrow')}
       </p>
+      {/* While the evidence is thin this is the state of the evidence, not a
+          verdict: "no strong pattern yet", with how much has been read. */}
       <h2 id="brief-calm" className="mt-2 font-display text-[24px] leading-[1.15] font-semibold text-ink-900">
-        {t('brief.calm.title')}
+        {brief.thin ? t('brief.thin.title') : t('brief.calm.title')}
       </h2>
       <p className="mt-2 text-[15px] leading-snug text-ink-700">
-        {brief.waiting > 0 ? t('brief.calm.reading') : t('brief.calm.body')}
+        {brief.waiting > 0
+          ? t('brief.calm.reading')
+          : brief.thin
+            ? t.plural('brief.thin.body', brief.mix.read)
+            : t('brief.calm.body')}
       </p>
+      {brief.earlySigns.length > 0 ? (
+        <div className="mt-4 border-t border-ink-200 pt-3">
+          <p className={clsx(EYEBROW, 'text-ink-500')}>{t('brief.earlySigns.title')}</p>
+          <ul className="mt-1 divide-y divide-ink-100">
+            {brief.earlySigns.map((sign) => (
+              <li key={sign.themeKey}>
+                <Link
+                  href={sign.href}
+                  className="hw-focus-inset flex min-h-11 items-baseline justify-between gap-3 py-2 hover:bg-ink-50"
+                >
+                  <span className="text-[15px] font-semibold text-ink-900">{sign.label}</span>
+                  <span className="shrink-0 text-[13px] text-ink-600 tabular-nums">
+                    {t.plural('brief.mentioned', sign.count)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-[12px] leading-relaxed text-ink-500">{t('brief.earlySigns.note')}</p>
+        </div>
+      ) : null}
     </section>
   );
 }
