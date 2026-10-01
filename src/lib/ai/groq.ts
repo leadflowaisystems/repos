@@ -171,8 +171,9 @@ export const groqProvider: AiProvider = {
     try {
       return await requestOnce(apiKey, configured, options);
     } catch (error) {
-      // A configured model that no longer exists is the failure that disabled
-      // the AI reader for six weeks in 2026 without anyone noticing. The
+      // A configured model that no longer exists would disable the AI reader
+      // without anyone noticing (llama-3.3-70b-versatile was retired on
+      // 2026-08-16 and was still named in a local configuration). The
       // default is the measured replacement; use it, and say so loudly every
       // time, so the setting gets fixed rather than relied on.
       if (error instanceof AiError && error.code === 'MODEL_NOT_FOUND' && configured !== DEFAULT_MODEL) {

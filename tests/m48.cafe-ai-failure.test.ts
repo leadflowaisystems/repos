@@ -247,6 +247,35 @@ describe('the combined reader never lets the AI blame the café for a third part
     expect(n.issueTags).toEqual([]);
   });
 
+  // Found by the production smoke test (1 Oct 2026), fixed as classes.
+  it('"…the delivery guy came 40 min late and the fries were soggy by then. Not the cafe\'s fault…" — nothing filed against the café; the praise kept', () => {
+    const n = normalizeFeedback({
+      text: "Ordered on Swiggy, the delivery guy came 40 min late and the fries were soggy by then. Not the cafe's fault really, the sandwich itself was tasty.",
+      stars: 2,
+      pack,
+      ai: null,
+    });
+    expect(n.issueTags).toEqual([]);
+    expect(n.praiseTags).toEqual(['food_taste']);
+    expect(n.sentiment).not.toBe('NEGATIVE');
+  });
+
+  it('a stale burger on a delivery order, in a sentence of its own, is still the café\'s', () => {
+    const n = normalizeFeedback({ text: 'Ordered on Swiggy. The burger was stale and the fries were burnt.', stars: 2, pack, ai: null });
+    expect(n.issueTags).toEqual(['food_quality']);
+  });
+
+  it('"कॉफी छान होती पण बिल मध्ये चूक होती" — a mistake in the bill is billing, not a wrong order', () => {
+    const n = normalizeFeedback({ text: 'कॉफी छान होती पण बिल मध्ये चूक होती, दोन वेळा चार्ज लावला.', stars: 4, pack, ai: null });
+    expect(n.issueTags).toEqual(['billing_issue']);
+    expect(n.praiseTags).toEqual(['drink_praise']);
+  });
+
+  it('"Latte arrived barely warm." is served cold, and "had to walk up twice for the bill" is not a billing error', () => {
+    expect(normalizeFeedback({ text: 'Latte arrived barely warm.', stars: 2, pack, ai: null }).issueTags).toEqual(['served_cold']);
+    expect(normalizeFeedback({ text: 'Had to walk up to the counter twice for the bill.', stars: 2, pack, ai: null }).issueTags).not.toContain('billing_issue');
+  });
+
   it('"Delivery partner was late because the restaurant was not ready." — the café\'s own preparation is kept', () => {
     const n = normalizeFeedback({ text: "Delivery partner was late because the restaurant wasn't ready.", stars: 2, pack, ai: null });
     expect(n.issueTags).toEqual(['service_speed']);

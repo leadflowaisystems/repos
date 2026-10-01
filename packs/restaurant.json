@@ -283,8 +283,6 @@
         "not what i ordered",
         "different dish",
         "order galat",
-        "चुकीचे",
-        "चूक",
         "गलत ऑर्डर",
         "forgot our",
         "never arrived",
@@ -317,7 +315,10 @@
         "even after telling",
         "despite telling them",
         "told them twice",
-        "after i told them"
+        "after i told them",
+        "ऑर्डर चुकीची",
+        "चुकीचे पदार्थ",
+        "चुकीचा पदार्थ"
       ],
       "replyPhrase": "getting the wrong order",
       "replyPhraseHinglish": "galat order aane",
@@ -731,7 +732,16 @@
         "bill that we never ordered",
         "जो हमने ऑर्डर ही नहीं",
         "बिल में जोड़",
-        "जोड़ दी थीं"
+        "जोड़ दी थीं",
+        "बिल मध्ये चूक",
+        "बिलमध्ये चूक",
+        "बिलात चूक",
+        "दोन वेळा चार्ज",
+        "डबल चार्ज",
+        "charged twice",
+        "double charged",
+        "charged us twice",
+        "charged me twice"
       ],
       "replyPhrase": "the problem with your bill",
       "replyPhraseHinglish": "bill mein hui gadbad",

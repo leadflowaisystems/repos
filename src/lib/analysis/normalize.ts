@@ -36,7 +36,7 @@ import { GENERIC_NEGATIVE, GENERIC_POSITIVE } from './aspects';
  *     and a middle rating no longer cancels a clear opinion. See
  *     docs/SMART_FEEDBACK_INTELLIGENCE_RULES.md.
  */
-export const ANALYSIS_VERSION = 3;
+export const ANALYSIS_VERSION = 4;
 
 export type Confidence = 'LOW' | 'MEDIUM' | 'HIGH';
 export type AnalysisMethod = 'KEYWORD' | 'AI';
@@ -183,7 +183,7 @@ function buildThemes(
  * is not a temperature.
  */
 const GROUNDING: Record<string, RegExp> = {
-  served_cold: /\b(?:cold|colder|lukewarm|luke ?warm|not (?:hot|warm)|wasn'?t (?:hot|warm)|room temp\w*|thand\w*|melted|gaar)\b|थंड|ठंड|गार|गरम नहीं|गरम नव्हत/,
+  served_cold: /\b(?:cold|colder|lukewarm|luke ?warm|not (?:hot|warm)|wasn'?t (?:hot|warm)|(?:barely|hardly|not even) (?:warm|hot)|room temp\w*|thand\w*|melted|gaar)\b|थंड|ठंड|गार|गरम नहीं|गरम नव्हत/,
 };
 
 function arbitrate(

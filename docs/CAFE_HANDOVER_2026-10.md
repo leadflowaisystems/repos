@@ -6,7 +6,7 @@ Smart Feedback for a café (`packs/restaurant.json`), from QR to the owner's scr
 
 | Area | Defect | Effect on a café owner |
 |---|---|---|
-| AI reader | Production `GROQ_MODEL=llama-3.3-70b-versatile` returns **404 model_not_found** (retired 2026-08-16). | Every response read by the keyword reader only, silently, for six weeks. |
+| AI reader | The configured `GROQ_MODEL=llama-3.3-70b-versatile` (`.env.local`) returns **404 model_not_found** (retired 2026-08-16). Production's own usage log shows its calls succeeding with the code default (`gpt-oss-120b`) on 9, 17 and 30 September, so production was most likely not overriding with the retired id; 651 of its 654 stored responses had nonetheless been read by the keyword reader alone (most are seeded demo data, which is never sent to a provider). | A configured model that disappears would have disabled the AI reader silently. |
 | AI reader | Truncated replies (`finish_reason: length`) and Groq's "Failed to validate JSON" were not distinguished; a reply whose rows lost their indexes could be matched by position to the wrong reviews. | A whole batch fell back; in the worst case a reading could land on the wrong review. |
 | Café taxonomy | No coffee/drinks topic, no portion topic, no "served cold" topic; "cold coffee" (the drink) hidden by a mask; `smell` filed coffee aroma as a hygiene complaint; `wifi was slow` filed as slow service. | Café complaints lumped into "Food & taste"; invented problems. |
 | Attribution | "Swiggy delivery guy was rude" filed against the staff; delivery-partner lateness and cold-on-arrival filed against the café; "power cut, so no AC" against the café. | The café blamed for someone else. |
@@ -57,7 +57,18 @@ Correct abstention: every set 100% of abstain-labelled responses. Misattribution
 
 Groq models available to the production key: `openai/gpt-oss-120b`, `openai/gpt-oss-20b`, `qwen/qwen3.8-27b`. Qwen's output limit on this account is 1,000 tokens/minute (unusable). gpt-oss-120b's 200,000-token daily allowance was spent by an earlier evaluation, so it could not be measured end to end. **gpt-oss-20b, low effort**: median 2.4 s per 10-review batch, max 13 s; output median 1.5k tokens, max 2.4k of the 4k limit (no truncation); 2 of 47 batches returned invalid JSON (now split and retried). Daily allowance 200k tokens (about 80 batches, 800 ambiguous responses); per-minute 8k.
 
-## 5. Remaining risks
+## 5. Production verification (1 October 2026)
+
+- **Deploy**: `9b73dd9` (Vercel "Deployment has completed", 09:06 UTC), then the follow-up below. A verified backup was taken first (`backups/prod-2026-10-01-020420`, restore check `pass: true`).
+- **Re-read**: `scripts/reread-after-upgrade.ts` re-read all 654 stored responses of 12 businesses deterministically; none left waiting; no provider call.
+- **Test café**: "Headway QA Café (test)" (restaurant pack), created as the platform administrator; its QR page resolves; 24 synthetic responses in two comparable past periods, each closed by a check-in; three real submissions through the public page on a 375×812 viewport.
+- **Customer flow**: rating → part ratings with tappable specifics → words (prompt adapts to the rating) → "Thank you"; no console errors; the first line "Cappuccino" kept.
+- **Processing**: every response read on Vercel within seconds of the submission that triggered it; production's AI usage log shows `openai/gpt-oss-20b`, 0 failures.
+- **Owner views** (rendered by the same server functions as the pages): 25 read, 0 waiting; Home leads with "Served cold / not hot — Getting better, 7 of 12 → 1 of 12 · 58% → 8%" and a practical next step; "Great coffee & drinks" rising (8% → 33%) but "not often enough yet to call it a strength"; a single "Slow service" mention watched, not a pattern; Trends comparable, two better, none worse.
+- **Tenant isolation**: as the runtime role, another identity sees 0 of the test café's rows and not the business; no identity sees nothing.
+- **Found by the smoke test and fixed** (reader version 4): soggy fries in the same sentence as a late Swiggy rider were filed against the café; Marathi "बिल मध्ये चूक" (a mistake in the bill) was filed as a wrong order; "barely warm" was not read as served cold.
+
+## 6. Remaining risks
 
 1. On unseen wording about 1 response in 13 still carries an unsafe element (blind first runs), mostly MEDIUM or LOW confidence and mostly sentiment; patterns need 3+ mentions, so a single misreading does not become a pattern.
 2. A response that fails the AI pass is read by the keyword reader and not retried with the AI later.

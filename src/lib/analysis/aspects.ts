@@ -133,7 +133,7 @@ const ASPECTS: Record<AspectId, AspectDef> = {
   BILL: {
     anchors: ['bill', 'billing', 'invoice', 'receipt', 'बिल'],
     positive: ['clear', 'transparent', 'itemised', 'itemized'],
-    negative: ['mistake', 'mistakes', 'galti', 'wrong', 'error', 'errors', 'incorrect', 'extra', 'overcharged', 'inflated', 'गलती'],
+    negative: ['mistake', 'mistakes', 'galti', 'wrong', 'error', 'errors', 'incorrect', 'extra', 'overcharged', 'inflated', 'गलती', 'चूक', 'चुकीचे', 'चुकीचा', 'chuk'],
     generic: false,
   },
   COMMS: {
@@ -214,6 +214,7 @@ const ASPECTS: Record<AspectId, AspectDef> = {
     positive: ['hot', 'piping hot', 'steaming', 'garam', 'गरम'],
     negative: [
       'cold', 'lukewarm', 'luke warm', 'luke wrm', 'room temperature', 'room temp', 'thanda', 'thandi', 'thande', 'thand', 'gaar',
+      'barely warm', 'hardly warm', 'not even warm', 'barely hot', 'hardly hot',
       'थंड', 'ठंडा', 'ठंडी', 'ठंडे', 'गार',
     ],
     generic: false,

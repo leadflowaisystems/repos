@@ -518,8 +518,23 @@ export function readTopics(text: string, pack: Pack, stars: number | null = null
           unsureAttribution = true;
         }
       }
-      // The sentences about the ride say nothing about the café's tone
-      // either: "the rider took 40 minutes" is not the café being late.
+      // The sentences about the ride say nothing about the café either:
+      // "the rider took 40 minutes" is not the café being late, and "…and
+      // the fries were soggy by then" in the same sentence is what the ride
+      // did to the order. A complaint found ONLY in those sentences is
+      // refused; praise there is kept ("…but the sandwich was tasty").
+      const outsideRide = scope.text
+        .split(/([.!?;\n।]+)/)
+        .map((part) => (THIRD_PARTY_DELIVERY.test(part) || NOT_THE_CAFES_FAULT.test(part) ? ' '.repeat(part.length) : part))
+        .join('');
+      const elsewhereRead = readOnce(outsideRide, pack, scope.deliverables);
+      for (const key of [...now.issueSet]) {
+        if (!elsewhereRead.issueSet.has(key)) {
+          now.issueSet.delete(key);
+          unattributedTags.push(key);
+          unsureAttribution = true;
+        }
+      }
       scopedText = scopedText
         .split(/([.!?;\n।]+)/)
         .map((part) => {
