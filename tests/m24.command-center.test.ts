@@ -457,15 +457,18 @@ describe('the check-in is a pulse', () => {
   const page = code(read('src', 'components', 'workspace', 'checkin.tsx'));
 
   it('says the whole check-in in one sentence and three blocks, then the detail on request', () => {
-    // Quieter ladder pass: before anything has been compared, the page is the
-    // reading in one block, the blocks, and the direction's own answer — once
-    // each. Once compared, it is the sentence, the blocks and the next check.
+    // Low-data pass: before anything has been compared, the page is the
+    // current picture in one block (counts, note, the strongest topics), the
+    // blocks, and where the comparison stands in one line — the full card is
+    // Trends'. Once compared, it is the sentence, the blocks and the next check.
+    expect(page).not.toContain('<DirectionPanel');
     ordered(page, [
       '<PeriodSwitch basePath={basePath} current="checkin" />',
       '{!compared ? (',
-      '<ReadingSummary state={state} reasons={false} />',
+      '<ReadingSummary state={state} reasons={false} headline={false} />',
+      '<TopicRows findings={topFindings(state)}',
       '<Blocks blocks={pulse.blocks}',
-      '<DirectionPanel direction={state.direction} title={false} />',
+      '{state.direction.body}',
       '{pulse.sentence}',
       "t('checkin.nextCheck.title')",
       '{r.nextUsefulCheck}',

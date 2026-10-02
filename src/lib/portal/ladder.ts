@@ -11,6 +11,7 @@ import { AUTO_PERIOD_MIN_DAYS, AUTO_PERIOD_MIN_RESPONSES } from '@/lib/snapshots
 import { EN } from '@/lib/i18n/translator';
 import type { PortalTranslator } from '@/lib/i18n/translator';
 import { FIRST_READING_AT } from './readiness';
+import { quotesFor, type EvidenceIndex, type Quote } from './evidence';
 import type { PortalSignal, PortalView } from './view';
 import type { TrendReadiness } from './trends';
 
@@ -918,4 +919,47 @@ export function homeLists(state: EvidenceState, omit: string | null = null): Hom
  */
 export function topFindings(state: EvidenceState, limit = 3): Finding[] {
   return state.findings.slice(0, limit);
+}
+
+/**
+ * THE WORDS BEHIND EACH ROW, while the pile is small (low-data pass).
+ *
+ * Below ten read, every topic on Home rests on one or two customers, so the
+ * most useful thing to put under "Attentive service · Praised once" is what
+ * that customer wrote: "Good service". It shows why Headway named the topic,
+ * and the rung beside it still says it is one customer. From ten read the
+ * rows carry counts and shares that speak for themselves, and the story card
+ * and topic pages carry the quotes.
+ *
+ * One quote per row, never the same response under two topics, and only
+ * rows Home actually shows.
+ */
+export function homeQuotes(state: EvidenceState, evidence: EvidenceIndex | null | undefined, omit: string | null = null): Map<string, Quote> {
+  if (!evidence || state.read === 0 || state.read >= EMERGING_AT) return new Map();
+  const headline = headlineOf(state, omit);
+  const lists = homeLists(state, omit);
+  const rows = [headline?.finding ?? null, ...lists.patterns, ...lists.likes, ...lists.watching].filter((f): f is Finding => f !== null);
+  return pickQuotes(evidence, rows);
+}
+
+/**
+ * ONE CUSTOMER'S WORDS PER TOPIC, NONE TWICE — for any list of topics on one
+ * screen (Home's rows, Customers' full list). The topics with the fewest
+ * responses choose first, so one response that mentions two topics ("Loved
+ * the cappuccino, but the service was slow") goes to the topic that has
+ * nothing else to show; short words count when they are all there is.
+ */
+export function pickQuotes(evidence: EvidenceIndex, findings: Finding[]): Map<string, Quote> {
+  const out = new Map<string, Quote>();
+  const candidates = findings
+    .map((f, order) => ({ f, order, quotes: quotesFor(evidence, f.key, { limit: 3, allowShort: true }) }))
+    .sort((a, b) => a.quotes.length - b.quotes.length || a.order - b.order);
+  const used = new Set<string>();
+  for (const { f, quotes } of candidates) {
+    const quote = quotes.find((q) => !used.has(q.id));
+    if (!quote) continue;
+    used.add(quote.id);
+    out.set(f.key, quote);
+  }
+  return out;
 }

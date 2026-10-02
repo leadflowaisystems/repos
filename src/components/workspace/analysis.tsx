@@ -153,7 +153,7 @@ export async function PortalAnalysis({
           pass). The reasoning is behind "How Headway decides". */}
       {/* One "how" per page: once topics are named, the method reveal below
           explains the reading, so the summary does not offer a second one. */}
-      <ReadingSummary state={state} reasons={!named} className="mb-8" />
+      <ReadingSummary state={state} reasons={!named} headline={false} className="mb-8" />
 
       {named ? <SignalBoard groups={groups} evidence={evidence} basePath={basePath} open={open} /> : null}
       <AllFindings
@@ -228,7 +228,10 @@ export async function PortalAnalysis({
         </div>
       ) : null}
 
-      <Limits limits={view.limits} collapsed />
+      {/* Below ten read the limits said again what the confidence line above
+          already says ("an early sign, not a conclusion"); from ten read they
+          carry what the note cannot, so they come back, folded. */}
+      {state.read >= 10 ? <Limits limits={view.limits} collapsed /> : null}
     </div>
   );
 }

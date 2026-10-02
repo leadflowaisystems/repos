@@ -274,7 +274,7 @@ describe('the portal is truthful when there is little to say', () => {
     const improvements = await getImprovementsView(db, id, { now: NOW });
     expect(improvements?.record).toBe('You have not agreed to any change yet.');
     const checkin = await getCheckinView(db, id, { now: NOW });
-    expect(checkin?.title).toBe('Nothing compared yet');
+    expect(checkin?.title).toBe('The current picture');
     expect(checkin?.movementLine).toMatch(/two check-ins/);
     expect(checkin?.next).toEqual([]);
     const reviews = await getReviewsView(db, id, filters());

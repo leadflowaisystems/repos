@@ -3,10 +3,11 @@ import { Link } from '@/components/portal/link';
 import { Reveal } from '@/components/portal/disclose';
 import { getTranslator } from '@/lib/i18n/request';
 import type { PortalTranslator } from '@/lib/i18n/translator';
-import { quotesFor, type EvidenceIndex } from '@/lib/portal/evidence';
+import type { EvidenceIndex, Quote } from '@/lib/portal/evidence';
 import {
   headlineOf,
   homeLists,
+  pickQuotes,
   type Direction,
   type EvidenceState,
   type Finding,
@@ -82,6 +83,26 @@ function Mark({ finding, t }: { finding: Finding; t: PortalTranslator }) {
   );
 }
 
+/**
+ * THE CUSTOMER'S OWN WORDS behind a topic, with their stars when they gave
+ * any — so "Attentive service · Praised once" is followed by why: "Good
+ * service" ★★★★★ (low-data pass). Never interpreted, never shortened in
+ * storage; long text is clamped on screen and opens in full on Feedback.
+ */
+function QuoteLine({ quote, t, className }: { quote: Quote; t: PortalTranslator; className?: string }) {
+  return (
+    <p className={clsx('flex flex-wrap items-baseline gap-x-2 text-[14px] leading-snug text-ink-700', className)}>
+      <span className="line-clamp-2 border-l-2 border-ink-200 pl-2.5">“{quote.text}”</span>
+      {quote.stars !== null ? (
+        <span className="text-[12px] whitespace-nowrap text-warn-600">
+          <span className="sr-only">{t('common.stars.aria', { value: quote.stars })}</span>
+          <span aria-hidden>{'★'.repeat(quote.stars)}</span>
+        </span>
+      ) : null}
+    </p>
+  );
+}
+
 /** Counts, shown only when they add something: "Mentioned once" already says one. */
 function Counts({ finding }: { finding: Finding }) {
   if (finding.level === 'OBSERVATION') return null;
@@ -100,19 +121,19 @@ function Counts({ finding }: { finding: Finding }) {
 export function FindingRow({
   finding,
   basePath,
-  evidence,
+  quote = null,
   t,
 }: {
   finding: Finding;
   basePath: string;
-  /** With it, a pattern carries one customer's own words. */
-  evidence?: EvidenceIndex;
+  /**
+   * One customer's own words behind the topic, at every rung (low-data pass):
+   * at five responses "Attentive service · Praised once" means little without
+   * "Good service" under it, and a pattern means more with one voice from it.
+   */
+  quote?: Quote | null;
   t: PortalTranslator;
 }) {
-  const quote =
-    evidence && (finding.level === 'EMERGING_PATTERN' || finding.level === 'STRONG_PATTERN')
-      ? (quotesFor(evidence, finding.key, { limit: 1 })[0] ?? null)
-      : null;
   return (
     <li className="py-3">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -126,11 +147,7 @@ export function FindingRow({
         <Counts finding={finding} />
         <Mark finding={finding} t={t} />
       </div>
-      {quote ? (
-        <blockquote className="mt-1.5 line-clamp-2 border-l-2 border-brand-400 pl-3 text-[14px] leading-snug text-ink-700">
-          “{quote.text}”
-        </blockquote>
-      ) : null}
+      {quote ? <QuoteLine quote={quote} t={t} className="mt-1.5" /> : null}
       {finding.action ? (
         finding.action.eyebrow ? (
           <div className="mt-2 rounded-lg bg-canvas px-3 py-2">
@@ -170,12 +187,14 @@ export async function AllFindings({
   const t = await getTranslator();
   const rows = [...state.concerns, ...state.likes].filter((f) => !exclude?.has(f.key));
   if (rows.length === 0) return null;
+  // One customer per topic, and no response under two topics on this page.
+  const quotes = evidence ? pickQuotes(evidence, rows) : new Map<string, Quote>();
   return (
     <section className={className}>
       <h2 className={clsx(EYEBROW, 'text-ink-500')}>{title ?? t('ladder.section.everything')}</h2>
       <ul className="mt-1 divide-y divide-ink-100 border-y border-ink-200">
         {rows.map((f) => (
-          <FindingRow key={`${f.kind}:${f.key}`} finding={f} basePath={basePath} evidence={evidence} t={t} />
+          <FindingRow key={`${f.kind}:${f.key}`} finding={f} basePath={basePath} quote={quotes.get(f.key) ?? null} t={t} />
         ))}
       </ul>
     </section>
@@ -197,6 +216,7 @@ function TopicLine({
   t,
   withAction,
   movement = true,
+  quote = null,
 }: {
   finding: Finding;
   basePath: string;
@@ -204,6 +224,8 @@ function TopicLine({
   withAction: boolean;
   /** Off on a current-state card: "right now" never says which way anything moved. */
   movement?: boolean;
+  /** The customer's words behind this topic, when the page shows them (Home below ten read). */
+  quote?: Quote | null;
 }) {
   return (
     <li className="py-2.5">
@@ -224,6 +246,7 @@ function TopicLine({
         <Counts finding={finding} />
         {movement ? <Mark finding={finding} t={t} /> : null}
       </div>
+      {quote ? <QuoteLine quote={quote} t={t} className="mt-1 pl-4" /> : null}
       {withAction && finding.action?.eyebrow ? (
         <p className="mt-1 line-clamp-2 text-[14px] leading-snug text-ink-700">
           <span className="font-semibold text-ink-900">{finding.action.eyebrow}:</span> {finding.action.text}
@@ -240,6 +263,7 @@ function TopicList({
   t,
   tone,
   withAction = false,
+  quotes,
 }: {
   title: string;
   findings: Finding[];
@@ -247,6 +271,7 @@ function TopicList({
   t: PortalTranslator;
   tone: 'good' | 'bad' | 'neutral';
   withAction?: boolean;
+  quotes?: ReadonlyMap<string, Quote>;
 }) {
   if (findings.length === 0) return null;
   return (
@@ -266,7 +291,7 @@ function TopicList({
       </h3>
       <ul className="mt-0.5 divide-y divide-ink-100">
         {findings.map((f) => (
-          <TopicLine key={`${f.kind}:${f.key}`} finding={f} basePath={basePath} t={t} withAction={withAction} />
+          <TopicLine key={`${f.kind}:${f.key}`} finding={f} basePath={basePath} t={t} withAction={withAction} quote={quotes?.get(f.key) ?? null} />
         ))}
       </ul>
     </section>
@@ -287,7 +312,7 @@ export async function TopicRows({ findings, basePath, className }: { findings: F
 }
 
 /** The strongest truth, as a headline: a sentence for a mood, a topic and its rung for a finding. */
-function Headline({ headline, eyebrow, t }: { headline: StandsOut; eyebrow: boolean; t: PortalTranslator }) {
+function Headline({ headline, eyebrow, t, quote = null }: { headline: StandsOut; eyebrow: boolean; t: PortalTranslator; quote?: Quote | null }) {
   return (
     <div>
       {eyebrow ? <p className={clsx(EYEBROW, 'text-ink-500')}>{t('ladder.section.standsOut')}</p> : null}
@@ -306,6 +331,7 @@ function Headline({ headline, eyebrow, t }: { headline: StandsOut; eyebrow: bool
           <Counts finding={headline.finding} />
         </p>
       ) : null}
+      {quote ? <QuoteLine quote={quote} t={t} className="mt-1.5" /> : null}
     </div>
   );
 }
@@ -366,11 +392,14 @@ export async function HomeReading({
   state,
   basePath,
   omit = null,
+  quotes,
   className,
 }: {
   state: EvidenceState;
   basePath: string;
   omit?: string | null;
+  /** The customer's words under each row, chosen by `homeQuotes` (below ten read). */
+  quotes?: ReadonlyMap<string, Quote>;
   className?: string;
 }) {
   const t = await getTranslator();
@@ -391,10 +420,10 @@ export async function HomeReading({
           topic Headway read in their words; the rung beside it says how sure
           that is. */}
       <div className="space-y-5">
-        {headline ? <Headline headline={headline} eyebrow t={t} /> : null}
-        <TopicList title={t('ladder.section.patterns')} findings={lists.patterns} basePath={basePath} t={t} tone="bad" withAction />
-        <TopicList title={t('ladder.section.likes')} findings={lists.likes} basePath={basePath} t={t} tone="good" />
-        <TopicList title={t('ladder.section.watching')} findings={lists.watching} basePath={basePath} t={t} tone="neutral" />
+        {headline ? <Headline headline={headline} eyebrow t={t} quote={headline.findingKey ? (quotes?.get(headline.findingKey) ?? null) : null} /> : null}
+        <TopicList title={t('ladder.section.patterns')} findings={lists.patterns} basePath={basePath} t={t} tone="bad" withAction quotes={quotes} />
+        <TopicList title={t('ladder.section.likes')} findings={lists.likes} basePath={basePath} t={t} tone="good" quotes={quotes} />
+        <TopicList title={t('ladder.section.watching')} findings={lists.watching} basePath={basePath} t={t} tone="neutral" quotes={quotes} />
       </div>
       {/* What Home left out is one tap away, and says how much there is,
           so a topic kept off Home is never a topic hidden. */}
@@ -424,15 +453,18 @@ export async function HomeReading({
 export async function ReadingSummary({
   state,
   reasons = true,
+  headline: showHeadline = true,
   className,
 }: {
   state: EvidenceState;
   /** Whether to offer "How Headway decides" — off where the page offers its own. */
   reasons?: boolean;
+  /** Off where the page lists every topic right below, so the strongest one is not said twice. */
+  headline?: boolean;
   className?: string;
 }) {
   const t = await getTranslator();
-  const headline = headlineOf(state);
+  const headline = showHeadline ? headlineOf(state) : null;
   return (
     <section className={className}>
       <PulseLine state={state} className="mb-3" />
@@ -487,25 +519,21 @@ export async function EvidenceReading({
  */
 export async function DirectionPanel({
   direction,
-  title = true,
+  eyebrow = null,
   className,
 }: {
   direction: Direction;
-  /** Off where the page heading already says the state (Check-in's "Nothing compared yet"). */
-  title?: boolean;
+  /** The section it answers ("Over time"), so a missing comparison never reads as a missing page. */
+  eyebrow?: string | null;
   className?: string;
 }) {
   return (
-    <section
-      aria-labelledby={title ? 'direction-title' : undefined}
-      className={clsx('rounded-2xl border border-ink-200 bg-white p-5 sm:p-6', className)}
-    >
-      {title ? (
-        <h2 id="direction-title" className="font-display text-[22px] leading-[1.15] font-semibold text-ink-900 sm:text-[24px]">
-          {direction.title}
-        </h2>
-      ) : null}
-      <p className={clsx('max-w-2xl text-[15px] leading-relaxed text-ink-700', title && 'mt-2')}>{direction.body}</p>
+    <section aria-labelledby="direction-title" className={clsx('rounded-2xl border border-ink-200 bg-white p-5 sm:p-6', className)}>
+      {eyebrow ? <p className={clsx(EYEBROW, 'mb-1 text-ink-500')}>{eyebrow}</p> : null}
+      <h2 id="direction-title" className="font-display text-[22px] leading-[1.15] font-semibold text-ink-900 sm:text-[24px]">
+        {direction.title}
+      </h2>
+      <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink-700">{direction.body}</p>
       {direction.automatic ? <p className="mt-2 text-[14px] leading-snug text-ink-600">{direction.automatic}</p> : null}
       <Reveal summary={direction.methodTitle} className="mt-2">
         <p className="max-w-2xl text-[13px] leading-relaxed text-ink-600">{direction.method}</p>

@@ -102,6 +102,12 @@ export type QuoteOptions = {
   since?: Date | null;
   /** Only rows dated before this. The "before the change" pile. */
   until?: Date | null;
+  /**
+   * When no customer wrote enough for a readable quote, take the short words
+   * there are ("Good service") rather than none: at a handful of responses the
+   * short words ARE the evidence behind the topic (low-data pass).
+   */
+  allowShort?: boolean;
 };
 
 /**
@@ -113,11 +119,13 @@ export type QuoteOptions = {
  */
 export function quotesFor(index: EvidenceIndex, themeKey: string, options: QuoteOptions = {}): Quote[] {
   const limit = options.limit ?? 3;
-  const rows = (index.byTheme.get(themeKey) ?? []).filter((row) => {
+  const inWindow = (index.byTheme.get(themeKey) ?? []).filter((row) => {
     if (options.since && row.at.getTime() < options.since.getTime()) return false;
     if (options.until && row.at.getTime() >= options.until.getTime()) return false;
-    return row.text.length >= MIN_QUOTE_LENGTH;
+    return true;
   });
+  const readable = inWindow.filter((row) => row.text.length >= MIN_QUOTE_LENGTH);
+  const rows = readable.length > 0 || !options.allowShort ? readable : inWindow.filter((row) => row.text.trim().length > 0);
   if (rows.length === 0) return [];
 
   // Two passes: readable lengths first, then anything. Within a pass the rows

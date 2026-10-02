@@ -8,11 +8,15 @@ import {
   HOME_LIMITS,
   headlineOf,
   homeLists,
+  homeQuotes,
+  pickQuotes,
   isPattern,
   levelOf,
   type EvidenceState,
 } from '@/lib/portal/ladder';
 import { INTERNALS } from '@/lib/portal/test-fixtures';
+import { quotesFor } from '@/lib/portal/evidence';
+import { withoutQuoted, type FreshFeed } from '@/lib/portal/fresh';
 import {
   COMPLAINT_BANK,
   CRAZY_CHEESY,
@@ -397,5 +401,112 @@ describe('review fixes: the semantic Home', () => {
       expect(lists.watching).toEqual([]);
     }
     for (const f of lists.watching) for (const p of complaintPatterns) expect(lists.patterns.map((x) => x.key).includes(p.key) || compareFindings(p, f) > 0, `${f.key} over ${p.key}`).toBe(true);
+  });
+});
+
+describe('the low-data pass: the customer’s own words behind each finding', () => {
+  const CRAZY_CHEESY_PROD: Response[] = [
+    { text: 'Good service', stars: 5 },
+    { text: '', stars: 5 },
+    { text: '', stars: 5 },
+    { text: '', stars: 4 },
+    { text: '', stars: null },
+  ];
+
+  it('quotes even short words when they are all there is — "Good service" under "Attentive service"', () => {
+    const r = runLadder(CRAZY_CHEESY_PROD);
+    // The readable-length floor still holds by default…
+    expect(quotesFor(r.evidence, 'service_quality', { limit: 1 })).toEqual([]);
+    // …and the short words are taken only when nothing longer exists.
+    expect(quotesFor(r.evidence, 'service_quality', { limit: 1, allowShort: true }).map((q) => [q.text, q.stars])).toEqual([['Good service', 5]]);
+    const quotes = homeQuotes(r.state, r.evidence);
+    expect([...quotes.entries()].map(([k, q]) => [k, q.text])).toEqual([['service_quality', 'Good service']]);
+  });
+
+  it('gives each Home row its own customer, never one response under two topics', () => {
+    const r = runLadder(CRAZY_CHEESY);
+    const quotes = homeQuotes(r.state, r.evidence);
+    const lists = homeLists(r.state);
+    for (const f of [...lists.likes, ...lists.watching]) expect(quotes.has(f.key), f.key).toBe(true);
+    const ids = [...quotes.values()].map((q) => q.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    // Every quote is a real response's own words, unchanged.
+    for (const q of quotes.values()) expect(CRAZY_CHEESY.map((x) => x.text)).toContain(q.text);
+  });
+
+  it('stops quoting under rows from ten read, where counts and shares speak for themselves', () => {
+    for (const n of [10, 25, 50]) {
+      const r = runLadder(cycle(MIXES.mixed!, n, 'q'));
+      expect(homeQuotes(r.state, r.evidence).size, `${n}`).toBe(0);
+    }
+    expect(homeQuotes(runLadder([]).state, null).size).toBe(0);
+  });
+
+  it('never puts a quote on a topic Home does not show', () => {
+    for (const mix of Object.keys(MIXES)) {
+      for (const n of [1, 3, 5, 9]) {
+        const r = runLadder(cycle(MIXES[mix]!, n, mix.slice(0, 2)));
+        const { keys } = homeShown(r.state);
+        for (const k of homeQuotes(r.state, r.evidence).keys()) expect(keys, `${mix} ${n}: ${k}`).toContain(k);
+      }
+    }
+  });
+
+  it('leaves quoted responses out of Latest, so nothing is said twice on Home — but never one not read yet', () => {
+    const feed: FreshFeed = {
+      live: null,
+      total: 5,
+      quiet: 3,
+      latest: [
+        { id: 'a', text: 'Good service', stars: 5, at: new Date(), exact: true, sourceLabel: 'QR', state: 'READ', topics: [] },
+        { id: 'b', text: 'Just sent', stars: null, at: new Date(), exact: true, sourceLabel: 'QR', state: 'NEW', topics: [] },
+      ],
+    };
+    expect(withoutQuoted(feed, new Set(['a'])).latest.map((e) => e.id)).toEqual(['b']);
+    expect(withoutQuoted(feed, new Set()).latest).toHaveLength(2);
+    expect(withoutQuoted(feed, new Set(['a'])).total).toBe(5);
+  });
+});
+
+describe('the low-data pass: each page says "not enough yet" once, where it matters', () => {
+  const page = (name: string) => source('src', 'components', 'workspace', name);
+
+  it('Customers quotes a customer under every topic, at every rung, none twice', () => {
+    const ladderUi = page('evidence-ladder.tsx');
+    expect(ladderUi).toContain('const quotes = evidence ? pickQuotes(evidence, rows)');
+    const r = runLadder(cycle(MIXES.mixed!, 9, 'cq'));
+    const rows = [...r.state.concerns, ...r.state.likes];
+    const quotes = pickQuotes(r.evidence, rows);
+    const ids = [...quotes.values()].map((q) => q.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(quotes.size).toBeGreaterThan(0);
+  });
+
+  it('Customers folds its limits away below ten read — the confidence line already says it', () => {
+    expect(page('analysis.tsx')).toContain('{state.read >= 10 ? <Limits limits={view.limits} collapsed /> : null}');
+  });
+
+  it('Trends names its two halves: right now, and over time', () => {
+    const trends = page('improvements.tsx');
+    expect(trends).toContain("t('ladder.trends.now')");
+    expect(trends).toContain("eyebrow={t('ladder.trends.overTime')}");
+  });
+
+  it('Check-in does not repeat Trends’ card: the current picture, then one line on the comparison', () => {
+    const checkin = page('checkin.tsx');
+    expect(checkin).not.toContain('<DirectionPanel');
+    expect(checkin).not.toContain('direction.automatic');
+  });
+
+  it('"Headway keeps collecting feedback automatically" is said on one page only', () => {
+    const files = ['brief.tsx', 'home.tsx', 'analysis.tsx', 'improvements.tsx', 'checkin.tsx', 'reviews.tsx', 'period-report.tsx', 'evidence-ladder.tsx'];
+    const renderers = files.filter((f) => /<DirectionPanel/.test(page(f)));
+    expect(renderers).toEqual(['improvements.tsx']);
+  });
+
+  it('Home quotes under its rows and leaves those responses out of Latest', () => {
+    const brief = page('brief.tsx');
+    expect(brief).toContain('homeQuotes(state, evidence, omit)');
+    expect(brief).toContain('withoutQuoted(fresh,');
   });
 });

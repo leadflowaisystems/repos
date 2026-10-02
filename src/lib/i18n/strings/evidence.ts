@@ -373,9 +373,9 @@ export const evidence = {
     mr: '{month} महिन्याचा चेक-इन',
   },
   'evidence.checkin.noneTitle': {
-    en: 'Nothing compared yet',
-    hi: 'अभी कोई तुलना नहीं',
-    mr: 'अजून कोणतीही तुलना नाही',
+    en: 'The current picture',
+    hi: 'अभी की तस्वीर',
+    mr: 'सध्याचं चित्र',
   },
   'evidence.period.compares': {
     en: 'This compares the check-in on {latest} with the check-in on {previous}.',

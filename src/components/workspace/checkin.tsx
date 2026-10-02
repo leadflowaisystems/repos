@@ -20,7 +20,8 @@ import { SinceThen } from '@/components/portal/responsibility';
 import { SignalCard, type SignalGroupKey } from '@/components/workspace/signal-board';
 import type { EvidenceIndex } from '@/lib/portal/evidence';
 import { getTranslator } from '@/lib/i18n/request';
-import { DirectionPanel, EvidenceReading, ReadingSummary } from '@/components/workspace/evidence-ladder';
+import { EvidenceReading, ReadingSummary, TopicRows } from '@/components/workspace/evidence-ladder';
+import { topFindings } from '@/lib/portal/ladder';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Check-in' };
@@ -181,9 +182,17 @@ export async function PortalCheckin({
           used to say the same two things again above them. */}
       {!compared ? (
         <div className="max-w-3xl space-y-6">
-          <ReadingSummary state={state} reasons={false} />
+          <div>
+            <ReadingSummary state={state} reasons={false} headline={false} />
+            <TopicRows findings={topFindings(state)} basePath={basePath} className="mt-2 border-t border-ink-100" />
+          </div>
           <Blocks blocks={pulse.blocks} evidence={evidence} basePath={basePath} />
-          <DirectionPanel direction={state.direction} title={false} />
+          {/* Where the comparison stands, in one line — the full card is
+              Trends' "Over time". With one set recorded, the intro above
+              already says the next one is being collected. */}
+          {state.direction.state !== 'BASELINE_SET' ? (
+            <p className="border-l-2 border-ink-300 pl-3 text-[14px] leading-snug text-ink-700">{state.direction.body}</p>
+          ) : null}
         </div>
       ) : (
         <>

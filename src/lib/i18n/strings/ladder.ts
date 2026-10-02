@@ -694,4 +694,9 @@ export const ladder = {
     hi: 'अभी कोई समस्या पैटर्न नहीं बनी है।',
     mr: 'अजून कोणतीही अडचण पॅटर्न बनलेली नाही.',
   },
+  'ladder.trends.overTime': {
+    en: 'Over time',
+    hi: 'समय के साथ',
+    mr: 'कालांतराने',
+  },
 } satisfies Namespace;

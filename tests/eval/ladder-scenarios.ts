@@ -7,7 +7,7 @@ import { EMPTY_CONTEXT } from '@/lib/context/apply';
 import { getPackOrFallback, type Pack } from '@/lib/packs';
 import { EN, type PortalTranslator } from '@/lib/i18n/translator';
 import { buildBrief, type Brief } from '@/lib/portal/brief';
-import { buildEvidenceIndex } from '@/lib/portal/evidence';
+import { buildEvidenceIndex, type EvidenceIndex } from '@/lib/portal/evidence';
 import { buildEvidenceState, pileFrom, type EvidenceState } from '@/lib/portal/ladder';
 import {
   buildAnalysisView,
@@ -61,6 +61,8 @@ export type LadderRun = {
   analysis: AnalysisView;
   improvements: ImprovementsView;
   reviews: ReviewsView;
+  /** The rows behind every count, as the pages quote them. */
+  evidence: EvidenceIndex;
 };
 
 export function runLadder(
@@ -200,7 +202,7 @@ export function runLadder(
     t,
   });
 
-  return { pack, rows: ledger, readings, themes, periods, intelligence, input, view, state, responsibility, brief, analysis, improvements, reviews };
+  return { pack, rows: ledger, readings, themes, periods, intelligence, input, view, state, responsibility, brief, analysis, improvements, reviews, evidence };
 }
 
 /** `n` responses cycling through `bank`, each made unique so none is a duplicate. */

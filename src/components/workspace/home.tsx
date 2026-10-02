@@ -181,6 +181,7 @@ export async function PortalHome({
         state={state}
         clientId={clientId}
         basePath={basePath}
+        evidence={evidence}
         fresh={fresh}
         stamp={stamp}
         now={now}

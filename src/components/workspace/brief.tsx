@@ -8,10 +8,11 @@ import { Greeting } from '@/components/workspace/greeting';
 import { LiveRefresh } from '@/components/workspace/live-refresh';
 import { EvidenceReading, HomeReading } from '@/components/workspace/evidence-ladder';
 import { movesFor } from '@/lib/improve/owner-moves';
-import { whenSaid, type FreshFeed, type LatestEntry, type LiveState } from '@/lib/portal/fresh';
+import { whenSaid, withoutQuoted, type FreshFeed, type LatestEntry, type LiveState } from '@/lib/portal/fresh';
 import { formatDate } from '@/lib/format';
 import type { PortalTranslator } from '@/lib/i18n/translator';
-import type { EvidenceState } from '@/lib/portal/ladder';
+import { homeQuotes, type EvidenceState } from '@/lib/portal/ladder';
+import type { EvidenceIndex } from '@/lib/portal/evidence';
 
 /**
  * YOUR HEADWAY BRIEF — the screen an owner opens (final experience pass).
@@ -361,20 +362,27 @@ async function Story({
  */
 async function Latest({ fresh, basePath, now }: { fresh: FreshFeed; basePath: string; now: Date }) {
   const t = await getTranslator();
-  if (fresh.latest.length === 0) return null;
+  if (fresh.total === 0) return null;
   const held = fresh.live?.kind === 'HELD';
+  // Every row may already be quoted under a topic above (a handful of
+  // responses): then this is only the count of the rest and the way to all.
+  const rows = fresh.latest.length > 0;
   return (
-    <section aria-labelledby="brief-latest">
-      <h2 id="brief-latest" className={clsx(EYEBROW, 'text-ink-500')}>
-        {t('brief.latest.title')}
-      </h2>
-      <ul className="mt-2 divide-y divide-ink-200 overflow-hidden rounded-xl border border-ink-200 bg-white">
-        {fresh.latest.map((entry) => (
-          <li key={entry.id}>
-            <LatestRow entry={entry} href={`${basePath}/reviews/${entry.id}?from=home`} now={now} t={t} held={held} />
-          </li>
-        ))}
-      </ul>
+    <section aria-labelledby={rows ? 'brief-latest' : undefined}>
+      {rows ? (
+        <>
+          <h2 id="brief-latest" className={clsx(EYEBROW, 'text-ink-500')}>
+            {t('brief.latest.title')}
+          </h2>
+          <ul className="mt-2 divide-y divide-ink-200 overflow-hidden rounded-xl border border-ink-200 bg-white">
+            {fresh.latest.map((entry) => (
+              <li key={entry.id}>
+                <LatestRow entry={entry} href={`${basePath}/reviews/${entry.id}?from=home`} now={now} t={t} held={held} />
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
       {/* Ratings left without words, as one line rather than a row each: the
           rows are for what customers wrote. */}
       {fresh.quiet > 0 ? (
@@ -643,6 +651,7 @@ export async function OwnerBrief({
   state,
   clientId,
   basePath,
+  evidence,
   fresh = null,
   stamp,
   now = new Date(),
@@ -658,6 +667,8 @@ export async function OwnerBrief({
   clientId?: string;
   /** Where this door lives, so the record can link to the full action centre. */
   basePath: string;
+  /** The rows behind every count, so a topic can show the customer's own words. */
+  evidence?: EvidenceIndex;
   /** The newest feedback and where Headway is with it. See `portal/fresh.ts`. */
   fresh?: FreshFeed | null;
   /**
@@ -691,6 +702,11 @@ export async function OwnerBrief({
   // something about direction only when there is something to say — the
   // topics that moved — and otherwise leaves it to the Trends tab.
   const side = brief.changed.length > 0 || brief.memory !== null;
+  // Below ten read, each topic carries the words it came from; the latest
+  // list then leaves those responses out rather than show them twice.
+  const omit = brief.attention?.themeKey ?? null;
+  const quotes = homeQuotes(state, evidence, omit);
+  const latest = fresh ? withoutQuoted(fresh, new Set([...quotes.values()].map((q) => q.id))) : null;
   return (
     <>
       {watcher}
@@ -703,8 +719,8 @@ export async function OwnerBrief({
       >
         <div className="min-w-0 space-y-8">
           {brief.attention ? <Story card={brief.attention} clientId={clientId} suggestTitle={suggestTitle} /> : null}
-          <HomeReading state={state} basePath={basePath} omit={brief.attention?.themeKey ?? null} />
-          {fresh ? <Latest fresh={fresh} basePath={basePath} now={now} /> : null}
+          <HomeReading state={state} basePath={basePath} omit={omit} quotes={quotes} />
+          {latest ? <Latest fresh={latest} basePath={basePath} now={now} /> : null}
         </div>
         {side ? (
           <div className="min-w-0 space-y-8">

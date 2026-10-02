@@ -226,6 +226,17 @@ export function buildFreshFeed(input: {
   return { live, latest, total: ledger.length, quiet };
 }
 
+/**
+ * The latest list without the responses Home already quotes under a topic
+ * (low-data pass): at five responses the same "Good service" twice on one
+ * screen is the page repeating itself. A response not read yet is never
+ * quoted, so the one the owner just watched arrive always stays.
+ */
+export function withoutQuoted(feed: FreshFeed, quoted: ReadonlySet<string>): FreshFeed {
+  if (quoted.size === 0) return feed;
+  return { ...feed, latest: feed.latest.filter((entry) => !quoted.has(entry.id)) };
+}
+
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 

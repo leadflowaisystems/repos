@@ -716,7 +716,7 @@ export async function PortalImprovements({
               history yet"), with the current picture in one line above it.
               Nothing from Home's reading is repeated here. */}
           <CurrentPicture state={state} basePath={basePath} t={t} className="mt-5" />
-          <DirectionPanel direction={state.direction} className="mt-4" />
+          <DirectionPanel direction={state.direction} eyebrow={t('ladder.trends.overTime')} className="mt-4" />
         </>
       )}
 
