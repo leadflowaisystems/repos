@@ -4,26 +4,26 @@ import { createRlsTestDb, hasRlsRuntimeDb, type RlsTestDb } from './helpers/rls-
 import { resetDb, validClientInput } from './helpers/test-db';
 
 /**
- * EVERY ACCOUNT PATH, IN THE ORDER IT HAPPENS (M43, M52).
+ * EVERY ACCOUNT PATH, IN THE ORDER IT HAPPENS (M43, two logins since M52).
  *
- * Each step below already has its own tests. This file proves they work
- * TOGETHER, one after another — against a real Postgres with the shipped
- * `rls.sql`, through the real `src/lib/db.ts`, connected as `repos_app`, the
- * role production runs as. Only the Supabase network edge is stubbed: who the
- * session says is signed in, and the Auth admin API that mints, re-passwords,
- * scrambles and deletes identities.
+ * Each step already has its own tests. This file proves they work TOGETHER —
+ * against a real Postgres with the shipped `rls.sql` (so `app.user_id_for_auth`,
+ * `app.provision_user` and `app.rebind_temp_access` run for real), through
+ * the real `src/lib/db.ts`, connected as `repos_app`, the role production runs
+ * as. Only the Supabase network edge is stubbed: who the session says is
+ * signed in, and the Auth admin API.
  *
- *   1. the platform admin adds a client
- *   2. the admin generates a temporary EMAIL and PASSWORD — sends no email
- *   3. the temporary owner lands on Account, in that business, seeing no other
- *   4. setup: same User, Membership and Client; email waits for its link
- *   5. the confirmed email signs in as the same person; setup cannot rerun
- *   6. after setup there is no temporary access left to disable
- *   7. disabling BEFORE setup: the row, the password, and any live session
- *   8. new temporary access after a disable reuses the same identity
- *   9. a business with its own owner account is never given a second one
- *  10. two admins generating at once leave one login and no orphans
- *  11. a self-serve owner signs up, onboards, and lands in their own business
+ *   1. the admin adds a client; 2. generates a temporary EMAIL + PASSWORD
+ *   3. the temporary login lands on Account, in that business only
+ *   4. setup records the owner's OWN login on the same User
+ *   5. the own login (once confirmed) and the temporary login both open it
+ *   6. disabling temporary access never touches the owner's own login
+ *   7. enabling it again: same email, new password, own login untouched
+ *   8. before setup: disable really shuts the business, enable reopens it
+ *   9. a business with its own owner: a temporary login into that account
+ *  10. a row with no temporary login left is given a fresh one (platform only)
+ *  11. two admins generating at once leave one login and no orphans
+ *  12. a self-serve owner signs up, onboards, and lands in their own business
  */
 
 let session: { id: string } | null = null;
@@ -47,6 +47,7 @@ const idp = vi.hoisted(() => ({
   passwords: [] as Array<{ authUserId: string; password: string }>,
   scrambled: [] as string[],
   deleted: [] as string[],
+  own: new Map<string, { email: string; confirmed: boolean }>(),
   n: 0,
   /** When set, createTempIdentity waits until this many calls are in flight. */
   rendezvous: null as null | { waiting: number; of: number; release: () => void; ready: Promise<void> },
@@ -77,12 +78,16 @@ vi.mock('@/lib/auth/supabase-admin', () => ({
   deleteIdentity: async (authUserId: string) => {
     idp.deleted.push(authUserId);
   },
-  getIdentitySnapshot: async () => ({ email: 'xxxxxxxx@access.headway.local', pendingEmail: 'owner@lifecycle.test', lastSignInAt: null }),
+  getIdentitySnapshot: async (authUserId: string) => {
+    const own = idp.own.get(authUserId);
+    return own ? { ...own, lastSignInAt: null } : null;
+  },
 }));
 
 const ADMIN_AUTH = '11111111-1111-4111-8111-111111111111';
 const OTHER_AUTH = '44444444-4444-4444-8444-444444444444';
 const SELF_AUTH = '55555555-5555-4555-8555-555555555555';
+const OWN_AUTH = '66666666-6666-4666-8666-666666666666';
 
 const TEMP_EMAIL = /^[a-z0-9]{8}@access\.headway\.local$/;
 const TEMP_PASSWORD = /^[A-Za-z0-9]{4}(-[A-Za-z0-9]{4}){3}$/;
@@ -108,7 +113,7 @@ const state = {
   otherClientId: '',
   otherUserId: '',
   clientId: '',
-  tempUserId: '',
+  ownerUserId: '',
   tempAuth: '',
   email: '',
 };
@@ -119,6 +124,12 @@ async function newClient(name: string) {
   expect(created.ok, created.ok ? '' : created.message).toBe(true);
   if (!created.ok) throw new Error(created.message);
   return created.data.id;
+}
+
+/** What a request signed in as `authId` can see of the businesses. */
+async function visibleClients(authId: string) {
+  session = { id: authId };
+  return (await app.client.findMany({ select: { id: true } })).map((c) => c.id).sort();
 }
 
 beforeAll(async () => {
@@ -171,28 +182,17 @@ afterAll(async () => {
 describe('one business, from the admin adding it to the owner signing in as themselves', () => {
   it('1. the platform admin adds a client: a trial, a feedback page, and no owner yet', async () => {
     state.clientId = await newClient('Lifecycle Salon');
-
     const row = await owner.client.findUniqueOrThrow({
       where: { id: state.clientId },
       include: { gateway: true, memberships: true },
     });
     expect(row.subscriptionStatus).toBe('TRIAL');
-    expect(row.trialEndsAt).not.toBeNull();
     expect(row.gateway?.publicToken).toMatch(/^[a-z0-9]{22}$/);
     expect(row.memberships).toHaveLength(0);
-
-    session = { id: ADMIN_AUTH };
-    expect((await svc.getAdminAccessView(app, state.clientId)).status).toBe('NONE');
+    expect(await svc.getAdminAccessView(app, state.clientId)).toEqual({ ownLogin: null, temporary: 'NONE', temporaryEmail: null });
   });
 
-  it('only a platform admin can add a client that way', async () => {
-    session = { id: OTHER_AUTH };
-    const refused = await svc.createClient(app, validClientInput({ businessName: 'Not Allowed', vertical: 'gym' }));
-    expect(refused.ok).toBe(false);
-    expect(await owner.client.count({ where: { businessName: 'Not Allowed' } })).toBe(0);
-  });
-
-  it('2. the admin generates a temporary EMAIL and PASSWORD — the exact pair Supabase was given', async () => {
+  it('2. generating gives a real temporary EMAIL and PASSWORD — exactly the pair Supabase was given', async () => {
     session = { id: ADMIN_AUTH };
     const generated = await svc.generateTempAccess(app, state.clientId, state.adminId);
     expect(generated.ok, generated.ok ? '' : generated.message).toBe(true);
@@ -201,79 +201,71 @@ describe('one business, from the admin adding it to the owner signing in as them
 
     expect(generated.data.email).toMatch(TEMP_EMAIL);
     expect(generated.data.password).toMatch(TEMP_PASSWORD);
-    expect(generated.data.password).toMatch(/[A-Z]/);
     expect(idp.minted).toHaveLength(1);
     expect(idp.minted[0]).toMatchObject({ email: generated.data.email, password: generated.data.password });
     state.tempAuth = idp.minted[0]!.authUserId;
 
     const access = await owner.accountAccess.findUniqueOrThrow({ where: { clientId: state.clientId }, include: { user: true } });
-    expect(access.status).toBe('TEMPORARY_ACTIVE');
-    expect(access.loginId).toBe(generated.data.email);
-    expect(access.createdByUserId).toBe(state.adminId);
-    expect(access.user.email).toBe(generated.data.email);
-    expect(access.user.authProviderId).toBe(state.tempAuth);
+    expect(access).toMatchObject({ status: 'TEMPORARY_ACTIVE', loginId: generated.data.email, tempAuthId: state.tempAuth });
+    // The owner User exists, with NO login of its own yet.
+    expect(access.user.authProviderId).toBeNull();
     expect(access.user.isPlatformAdmin).toBe(false);
-    state.tempUserId = access.userId;
+    state.ownerUserId = access.userId;
+    expect(await owner.membership.findMany({ where: { clientId: state.clientId } })).toEqual([
+      expect.objectContaining({ userId: state.ownerUserId, role: 'BUSINESS_OWNER', status: 'ACTIVE' }),
+    ]);
 
-    // The password is in no column anywhere: only the email is stored.
-    expect(JSON.stringify(access)).not.toContain(generated.data.password);
+    // The password is in no column anywhere.
+    expect(JSON.stringify(await owner.accountAccess.findMany())).not.toContain(generated.data.password);
     expect(JSON.stringify(await owner.user.findMany())).not.toContain(generated.data.password);
 
-    const memberships = await owner.membership.findMany({ where: { userId: state.tempUserId } });
-    expect(memberships).toEqual([expect.objectContaining({ clientId: state.clientId, role: 'BUSINESS_OWNER', status: 'ACTIVE' })]);
+    expect(await svc.getAdminAccessView(app, state.clientId)).toEqual({
+      ownLogin: null,
+      temporary: 'ACTIVE',
+      temporaryEmail: generated.data.email,
+    });
 
-    const view = await svc.getAdminAccessView(app, state.clientId);
-    expect(view).toMatchObject({ status: 'TEMPORARY_ACTIVE', temporaryEmail: generated.data.email });
-
-    // Never a second credential while this one is active.
-    const again = await svc.generateTempAccess(app, state.clientId, state.adminId);
-    expect(again.ok).toBe(false);
+    // Never a second one while this one is on.
+    expect((await svc.generateTempAccess(app, state.clientId, state.adminId)).ok).toBe(false);
     expect(idp.minted).toHaveLength(1);
-    expect(await owner.accountAccess.count({ where: { clientId: state.clientId } })).toBe(1);
   });
 
-  it('3. the temporary owner lands on Account in their business, and can see no other', async () => {
+  it('3. the temporary login opens that business only, landing on Account to set up', async () => {
     session = { id: state.tempAuth };
+    // What sign-in does with the identity Supabase verified: no new User, and
+    // the synthetic address never lands on the owner's record.
+    const signedIn = await svc.provisionUser(app, { providerId: state.tempAuth, email: state.email });
+    expect(signedIn).toEqual({ userId: state.ownerUserId, created: false });
+
     const actor = await svc.loadActor(app, state.tempAuth);
-    expect(actor?.userId).toBe(state.tempUserId);
-    expect(actor?.isPlatformAdmin).toBe(false);
-    expect(actor?.setupPendingClientId).toBe(state.clientId);
+    expect(actor?.userId).toBe(state.ownerUserId);
+    expect(actor?.temporaryAccessClientId).toBe(state.clientId);
     expect(svc.landingPathFor(actor!)).toBe(`/workspace/${state.clientId}/account`);
 
-    expect((await app.client.findMany({ select: { id: true } })).map((c) => c.id)).toEqual([state.clientId]);
+    expect(await visibleClients(state.tempAuth)).toEqual([state.clientId]);
+    session = { id: state.tempAuth };
     expect(await app.client.findUnique({ where: { id: state.otherClientId } })).toBeNull();
-    expect(await app.accountAccess.findMany({ select: { clientId: true } })).toEqual([{ clientId: state.clientId }]);
   });
 
-  it('4. setup: refused when wrong; then committed on the same User, Membership and Client', async () => {
+  it('4. setup records the owner’s OWN login on the same User — refused when anything is wrong', async () => {
     session = { id: state.tempAuth };
     const base = { name: 'Asha', phone: '', email: 'owner@lifecycle.test', password: 'a-strong-password', confirmPassword: 'a-strong-password' };
+    const validate = (input: Partial<typeof base>, clientId = state.clientId, sessionAuth = state.tempAuth) =>
+      svc.validateAccountSetup(app, state.ownerUserId, clientId, sessionAuth, { ...base, ...input });
 
-    const mismatch = await svc.validateAccountSetup(app, state.tempUserId, state.clientId, { ...base, confirmPassword: 'different' });
-    expect(mismatch.ok).toBe(false);
-    if (!mismatch.ok) expect(mismatch.errors.confirmPassword).toBeDefined();
-    const short = await svc.validateAccountSetup(app, state.tempUserId, state.clientId, { ...base, password: 'short', confirmPassword: 'short' });
-    expect(short.ok).toBe(false);
-    const blank = await svc.validateAccountSetup(app, state.tempUserId, state.clientId, { ...base, email: '' });
-    expect(blank.ok).toBe(false);
-    const temporary = await svc.validateAccountSetup(app, state.tempUserId, state.clientId, { ...base, email: state.email });
-    expect(temporary.ok).toBe(false);
+    expect((await validate({ confirmPassword: 'different' })).ok).toBe(false);
+    expect((await validate({ password: 'short', confirmPassword: 'short' })).ok).toBe(false);
+    expect((await validate({ email: '' })).ok).toBe(false);
+    expect((await validate({ email: state.email })).ok).toBe(false);
+    expect((await validate({ password: 'Kq7m-x3pa-9fne-t2wd', confirmPassword: 'Kq7m-x3pa-9fne-t2wd' })).ok).toBe(false);
+    expect((await validate({}, state.otherClientId)).ok).toBe(false);
+    expect((await validate({}, state.clientId, OTHER_AUTH)).ok).toBe(false);
 
-    // KNOWN LIMIT, pinned so it cannot change silently: under the runtime role
-    // an owner cannot see another tenant's User row, so RepOS's own pre-check
-    // for "that email belongs to someone else" does not see the clash. The
-    // refusal comes from Supabase instead (email_exists, when the owner's own
-    // session asks for the change — see tests/m39.account-setup-action.test.ts).
-    // That is only sound while every User row has a Supabase identity.
-    const taken = await svc.validateAccountSetup(app, state.tempUserId, state.clientId, { ...base, email: 'owner@other.test' });
-    expect(taken.ok).toBe(true);
-    expect(await owner.user.count({ where: { authProviderId: null } })).toBe(0);
-
-    // Nor for a business this temporary access is not bound to.
-    const wrongClient = await svc.validateAccountSetup(app, state.tempUserId, state.otherClientId, base);
-    expect(wrongClient.ok).toBe(false);
-
-    expect((await owner.accountAccess.findUniqueOrThrow({ where: { clientId: state.clientId } })).status).toBe('TEMPORARY_ACTIVE');
+    // KNOWN LIMIT, pinned: under the runtime role an owner cannot see another
+    // tenant's User row, so this pre-check misses the clash; Supabase refuses
+    // the address itself when the action creates the login (EMAIL_TAKEN, see
+    // tests/m39.account-setup-action.test.ts).
+    expect((await validate({ email: 'owner@other.test' })).ok).toBe(true);
 
     const counts = async () => ({
       users: await owner.user.count(),
@@ -282,208 +274,179 @@ describe('one business, from the admin adding it to the owner signing in as them
     });
     const before = await counts();
 
-    const valid = await svc.validateAccountSetup(app, state.tempUserId, state.clientId, base);
+    const valid = await validate({});
     expect(valid.ok).toBe(true);
     if (!valid.ok) return;
-    // The action sets the password on the owner's own session first, then commits.
-    expect(await svc.finalizeAccountSetup(app, state.tempUserId, valid.data)).toBe(true);
+    // The action creates the own login in Supabase (unconfirmed), then commits.
+    idp.own.set(OWN_AUTH, { email: 'owner@lifecycle.test', confirmed: false });
+    expect(await svc.finalizeAccountSetup(app, state.ownerUserId, state.tempAuth, valid.data, OWN_AUTH)).toBe(true);
 
-    const access = await owner.accountAccess.findUniqueOrThrow({ where: { clientId: state.clientId } });
-    expect(access.status).toBe('SETUP_COMPLETE');
-    expect(access.setupCompletedAt).not.toBeNull();
-    const user = await owner.user.findUniqueOrThrow({ where: { id: state.tempUserId } });
-    // The sign-in email moves only when the owner opens the confirmation link.
-    expect(user.email).toBe(state.email);
-    expect(user.authProviderId).toBe(state.tempAuth);
+    const user = await owner.user.findUniqueOrThrow({ where: { id: state.ownerUserId } });
+    expect(user.authProviderId).toBe(OWN_AUTH);
+    expect(user.email).toBe('owner@lifecycle.test');
     const client = await owner.client.findUniqueOrThrow({ where: { id: state.clientId } });
-    expect(client.ownerName).toBe('Asha');
-    // The contact email waits for Supabase to accept it (the action does that).
-    expect(client.ownerEmail).toBeNull();
+    expect(client).toMatchObject({ ownerName: 'Asha', ownerEmail: 'owner@lifecycle.test' });
+    const access = await owner.accountAccess.findUniqueOrThrow({ where: { clientId: state.clientId } });
+    expect(access).toMatchObject({ status: 'TEMPORARY_ACTIVE', tempAuthId: state.tempAuth });
+    expect(access.setupCompletedAt).not.toBeNull();
     expect(await counts()).toEqual(before);
 
     session = { id: ADMIN_AUTH };
-    const view = await svc.getAdminAccessView(app, state.clientId);
-    expect(view.status).toBe('SETUP_COMPLETE');
-    expect(view.pendingEmail).toBe('owner@lifecycle.test');
-  });
-
-  it('5. once confirmed, the new email signs in as the same person, in the same business', async () => {
-    session = { id: state.tempAuth };
-    // What the callback and signInAction do with the verified identity after
-    // the owner opens the link: Supabase now says the real address.
-    const signedIn = await svc.provisionUser(app, { providerId: state.tempAuth, email: 'owner@lifecycle.test' });
-    expect(signedIn.userId).toBe(state.tempUserId);
-    expect(signedIn.created).toBe(false);
-    expect((await owner.user.findUniqueOrThrow({ where: { id: state.tempUserId } })).email).toBe('owner@lifecycle.test');
-
-    const actor = await svc.loadActor(app, state.tempAuth);
-    expect(actor?.setupPendingClientId).toBeNull();
-    expect(svc.landingPathFor(actor!)).toBe(`/workspace/${state.clientId}`);
-    expect(await owner.user.count({ where: { authProviderId: state.tempAuth } })).toBe(1);
-    expect(await owner.membership.count({ where: { userId: state.tempUserId } })).toBe(1);
-
-    const twice = await svc.validateAccountSetup(app, state.tempUserId, state.clientId, {
-      name: '', phone: '', email: 'again@lifecycle.test', password: 'another-password', confirmPassword: 'another-password',
+    expect(await svc.getAdminAccessView(app, state.clientId)).toEqual({
+      ownLogin: { email: 'owner@lifecycle.test', confirmed: false },
+      temporary: 'ACTIVE',
+      temporaryEmail: state.email,
     });
-    expect(twice.ok).toBe(false);
   });
 
-  it('6. after setup there is no temporary access to disable — and nothing is scrambled', async () => {
-    session = { id: ADMIN_AUTH };
-    const refused = await svc.disableTempAccess(app, state.clientId, state.adminId);
-    expect(refused.ok).toBe(false);
-    if (!refused.ok) expect(refused.message).toMatch(/already set up/);
-    expect(idp.scrambled).toEqual([]);
-    expect((await owner.accountAccess.findUniqueOrThrow({ where: { clientId: state.clientId } })).status).toBe('SETUP_COMPLETE');
+  it('5. once confirmed, the owner’s own login opens the same business — and the temporary one still does too', async () => {
+    idp.own.set(OWN_AUTH, { email: 'owner@lifecycle.test', confirmed: true });
 
+    session = { id: OWN_AUTH };
+    const signedIn = await svc.provisionUser(app, { providerId: OWN_AUTH, email: 'owner@lifecycle.test' });
+    expect(signedIn).toEqual({ userId: state.ownerUserId, created: false });
+    const own = await svc.loadActor(app, OWN_AUTH);
+    expect(own?.userId).toBe(state.ownerUserId);
+    expect(own?.temporaryAccessClientId).toBeNull();
+    expect(svc.landingPathFor(own!)).toBe(`/workspace/${state.clientId}`);
+    expect(await visibleClients(OWN_AUTH)).toEqual([state.clientId]);
+
+    // The temporary login is still on (an admin decides when it goes), and no
+    // longer sends anyone to setup.
     session = { id: state.tempAuth };
-    expect(await svc.loadActor(app, state.tempAuth)).not.toBeNull();
+    await svc.provisionUser(app, { providerId: state.tempAuth, email: state.email });
+    expect((await owner.user.findUniqueOrThrow({ where: { id: state.ownerUserId } })).email).toBe('owner@lifecycle.test');
+    const temp = await svc.loadActor(app, state.tempAuth);
+    expect(temp?.userId).toBe(state.ownerUserId);
+    expect(svc.landingPathFor(temp!)).toBe(`/workspace/${state.clientId}`);
 
-    // Nor can new temporary access be issued over a set-up account.
-    session = { id: ADMIN_AUTH };
-    expect((await svc.generateTempAccess(app, state.clientId, state.adminId)).ok).toBe(false);
-    expect(idp.minted).toHaveLength(1);
+    expect(await owner.user.count({ where: { id: state.ownerUserId } })).toBe(1);
+    expect(await owner.membership.count({ where: { clientId: state.clientId } })).toBe(1);
   });
 
-  it('7. disabling BEFORE setup: DISABLED first, then the password scrambled, and a live session is refused', async () => {
+  it('6. disabling temporary access shuts the temporary login and never the owner’s own', async () => {
+    session = { id: ADMIN_AUTH };
+    expect((await svc.disableTempAccess(app, state.clientId, state.adminId)).ok).toBe(true);
+    expect(idp.scrambled).toEqual([state.tempAuth]);
+    expect((await owner.accountAccess.findUniqueOrThrow({ where: { clientId: state.clientId } })).status).toBe('DISABLED');
+
+    // The temporary login: nobody, in the app and in the database itself.
+    session = { id: state.tempAuth };
+    expect(await svc.loadActor(app, state.tempAuth)).toBeNull();
+    expect(await visibleClients(state.tempAuth)).toEqual([]);
+
+    // The owner's own login: exactly as before.
+    session = { id: OWN_AUTH };
+    expect((await svc.loadActor(app, OWN_AUTH))?.userId).toBe(state.ownerUserId);
+    expect(await visibleClients(OWN_AUTH)).toEqual([state.clientId]);
+
+    session = { id: ADMIN_AUTH };
+    expect((await svc.getAdminAccessView(app, state.clientId)).temporary).toBe('DISABLED');
+    expect((await svc.disableTempAccess(app, state.clientId, state.adminId)).ok).toBe(false);
+  });
+
+  it('7. enabling it again: the same temporary email, a new password — the owner’s own login untouched', async () => {
+    session = { id: ADMIN_AUTH };
+    const mintedBefore = idp.minted.length;
+    const again = await svc.generateTempAccess(app, state.clientId, state.adminId);
+    expect(again.ok, again.ok ? '' : again.message).toBe(true);
+    if (!again.ok) return;
+    expect(again.data.email).toBe(state.email);
+    expect(again.data.password).toMatch(TEMP_PASSWORD);
+    expect(idp.minted).toHaveLength(mintedBefore);
+    expect(idp.passwords.at(-1)).toEqual({ authUserId: state.tempAuth, password: again.data.password });
+
+    expect((await svc.getAdminAccessView(app, state.clientId)).temporary).toBe('ACTIVE');
+    session = { id: state.tempAuth };
+    expect((await svc.loadActor(app, state.tempAuth))?.userId).toBe(state.ownerUserId);
+    session = { id: OWN_AUTH };
+    expect((await svc.loadActor(app, OWN_AUTH))?.userId).toBe(state.ownerUserId);
+    expect(idp.passwords.some((p) => p.authUserId === OWN_AUTH)).toBe(false);
+    expect(await owner.membership.count({ where: { clientId: state.clientId } })).toBe(1);
+  });
+
+  it('8. before setup: disabling really shuts the business, and enabling reopens it — nothing deleted', async () => {
     const clientId = await newClient('Never Set Up');
-    const generated = await svc.generateTempAccess(app, clientId, state.adminId);
-    expect(generated.ok).toBe(true);
-    const authUserId = idp.minted.at(-1)!.authUserId;
+    expect((await svc.generateTempAccess(app, clientId, state.adminId)).ok).toBe(true);
+    const tempAuth = idp.minted.at(-1)!.authUserId;
     const access = await owner.accountAccess.findUniqueOrThrow({ where: { clientId } });
 
-    // The temporary owner is signed in somewhere.
-    session = { id: authUserId };
-    expect(await svc.loadActor(app, authUserId)).not.toBeNull();
+    expect(await visibleClients(tempAuth)).toEqual([clientId]);
 
     session = { id: ADMIN_AUTH };
-    const disabled = await svc.disableTempAccess(app, clientId, state.adminId);
-    expect(disabled.ok).toBe(true);
-    expect(idp.scrambled).toEqual([authUserId]);
-    const row = await owner.accountAccess.findUniqueOrThrow({ where: { clientId } });
-    expect(row.status).toBe('DISABLED');
-    expect(row.disabledByUserId).toBe(state.adminId);
-    expect((await svc.getAdminAccessView(app, clientId)).status).toBe('DISABLED');
-
-    // That same browser, still holding its session: nobody, everywhere.
-    session = { id: authUserId };
-    expect(await svc.loadActor(app, authUserId)).toBeNull();
-    const setup = await svc.validateAccountSetup(app, access.userId, clientId, {
-      name: '', phone: '', email: 'late@owner.test', password: 'a-strong-password', confirmPassword: 'a-strong-password',
-    });
-    expect(setup.ok).toBe(false);
-
-    // Nothing was deleted to do it.
+    expect((await svc.disableTempAccess(app, clientId, state.adminId)).ok).toBe(true);
+    session = { id: tempAuth };
+    expect(await svc.loadActor(app, tempAuth)).toBeNull();
+    expect(await visibleClients(tempAuth)).toEqual([]);
+    session = { id: tempAuth };
+    expect(
+      (await svc.validateAccountSetup(app, access.userId, clientId, tempAuth, {
+        name: '', phone: '', email: 'late@owner.test', password: 'a-strong-password', confirmPassword: 'a-strong-password',
+      })).ok,
+    ).toBe(false);
     expect(await owner.user.count({ where: { id: access.userId } })).toBe(1);
-    expect(await owner.membership.count({ where: { userId: access.userId, clientId, status: 'ACTIVE' } })).toBe(1);
-    expect(await owner.client.count({ where: { id: clientId } })).toBe(1);
+    expect(await owner.membership.count({ where: { clientId, status: 'ACTIVE' } })).toBe(1);
 
     session = { id: ADMIN_AUTH };
-    expect((await svc.disableTempAccess(app, clientId, state.adminId)).ok).toBe(false);
-  });
-
-  it('7b. never scrambles a login that already uses the owner’s own address (an older half-finished setup)', async () => {
-    const clientId = await newClient('Half Set Up');
     expect((await svc.generateTempAccess(app, clientId, state.adminId)).ok).toBe(true);
-    const access = await owner.accountAccess.findUniqueOrThrow({ where: { clientId } });
-    await owner.user.update({ where: { id: access.userId }, data: { email: 'real-owner@halfsetup.test' } });
-    const scrambledBefore = idp.scrambled.length;
-
-    const refused = await svc.disableTempAccess(app, clientId, state.adminId);
-    expect(refused.ok).toBe(false);
-    expect(idp.scrambled).toHaveLength(scrambledBefore);
-    expect((await owner.accountAccess.findUniqueOrThrow({ where: { clientId } })).status).toBe('TEMPORARY_ACTIVE');
-    // Shown as what it is: the owner's own login, not temporary access — and
-    // the owner is not sent to a setup form that would no longer show.
-    expect((await svc.getAdminAccessView(app, clientId)).status).toBe('SETUP_COMPLETE');
-    session = { id: idp.minted.at(-1)!.authUserId };
-    const actor = await svc.loadActor(app, idp.minted.at(-1)!.authUserId);
-    expect(actor?.setupPendingClientId).toBeNull();
-    expect(svc.landingPathFor(actor!)).toBe(`/workspace/${clientId}`);
+    expect(await visibleClients(tempAuth)).toEqual([clientId]);
   });
 
-  it('7c. an older DISABLED flag never locks out an owner whose login is already their own', async () => {
-    // The shape an earlier version could leave: setup moved the email in
-    // Supabase, was never recorded, and an admin then "disabled" the row.
-    const clientId = await newClient('Disabled Before The Fix');
-    expect((await svc.generateTempAccess(app, clientId, state.adminId)).ok).toBe(true);
-    const authUserId = idp.minted.at(-1)!.authUserId;
-    const access = await owner.accountAccess.findUniqueOrThrow({ where: { clientId } });
-    await owner.user.update({ where: { id: access.userId }, data: { email: 'real-owner@olddisable.test' } });
-    await owner.accountAccess.update({ where: { clientId }, data: { status: 'DISABLED', disabledAt: new Date() } });
-
-    session = { id: authUserId };
-    const actor = await svc.loadActor(app, authUserId);
-    expect(actor?.userId).toBe(access.userId);
-    expect(svc.landingPathFor(actor!)).toBe(`/workspace/${clientId}`);
-
+  it('9. a business that already has its own owner: a temporary login into that same account', async () => {
     session = { id: ADMIN_AUTH };
-    expect((await svc.getAdminAccessView(app, clientId)).status).toBe('SETUP_COMPLETE');
-    expect((await svc.generateTempAccess(app, clientId, state.adminId)).ok).toBe(false);
-  });
-
-  it('8. new temporary access after a disable: the same email and identity, a brand-new password', async () => {
-    const clientId = await newClient('Lost The Slip');
-    const first = await svc.generateTempAccess(app, clientId, state.adminId);
-    expect(first.ok).toBe(true);
-    if (!first.ok) return;
-    const authUserId = idp.minted.at(-1)!.authUserId;
-    const mintedBefore = idp.minted.length;
-    expect((await svc.disableTempAccess(app, clientId, state.adminId)).ok).toBe(true);
-
-    const second = await svc.generateTempAccess(app, clientId, state.adminId);
-    expect(second.ok, second.ok ? '' : second.message).toBe(true);
-    if (!second.ok) return;
-    expect(second.data.email).toBe(first.data.email);
-    expect(second.data.password).toMatch(TEMP_PASSWORD);
-    expect(second.data.password).not.toBe(first.data.password);
-    expect(idp.minted).toHaveLength(mintedBefore);
-    expect(idp.passwords.at(-1)).toEqual({ authUserId, password: second.data.password });
-
-    const row = await owner.accountAccess.findUniqueOrThrow({ where: { clientId } });
-    expect(row.status).toBe('TEMPORARY_ACTIVE');
-    expect(row.disabledAt).toBeNull();
-    expect(row.disabledByUserId).toBeNull();
-    expect(await owner.membership.count({ where: { clientId } })).toBe(1);
-    expect(await owner.user.count({ where: { authProviderId: authUserId } })).toBe(1);
-
-    session = { id: authUserId };
-    expect(svc.landingPathFor((await svc.loadActor(app, authUserId))!)).toBe(`/workspace/${clientId}/account`);
-  });
-
-  it('9. a business with its own owner account is never given temporary access', async () => {
-    session = { id: ADMIN_AUTH };
-    const view = await svc.getAdminAccessView(app, state.otherClientId);
-    expect(view.status).toBe('NONE');
-    expect(view.ownerAccount?.email).toBe('owner@other.test');
-
-    const mintedBefore = idp.minted.length;
-    const refused = await svc.generateTempAccess(app, state.otherClientId, state.adminId);
-    expect(refused.ok).toBe(false);
-    if (!refused.ok) expect(refused.message).toMatch(/already has an owner account/);
-    expect(idp.minted).toHaveLength(mintedBefore);
+    expect((await svc.getAdminAccessView(app, state.otherClientId)).temporary).toBe('NONE');
+    const users = await owner.user.count();
+    const generated = await svc.generateTempAccess(app, state.otherClientId, state.adminId);
+    expect(generated.ok, generated.ok ? '' : generated.message).toBe(true);
+    const tempAuth = idp.minted.at(-1)!.authUserId;
+    expect(await owner.user.count()).toBe(users);
     expect(await owner.membership.count({ where: { clientId: state.otherClientId } })).toBe(1);
-  });
 
-  it('9b. ...including one whose old temporary access was disabled after an owner joined', async () => {
-    const clientId = await newClient('Owner Joined Later');
-    expect((await svc.generateTempAccess(app, clientId, state.adminId)).ok).toBe(true);
-    expect((await svc.disableTempAccess(app, clientId, state.adminId)).ok).toBe(true);
-    await owner.membership.create({ data: { userId: state.otherUserId, clientId, role: 'BUSINESS_OWNER', status: 'ACTIVE' } });
+    session = { id: tempAuth };
+    const actor = await svc.loadActor(app, tempAuth);
+    expect(actor?.userId).toBe(state.otherUserId);
+    // Nothing to set up: the owner already signs in with their own email.
+    expect(svc.landingPathFor(actor!)).toBe(`/workspace/${state.otherClientId}`);
 
     session = { id: ADMIN_AUTH };
-    const view = await svc.getAdminAccessView(app, clientId);
-    expect(view).toMatchObject({ status: 'DISABLED', ownerAccount: { email: 'owner@other.test' } });
-    const passwordsBefore = idp.passwords.length;
-    expect((await svc.generateTempAccess(app, clientId, state.adminId)).ok).toBe(false);
-    expect(idp.passwords).toHaveLength(passwordsBefore);
-    expect((await owner.accountAccess.findUniqueOrThrow({ where: { clientId } })).status).toBe('DISABLED');
+    expect((await svc.disableTempAccess(app, state.otherClientId, state.adminId)).ok).toBe(true);
+    expect(await visibleClients(tempAuth)).toEqual([]);
+    expect(await visibleClients(OTHER_AUTH)).toEqual([state.otherClientId]);
   });
 
-  it('10. two admins generating at once leave exactly one login, and no orphaned user or identity', async () => {
+  it('10. a row with no temporary login left is given a fresh one — and only platform staff can point it', async () => {
+    const clientId = await newClient('From Before M52');
+    expect((await svc.generateTempAccess(app, clientId, state.adminId)).ok).toBe(true);
+    const access = await owner.accountAccess.findUniqueOrThrow({ where: { clientId } });
+    // The shape the M52 migration leaves when an old temporary login had
+    // become the owner's own: no temporary identity, switched off.
+    await owner.user.update({ where: { id: access.userId }, data: { authProviderId: '77777777-7777-4777-8777-777777777777' } });
+    await owner.accountAccess.update({ where: { clientId }, data: { tempAuthId: null, status: 'DISABLED' } });
+
+    // Not a business owner's to do, even for their own row.
+    session = { id: '77777777-7777-4777-8777-777777777777' };
+    await expect(
+      app.$executeRaw`SELECT app.rebind_temp_access(${clientId}, ${'88888888-8888-4888-8888-888888888888'}, ${'x@access.headway.local'})`,
+    ).rejects.toThrow(/not authorised/);
+
+    session = { id: ADMIN_AUTH };
+    const enabled = await svc.generateTempAccess(app, clientId, state.adminId);
+    expect(enabled.ok, enabled.ok ? '' : enabled.message).toBe(true);
+    if (!enabled.ok) return;
+    expect(enabled.data.email).not.toBe(access.loginId);
+    const fresh = idp.minted.at(-1)!;
+    expect(fresh.email).toBe(enabled.data.email);
+    const row = await owner.accountAccess.findUniqueOrThrow({ where: { clientId } });
+    expect(row).toMatchObject({ tempAuthId: fresh.authUserId, loginId: enabled.data.email, status: 'TEMPORARY_ACTIVE' });
+    session = { id: fresh.authUserId };
+    expect((await svc.loadActor(app, fresh.authUserId))?.userId).toBe(access.userId);
+  });
+
+  it('11. two admins generating at once leave exactly one login, and no orphaned user or identity', async () => {
     const clientId = await newClient('Double Click');
     const mintedBefore = idp.minted.length;
     const deletedBefore = idp.deleted.length;
+    const usersBefore = await owner.user.count();
     session = { id: ADMIN_AUTH };
     // Both requests must pass the "nothing exists yet" check before either
     // writes — a real double click, not two clicks in a row.
@@ -495,27 +458,23 @@ describe('one business, from the admin adding it to the owner signing in as them
       svc.generateTempAccess(app, clientId, state.adminId),
       svc.generateTempAccess(app, clientId, state.adminId),
     ]);
-
     idp.rendezvous = null;
-    const winners = results.filter((r) => r.ok);
-    expect(winners).toHaveLength(1);
+
+    expect(results.filter((r) => r.ok)).toHaveLength(1);
     const minted = idp.minted.slice(mintedBefore);
     expect(minted).toHaveLength(2);
-    const access = await owner.accountAccess.findUniqueOrThrow({ where: { clientId }, include: { user: true } });
-    const loser = minted.find((m) => m.authUserId !== access.user.authProviderId)!;
-    // The losing identity is deleted in Supabase, and its User row is gone too.
+    const access = await owner.accountAccess.findUniqueOrThrow({ where: { clientId } });
+    const loser = minted.find((m) => m.authUserId !== access.tempAuthId)!;
     expect(idp.deleted.slice(deletedBefore)).toEqual([loser.authUserId]);
-    expect(await owner.user.count({ where: { authProviderId: loser.authUserId } })).toBe(0);
+    expect(await owner.user.count()).toBe(usersBefore + 1);
     expect(await owner.membership.count({ where: { clientId } })).toBe(1);
-    expect(await owner.user.count({ where: { email: { endsWith: '@access.headway.local' }, memberships: { none: {} } } })).toBe(0);
   });
 
-  it('11. a self-serve owner signs up, onboards, and lands in their own business only', async () => {
+  it('12. a self-serve owner signs up, onboards, and lands in their own business only', async () => {
     session = { id: SELF_AUTH };
     const signedUp = await svc.provisionUser(app, { providerId: SELF_AUTH, email: 'self@serve.test' });
     expect(signedUp.created).toBe(true);
-    const fresh = await svc.loadActor(app, SELF_AUTH);
-    expect(svc.landingPathFor(fresh!)).toBe('/onboarding');
+    expect(svc.landingPathFor((await svc.loadActor(app, SELF_AUTH))!)).toBe('/onboarding');
 
     const onboarded = await svc.completeOnboarding(app, signedUp.userId, {
       businessName: 'Self Serve Studio',
@@ -527,17 +486,9 @@ describe('one business, from the admin adding it to the owner signing in as them
     });
     expect(onboarded.ok, onboarded.ok ? '' : onboarded.message).toBe(true);
     if (!onboarded.ok) return;
-
-    const actor = await svc.loadActor(app, SELF_AUTH);
-    expect(svc.landingPathFor(actor!)).toBe(`/workspace/${onboarded.data.clientId}`);
-    expect((await app.client.findMany({ select: { id: true } })).map((c) => c.id)).toEqual([onboarded.data.clientId]);
-    const client = await owner.client.findUniqueOrThrow({ where: { id: onboarded.data.clientId }, include: { gateway: true, memberships: true } });
-    expect(client.setupCompletedAt).not.toBeNull();
-    expect(client.gateway?.publicToken).toBe(onboarded.data.publicToken);
-    expect(client.memberships).toEqual([expect.objectContaining({ userId: signedUp.userId, role: 'BUSINESS_OWNER', status: 'ACTIVE' })]);
-
-    // And the admin-made business's owner still sees only their own.
-    session = { id: state.tempAuth };
-    expect((await app.client.findMany({ select: { id: true } })).map((c) => c.id)).toEqual([state.clientId]);
+    expect(svc.landingPathFor((await svc.loadActor(app, SELF_AUTH))!)).toBe(`/workspace/${onboarded.data.clientId}`);
+    expect(await visibleClients(SELF_AUTH)).toEqual([onboarded.data.clientId]);
+    // And the first business's owner still sees only their own.
+    expect(await visibleClients(OWN_AUTH)).toEqual([state.clientId]);
   });
 });

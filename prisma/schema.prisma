@@ -447,11 +447,12 @@ model Invitation {
 /// password, pre-confirmed through the Supabase admin API so the owner can
 /// sign in immediately, on their own device, with no email round trip.
 ///
-/// ONE ROW PER CLIENT, and it never grows a second identity for that
-/// client: `userId` is created once, in the same transaction as this row,
-/// and every later state change (setup completed, disabled) updates this
-/// same row and leaves `User`/`Membership` untouched. Disabling this row
-/// must never disable the User or Membership it names — see
+/// ONE ROW PER CLIENT, naming ONE owner User and ONE Membership. Since M52
+/// the temporary login (`tempAuthId`) and the owner's own login
+/// (`User.authProviderId`, created at setup) are two Supabase identities
+/// resolving to that same User, so an admin can switch the temporary one
+/// off and on again without ever touching the owner's own password.
+/// Disabling this row never disables the User or Membership it names — see
 /// `disabledAt`/`disabledByUserId` below, which record that THIS temporary
 /// login stopped working, not that the account did.
 ///
@@ -466,20 +467,28 @@ model AccountAccess {
   clientId String @unique
   client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  /// The one User row this temporary login authenticates as. Created in the
-  /// same transaction as this row and never repointed at another user.
+  /// The one User row — the business's owner — that this temporary login
+  /// signs in as. Never repointed at another user.
   userId String @unique
   user   User   @relation("AccountAccessOwner", fields: [userId], references: [id], onDelete: Cascade)
 
-  /// The human-facing login id AND the literal email address on the
-  /// synthetic Supabase identity — never a real person's address. Shown to
-  /// the admin indefinitely; not a secret.
+  /// The literal email address of the temporary Supabase identity — never a
+  /// real person's address. Shown to the admin indefinitely; not a secret.
   loginId String @unique
 
-  /// TEMPORARY_ACTIVE | SETUP_COMPLETE | DISABLED. Moves forward only: setup
-  /// cannot be undone once completed, and disabling is final for this
-  /// temporary login (a fresh one is a separate, later decision, not a
-  /// re-open of this row).
+  /// M52 — the Supabase identity (`auth.users.id`) of the temporary login.
+  ///
+  /// Deliberately NOT `User.authProviderId`: that is the owner's OWN login,
+  /// created at setup with their real email and password. The two are
+  /// separate Supabase identities resolving to the same User, so turning the
+  /// temporary one off or on again never touches the owner's own password.
+  /// Null only on a row whose old temporary login became the owner's own
+  /// before M52. Written only by `app.rebind_temp_access` after insert.
+  tempAuthId String? @unique
+
+  /// TEMPORARY_ACTIVE | DISABLED — whether the temporary login signs in.
+  /// An admin can switch it either way at any time; the owner's own login
+  /// is unaffected. (SETUP_COMPLETE appears only on rows from before M52.)
   status String @default("TEMPORARY_ACTIVE")
 
   createdAt       DateTime @default(now())
@@ -488,7 +497,7 @@ model AccountAccess {
   createdByUserId String?
   createdBy       User?    @relation("AccountAccessCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
 
-  /// When the owner replaced the temporary password with their own.
+  /// When the owner set up their own login (real email + own password).
   setupCompletedAt DateTime?
 
   /// When an admin turned this temporary login off, and who did it. Null for

@@ -1,15 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
- * AFTER SETUP: THE SIGN-IN EMAIL, CHANGING THE PASSWORD, AND FORGOT PASSWORD
+ * AFTER SETUP: CHANGING THE PASSWORD, AND FORGOT PASSWORD
  * (M52).
  *
  *   - changePasswordAction needs the CURRENT password, checked on a client
  *     that cannot touch this browser's session, and then changes it on the
  *     owner's own session (which ends every other one). Passwords never come
  *     back to the browser.
- *   - requestEmailChangeAction asks Supabase to confirm a real address — only
- *     while the owner still signs in with a temporary one.
  *   - requestPasswordResetAction sends nothing to a temporary address (it can
  *     receive nothing), and says the same sentence whatever happens.
  *
@@ -17,9 +15,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  */
 
 const h = vi.hoisted(() => ({
-  identity: { id: 'auth1', email: 'owner@example.com', pendingEmail: null as string | null } as
-    | { id: string; email: string; pendingEmail: string | null }
-    | null,
+  identity: { id: 'auth1', email: 'owner@example.com' } as { id: string; email: string } | null,
   detachedSignIn: vi.fn(),
   detachedSignOut: vi.fn(),
   updateUser: vi.fn(),
@@ -106,7 +102,7 @@ beforeEach(() => {
   for (const mock of [h.detachedSignIn, h.detachedSignOut, h.updateUser, h.sessionSignIn, h.resetPasswordForEmail, h.setIdentityPassword, h.userFindUnique, h.accessFindUnique, h.clientUpdate, h.gate]) {
     mock.mockReset();
   }
-  h.identity = { id: 'auth1', email: 'owner@example.com', pendingEmail: null };
+  h.identity = { id: 'auth1', email: 'owner@example.com' };
   h.gate.mockResolvedValue({
     ok: true,
     actor: { userId: 'u1', email: 'owner@example.com', isPlatformAdmin: false, status: 'ACTIVE', memberships: [] },
@@ -192,20 +188,18 @@ describe('changePasswordAction', () => {
     expect(result.message).toBe('Your password has been changed. Please sign in again with your new password.');
   });
 
-  it('is refused while the person is still on temporary access: setup is where that password goes', async () => {
-    h.accessFindUnique.mockResolvedValueOnce({ status: 'TEMPORARY_ACTIVE', setupCompletedAt: null });
+  it('is refused on a temporary login: the owner changes their own password signed in with their own email', async () => {
+    h.gate.mockResolvedValueOnce({
+      ok: true,
+      actor: { userId: 'u1', email: 'x@access.headway.local', isPlatformAdmin: false, status: 'ACTIVE', memberships: [], temporaryAccessClientId: 'client1' },
+      clientId: 'client1',
+      role: 'BUSINESS_OWNER',
+    });
     const result = await change();
     expect(result.ok).toBe(false);
-    expect(result.message).toBe('Finish setting up your account first.');
+    expect(result.message).toMatch(/signed in with temporary access/);
     expect(h.detachedSignIn).not.toHaveBeenCalled();
     expect(h.updateUser).not.toHaveBeenCalled();
-  });
-
-  it('says so when the change has killed a waiting email link', async () => {
-    h.identity = { id: 'auth1', email: 'abcd2345@access.headway.local', pendingEmail: 'owner@example.com' };
-    const result = await change();
-    expect(result.ok).toBe(true);
-    expect(result.message).toMatch(/link we sent earlier no longer works/);
   });
 
   it('is refused by the tenant gate for a business that is not the person’s own', async () => {
@@ -213,70 +207,6 @@ describe('changePasswordAction', () => {
     const result = await change();
     expect(result.message).toBe('You do not have access to that.');
     expect(h.detachedSignIn).not.toHaveBeenCalled();
-  });
-});
-
-describe('requestEmailChangeAction', () => {
-  async function ask(email: string) {
-    const { requestEmailChangeAction } = await import('@/lib/actions/account-access');
-    return (await requestEmailChangeAction(IDLE, form({ clientId: 'client1', email }))) as State;
-  }
-
-  beforeEach(() => {
-    h.identity = { id: 'auth1', email: 'abcd2345@access.headway.local', pendingEmail: null };
-  });
-
-  it('asks Supabase to email a confirmation link to the new address, through the owner’s own session', async () => {
-    const result = await ask('Owner@Example.com');
-
-    expect(result.ok).toBe(true);
-    expect(result.message).toMatch(/^Check your email to confirm your new email address\./);
-    expect(h.updateUser).toHaveBeenCalledWith(
-      { email: 'owner@example.com' },
-      { emailRedirectTo: 'https://headway.test/auth/callback?next=%2Fworkspace%2Fclient1%2Faccount%3Femail%3Dconfirmed&kind=email' },
-    );
-    expect(h.clientUpdate).toHaveBeenCalledWith({ where: { id: 'client1' }, data: { ownerEmail: 'owner@example.com' } });
-    expect(h.setIdentityPassword).not.toHaveBeenCalled();
-  });
-
-  it('never before setup: the temporary password would become a login nobody can switch off', async () => {
-    h.accessFindUnique.mockResolvedValueOnce({ clientId: 'client1', setupCompletedAt: null });
-    const result = await ask('owner@example.com');
-    expect(result.ok).toBe(false);
-    expect(result.message).toBe('Finish setting up your account first.');
-    expect(h.updateUser).not.toHaveBeenCalled();
-  });
-
-  it('never for another business than the one this login was set up for', async () => {
-    h.accessFindUnique.mockResolvedValueOnce({ clientId: 'some-other-client', setupCompletedAt: new Date() });
-    expect((await ask('owner@example.com')).ok).toBe(false);
-    expect(h.updateUser).not.toHaveBeenCalled();
-  });
-
-  it('only while the sign-in email is still temporary', async () => {
-    h.identity = { id: 'auth1', email: 'owner@example.com', pendingEmail: null };
-    const result = await ask('another@example.com');
-    expect(result.ok).toBe(false);
-    expect(h.updateUser).not.toHaveBeenCalled();
-  });
-
-  it('refuses a temporary or malformed address before asking Supabase', async () => {
-    expect((await ask('zz@access.headway.local')).errors.email).toMatch(/your own email/);
-    expect((await ask('nope')).errors.email).toMatch(/valid email/);
-    expect(h.updateUser).not.toHaveBeenCalled();
-  });
-
-  it('turns Supabase’s refusals into words the owner can act on', async () => {
-    h.updateUser.mockResolvedValueOnce({ data: {}, error: { code: 'email_exists', status: 422, message: 'x' } });
-    const taken = await ask('taken@example.com');
-    expect(taken.errors.email).toMatch(/already in use/);
-    // The field keeps what was typed, not the old address React would reset to.
-    expect((taken as State & { data?: Record<string, string> }).data).toEqual({ email: 'taken@example.com' });
-    h.updateUser.mockResolvedValueOnce({ data: {}, error: { code: 'over_email_send_rate_limit', status: 429, message: 'x' } });
-    expect((await ask('owner@example.com')).message).toMatch(/Wait a minute/);
-    h.updateUser.mockResolvedValueOnce({ data: {}, error: { code: 'unexpected_failure', status: 500, message: 'x' } });
-    expect((await ask('owner@example.com')).message).toMatch(/could not send/);
-    expect(h.clientUpdate).not.toHaveBeenCalled();
   });
 });
 

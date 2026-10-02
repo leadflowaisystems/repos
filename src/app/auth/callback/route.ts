@@ -58,8 +58,11 @@ function halfConfirmed(go: (path: string) => NextResponse) {
   return go('/login?email=incomplete');
 }
 
-/** The two link types the templates send as token links. */
-const TOKEN_TYPES = new Set<EmailOtpType>(['recovery', 'email_change']);
+/**
+ * The link types the templates send as token links: a password reset, the
+ * owner's own login being confirmed (signup), and an email change.
+ */
+const TOKEN_TYPES = new Set<EmailOtpType>(['recovery', 'signup', 'email_change']);
 
 const RESET_PATH = '/reset-password';
 
@@ -72,7 +75,9 @@ export async function GET(request: NextRequest) {
   const next = safeNext(searchParams.get('next'));
 
   const isRecovery = type === 'recovery' || next === RESET_PATH;
-  const isEmailChange = type === 'email_change' || searchParams.get('kind') === EMAIL_CONFIRM_KIND;
+  // "Confirm your email": an owner's new login (signup) or an email change.
+  const isEmailChange =
+    type === 'email_change' || type === 'signup' || searchParams.get('kind') === EMAIL_CONFIRM_KIND;
 
   const go = (path: string) => NextResponse.redirect(new URL(path, origin));
   // A failed link is answered where a new one can be asked for: a reset link
@@ -90,7 +95,7 @@ export async function GET(request: NextRequest) {
 
   if (tokenHash && type) {
     const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
-    if (!error && !data.user && isEmailChange) return halfConfirmed(go);
+    if (!error && !data.user && type === 'email_change') return halfConfirmed(go);
     if (error || !data.user) return expired();
     user = data.user;
   } else if (!code && isEmailChange && searchParams.get('message')) {
@@ -131,9 +136,10 @@ export async function GET(request: NextRequest) {
   if (next) return go(next);
 
   const actor = await loadActor(prisma, user.id);
-  if (isEmailChange) {
-    const workspace = actor?.memberships.find((m) => m.status === 'ACTIVE');
-    return go(workspace ? `/workspace/${workspace.clientId}/account?email=confirmed` : '/login?email=confirmed');
-  }
+  // A confirmed login that belongs to a business lands on its Account page,
+  // saying so; anyone else (a brand-new self-serve signup) goes where their
+  // memberships say — for them, on to set up a business.
+  const workspace = actor?.memberships.find((m) => m.status === 'ACTIVE');
+  if (isEmailChange && workspace) return go(`/workspace/${workspace.clientId}/account?email=confirmed`);
   return go(actor ? landingPathFor(actor) : '/onboarding');
 }

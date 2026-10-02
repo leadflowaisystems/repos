@@ -197,7 +197,7 @@ beforeEach(async () => {
   await resetDb(owner);
   await owner.user.deleteMany();
 
-  const user = (email: string, authProviderId: string, extra: Record<string, unknown> = {}) =>
+  const user = (email: string, authProviderId: string | null, extra: Record<string, unknown> = {}) =>
     owner.user.create({ data: { email, authProviderId, ...extra }, select: { id: true } });
   const [admin, alphaOwner, alphaStaff, shared, betaOwner, generated] = await Promise.all([
     user('admin@headway.test', AUTH.admin, { isPlatformAdmin: true, name: 'Headway' }),
@@ -205,7 +205,9 @@ beforeEach(async () => {
     user('staff@alpha.test', AUTH.alphaStaff),
     user('both@shared.test', AUTH.shared),
     user('owner@beta.test', AUTH.betaOwner),
-    user(GENERATED_LOGIN, AUTH.generated),
+    // M52: the owner User temporary access made, with no login of its own;
+    // the temporary login is a separate identity, named on AccountAccess.
+    user(GENERATED_LOGIN, null),
   ]);
 
   const alpha = await owner.client.create({
@@ -228,7 +230,13 @@ beforeEach(async () => {
     ],
   });
   await owner.accountAccess.create({
-    data: { clientId: alpha.id, userId: generated.id, loginId: GENERATED_LOGIN, createdByUserId: admin.id },
+    data: {
+      clientId: alpha.id,
+      userId: generated.id,
+      loginId: GENERATED_LOGIN,
+      tempAuthId: AUTH.generated,
+      createdByUserId: admin.id,
+    },
   });
 
   await seedTenant(alpha.id, 'alpha', admin.id);
@@ -368,18 +376,20 @@ describe('archive → permanent delete, by Headway staff', () => {
     expect(await owner.user.findUnique({ where: { id: ids.generated } })).toBeNull();
   });
 
-  it('keeps a generated login once a person has claimed it', async () => {
+  it('keeps the owner once they set up a login of their own — the temporary login still goes', async () => {
     const { purgeClient } = await import('@/lib/clients/service');
-    await owner.accountAccess.update({
-      where: { clientId: ids.alpha },
-      data: { status: 'SETUP_COMPLETE', setupCompletedAt: new Date() },
+    await owner.user.update({
+      where: { id: ids.generated },
+      data: { authProviderId: '77777777-7777-4777-8777-777777777777', email: 'real@owner.test' },
     });
+    await owner.accountAccess.update({ where: { clientId: ids.alpha }, data: { setupCompletedAt: new Date() } });
     await archive(ids.alpha);
     session = { id: AUTH.admin };
     const result = await purgeClient(app, ids.alpha, 'Alpha Salon');
-    expect(result).toEqual({ ok: true, data: { id: ids.alpha, removedLogin: false } });
+    expect(result).toEqual({ ok: true, data: { id: ids.alpha, removedLogin: true } });
 
-    expect(removed).toEqual([]);
+    // Headway's temporary login is revoked; the person's own account stays.
+    expect(removed).toEqual([AUTH.generated]);
     expect(await owner.user.findUnique({ where: { id: ids.generated } })).not.toBeNull();
   });
 
@@ -390,7 +400,7 @@ describe('archive → permanent delete, by Headway staff', () => {
     session = { id: AUTH.admin };
     expect((await purgeClient(app, ids.alpha, 'Alpha Salon')).ok).toBe(true);
 
-    expect(removed).toEqual([]);
+    expect(removed).toEqual([AUTH.generated]);
     expect(await owner.user.findUnique({ where: { id: ids.generated } })).not.toBeNull();
     expect(await owner.membership.count({ where: { userId: ids.generated, clientId: ids.beta } })).toBe(1);
   });

@@ -9,11 +9,10 @@ import { IDLE, type ActionState } from '@/lib/actions/shared';
 /**
  * SET UP YOUR ACCOUNT (M39, M52).
  *
- * Shown only while the signed-in owner is still on the temporary email and
- * password Headway handed over. Five fields: name and phone are optional and
- * start from what Headway already has; email and password are what the owner
- * signs in with from now on. The email only becomes their sign-in email once
- * they open the link Supabase sends to it.
+ * Shown to an owner signed in with the temporary email and password Headway
+ * handed over. Five fields: name and phone are optional and start from what
+ * Headway already has; email and password become the owner's OWN sign-in,
+ * which works once they open the link Supabase emails to that address.
  *
  * Fields keep what was typed when the server refuses something — React resets
  * a form after its action, so each one's starting value is the last value
@@ -90,9 +89,12 @@ function Notice({ state }: { state: ActionState }) {
 export function AccountSetupForm({
   clientId,
   initial,
+  again = false,
 }: {
   clientId: string;
   initial: { name: string; phone: string; email: string };
+  /** Setup was done but the email is not confirmed yet: the same form, to redo it. */
+  again?: boolean;
 }) {
   const t = useT();
   const [state, action, pending] = useActionState(completeAccountSetupAction, IDLE);
@@ -100,7 +102,9 @@ export function AccountSetupForm({
 
   return (
     <div>
-      <p className="text-[15px] leading-relaxed text-ink-700">{t('account.setup.intro')}</p>
+      <p className="text-[15px] leading-relaxed text-ink-700">
+        {again ? t('account.setup.again') : t('account.setup.intro')}
+      </p>
       <form action={action} className="mt-5 space-y-5">
         <input type="hidden" name="clientId" value={clientId} />
         <Field

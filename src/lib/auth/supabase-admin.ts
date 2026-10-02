@@ -182,20 +182,16 @@ export async function randomizeIdentityPassword(authUserId: string): Promise<voi
 /** What Supabase itself currently says about one identity. Never a secret. */
 export type IdentitySnapshot = {
   email: string;
-  /**
-   * An address the person asked to move to, with a live link waiting in its
-   * inbox. Null once the link is gone (a password change drops it).
-   */
-  pendingEmail: string | null;
+  /** The owner opened the confirmation link: this login can sign in. */
+  confirmed: boolean;
   lastSignInAt: string | null;
 };
 
 /**
- * The live sign-in email of one identity, and any change still waiting for
- * the owner to click the link — read from Supabase, which is the only place
- * that knows it, so the admin panel can never disagree with what actually
- * signs in. Null when the admin API is not configured or the read fails; the
- * caller falls back to RepOS's own record.
+ * The live email of one identity and whether it is confirmed — read from
+ * Supabase, the only place that knows, so the admin panel and Account can
+ * never disagree with what actually signs in. Null when the admin API is not
+ * configured or the read fails.
  */
 export async function getIdentitySnapshot(authUserId: string): Promise<IdentitySnapshot | null> {
   if (!adminConfig().ok) return null;
@@ -205,13 +201,63 @@ export async function getIdentitySnapshot(authUserId: string): Promise<IdentityS
     if (error || !data.user) return null;
     return {
       email: (data.user.email ?? '').toLowerCase(),
-      pendingEmail:
-        data.user.new_email && data.user.email_change_sent_at ? data.user.new_email.toLowerCase() : null,
+      confirmed: Boolean(data.user.email_confirmed_at),
       lastSignInAt: data.user.last_sign_in_at ?? null,
     };
   } catch {
     return null;
   }
+}
+
+export type OwnerIdentityFailure = 'EMAIL_TAKEN' | 'WEAK_PASSWORD' | 'NOT_CONFIGURED' | 'UNKNOWN';
+
+export type OwnerIdentityResult =
+  | { ok: true; authUserId: string }
+  | { ok: false; reason: OwnerIdentityFailure; message: string };
+
+/**
+ * THE OWNER'S OWN LOGIN (M52): their real email and the password they chose,
+ * as a NEW Supabase identity — deliberately NOT confirmed. Nothing can sign in
+ * with it until the owner opens the confirmation link Supabase emails to that
+ * address (the caller asks for that email through the owner's own session), so
+ * a mistyped or somebody else's address never becomes a working login or a
+ * password-reset address. This call itself sends no email.
+ *
+ * The admin API refuses an address ANY identity already holds, confirmed or
+ * not, so the identity returned is always a brand-new one, never somebody
+ * else's.
+ */
+export async function createOwnerIdentity(email: string, password: string): Promise<OwnerIdentityResult> {
+  const config = adminConfig();
+  if (!config.ok) return { ok: false, reason: 'NOT_CONFIGURED', message: config.reason };
+  const supabase = adminClient();
+  const { data, error } = await supabase.auth.admin.createUser({ email, password, email_confirm: false });
+  if (!error && data.user) return { ok: true, authUserId: data.user.id };
+  console.error('createOwnerIdentity: Supabase Auth admin create failed', {
+    code: error?.code,
+    status: error?.status,
+    message: error?.message,
+  });
+  const message = error?.message ?? 'Could not create the login.';
+  if (error?.code === 'email_exists' || /already been registered|already registered/i.test(message)) {
+    return { ok: false, reason: 'EMAIL_TAKEN', message };
+  }
+  if (error?.code === 'weak_password' || /password/i.test(message)) {
+    return { ok: false, reason: 'WEAK_PASSWORD', message };
+  }
+  return { ok: false, reason: 'UNKNOWN', message };
+}
+
+/**
+ * Removes an owner login that was never confirmed — and ONLY one never
+ * confirmed: a login somebody has proved they own is never deleted here. Used
+ * when the owner fills setup in again (a typo, or a lost email). Best-effort,
+ * logged.
+ */
+export async function deleteUnconfirmedIdentity(authUserId: string): Promise<void> {
+  const snapshot = await getIdentitySnapshot(authUserId);
+  if (!snapshot || snapshot.confirmed) return;
+  await deleteIdentity(authUserId);
 }
 
 /**

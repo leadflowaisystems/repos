@@ -1,6 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
 import { isIdentityConflict, isMissingDbFunction, withRlsContext } from '@/lib/db';
-import { accessStatusOf } from '@/lib/account-access/state';
 
 /**
  * TENANT RESOLUTION (M20).
@@ -63,9 +62,14 @@ export type Actor = {
   status: string;
   memberships: ActorMembership[];
   /**
-   * The business whose admin-issued temporary access this person is still
-   * signed in with, before they have set up their own password. Sign-in sends
-   * them straight to that business's Account page, where setup lives.
+   * Set when this request signed in with a business's TEMPORARY login (M52)
+   * rather than a login of the person's own: the business it opens.
+   */
+  temporaryAccessClientId?: string | null;
+  /**
+   * The business whose temporary access this person is signed in with while
+   * its owner has no login of their own yet. Sign-in sends them straight to
+   * that business's Account page, where setup lives.
    */
   setupPendingClientId?: string | null;
 };
@@ -83,40 +87,55 @@ export async function loadActor(
   const id = (authProviderId ?? '').trim();
   if (id.length === 0) return null;
 
-  const user = await db.user.findUnique({
-    where: { authProviderId: id },
-    select: {
-      id: true,
-      email: true,
-      isPlatformAdmin: true,
-      status: true,
-      memberships: {
-        select: { clientId: true, role: true, status: true },
-      },
-      accountAccessOwned: {
-        select: { clientId: true, status: true, setupCompletedAt: true, loginId: true },
-      },
-    },
+  // The person's OWN login — everyone's, the owner's included once set up.
+  const own = await db.user.findUnique({ where: { authProviderId: id }, select: ACTOR_SELECT });
+  if (own) return own.status === ACTIVE ? toActor(own, null) : null;
+
+  // A TEMPORARY LOGIN (M52): a second Supabase identity that signs in as its
+  // business's owner User — and only while an admin has it switched on.
+  // Switched off it is nobody, on every page and action, the moment the row
+  // says so (Supabase also has its password scrambled and its sessions ended,
+  // but that is a second system). The owner's own login above is never
+  // affected by any of this.
+  const temporary = await db.accountAccess.findUnique({
+    where: { tempAuthId: id },
+    select: { clientId: true, status: true, user: { select: ACTOR_SELECT } },
   });
-  if (!user || user.status !== ACTIVE) return null;
+  if (!temporary || temporary.status !== 'TEMPORARY_ACTIVE') return null;
+  if (temporary.user.status !== ACTIVE) return null;
+  return toActor(temporary.user, temporary.clientId);
+}
 
-  // A TEMPORARY LOGIN AN ADMIN TURNED OFF IS NOBODY. Disabling also scrambles
-  // the password in Supabase and ends its sessions there, but that is a second
-  // system: this line is what makes "Disabled" true inside RepOS on its own,
-  // for every page and action, the moment the row says so. Only while the
-  // login is still the temporary one — once it is the owner's own (see
-  // `accessStatusOf`), an old DISABLED flag must never lock them out of it.
-  const access = user.accountAccessOwned;
-  const accessStatus = access ? accessStatusOf(access, user.email) : null;
-  if (accessStatus === 'DISABLED') return null;
+const ACTOR_SELECT = {
+  id: true,
+  email: true,
+  isPlatformAdmin: true,
+  status: true,
+  authProviderId: true,
+  memberships: { select: { clientId: true, role: true, status: true } },
+} as const;
 
+function toActor(
+  user: {
+    id: string;
+    email: string;
+    isPlatformAdmin: boolean;
+    status: string;
+    authProviderId: string | null;
+    memberships: ActorMembership[];
+  },
+  temporaryClientId: string | null,
+): Actor {
   return {
     userId: user.id,
     email: user.email,
     isPlatformAdmin: user.isPlatformAdmin,
     status: user.status,
     memberships: user.memberships,
-    setupPendingClientId: accessStatus === 'TEMPORARY_ACTIVE' ? access!.clientId : null,
+    temporaryAccessClientId: temporaryClientId,
+    // Signed in with temporary access to a business whose owner has no login
+    // of their own yet: sign-in goes straight to setup.
+    setupPendingClientId: temporaryClientId && user.authProviderId === null ? temporaryClientId : null,
   };
 }
 
@@ -226,6 +245,14 @@ async function provisionUserDirect(
   now: Date,
 ): Promise<{ userId: string; created: boolean }> {
   const { providerId, email } = identity;
+
+  // A temporary login (M52) is a second identity for an existing owner User:
+  // never a new User, and never its synthetic address over the owner's email.
+  const temporary = await db.accountAccess.findUnique({
+    where: { tempAuthId: providerId },
+    select: { userId: true },
+  });
+  if (temporary) return { userId: temporary.userId, created: false };
 
   const existing = await db.user.findUnique({
     where: { authProviderId: providerId },

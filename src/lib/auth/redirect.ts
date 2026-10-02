@@ -160,11 +160,12 @@ export function callbackFor(next: string): string {
 }
 
 /**
- * The callback for a "confirm your new email address" link. Marked as such,
- * because Supabase changes the address the moment the link is opened — before
- * the callback runs — so even when this browser cannot be signed in by it
- * (opened on another device), the callback can say truthfully that the new
- * address is confirmed rather than that the link failed.
+ * The callback for a "confirm your email" link — the owner's own login being
+ * confirmed after setup. Marked as such, because Supabase confirms the address
+ * the moment the link is opened — before the callback runs — so even when this
+ * browser cannot be signed in by it (opened on another device), the callback
+ * can say truthfully that the email is confirmed rather than that the link
+ * failed.
  */
 export const EMAIL_CONFIRM_KIND = 'email';
 

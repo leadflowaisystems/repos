@@ -75,6 +75,21 @@ describe('token links (any device)', () => {
     expect(h.provisionUser).toHaveBeenCalledWith({}, { providerId: 'auth1', email: 'new@example.com' });
   });
 
+  it('an owner’s own login confirmed from its email lands on Account, saying so', async () => {
+    h.verifyOtp.mockResolvedValueOnce({ data: { user: { id: 'auth-own', email: 'owner@example.com' } }, error: null });
+
+    expect(await visit('token_hash=abc&type=signup')).toBe('/workspace/client1/account?email=confirmed');
+    expect(h.verifyOtp).toHaveBeenCalledWith({ token_hash: 'abc', type: 'signup' });
+    expect(h.provisionUser).toHaveBeenCalledWith({}, { providerId: 'auth-own', email: 'owner@example.com' });
+  });
+
+  it('a brand-new self-serve signup confirmed the same way still goes on to set up a business', async () => {
+    h.verifyOtp.mockResolvedValueOnce({ data: { user: { id: 'auth-new', email: 'new@example.com' } }, error: null });
+    h.loadActor.mockResolvedValueOnce({ ...OWNER, memberships: [] });
+
+    expect(await visit('token_hash=abc&type=signup')).toBe('/onboarding');
+  });
+
   it('an expired or used token link says so, where a new link can be asked for', async () => {
     h.verifyOtp.mockResolvedValue({ data: { user: null }, error: { code: 'otp_expired', message: 'Email link is invalid or has expired' } });
 
@@ -86,7 +101,7 @@ describe('token links (any device)', () => {
   });
 
   it('ignores a token of any type it was not built for', async () => {
-    for (const type of ['signup', 'invite', 'magiclink', 'email', 'nonsense']) {
+    for (const type of ['invite', 'magiclink', 'email', 'nonsense']) {
       expect(await visit(`token_hash=abc&type=${type}`), type).toBe('/login?expired=1');
     }
     expect(h.verifyOtp).not.toHaveBeenCalled();

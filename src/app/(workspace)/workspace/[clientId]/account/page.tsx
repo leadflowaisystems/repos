@@ -16,8 +16,8 @@ import { ExtendAccessForm } from '@/components/forms/extend-access-form';
 import { ContinueWithHeadwayForm } from '@/components/forms/continue-form';
 import { LanguageForm } from '@/components/forms/language-form';
 import { AccountSetupForm } from '@/components/forms/account-setup-form';
-import { ChangePasswordForm, SignInEmailForm } from '@/components/forms/account-signin-forms';
-import { getAccountAccessForUser } from '@/lib/account-access/service';
+import { ChangePasswordForm } from '@/components/forms/account-signin-forms';
+import { getOwnerAccessView, type OwnerAccessView } from '@/lib/account-access/service';
 import { isTemporaryEmail } from '@/lib/account-access/state';
 import { currentAuthIdentity } from '@/lib/db';
 import { getLocale, getTranslator } from '@/lib/i18n/request';
@@ -209,7 +209,7 @@ function Reach({ account }: { account: AccountState }) {
  * fixed set — never words from the URL. `setup` comes back from finishing
  * setup (how the confirmation email went); `email=confirmed` from the link.
  */
-function signInNotice(
+function accountNotice(
   query: Record<string, string | string[] | undefined>,
   t: T,
 ): { tone: 'good' | 'warn'; text: string } | null {
@@ -217,68 +217,87 @@ function signInNotice(
   switch (query.setup) {
     case 'sent':
       return { tone: 'good', text: t('account.setup.done') };
-    case 'taken':
-      return { tone: 'warn', text: t('account.signin.emailTaken') };
     case 'wait':
-      return { tone: 'warn', text: t('account.signin.emailWait') };
+      return { tone: 'warn', text: t('account.setup.emailWait') };
     case 'failed':
-      return { tone: 'warn', text: t('account.signin.emailFailed') };
+      return { tone: 'warn', text: t('account.setup.emailFailed') };
     default:
       return null;
   }
 }
 
+function Notice({ notice }: { notice: { tone: 'good' | 'warn'; text: string } | null }) {
+  if (!notice) return null;
+  return (
+    <div className="mb-4">
+      <Callout tone={notice.tone}>{notice.text}</Callout>
+    </div>
+  );
+}
+
 /**
- * Signing in: the email this person signs in with, a new address still
- * waiting for its confirmation link, and changing the password. For members
- * of this business only — a Headway admin looking at the workspace is not
- * the person whose sign-in this describes.
+ * SIGNED IN WITH THE TEMPORARY LOGIN: setting up the owner's own.
+ *
+ *   no own login yet       the setup form
+ *   own login, unconfirmed "check your email", and the form again (a typo, a
+ *                          lost email)
+ *   own login, confirmed   "sign out and sign in with it"
  */
-function SignInSection({
+function SetupSection({
   clientId,
-  identity,
-  suggestedEmail,
+  view,
+  initial,
   notice,
   t,
 }: {
   clientId: string;
-  identity: { email: string; pendingEmail: string | null };
-  suggestedEmail: string;
+  view: OwnerAccessView;
+  initial: { name: string; phone: string; email: string };
   notice: { tone: 'good' | 'warn'; text: string } | null;
   t: T;
 }) {
-  const temporary = isTemporaryEmail(identity.email);
+  const own = view.ownLogin;
+  return (
+    <Section eyebrow={t('account.setup.eyebrow')}>
+      <Notice notice={notice} />
+      {!own ? (
+        <AccountSetupForm clientId={clientId} initial={initial} />
+      ) : own.confirmed ? (
+        <p className="text-[15px] leading-relaxed text-ink-700">{t('account.setup.ready', { email: own.email })}</p>
+      ) : (
+        <>
+          <p className="text-[15px] leading-relaxed text-ink-700">
+            {t('account.setup.checkEmail', { email: own.email })}
+          </p>
+          <p className="mt-2 mb-6 text-[14px] leading-relaxed text-ink-600">{t('account.setup.untilConfirmed')}</p>
+          <AccountSetupForm clientId={clientId} initial={{ ...initial, email: own.email }} again />
+        </>
+      )}
+    </Section>
+  );
+}
+
+/**
+ * SIGNED IN WITH ONE'S OWN EMAIL: the sign-in email and changing the
+ * password. For members of this business only — a Headway admin looking at
+ * the workspace is not the person whose sign-in this describes.
+ */
+function SignInSection({
+  clientId,
+  email,
+  notice,
+  t,
+}: {
+  clientId: string;
+  email: string;
+  notice: { tone: 'good' | 'warn'; text: string } | null;
+  t: T;
+}) {
   return (
     <Section eyebrow={t('account.signin.eyebrow')}>
-      {notice ? (
-        <div className="mb-4">
-          <Callout tone={notice.tone}>{notice.text}</Callout>
-        </div>
-      ) : null}
-      <Facts facts={[{ label: t('account.signin.email'), value: identity.email }]} />
-      {identity.pendingEmail ? (
-        <div className="mt-4">
-          <p className="text-[15px] leading-relaxed text-ink-700">
-            {t('account.signin.checkEmail', { email: identity.pendingEmail })}
-          </p>
-          {temporary ? (
-            <p className="mt-2 text-[14px] leading-relaxed text-ink-600">
-              {t('account.signin.untilConfirmed', { current: identity.email })}
-            </p>
-          ) : null}
-          {temporary ? (
-            <SignInEmailForm clientId={clientId} defaultEmail={identity.pendingEmail} again />
-          ) : null}
-        </div>
-      ) : temporary ? (
-        <div className="mt-4">
-          <p className="text-[15px] leading-relaxed text-ink-700">{t('account.signin.addEmail')}</p>
-          <SignInEmailForm clientId={clientId} defaultEmail={suggestedEmail} again={false} />
-        </div>
-      ) : null}
-      <h3 className="mt-8 mb-3 text-[15px] font-semibold text-ink-900">
-        {t('account.signin.password')}
-      </h3>
+      <Notice notice={notice} />
+      <Facts facts={[{ label: t('account.signin.email'), value: email }]} />
+      <h3 className="mt-8 mb-3 text-[15px] font-semibold text-ink-900">{t('account.signin.password')}</h3>
       <ChangePasswordForm clientId={clientId} />
     </Section>
   );
@@ -327,14 +346,18 @@ export default async function WorkspaceAccountPage({
   // not being handed one, so "Headway is active" stayed English above a page
   // that had otherwise switched to Hindi.
   const [locale, t] = await Promise.all([getLocale(), getTranslator()]);
-  const [account, bundle, pending, accountAccess, identity] = await Promise.all([
+  const [account, bundle, pending, identity] = await Promise.all([
     getAccountState(prisma, clientId, { t }),
     getResponsibility(prisma, clientId, { t }),
     pendingRequestFor(prisma, clientId),
-    getAccountAccessForUser(prisma, access.actor.userId),
     currentAuthIdentity(),
   ]);
   if (!account) notFound();
+  // Which login this request came in on, and the owner's own login, if any.
+  const ownerView = identity
+    ? await getOwnerAccessView(prisma, clientId, access.actor.userId, identity.id)
+    : null;
+  const notice = accountNotice(query, t);
 
   const basePath = `/workspace/${clientId}`;
   const isOwner = role === 'BUSINESS_OWNER';
@@ -369,29 +392,22 @@ export default async function WorkspaceAccountPage({
 
       {/* Signing in, first — before even the lock message, because finishing
           setup is not a commercial matter and should never wait on one.
-          While the owner is still on temporary access this is the setup form;
-          afterwards, their sign-in email and a way to change the password. */}
-      {accountAccess?.status === 'TEMPORARY_ACTIVE' && accountAccess.clientId === clientId ? (
-        <Section eyebrow={t('account.setup.eyebrow')}>
-          <AccountSetupForm
-            clientId={clientId}
-            initial={{
-              name: account.owner.name,
-              phone: account.owner.phone,
-              email: isTemporaryEmail(account.owner.email) ? '' : account.owner.email,
-            }}
-          />
-        </Section>
-      ) : role !== null && identity ? (
-        <SignInSection
+          Signed in with the temporary login: setting up the owner's own.
+          Signed in with one's own email: that email and changing the password. */}
+      {ownerView?.viaTemporary ? (
+        <SetupSection
           clientId={clientId}
-          identity={identity}
-          suggestedEmail={
-            identity.requestedEmail ?? (isTemporaryEmail(account.owner.email) ? '' : account.owner.email)
-          }
-          notice={signInNotice(query, t)}
+          view={ownerView}
+          initial={{
+            name: account.owner.name,
+            phone: account.owner.phone,
+            email: isTemporaryEmail(account.owner.email) ? '' : account.owner.email,
+          }}
+          notice={notice}
           t={t}
         />
+      ) : role !== null && identity ? (
+        <SignInSection clientId={clientId} email={identity.email} notice={notice} t={t} />
       ) : null}
 
       {/* The lock, said once, where it can be acted on. */}

@@ -73,39 +73,24 @@ export const currentAuthUserId = cache(async (): Promise<string | null> => {
 });
 
 /**
- * The same verified identity, with what the Account page shows: the address
- * this person signs in with, and an address change they asked for. Pending
- * only while its link is live — Supabase keeps the requested address but
- * drops the link whenever the password changes (`email_change_sent_at` goes
- * back to null), so "check your email" would otherwise point at a dead link.
- * One `getUser()` per request serves both this and `currentAuthUserId`.
+ * The same verified identity, with the address it signs in with — which the
+ * Account page shows, and which tells a temporary login apart from the
+ * owner's own. One `getUser()` per request serves both this and
+ * `currentAuthUserId`.
  */
-export const currentAuthIdentity = cache(
-  async (): Promise<{
-    id: string;
-    email: string;
-    pendingEmail: string | null;
-    requestedEmail: string | null;
-  } | null> => {
-    try {
-      if (!supabaseConfig().ok) return null;
-      const supabase = await supabaseServerClient();
-      const { data, error } = await supabase.auth.getUser();
-      if (error || !data.user) return null;
-      const requested = data.user.new_email ? data.user.new_email.toLowerCase() : null;
-      return {
-        id: data.user.id,
-        email: (data.user.email ?? '').toLowerCase(),
-        pendingEmail: requested && data.user.email_change_sent_at ? requested : null,
-        requestedEmail: requested,
-      };
-    } catch {
-      // Outside a request context (module init, a script) there is no session to
-      // read. No identity is the safe answer, not an exception.
-      return null;
-    }
-  },
-);
+export const currentAuthIdentity = cache(async (): Promise<{ id: string; email: string } | null> => {
+  try {
+    if (!supabaseConfig().ok) return null;
+    const supabase = await supabaseServerClient();
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) return null;
+    return { id: data.user.id, email: (data.user.email ?? '').toLowerCase() };
+  } catch {
+    // Outside a request context (module init, a script) there is no session to
+    // read. No identity is the safe answer, not an exception.
+    return null;
+  }
+});
 
 /**
  * Which mechanism resolves the UUID, decided once per process.
@@ -153,9 +138,15 @@ async function resolveInternalUserId(authId: string): Promise<string | null> {
   // only shows up somewhere it is inconvenient to find. The definer function
   // above is the opposite case and pins its search_path, because SECURITY
   // DEFINER means an unqualified name there would be the caller's to choose.
+  // Mirrors the definer function exactly, M52 included: a temporary login
+  // resolves to its owner only while its access is switched on.
   const rows = await base.$queryRaw<{ id: string }[]>`
     SELECT u.id FROM "User" u
-    WHERE u."authProviderId" = ${authId} AND u.status = 'ACTIVE'`;
+    WHERE u."authProviderId" = ${authId} AND u.status = 'ACTIVE'
+    UNION ALL
+    SELECT u.id FROM "AccountAccess" a JOIN "User" u ON u.id = a."userId"
+    WHERE a."tempAuthId" = ${authId} AND a.status = 'TEMPORARY_ACTIVE' AND u.status = 'ACTIVE'
+    LIMIT 1`;
   return rows[0]?.id ?? null;
 }
 

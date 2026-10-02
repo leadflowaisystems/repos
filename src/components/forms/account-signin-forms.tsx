@@ -3,16 +3,14 @@
 import clsx from 'clsx';
 import { useActionState } from 'react';
 import { useT } from '@/components/portal/locale-provider';
-import { changePasswordAction, requestEmailChangeAction } from '@/lib/actions/account-access';
+import { changePasswordAction } from '@/lib/actions/account-access';
 import { IDLE, type ActionState } from '@/lib/actions/shared';
 
 /**
- * SIGNING IN, ON ACCOUNT (M52).
+ * CHANGING THE PASSWORD, ON ACCOUNT (M52).
  *
- * Two small forms. One asks Supabase to email a confirmation link to the
- * owner's real address — only while they still sign in with the temporary
- * one. The other changes the password, and asks for the current one first.
- * Passwords go to the server and are never sent back.
+ * For someone signed in with their own email. Asks for the current password
+ * first. Passwords go to the server and are never sent back.
  */
 
 const FIELD =
@@ -76,43 +74,6 @@ function Notice({ state }: { state: ActionState }) {
     >
       {state.message}
     </p>
-  );
-}
-
-/** "Email me a link" — to a new address, or the same one again. */
-export function SignInEmailForm({
-  clientId,
-  defaultEmail,
-  again,
-}: {
-  clientId: string;
-  defaultEmail: string;
-  /** A link was already sent to `defaultEmail`; the button sends it again. */
-  again: boolean;
-}) {
-  const t = useT();
-  const [state, action, pending] = useActionState(requestEmailChangeAction, IDLE);
-  return (
-    <form action={action} className="mt-4 space-y-4">
-      <input type="hidden" name="clientId" value={clientId} />
-      <Field
-        id="signin-email"
-        name="email"
-        label={again ? t('account.signin.otherEmail') : t('account.signin.emailLabel')}
-        type="email"
-        state={state}
-        autoComplete="email"
-        defaultValue={state.data?.email ?? defaultEmail}
-      />
-      <Notice state={state} />
-      <button type="submit" disabled={pending} className={BUTTON}>
-        {pending
-          ? t('account.signin.sending')
-          : again
-            ? t('account.signin.sendAgain')
-            : t('account.signin.sendLink')}
-      </button>
-    </form>
   );
 }
 

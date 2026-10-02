@@ -66,6 +66,12 @@ $$;
 -- account that asked. A suspended account resolves to nothing, matching
 -- loadActor -- such a request then carries no identity at all and sees
 -- nothing, which is the correct reading of a suspension.
+--
+-- M52: a temporary login (`AccountAccess."tempAuthId"`) is a SECOND Supabase
+-- identity for the same owner User, and resolves to that User -- but only
+-- while its access is TEMPORARY_ACTIVE. Switched off, it resolves to nothing,
+-- here at the database as well as in loadActor, and the owner's own login
+-- (`User."authProviderId"`) is not affected either way.
 CREATE OR REPLACE FUNCTION app.user_id_for_auth(p_auth_id text)
   RETURNS text
   LANGUAGE sql
@@ -73,10 +79,20 @@ CREATE OR REPLACE FUNCTION app.user_id_for_auth(p_auth_id text)
   SECURITY DEFINER
   SET search_path = pg_catalog, public
 AS $$
-  SELECT u.id
-  FROM public."User" u
-  WHERE u."authProviderId" = p_auth_id
-    AND u.status = 'ACTIVE'
+  SELECT id FROM (
+    SELECT u.id
+    FROM public."User" u
+    WHERE u."authProviderId" = p_auth_id
+      AND u.status = 'ACTIVE'
+    UNION ALL
+    SELECT u.id
+    FROM public."AccountAccess" a
+    JOIN public."User" u ON u.id = a."userId"
+    WHERE a."tempAuthId" = p_auth_id
+      AND a.status = 'TEMPORARY_ACTIVE'
+      AND u.status = 'ACTIVE'
+  ) resolved
+  LIMIT 1
 $$;
 
 REVOKE ALL ON FUNCTION app.user_id_for_auth(text) FROM PUBLIC;
@@ -713,6 +729,18 @@ BEGIN
     RAISE EXCEPTION 'provision_user needs a verified identity';
   END IF;
 
+  -- M52: a temporary login is a second identity for an EXISTING owner User.
+  -- It never creates a User, and never writes its synthetic address over the
+  -- owner's email: it simply answers with the User it signs in as.
+  SELECT a."userId" INTO v_id
+  FROM public."AccountAccess" a
+  WHERE a."tempAuthId" = p_auth_id;
+
+  IF v_id IS NOT NULL THEN
+    RETURN QUERY SELECT v_id, false;
+    RETURN;
+  END IF;
+
   -- Already known. This is every sign-in after the first, and every repeat of a
   -- confirmation link, so it has to be idempotent rather than an error.
   SELECT u.id INTO v_id
@@ -1085,3 +1113,42 @@ CREATE POLICY client_delete_admin_archived ON public."Client"
   AS RESTRICTIVE
   FOR DELETE
   USING (app.is_platform_admin() AND "archivedAt" IS NOT NULL);
+
+-- ---------------------------------------------------------------------------
+-- M52 — the temporary login is its own Supabase identity.
+--
+-- `AccountAccess."tempAuthId"` holds it (see prisma/m52/migration.sql).
+-- `app.user_id_for_auth` and `app.provision_user` above resolve it to the
+-- owner User it signs in as, only while its access is TEMPORARY_ACTIVE.
+--
+-- Pointing a row at a DIFFERENT identity (a fresh temporary login when the old
+-- one no longer exists) is the platform's decision alone: whatever "tempAuthId"
+-- names signs in as that business's owner. So there is deliberately no UPDATE
+-- grant on "tempAuthId" or "loginId" — the bound owner's own self-update
+-- policy could otherwise aim them at somebody else's identity — and this
+-- function is the one way to change them, for platform staff only.
+CREATE OR REPLACE FUNCTION app.rebind_temp_access(
+  p_client_id    text,
+  p_temp_auth_id text,
+  p_login_id     text
+)
+  RETURNS void
+  LANGUAGE plpgsql
+  VOLATILE
+  SECURITY DEFINER
+  SET search_path = pg_catalog, public
+AS $fn$
+BEGIN
+  IF NOT app.is_platform_admin() THEN
+    RAISE EXCEPTION 'not authorised';
+  END IF;
+
+  UPDATE public."AccountAccess"
+     SET "tempAuthId" = p_temp_auth_id,
+         "loginId"    = lower(btrim(p_login_id)),
+         "updatedAt"  = now()
+   WHERE "clientId" = p_client_id;
+END $fn$;
+
+REVOKE ALL ON FUNCTION app.rebind_temp_access(text, text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION app.rebind_temp_access(text, text, text) TO repos_app;
