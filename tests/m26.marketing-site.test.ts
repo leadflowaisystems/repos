@@ -27,6 +27,7 @@ import {
 import { findPack } from '@/lib/packs';
 import { MESSAGES } from '@/lib/i18n/strings';
 import { FIRST_READING_AT } from '@/lib/portal/readiness';
+import { EMERGING_AT } from '@/lib/portal/ladder';
 import { MIN_MENTIONS_TO_NAME, MIN_PERIOD_FEEDBACK_TO_COMPARE } from '@/lib/intelligence/engine';
 import { KIT_PRODUCTS } from '@/lib/kit/catalogue';
 
@@ -310,10 +311,19 @@ describe('every figure on the page is the demo business', () => {
     expect(HOME_BRIEF.attention.loopLine).toBe(MESSAGES['loop.state.watching'].en);
   });
 
-  it('quotes the three thresholds the workspace applies, not its own', () => {
+  it('quotes the thresholds the workspace applies, not its own', () => {
     expect(PRODUCT_RULES.firstReadingAt).toBe(FIRST_READING_AT);
     expect(PRODUCT_RULES.namedAt).toBe(MIN_MENTIONS_TO_NAME);
+    expect(PRODUCT_RULES.patternReadAt).toBe(EMERGING_AT);
     expect(PRODUCT_RULES.compareAt).toBe(MIN_PERIOD_FEEDBACK_TO_COMPARE);
+  });
+
+  it('promises no countdown and no check-in chore (evidence ladder pass)', () => {
+    for (const file of ['effort.tsx', 'faq.tsx']) {
+      const src = read('src', 'components', 'marketing', file);
+      expect(src, file).not.toMatch(/how many are left|how many more it needs|more responses to go/i);
+      expect(src, file).not.toMatch(/two check-ins each hold/i);
+    }
   });
 
   it('dates every quotation inside the story', () => {

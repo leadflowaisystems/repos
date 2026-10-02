@@ -3,8 +3,8 @@ import { getTranslator } from '@/lib/i18n/request';
 import type { MessageKey } from '@/lib/i18n/strings';
 import type { Translator } from '@/lib/i18n/t';
 import type { PeriodReport, PeriodTheme } from '@/lib/reporting/service';
-import type { Readiness } from '@/lib/portal/readiness';
-import { InsightsBuilding } from '@/components/workspace/insights-building';
+import type { EvidenceState } from '@/lib/portal/ladder';
+import { EvidenceReading } from '@/components/workspace/evidence-ladder';
 
 /**
  * The weekly Pulse and the monthly Review, rendered (M20 Stage 4). Those are
@@ -94,18 +94,19 @@ function ThemeList({ themes, t }: { themes: PeriodTheme[]; t: Translator<Message
 export async function PeriodReportView({
   report,
   basePath,
-  readiness = null,
+  state = null,
 }: {
   report: PeriodReport;
   /** Where this door lives, so the period switch stays inside it. */
   basePath: string;
   /**
-   * Whether the business has enough feedback for any reading at all. This
-   * page's own `enoughEvidence` is about ONE window; this is about the whole
-   * pile, and below its line the page shows the shared readiness card instead
-   * of a headline, a volume line or a topic list.
+   * What Headway knows across the whole pile — the one evidence state every
+   * page reads (`src/lib/portal/ladder.ts`). This page's own
+   * `enoughEvidence` is about ONE window; when the window is too thin to
+   * compare, the reading of the whole pile still says what is known, so a
+   * quiet week is never an empty page.
    */
-  readiness?: Readiness | null;
+  state?: EvidenceState | null;
 }) {
   const t = await getTranslator();
   const isWeek = report.kind === 'WEEK';
@@ -115,12 +116,12 @@ export async function PeriodReportView({
   const ns = isWeek ? 'pulse' : 'review';
   const title = t(`${ns}.title`);
 
-  if (readiness && !readiness.ready) {
+  if (state && state.stage === 'NONE') {
     return (
       <div className="max-w-3xl">
         <PageIntro eyebrow={t('pulse.report.eyebrow')} title={title} />
         <PeriodSwitch basePath={basePath} current={isWeek ? 'pulse' : 'review'} />
-        <InsightsBuilding readiness={readiness} basePath={basePath} className="mt-6" />
+        <EvidenceReading state={state} basePath={basePath} className="mt-6" />
       </div>
     );
   }
@@ -188,6 +189,11 @@ export async function PeriodReportView({
             </Section>
           ) : null}
         </>
+      ) : state ? (
+        // Too little in this window to compare with the last one — which is
+        // a fact about the window, not about what Headway knows. The reading
+        // of everything read so far follows, marked with its own stage.
+        <EvidenceReading state={state} basePath={basePath} variant="compact" headingLevel={3} className="mt-8" />
       ) : null}
 
       {report.actions.length > 0 ? (

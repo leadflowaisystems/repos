@@ -2,17 +2,17 @@ import { Link } from '@/components/portal/link';
 import clsx from 'clsx';
 import type { Brief, BriefCard, BriefChange, BriefMemory, BriefTrend } from '@/lib/portal/brief';
 import { getTranslator } from '@/lib/i18n/request';
-import { HeadwayMark } from '@/components/brand';
 import { Reveal } from '@/components/portal/disclose';
 import { OwnerDecision } from '@/components/workspace/owner-decision';
 import { Greeting } from '@/components/workspace/greeting';
 import { LiveRefresh } from '@/components/workspace/live-refresh';
-import { InsightsBuilding } from '@/components/workspace/insights-building';
+import { DirectionPanel, EvidenceReading } from '@/components/workspace/evidence-ladder';
 import { movesFor } from '@/lib/improve/owner-moves';
 import { whenSaid, type FreshFeed, type LatestEntry, type LiveState } from '@/lib/portal/fresh';
 import { formatDate } from '@/lib/format';
 import type { PortalTranslator } from '@/lib/i18n/translator';
-import type { Readiness } from '@/lib/portal/readiness';
+import type { EvidenceState } from '@/lib/portal/ladder';
+import type { EvidenceIndex } from '@/lib/portal/evidence';
 
 /**
  * YOUR HEADWAY BRIEF — the screen an owner opens (final experience pass).
@@ -29,11 +29,17 @@ import type { Readiness } from '@/lib/portal/readiness';
  *                 moved, one customer in their own words, what it means, what
  *                 Headway suggests, and the decision. The largest thing on the
  *                 page after the band.
- *   OR, CALM      when nothing needs the owner, Home says so plainly instead of
- *                 manufacturing a problem to fill the space.
+ *   THE READING   what Headway knows right now, at whatever stage the evidence
+ *                 is (evidence ladder pass, Oct 2026): one customer heard, an
+ *                 early signal, a first read, an emerging picture, strong
+ *                 patterns where earned — with what is not yet sure and what
+ *                 Headway is watching. Never a countdown, never "no strong
+ *                 pattern yet" as the whole answer. When nothing needs the
+ *                 owner and ten or more are read, it says so plainly.
  *   THE LATEST    the newest customers in their own words, read or not yet
  *                 read, each a tap from the whole entry (freshness pass).
- *   THE REST      what customers love, what changed, and the owner's own record
+ *   THE REST      which way things are moving (or what that waits for, done
+ *                 by Headway itself), what changed, and the owner's own record
  *                 of changes — set as type on the canvas, not as more cards.
  *
  * EVERY FIGURE IS STILL A COUNT OF STORED ROWS and every one opens into them.
@@ -129,26 +135,32 @@ function LiveLine({
  * while the owner was away, that is said here first, because it is the moment
  * the whole product exists to produce.
  */
-async function Band({ brief, live }: { brief: Brief; live: LiveState }) {
+async function Band({ brief, state, live }: { brief: Brief; state: EvidenceState; live: LiveState }) {
   const t = await getTranslator();
-  const { header, mix } = brief;
+  const { header } = brief;
+  // The pulse is the evidence state's — the one count every page shows — and
+  // says its denominators: "Of 5 responses read", and the ratings counted on
+  // their own. It used to read "From 5 customers" over a split whose average
+  // rating, on the Feedback page, came from four.
+  const { pulse } = state;
+  const early = state.stage === 'PULSE' || state.stage === 'FIRST_READ';
   const tiles = [
     {
       key: 'happy',
       label: t('brief.today.happy'),
-      value: mix.happy,
+      value: pulse.happy,
       dot: 'bg-good-600',
     },
     {
       key: 'mixed',
       label: t('brief.today.mixed'),
-      value: mix.mixed,
+      value: pulse.mixed,
       dot: 'bg-brand-400',
     },
     {
       key: 'unhappy',
       label: t('brief.today.unhappy'),
-      value: mix.unhappy,
+      value: pulse.unhappy,
       dot: 'bg-bad-600',
     },
   ];
@@ -173,12 +185,15 @@ async function Band({ brief, live }: { brief: Brief; live: LiveState }) {
         <p className="flex items-center gap-2 text-[14px] font-medium text-white">
           <span
             aria-hidden
-            className={clsx('h-2 w-2 shrink-0 rounded-full', header.needsYou > 0 ? 'bg-bad-200' : brief.thin ? 'bg-brand-400' : 'bg-good-200')}
+            className={clsx('h-2 w-2 shrink-0 rounded-full', header.needsYou > 0 ? 'bg-bad-200' : early ? 'bg-brand-400' : 'bg-good-200')}
           />
+          {/* Below ten read, "nothing needs your attention" is a conclusion the
+              evidence has not earned, and "no strong pattern yet" made a first
+              read sound like nothing. The band says where the evidence is. */}
           {header.needsYou > 0
             ? t.plural('brief.status.needs', header.needsYou)
-            : brief.thin
-              ? t('brief.thin.title')
+            : early
+              ? `${state.copy.eyebrow} · ${state.copy.readLine}`
               : t('brief.calm.title')}
         </p>
         <LiveLine live={live} arrivedSinceVisit={header.arrivedSinceVisit} t={t} />
@@ -219,8 +234,8 @@ async function Band({ brief, live }: { brief: Brief; live: LiveState }) {
           </div>
         ))}
       </dl>
-      <p className="mt-1 text-[12px] text-ink-300">
-        {t.plural('brief.mood.basis', mix.read)}
+      <p className="mt-1 text-[12px] text-ink-300 tabular-nums">
+        {pulse.basis} · {pulse.ratings}
         {brief.waiting > 0 ? ` · ${t.plural('brief.today.waiting', brief.waiting)}` : ''}
       </p>
     </section>
@@ -243,7 +258,19 @@ async function Band({ brief, live }: { brief: Brief; live: LiveState }) {
  * The state of the loop — "You said you would handle this" — sits directly
  * above the buttons it explains, so "Revisit this" is never without a reason.
  */
-async function Story({ card, clientId }: { card: BriefCard; clientId?: string }) {
+async function Story({
+  card,
+  clientId,
+  suggestTitle,
+}: {
+  card: BriefCard;
+  clientId?: string;
+  /**
+   * The heading over the suggestion, scaled to the evidence: "Worth checking"
+   * for an emerging pattern, "What to do" only for a strong one.
+   */
+  suggestTitle?: string;
+}) {
   const t = await getTranslator();
   const [lead] = card.quotes;
   const choices = movesFor(card.loop.status);
@@ -277,7 +304,7 @@ async function Story({ card, clientId }: { card: BriefCard; clientId?: string })
       {/* WHAT TO DO — the suggestion, then the decision, together. */}
       {card.action ? (
         <div className="mt-5 rounded-xl bg-canvas px-4 py-3.5">
-          <p className={clsx(EYEBROW, 'text-ink-500')}>{t('brief.suggest.title')}</p>
+          <p className={clsx(EYEBROW, 'text-ink-500')}>{suggestTitle ?? t('brief.suggest.title')}</p>
           <p className="mt-1 max-w-2xl text-[17px] leading-snug font-semibold text-ink-900">{card.action}</p>
         </div>
       ) : null}
@@ -320,70 +347,6 @@ async function Story({ card, clientId }: { card: BriefCard; clientId?: string })
     </section>
   );
 }
-
-/**
- * NOTHING NEEDS YOUR ATTENTION — said plainly, and meant.
- *
- * The product that tells an owner something needs them every day is the one
- * they stop believing. When no problem is strong enough to act on, Home says
- * so, says what Headway is still watching, and stops. Nothing is invented to
- * fill the space the story would have taken.
- */
-async function Calm({ brief }: { brief: Brief }) {
-  const t = await getTranslator();
-  return (
-    <section
-      aria-labelledby="brief-calm"
-      className={clsx('rounded-2xl border bg-white p-5 sm:p-6', brief.thin ? 'border-ink-200' : 'border-good-200')}
-    >
-      {/* Green says "all clear", which thin evidence has not earned. */}
-      <p className={clsx(EYEBROW, 'flex items-center gap-2', brief.thin ? 'text-ink-600' : 'text-good-700')}>
-        <span
-          aria-hidden
-          className={clsx('h-1.5 w-1.5 rounded-full', brief.thin ? 'bg-ink-400' : 'bg-good-600')}
-        />
-        {t('brief.calm.eyebrow')}
-      </p>
-      {/* While the evidence is thin this is the state of the evidence, not a
-          verdict: "no strong pattern yet", with how much has been read. */}
-      <h2 id="brief-calm" className="mt-2 font-display text-[24px] leading-[1.15] font-semibold text-ink-900">
-        {brief.thin ? t('brief.thin.title') : t('brief.calm.title')}
-      </h2>
-      <p className="mt-2 text-[15px] leading-snug text-ink-700">
-        {brief.waiting > 0
-          ? t('brief.calm.reading')
-          : brief.thin
-            ? t.plural('brief.thin.body', brief.mix.read)
-            : t('brief.calm.body')}
-      </p>
-      {brief.earlySigns.length > 0 ? (
-        <div className="mt-4 border-t border-ink-200 pt-3">
-          <p className={clsx(EYEBROW, 'text-ink-500')}>{t('brief.earlySigns.title')}</p>
-          <ul className="mt-1 divide-y divide-ink-100">
-            {brief.earlySigns.map((sign) => (
-              <li key={sign.themeKey}>
-                <Link
-                  href={sign.href}
-                  className="hw-focus-inset flex min-h-11 items-baseline justify-between gap-3 py-2 hover:bg-ink-50"
-                >
-                  <span className="text-[15px] font-semibold text-ink-900">{sign.label}</span>
-                  <span className="shrink-0 text-[13px] text-ink-600 tabular-nums">
-                    {t.plural('brief.mentioned', sign.count)}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-1.5 text-[12px] leading-relaxed text-ink-500">{t('brief.earlySigns.note')}</p>
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// What follows the story
-// ---------------------------------------------------------------------------
 
 /**
  * LATEST FROM CUSTOMERS — the newest few, in their own words (freshness pass).
@@ -467,51 +430,6 @@ function LatestRow({
             <span className="text-ink-600">· {entry.topics.map((topic) => topic.label).join(', ')}</span>
           ) : null}
         </span>
-      </span>
-      <span aria-hidden className="shrink-0 text-[18px] leading-none text-ink-300">
-        ›
-      </span>
-    </Link>
-  );
-}
-
-/**
- * CUSTOMERS LOVE — up to three strengths, each with how many praised it and
- * which way it is going. "Keep doing this" is said once, for the list.
- */
-async function Loved({ cards }: { cards: BriefCard[] }) {
-  const t = await getTranslator();
-  return (
-    <section aria-labelledby="brief-love">
-      <h2 id="brief-love" className={clsx(EYEBROW, 'flex items-center gap-2 text-good-700')}>
-        <span aria-hidden className="h-2 w-2 rounded-full bg-good-600" />
-        {t('brief.love.title')}
-      </h2>
-      <p className="mt-1 text-[13px] text-ink-600">{t('brief.love.keep')}</p>
-      <ul className="mt-2 divide-y divide-ink-200 overflow-hidden rounded-xl border border-ink-200 bg-white">
-        {cards.map((card) => (
-          <li key={card.themeKey}>
-            <LovedRow card={card} t={t} />
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function LovedRow({ card, t }: { card: BriefCard; t: PortalTranslator }) {
-  return (
-    <Link href={card.href} className="hw-focus-inset flex min-h-14 items-center gap-3 px-4 py-3 hover:bg-ink-50">
-      <span className="min-w-0 flex-1">
-        <span className="block text-[16px] leading-snug font-semibold text-ink-900">{card.label}</span>
-        <span className="mt-0.5 block text-[14px] leading-snug text-ink-700 tabular-nums">
-          {t.plural('brief.praised', card.count)}
-        </span>
-        {card.trend ? (
-          <span className="mt-0.5 block">
-            <Trend trend={card.trend} />
-          </span>
-        ) : null}
       </span>
       <span aria-hidden className="shrink-0 text-[18px] leading-none text-ink-300">
         ›
@@ -657,33 +575,31 @@ async function Memory({ memory, basePath }: { memory: BriefMemory; basePath: str
   );
 }
 
+
 /**
- * Not enough to brief on yet: the brand, one honest line, and — the moment the
- * first customer has written — what they wrote. In a first week the early
- * words ARE the news, so they are not hidden until there is a pattern.
+ * BEFORE ANYTHING IS READ — the brand, one honest line, and the newest
+ * feedback in its own words the moment any has arrived.
  *
- * Below the first-reading line the honest line is the shared readiness card
- * (`InsightsBuilding`), the same one every other page shows, so Home cannot
- * say something different from Customers about the same five responses. At or
- * above the line with nothing read yet, the older "too early" card still
- * speaks — that is a pile being read, not a pile that is too small.
+ * Only for a business with nothing read yet (evidence ladder pass, Oct 2026).
+ * From the very first read response Home shows the full brief: what that
+ * customer said is already worth showing, and the countdown card that used to
+ * stand here until five responses ("3 more responses to go") said the opposite.
  */
-async function BriefEmpty({
+async function BriefStart({
   brief,
+  state,
   fresh,
   basePath,
   now,
-  readiness,
 }: {
   brief: Brief;
+  state: EvidenceState;
   fresh: FreshFeed | null;
   basePath: string;
   now: Date;
-  readiness: Readiness | null;
 }) {
   const t = await getTranslator();
   const some = (fresh?.total ?? 0) > 0;
-  const building = readiness !== null && !readiness.ready;
   return (
     <>
       <section
@@ -700,30 +616,12 @@ async function BriefEmpty({
         <div className="mt-2.5 space-y-0.5 text-[13px] leading-snug text-ink-300">
           <p className="flex items-center gap-2">
             <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand-400" />
-            {!some
-              ? t('brief.status.ready')
-              : brief.header.watching > 0 && !building
-                ? t.plural('brief.status.watching', brief.header.watching)
-                : t('brief.status.patterns')}
+            {some ? t('brief.status.patterns') : t('brief.status.ready')}
           </p>
           <LiveLine live={fresh?.live ?? null} arrivedSinceVisit={brief.header.arrivedSinceVisit} t={t} />
         </div>
       </section>
-      {building ? (
-        <InsightsBuilding readiness={readiness} basePath={basePath} className="mt-6" />
-      ) : (
-        <section className="mt-6 flex items-start gap-4 rounded-2xl border border-ink-200 bg-white p-5">
-          <HeadwayMark className="mt-0.5 h-8 w-8 shrink-0" />
-          <div>
-            <h2 className="font-display text-[22px] leading-tight font-semibold text-ink-900">
-              {some ? t('brief.early.someTitle') : t('brief.early.title')}
-            </h2>
-            <p className="mt-1.5 text-[15px] leading-snug text-ink-700">
-              {some ? t('brief.early.someBody') : t('brief.early.body')}
-            </p>
-          </div>
-        </section>
-      )}
+      <EvidenceReading state={state} basePath={basePath} className="mt-6" />
       {fresh ? (
         <div className="mt-8">
           <Latest fresh={fresh} basePath={basePath} now={now} />
@@ -736,17 +634,27 @@ async function BriefEmpty({
 /** The whole brief, in reading order. */
 export async function OwnerBrief({
   brief,
+  state,
   clientId,
   basePath,
+  evidence,
   fresh = null,
   stamp,
   now = new Date(),
-  readiness = null,
 }: {
   brief: Brief;
+  /**
+   * What Headway knows right now — the one evidence state every page reads
+   * (`src/lib/portal/ladder.ts`). It decides what Home shows at each stage:
+   * a first customer heard, early signals, a first read, an emerging picture,
+   * strong patterns where earned. There is no gate below which Home goes quiet.
+   */
+  state: EvidenceState;
   clientId?: string;
   /** Where this door lives, so the record can link to the full action centre. */
   basePath: string;
+  /** The rows behind every count, so a pattern can show one customer's words. */
+  evidence?: EvidenceIndex;
   /** The newest feedback and where Headway is with it. See `portal/fresh.ts`. */
   fresh?: FreshFeed | null;
   /**
@@ -756,38 +664,48 @@ export async function OwnerBrief({
   stamp?: string;
   /** The moment this page was rendered: the clock "2 min ago" is measured on. */
   now?: Date;
-  /**
-   * Whether this business has enough feedback for a reading at all. Below the
-   * line Home shows the shared readiness card and the customers' own words,
-   * and no counts, problem, strength or movement — even where the engine
-   * could already name one. See `src/lib/portal/readiness.ts`.
-   */
-  readiness?: Readiness | null;
 }) {
+  const t = await getTranslator();
   const watcher = stamp ? <LiveRefresh stamp={stamp} reading={fresh?.live?.kind === 'READING'} /> : null;
-  if (brief.tooEarly || (readiness && !readiness.ready)) {
+  if (state.stage === 'NONE') {
     return (
       <>
         {watcher}
-        <BriefEmpty brief={brief} fresh={fresh} basePath={basePath} now={now} readiness={readiness ?? null} />
+        <BriefStart brief={brief} state={state} fresh={fresh} basePath={basePath} now={now} />
       </>
     );
   }
+  // The story's suggestion is headed for its evidence: an emerging pattern is
+  // "worth checking", and only a strong one is "what to do" (evidence ladder
+  // pass). Once the owner has decided, the line is the next step, as before.
+  const lead = brief.attention ? (state.findings.find((f) => f.kind === 'ISSUE' && f.key === brief.attention?.themeKey) ?? null) : null;
+  const undecided = brief.attention ? brief.attention.loop.state === 'NONE' || brief.attention.loop.state === 'SUGGESTED' : false;
+  const suggestTitle =
+    lead && undecided && lead.level === 'EMERGING_PATTERN' ? t('ladder.action.check') : undefined;
+  // "Nothing needs your attention" is said only once ten or more are read —
+  // below that it is a conclusion the evidence has not earned.
+  const settled = state.stage === 'EMERGING_PICTURE' || state.stage === 'STRONG_PATTERNS';
+  const calm = settled && brief.calm ? t('brief.calm.title') : null;
   return (
     <>
       {watcher}
-      <Band brief={brief} live={fresh?.live ?? null} />
+      <Band brief={brief} state={state} live={fresh?.live ?? null} />
       <div className="mt-6 grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="min-w-0 space-y-8">
-          {brief.attention ? (
-            <Story card={brief.attention} clientId={clientId} />
-          ) : brief.calm ? (
-            <Calm brief={brief} />
-          ) : null}
+          {brief.attention ? <Story card={brief.attention} clientId={clientId} suggestTitle={suggestTitle} /> : null}
+          <EvidenceReading
+            state={state}
+            basePath={basePath}
+            evidence={evidence}
+            omit={brief.attention?.themeKey ?? null}
+            calm={calm}
+            // The band says the stage and the read count one line above.
+            eyebrow={false}
+          />
           {fresh ? <Latest fresh={fresh} basePath={basePath} now={now} /> : null}
         </div>
         <div className="min-w-0 space-y-8">
-          {brief.loved ? <Loved cards={[brief.loved, ...brief.alsoLoved]} /> : null}
+          <DirectionPanel direction={state.direction} basePath={basePath} variant="compact" />
           <Changed brief={brief} basePath={basePath} />
           {brief.memory ? <Memory memory={brief.memory} basePath={basePath} /> : null}
         </div>

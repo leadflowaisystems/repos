@@ -75,16 +75,6 @@ export const home = {
     hi: 'यही करते रहें',
     mr: 'हेच करत राहा',
   },
-  'home.soFar.title': {
-    en: 'What customers are mentioning so far',
-    hi: 'अब तक ग्राहक किन बातों का ज़िक्र कर रहे हैं',
-    mr: 'आतापर्यंत ग्राहक कशाचा उल्लेख करत आहेत',
-  },
-  'home.soFar.note': {
-    en: 'Counts only, not conclusions',
-    hi: 'सिर्फ़ गिनती, नतीजे नहीं',
-    mr: 'फक्त मोजणी, निष्कर्ष नाहीत',
-  },
   'home.question.title': {
     en: 'What Headway needs from you',
     hi: 'Headway को आपसे क्या चाहिए',
@@ -114,14 +104,14 @@ export const home = {
   // The next check-in, and the one number that comes from outside the feedback
   // -------------------------------------------------------------------------
   'home.nextCheck.title': {
-    en: 'Your next check-in',
-    hi: 'आपका अगला चेक-इन',
-    mr: 'तुमचं पुढचं चेक-इन',
+    en: 'Comparing over time',
+    hi: 'समय के साथ तुलना',
+    mr: 'कालांतराने तुलना',
   },
   'home.nextCheck.open': {
-    en: 'Open your check-in',
-    hi: 'अपना चेक-इन खोलें',
-    mr: 'तुमचं चेक-इन उघडा',
+    en: 'See what changed',
+    hi: 'देखें क्या बदला',
+    mr: 'काय बदललं ते पाहा',
   },
   'home.nextCheck.publicRating': {
     en: 'Public rating {value}.',

@@ -9,11 +9,13 @@ import { Heading, Section } from './primitives';
  * what the owner does once, what they do when they choose to look, and what
  * Headway does all the time without being asked.
  *
- * The two numbers in the last column are the product's own rules — the first
- * reading appears at FIRST_READING_AT responses (`src/lib/portal/readiness.ts`)
- * and a topic is named once MIN_MENTIONS_TO_NAME customers raise it — quoted
- * through `PRODUCT_RULES`, which the marketing test holds equal to both, so the
+ * The numbers in the last column are the product's own rules — the first read
+ * begins at FIRST_READING_AT responses, and a pattern needs MIN_MENTIONS_TO_NAME
+ * customers among EMERGING_AT read (`src/lib/portal/ladder.ts`) — quoted
+ * through `PRODUCT_RULES`, which the marketing test holds equal to them, so the
  * page cannot promise a different threshold from the one the workspace applies.
+ * Nothing here promises a countdown: the workspace shows what customers said
+ * from the first response (evidence ladder pass, Oct 2026).
  */
 
 const COLUMNS = [
@@ -40,8 +42,8 @@ const COLUMNS = [
     who: 'Headway',
     items: [
       'Reads every response as it arrives.',
-      `Gives a first reading once you have ${PRODUCT_RULES.firstReadingAt} responses, and tells you how many are left until then.`,
-      `Names a topic only once at least ${PRODUCT_RULES.namedAt} responses mention it.`,
+      `Shows what customers said from the very first response, and gives a first read at ${PRODUCT_RULES.firstReadingAt}.`,
+      `Calls something a pattern only once at least ${PRODUCT_RULES.namedAt} customers raise it among ${PRODUCT_RULES.patternReadAt} or more responses.`,
       'Compares the feedback before and after every change you mark done.',
     ],
   },

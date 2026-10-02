@@ -5,6 +5,7 @@ import { getReplyCoverage } from '@/lib/feedback/replies';
 import { evidenceDateOf } from '@/lib/improve/service';
 import { findPortalClient, loadCore } from '@/lib/portal/service';
 import { buildPortalView, type PortalView } from '@/lib/portal/view';
+import { buildTrendReadiness } from '@/lib/portal/trends';
 import {
   buildResponsibility,
   type FeedbackSince,
@@ -87,7 +88,14 @@ export async function getResponsibility(
   ]);
 
   const view = buildPortalView(core);
-  const since = core.checkins[0]?.capturedAt ?? null;
+  // "Since" is the operator's latest check-in, as it always was: the lines
+  // about Headway's recent work are counted from it. The automatic comparison
+  // points (snapshots/periods.ts) are for what the next comparison waits for,
+  // and are handed over separately — so a business nobody has recorded a
+  // check-in for still reads "since feedback started coming in".
+  const operatorCheckins = core.checkins.filter((c) => !c.automatic);
+  const since = operatorCheckins[0]?.capturedAt ?? null;
+  const trend = buildTrendReadiness(core);
   const gatewayState: GatewayState | null = gateway
     ? { enabled: gateway.enabled, received: rows.filter((r) => r.source === 'REP_OS_QR').length }
     : null;
@@ -96,8 +104,9 @@ export async function getResponsibility(
     view,
     intelligence: core.intelligence,
     actions: core.actions,
-    checkins: core.checkins,
+    checkins: operatorCheckins,
     feedbackSince: feedbackSince(rows, since),
+    comparison: { periods: trend.checkins, latestAt: trend.latest?.at ?? null, readSince: trend.since },
     needsYourWords: replies.needsYou,
     gateway: gatewayState,
     archived: client.archivedAt !== null,

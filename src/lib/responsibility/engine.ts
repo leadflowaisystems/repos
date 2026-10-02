@@ -7,7 +7,6 @@ import {
 } from '@/lib/intelligence/engine';
 import { MIN_FEEDBACK_TO_MEASURE } from '@/lib/improve/measure';
 import type { ActionProgress } from '@/lib/improve/service';
-import { STALE_SNAPSHOT_DAYS } from '@/lib/command/priority';
 import type { SnapshotListRow } from '@/lib/snapshots/service';
 import { spoken, type PortalAction, type PortalSignal, type PortalView } from '@/lib/portal/view';
 import { formatDate } from '@/lib/format';
@@ -234,9 +233,20 @@ export type ResponsibilityInput = {
   view: PortalView;
   intelligence: ClientIntelligence;
   actions: ActionProgress[];
-  /** Newest first, as `listSnapshots` returns them. */
+  /**
+   * The operator's check-ins, newest first, as `listSnapshots` returns them —
+   * the "since" every line about Headway's recent work is counted from.
+   */
   checkins: SnapshotListRow[];
   feedbackSince: FeedbackSince;
+  /**
+   * Where the comparisons stand: every comparison point, the operator's and
+   * the automatic ones Headway draws itself (`snapshots/periods.ts`), and how
+   * many read responses arrived after the latest. What the next comparison
+   * waits for is said from this. Absent, the operator's check-ins stand in —
+   * the operator console's answer, and every caller's before Oct 2026.
+   */
+  comparison?: { periods: number; latestAt: Date | null; readSince: number };
   /** Feedback the reply engine handed to a person: harm, money back, escalation. */
   needsYourWords: number;
   /** Null when the client has never had a feedback page created. */
@@ -877,42 +887,41 @@ function nextCheckFor(args: {
 }): string {
   const { input, t } = args;
   const intel = input.intelligence;
-  const checkins = input.checkins;
-  const latest = checkins[0] ?? null;
-  const f = input.feedbackSince;
+  // Every comparison point when the caller knows them; otherwise the
+  // operator's check-ins and what arrived since the latest, as before.
+  const comparison = input.comparison ?? {
+    periods: input.checkins.length,
+    latestAt: input.checkins[0]?.capturedAt ?? null,
+    readSince: input.feedbackSince.read,
+  };
 
   if (args.comparisonsDue > 0) {
     return args.comparisonsDue === 1
       ? t('responsibility.next.compareOne')
       : t('responsibility.next.compareMany', { count: args.comparisonsDue });
   }
+  // COMPARISONS ARE HEADWAY'S JOB, NOT THE OWNER'S (evidence ladder pass, Oct
+  // 2026). Every line below used to be a chore — "A first check-in now would
+  // give Headway something to compare your next one against", "Worth a
+  // check-in now" — read by an owner who cannot record one and should never
+  // have to. Headway draws comparable periods from the feedback itself
+  // (`snapshots/periods.ts`), so each line now says where that stands.
   if (intel.evidence.analysed === 0) {
-    return t('responsibility.next.firstCheckin');
+    return t('ladder.next.none');
   }
-  if (!latest) {
-    return t('responsibility.next.firstNow');
+  if (comparison.periods === 0 || comparison.latestAt === null) {
+    return t('ladder.next.building');
   }
-  const days = daysBetween(latest.capturedAt, input.now);
-  if (checkins.length === 1) {
-    return f.read >= MIN_FEEDBACK_TO_MEASURE
-      ? t.plural('responsibility.next.secondReady', f.read)
-      : t.plural('responsibility.next.secondWaiting', f.read, {
-          need: MIN_FEEDBACK_TO_MEASURE,
-        });
+  const date = formatDate(comparison.latestAt);
+  const read = comparison.readSince;
+  if (comparison.periods === 1) {
+    return read === 0
+      ? t('ladder.next.baselineNone', { date })
+      : t.plural('ladder.next.baseline', read, { date });
   }
-  if (f.read >= MIN_FEEDBACK_TO_MEASURE) {
-    return t.plural('responsibility.next.worthNow', f.read, {
-      date: formatDate(latest.capturedAt),
-    });
-  }
-  if (days >= STALE_SNAPSHOT_DAYS) {
-    return t.plural('responsibility.next.stale', f.read, { days });
-  }
-  return f.read === 0
-    ? t('responsibility.next.notYetNone', { date: formatDate(latest.capturedAt) })
-    : t.plural('responsibility.next.notYet', f.read, {
-        date: formatDate(latest.capturedAt),
-      });
+  return read === 0
+    ? t('ladder.next.comparesNone', { date })
+    : t.plural('ladder.next.compares', read, { date });
 }
 
 // ---------------------------------------------------------------------------
@@ -1099,6 +1108,8 @@ export function responsibilityNumbers(input: ResponsibilityInput): Set<string> {
   add(input.feedbackSince.unread);
   add(input.feedbackSince.direct);
   add(input.feedbackSince.total);
+  add(input.comparison?.readSince);
+  add(input.comparison?.periods);
   add(input.needsYourWords);
   // The floors the watch lines name: the pattern floor, the strength floor
   // (twice the pattern floor) and the comparison floor.

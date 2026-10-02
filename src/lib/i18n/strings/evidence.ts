@@ -101,14 +101,14 @@ export const evidence = {
     // Not "you have not recorded… until you do": a business cannot record a
     // check-in. Headway does, so the sentence says what is missing, not whose
     // job the reader has supposedly left undone.
-    en: 'No check-in has been recorded yet. Once two are on record, Headway can tell you what keeps coming back.',
-    hi: 'अभी तक कोई चेक-इन दर्ज नहीं हुआ है। दो चेक-इन दर्ज होने पर Headway बता सकेगा कि बार-बार क्या लौटकर आता है।',
-    mr: 'अजून एकही चेक-इन नोंदवलेला नाही. दोन चेक-इन नोंदवल्यावर Headway सांगू शकेल की काय पुन्हा पुन्हा येतं.',
+    en: 'Headway has not closed its first comparable set of feedback yet. Once there are two, it can tell you what keeps coming back.',
+    hi: 'Headway ने अभी फ़ीडबैक की पहली तुलना लायक़ अवधि पूरी नहीं की है। दो अवधियाँ होने पर वह बता सकेगा कि बार-बार क्या लौटकर आता है।',
+    mr: 'Headway ने अजून फीडबॅकचा पहिला तुलनायोग्य कालावधी पूर्ण केलेला नाही. दोन कालावधी झाले की काय पुन्हा पुन्हा येतं ते ते सांगू शकेल.',
   },
   'evidence.recurrence.oneCheckin': {
-    en: 'You have only one check-in so far. After your next one, Headway can tell you what keeps coming back and what is new.',
-    hi: 'अभी आपके पास सिर्फ़ एक चेक-इन है। अगले चेक-इन के बाद Headway बता सकेगा कि बार-बार क्या लौटकर आता है और क्या नया है।',
-    mr: 'सध्या तुमच्याकडे फक्त एकच चेक-इन आहे. पुढच्या चेक-इननंतर Headway सांगू शकेल की काय पुन्हा पुन्हा येतं आणि काय नवीन आहे.',
+    en: 'Headway has one comparable set of feedback so far. After the next, which it collects by itself, it can tell you what keeps coming back and what is new.',
+    hi: 'Headway के पास अभी तक फ़ीडबैक की एक तुलना लायक़ अवधि है। अगली अवधि, जो वह अपने-आप जमा करता है, पूरी होने पर वह बता सकेगा कि बार-बार क्या लौटकर आता है और क्या नया है।',
+    mr: 'Headway कडे आतापर्यंत फीडबॅकचा एक तुलनायोग्य कालावधी आहे. पुढचा कालावधी, जो ते आपोआप गोळा करतं, पूर्ण झाला की काय पुन्हा पुन्हा येतं आणि काय नवीन आहे ते ते सांगू शकेल.',
   },
   'evidence.steady.none': {
     en: 'Nothing moved enough between these check-ins to call it a change.',
@@ -373,19 +373,19 @@ export const evidence = {
     mr: '{month} महिन्याचा चेक-इन',
   },
   'evidence.checkin.noneTitle': {
-    en: 'No check-in yet',
-    hi: 'अभी कोई चेक-इन नहीं',
-    mr: 'अजून कोणताही चेक-इन नाही',
+    en: 'Nothing compared yet',
+    hi: 'अभी कोई तुलना नहीं',
+    mr: 'अजून कोणतीही तुलना नाही',
   },
   'evidence.period.compares': {
-    en: 'This compares your check-in on {latest} with your check-in on {previous}.',
-    hi: 'यह {latest} के आपके चेक-इन की तुलना {previous} के आपके चेक-इन से करता है।',
-    mr: 'हे {latest} रोजीच्या तुमच्या चेक-इनची तुलना {previous} रोजीच्या तुमच्या चेक-इनशी करतं.',
+    en: 'This compares the check-in on {latest} with the check-in on {previous}.',
+    hi: 'यह {latest} के चेक-इन की तुलना {previous} के चेक-इन से करता है।',
+    mr: 'हे {latest} रोजीच्या चेक-इनची तुलना {previous} रोजीच्या चेक-इनशी करतं.',
   },
   'evidence.period.single': {
-    en: 'This uses your check-in on {latest}. A second check-in will show what changed.',
-    hi: 'यह {latest} के आपके चेक-इन का इस्तेमाल करता है। दूसरा चेक-इन दिखाएगा कि क्या बदला।',
-    mr: 'हे {latest} रोजीच्या तुमच्या चेक-इनवर आधारित आहे. दुसरा चेक-इन काय बदललं ते दाखवेल.',
+    en: 'This uses the check-in on {latest}. Headway collects the next comparable set by itself, and then shows what changed.',
+    hi: 'यह {latest} के चेक-इन का इस्तेमाल करता है। Headway अगली तुलना लायक़ अवधि अपने-आप जमा करता है, और फिर दिखाता है कि क्या बदला।',
+    mr: 'हे {latest} रोजीच्या चेक-इनवर आधारित आहे. Headway पुढचा तुलनायोग्य कालावधी आपोआप गोळा करतं, आणि मग काय बदललं ते दाखवतं.',
   },
   'evidence.period.all': {
     en: 'This covers everything Headway has read so far.',

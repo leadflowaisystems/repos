@@ -605,6 +605,13 @@ export function buildReviewsView(input: {
   // Every count names its pile: the whole read set, or one theme. A theme
   // filter must never look like the owner of the page-wide totals.
   const intel = input.intelligence;
+  // The complaint Headway would deal with first — only once the engine stands
+  // behind it (evidence ladder pass, Oct 2026). An EARLY grade means too few
+  // mentions, or too little feedback read, to be sure of anything; Home lists
+  // it as an early signal and Customers files it under "Not yet clear". This
+  // page used to name it "needs attention" and "deal with first" regardless,
+  // on three responses out of four.
+  const attention = intel?.attention && intel.attention.confidence !== 'EARLY' ? intel.attention : null;
   const found: string[] = [];
   const quick: ReviewsView['quick'] = [];
   const analysed = input.coverage.analysed;
@@ -635,23 +642,26 @@ export function buildReviewsView(input: {
           : t('evidence.found.praiseOne', { first: topPraise[0] ?? '' }),
       );
     }
-    if (intel.attention) {
+    if (attention) {
       found.push(
         t('evidence.found.attention', {
-          theme: spoken(intel.attention.themeLabel),
-          count: intel.attention.evidence.count,
-          outOf: intel.attention.evidence.outOf,
+          theme: spoken(attention.themeLabel),
+          count: attention.evidence.count,
+          outOf: attention.evidence.outOf,
         }),
       );
       quick.push({
         // The pack's own label, exactly as the pack words it.
         label: t('evidence.quick.theme', {
-          theme: intel.attention.themeLabel,
-          count: intel.attention.evidence.count,
+          theme: attention.themeLabel,
+          count: attention.evidence.count,
         }),
-        query: `theme=${encodeURIComponent(intel.attention.themeKey)}`,
+        query: `theme=${encodeURIComponent(attention.themeKey)}`,
       });
-    } else {
+    } else if (!intel.attention) {
+      // "No complaint is a pattern yet" is only true when none cleared the
+      // naming floor. An early complaint did; it is simply not yet sure, and
+      // the line about it is left out rather than misstated.
       found.push(t('evidence.found.noPattern', { min: MIN_MENTIONS_TO_NAME }));
     }
     if (input.replyWorth > 0) {
@@ -666,8 +676,8 @@ export function buildReviewsView(input: {
     read: analysed,
     signals: input.themes ? patterns.length : intel ? intel.loved.length + intel.unhappy.length : 0,
     isolated: isolated.length,
-    attention: intel?.attention
-      ? { key: intel.attention.themeKey, label: intel.attention.themeLabel, count: intel.attention.evidence.count }
+    attention: attention
+      ? { key: attention.themeKey, label: attention.themeLabel, count: attention.evidence.count }
       : null,
   };
   // The engine's own movement for each topic. Its STATE is good-or-bad for

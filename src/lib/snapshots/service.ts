@@ -29,6 +29,7 @@ import {
 import { parseJson } from '@/lib/format';
 import type { PortalTranslator } from '@/lib/i18n/translator';
 import { nullableInt, nullableNumber } from '@/lib/actions/shared';
+import { isAutomaticPeriod, withAutomaticPeriods } from './periods';
 
 /**
  * Snapshot lifecycle.
@@ -229,12 +230,85 @@ export async function loadHealthSnapshots(
   });
 }
 
+/**
+ * EVERY COMPARISON POINT: the operator's check-ins and the automatic ones
+ * Headway draws itself (evidence ladder pass, Oct 2026). See
+ * `./periods.ts` for the rule.
+ *
+ * This is what trends, the overall direction and "keeps coming back" compare
+ * between. The health card does not use it — an automatic check-in observed no
+ * public listing, so the listing figures stay the operator's (see
+ * `getClientHealth`).
+ *
+ * Built from the two reads the page already shares — the stored check-ins
+ * above and the feedback ledger — so it costs no query of its own.
+ */
+export async function loadComparisonPeriods(
+  db: PrismaClient,
+  clientId: string,
+): Promise<StoredSnapshot[]> {
+  return oncePerRequest(`comparison-periods:${clientId}`, async () => {
+    const [operator, ledger] = await Promise.all([
+      loadHealthSnapshots(db, clientId),
+      loadFeedbackLedger(db, clientId),
+    ]);
+    const read = analysedRows(ledger).map((row) => ({
+      id: row.id,
+      createdAt: row.createdAt,
+      snapshotId: row.snapshotId,
+      feedback: toStoredFeedback(row),
+    }));
+    return withAutomaticPeriods(operator, read);
+  });
+}
+
+/**
+ * The check-in list the owner's pages read: the operator's, with the automatic
+ * ones Headway drew merged in by date, newest first. The console's own list
+ * (`listSnapshots`) stays the operator's, because that page manages them.
+ */
+export async function listComparisonCheckins(
+  db: PrismaClient,
+  clientId: string,
+): Promise<SnapshotListRow[]> {
+  const [operator, periods] = await Promise.all([
+    listSnapshots(db, clientId),
+    loadComparisonPeriods(db, clientId),
+  ]);
+  const automatic = periods.filter(isAutomaticPeriod);
+  if (automatic.length === 0) return operator;
+  const oldestAutomatic = automatic[automatic.length - 1]?.id ?? null;
+  const rows: SnapshotListRow[] = [
+    ...operator,
+    ...automatic.map((p) => ({
+      id: p.id,
+      label: p.label,
+      capturedAt: p.capturedAt,
+      rating: null,
+      reviewCount: null,
+      feedbackCount: p.feedback.length,
+      // The first comparison point this business has is its baseline.
+      isBaseline: operator.length === 0 && p.id === oldestAutomatic,
+      narrativeSource: null,
+      automatic: true,
+    })),
+  ];
+  return rows.sort((a, b) => b.capturedAt.getTime() - a.capturedAt.getTime());
+}
+
 export type ClientHealth = {
   card: HealthCard;
   pulse: Pulse;
 };
 
-/** The Health Card and Pulse for one client, computed from stored rows only. */
+/**
+ * The Health Card and Pulse for one client, computed from stored rows only.
+ *
+ * The card reads the operator's check-ins — it reports what was observed on
+ * the public listing, which only an operator observes. The pulse compares
+ * every comparison point, automatic ones included, so a business nobody has
+ * recorded a check-in for still learns which way it is moving.
+ */
 export async function getClientHealth(
   db: PrismaClient,
   clientId: string,
@@ -243,10 +317,13 @@ export async function getClientHealth(
   t?: PortalTranslator,
 ): Promise<ClientHealth> {
   const pack = getPackOrFallback(vertical);
-  const snapshots = await loadHealthSnapshots(db, clientId);
+  const [snapshots, periods] = await Promise.all([
+    loadHealthSnapshots(db, clientId),
+    loadComparisonPeriods(db, clientId),
+  ]);
   return {
     card: computeHealthCard({ pack, snapshots, now, t }),
-    pulse: computePulse({ pack, snapshots, now, t }),
+    pulse: computePulse({ pack, snapshots: periods, now, t }),
   };
 }
 
@@ -687,6 +764,11 @@ export type SnapshotListRow = {
   feedbackCount: number;
   isBaseline: boolean;
   narrativeSource: string | null;
+  /**
+   * Drawn by Headway from the feedback itself (see `./periods.ts`), never by a
+   * person. Absent on the operator's own check-ins.
+   */
+  automatic?: boolean;
 };
 
 export async function listSnapshots(

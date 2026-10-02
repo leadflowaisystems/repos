@@ -293,7 +293,7 @@ describe('check-ins', () => {
     await db.reviewItem.updateMany({ where: { snapshotId: result.data.id, reviewDate: null }, data: { reviewDate: capturedAt } });
   }
 
-  it('one check-in: "since" is said, and the second check-in is what comes next', async () => {
+  it('one check-in: "since" is said, and Headway collecting the next comparable set is what comes next', async () => {
     const id = await makeClient('Sunrise Dental Clinic');
     const at = new Date('2026-04-01T00:00:00.000Z');
     await checkin(id, 'April', at, [...waits(5, 'a'), ...praise(7, 'b')]);
@@ -302,7 +302,11 @@ describe('check-ins', () => {
     expect(r.lastCheckinAt?.getTime()).toBe(at.getTime());
     expect(r.sinceLabel).toBe('Since your check-in on 01 Apr 2026');
     expect(r.did[0]).toBe('No new feedback has come in since your check-in on 01 Apr 2026.');
-    expect(r.nextUsefulCheck).toMatch(/^A second check-in will show what changed/);
+    // Comparisons are Headway's own now (snapshots/periods.ts): the next
+    // comparable set is collected by itself, never a check-in for the owner.
+    expect(r.nextUsefulCheck).toBe(
+      'Headway has recorded where things stood, and is collecting the next comparable set by itself. Nothing new has been read since 01 Apr 2026 yet.',
+    );
     expect(text(r)).not.toMatch(/held steady|holding steady/);
   });
 

@@ -3,17 +3,17 @@ import { notFound } from 'next/navigation';
 import { Link } from '@/components/portal/link';
 import { UpLink } from '@/components/portal/history';
 import { LiveRefresh } from '@/components/workspace/live-refresh';
-import { InsightsBuilding } from '@/components/workspace/insights-building';
 import { prisma } from '@/lib/db';
 import { getTranslator } from '@/lib/i18n/request';
-import { getEvidenceIndex, getImprovementsView, getReadiness } from '@/lib/portal/service';
+import { getEvidenceIndex, getEvidenceState, getImprovementsView } from '@/lib/portal/service';
 import type { ImprovementsView } from '@/lib/portal/pages';
 import type { PortalAction, PortalSignal } from '@/lib/portal/view';
 import type { EvidenceIndex } from '@/lib/portal/evidence';
 import type { TrendRow, Trends } from '@/lib/portal/trends';
 import { trendOf, type BriefTrend } from '@/lib/portal/brief';
-import { Quiet, Section, ThemeRows } from '@/components/portal/portal-ui';
-import { TrendsNotReady } from '@/components/workspace/trends-not-ready';
+import { Quiet, Section } from '@/components/portal/portal-ui';
+import { DirectionPanel, EvidenceReading } from '@/components/workspace/evidence-ladder';
+import type { EvidenceState } from '@/lib/portal/ladder';
 import { Reveal } from '@/components/portal/disclose';
 import { ImprovementStory } from '@/components/workspace/improvement-story';
 import { SignalCard } from '@/components/workspace/signal-board';
@@ -615,45 +615,39 @@ export function TrendsBoard({ trends, basePath, t }: { trends: Trends; basePath:
 }
 
 /**
- * WHAT CUSTOMERS ARE SAYING NOW — shown while there is no trend to show.
+ * WHAT CUSTOMERS ARE SAYING NOW — kept apart from which way it is moving.
  *
- * The topics that are already a pattern, then the early signs, each with its
- * count and a way to the feedback behind it. Never a direction: nothing here
- * says better or worse, because nothing has been compared.
+ * Current state needs no comparison: it is counted over everything Headway has
+ * read, and it is never empty once anything has been read. Each topic says its
+ * rung — mentioned once, early signal, emerging or strong pattern — so the
+ * owner can see what is known and what is only being watched. Never a
+ * direction: nothing here says better or worse.
  */
-function CurrentPatterns({
-  current,
+async function CurrentPicture({
+  state,
   basePath,
+  evidence,
   t,
 }: {
-  current: ImprovementsView['current'];
+  state: EvidenceState;
   basePath: string;
+  evidence: EvidenceIndex;
   t: Translator<MessageKey>;
 }) {
   return (
     <section aria-labelledby="trends-now" className="mt-6">
       <h2 id="trends-now" className="font-display text-[20px] leading-tight font-semibold text-ink-900">
-        {t('improvements.now.title')}
+        {t('ladder.section.now')}
       </h2>
-      <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-ink-600">{t('improvements.now.note')}</p>
-      <div className="mt-3">
-        {current.patterns.length > 0 ? (
-          <ThemeRows signals={current.patterns} basePath={basePath} line="brief" />
-        ) : (
-          <Quiet>{t('improvements.now.none')}</Quiet>
-        )}
-      </div>
-      {current.early.length > 0 ? (
-        <div className="mt-6">
-          <p className="text-[11px] font-semibold tracking-[0.14em] text-ink-500 uppercase">
-            {t('improvements.now.early.title')}
-          </p>
-          <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-ink-600">{t('improvements.now.early.note')}</p>
-          <div className="mt-2">
-            <ThemeRows signals={current.early} basePath={basePath} line="none" />
-          </div>
-        </div>
-      ) : null}
+      <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-ink-600">{t('ladder.section.nowNote')}</p>
+      <EvidenceReading
+        state={state}
+        basePath={basePath}
+        evidence={evidence}
+        variant="compact"
+        headingLevel={3}
+        className="mt-4"
+      />
       <Link
         href={`${basePath}/analysis`}
         className="mt-1 inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-ink-700 hover:text-ink-900"
@@ -674,18 +668,16 @@ export async function PortalImprovements({
 }) {
   const client = { id: clientId };
   const t = await getTranslator();
-  const [loaded, evidence, readiness] = await Promise.all([
+  const [view, evidence, state] = await Promise.all([
     getImprovementsView(prisma, client.id, { t }),
     getEvidenceIndex(prisma, client.id),
-    getReadiness(prisma, client.id),
+    getEvidenceState(prisma, client.id, { t }),
   ]);
-  if (!loaded) notFound();
-
-  // Before the first reading there is no trend to show and nothing to suggest
-  // changing: the suggestion would rest on a handful of responses, which is
-  // the conclusion the shared card exists to withhold. Changes the business
-  // has already recorded are facts, not a reading, so they stay.
-  const view = readiness.ready ? loaded : { ...loaded, suggested: null };
+  if (!view || !state) notFound();
+  // No gate in front of this page any more (evidence ladder pass, Oct 2026).
+  // A suggestion only ever exists for a complaint the engine stands behind —
+  // ten or more read — so below that there is none to withhold; the current
+  // picture and the direction's readiness are true from the first response.
 
   const s = shelvesFor(view, t);
   const changes = s.now.length + s.alsoNow.length + s.watching.length + s.checked.length + s.notDoing.length;
@@ -711,19 +703,22 @@ export async function PortalImprovements({
       </h1>
       <p className="mt-1.5 text-[15px] leading-snug text-ink-700">{t('improvements.trends.intro')}</p>
 
-      {/* TRENDS — the page's first answer: what is changing. Before the first
-          reading, the shared card says why there is no answer yet. */}
-      {!readiness.ready ? (
-        <InsightsBuilding readiness={readiness} basePath={basePath} className="mt-6" />
-      ) : view.trends.comparable ? (
-        <TrendsBoard trends={view.trends} basePath={basePath} t={t} />
-      ) : (
-        // Enough to read, nothing to compare yet. Two separate things, said
-        // separately: what customers are saying NOW — which needs no check-in
-        // — and then why there is no trend, with the counts behind it.
+      {/* TRENDS — the page's first answer: what is changing, once two
+          comparable periods exist. Until then, two separate things, said
+          separately: what customers are saying NOW — which needs no
+          comparison — and what the direction waits for, which Headway is
+          collecting by itself. Current state is never mistaken for a trend,
+          and "no trend yet" is never mistaken for "nothing to say". */}
+      {view.trends.comparable ? (
         <>
-          <CurrentPatterns current={view.current} basePath={basePath} t={t} />
-          <TrendsNotReady readiness={view.trendReadiness} className="mt-8" />
+          <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-ink-600">{state.direction.body}</p>
+          <TrendsBoard trends={view.trends} basePath={basePath} t={t} />
+          <CurrentPicture state={state} basePath={basePath} evidence={evidence} t={t} />
+        </>
+      ) : (
+        <>
+          <CurrentPicture state={state} basePath={basePath} evidence={evidence} t={t} />
+          <DirectionPanel direction={state.direction} basePath={basePath} className="mt-8" />
         </>
       )}
 

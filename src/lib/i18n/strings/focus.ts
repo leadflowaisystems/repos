@@ -384,6 +384,11 @@ export const focus = {
     hi: 'किसी बात पर आपका ध्यान ज़रूरी नहीं है।',
     mr: 'कशाकडेही तुमचं लक्ष देण्याची गरज नाही.',
   },
+  'focus.pulse.attention.early': {
+    en: 'Too early to call anything a pattern. Headway is watching.',
+    hi: 'अभी किसी बात को पैटर्न कहना जल्दबाज़ी होगी। Headway नज़र रख रहा है।',
+    mr: 'अजून कोणत्याही गोष्टीला पॅटर्न म्हणणं घाईचं ठरेल. Headway लक्ष ठेवत आहे.',
+  },
   'focus.pulse.attention.one': {
     en: '{word} thing needs your attention.',
     hi: '{word} बात पर आपका ध्यान चाहिए।',
@@ -420,9 +425,9 @@ export const focus = {
     mr: '{word} गोष्टी तशाच आहेत.',
   },
   'focus.pulse.secondCheckin': {
-    en: 'A second check-in will show what is holding steady.',
-    hi: 'दूसरे चेक-इन से पता चलेगा कि क्या जस का तस है।',
-    mr: 'दुसऱ्या चेक-इननंतर काय तसंच आहे ते कळेल.',
+    en: 'Once Headway has two comparable sets of feedback, it will show what is holding steady.',
+    hi: 'Headway के पास फ़ीडबैक की दो तुलना लायक़ अवधियाँ होते ही वह दिखाएगा कि क्या जस का तस है।',
+    mr: 'Headway कडे तुलना करता येतील असे फीडबॅकचे दोन कालावधी झाले की काय तसंच आहे ते ते दाखवेल.',
   },
 
   // -------------------------------------------------------------------------

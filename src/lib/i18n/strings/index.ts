@@ -18,10 +18,10 @@ import { focus } from './focus';
 import { home } from './home';
 import { improvements } from './improvements';
 import { kit } from './kit';
+import { ladder } from './ladder';
 import { lifecycle } from './lifecycle';
 import { nav } from './nav';
 import { pulse } from './pulse';
-import { readiness } from './readiness';
 import { review } from './review';
 import { team } from './team';
 
@@ -53,7 +53,6 @@ export const MESSAGES = {
   ...checkin,
   ...pulse,
   ...review,
-  ...readiness,
   ...team,
   ...kit,
   ...account,
@@ -70,6 +69,7 @@ export const MESSAGES = {
   ...intelligence,
   ...period,
   ...evidence,
+  ...ladder,
   ...pack,
 };
 

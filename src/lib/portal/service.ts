@@ -10,14 +10,18 @@ import {
   listClientFeedback,
 } from '@/lib/feedback/service';
 import { getAnalysisCoverage } from '@/lib/feedback/analysis';
-import { listSnapshots, loadHealthSnapshots } from '@/lib/snapshots/service';
+import {
+  listComparisonCheckins,
+  loadComparisonPeriods,
+  loadHealthSnapshots,
+  type SnapshotListRow,
+} from '@/lib/snapshots/service';
 import { getContextSet } from '@/lib/context/service';
 import { analysedRows, loadFeedbackLedger } from '@/lib/feedback/ledger';
 import { oncePerRequest } from '@/lib/request-cache';
 import { buildPortalView, type PortalInput, type PortalView } from './view';
 import { EMPTY_EVIDENCE, buildEvidenceIndex, type EvidenceIndex } from './evidence';
 import { buildFreshFeed, type FreshFeed } from './fresh';
-import { readinessOf, usableResponses, type Readiness } from './readiness';
 import {
   buildAnalysisView,
   buildCheckinView,
@@ -32,6 +36,8 @@ import {
   type ReviewsView,
 } from './pages';
 import type { PortalTranslator } from '@/lib/i18n/translator';
+import { buildEvidenceState, pileFrom, type EvidenceState } from './ladder';
+import { buildTrendReadiness } from './trends';
 
 /**
  * CLIENT WORKSPACE SERVICE (M12).
@@ -75,7 +81,11 @@ function findClient(db: PrismaClient, clientId: string): Promise<ClientRow | nul
 /** The same lookup, for the responsibility layer (M15), which rests on this core. */
 export const findPortalClient = findClient;
 
-export type Core = PortalInput & { checkins: Awaited<ReturnType<typeof listSnapshots>> };
+/**
+ * Every check-in the owner's pages compare between: the operator's and the
+ * automatic ones (see `snapshots/periods.ts`), newest first.
+ */
+export type Core = PortalInput & { checkins: SnapshotListRow[] };
 
 /**
  * The inputs every intelligence-backed page shares. One load, reused —
@@ -110,19 +120,22 @@ async function loadCoreUncached(
   now: Date,
   t?: PortalTranslator,
 ): Promise<Core> {
-  const [context, stored, actions, checkins, ownerContext] = await Promise.all([
+  const [context, stored, periods, actions, checkins, ownerContext] = await Promise.all([
     loadIntelligence(db, client, now, t),
     loadHealthSnapshots(db, client.id),
+    loadComparisonPeriods(db, client.id),
     listActionsWithProgress(db, client.id),
-    listSnapshots(db, client.id),
+    listComparisonCheckins(db, client.id),
     getContextSet(db, client.id),
   ]);
+  // The card is the operator's listing observation; the comparisons are every
+  // check-in, automatic ones included (evidence ladder pass, Oct 2026).
   const card = computeHealthCard({ pack: context.pack, snapshots: stored, now, t });
   return {
     intelligence: context.intelligence,
     card,
     actions,
-    snapshots: stored,
+    snapshots: periods,
     pack: context.pack,
     themes: context.themes,
     context: ownerContext,
@@ -333,11 +346,43 @@ export async function getPortalClient(
 }
 
 /**
- * Whether this business has enough feedback for its pages to show a reading
- * at all — the one answer every portal page asks before drawing one. See
- * `./readiness`. Counted off the same request-memoised ledger the page has
- * already loaded, so it costs no query of its own.
+ * THE EVIDENCE STATE — what Headway knows right now, on every page (evidence
+ * ladder pass, Oct 2026). See `./ladder`.
+ *
+ * Home, Feedback, Customers, Trends, Check-in and the period reports all ask
+ * this one question, so none of them decides its own readiness. Built from the
+ * core and the ledger every page already loads — both request-memoised — so it
+ * costs no query of its own, and memoised itself per business and language.
  */
-export async function getReadiness(db: PrismaClient, clientId: string): Promise<Readiness> {
-  return readinessOf(usableResponses(await getAnalysisCoverage(db, clientId)));
+export async function getEvidenceState(
+  db: PrismaClient,
+  clientId: string,
+  options: { now?: Date; t?: PortalTranslator } = {},
+): Promise<EvidenceState | null> {
+  const client = await findClient(db, clientId);
+  if (!client) return null;
+  return oncePerRequest(`evidence-state:${client.id}:${options.t?.locale ?? 'en'}`, async () => {
+    const [core, ledger] = await Promise.all([
+      loadCore(db, client, options.now ?? new Date(), options.t),
+      loadFeedbackLedger(db, client.id),
+    ]);
+    return evidenceStateFrom(core, ledger, options.t);
+  });
 }
+
+/** The same state, from inputs already in hand. Pure, for tests and scripts. */
+export function evidenceStateFrom(
+  core: PortalInput,
+  ledger: Parameters<typeof pileFrom>[0],
+  t?: PortalTranslator,
+): EvidenceState {
+  return buildEvidenceState({
+    view: buildPortalView(core),
+    themes: core.themes,
+    pile: pileFrom(ledger),
+    trendReadiness: buildTrendReadiness(core),
+    pack: core.pack,
+    t,
+  });
+}
+

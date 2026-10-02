@@ -1,6 +1,7 @@
 import { MIN_PERIOD_FEEDBACK_TO_COMPARE } from '@/lib/intelligence/engine';
 import { MIN_FEEDBACK_TO_MEASURE } from '@/lib/improve/measure';
 import { formatDate } from '@/lib/format';
+import { AUTO_PERIOD_MIN_DAYS, AUTO_PERIOD_MIN_RESPONSES, isAutomaticPeriod } from '@/lib/snapshots/periods';
 import type { PortalInput, PortalSignal, PortalView } from './view';
 
 /**
@@ -146,12 +147,15 @@ export type TrendReadiness = {
   state: TrendReadinessState;
   /** Responses Headway has read so far. */
   read: number;
-  /** How many check-ins are on record. */
+  /**
+   * How many check-ins are on record — the operator's and the automatic ones
+   * Headway draws itself (`snapshots/periods.ts`).
+   */
   checkins: number;
-  /** The most recent check-in, and how many responses it holds. */
-  latest: { label: string; held: number } | null;
+  /** The most recent check-in, how many responses it holds, and when it closed. */
+  latest: { label: string; held: number; at: Date; automatic: boolean } | null;
   /** The one before it. */
-  previous: { label: string; held: number } | null;
+  previous: { label: string; held: number; at: Date; automatic: boolean } | null;
   /**
    * Responses that arrived after the latest check-in — or every response,
    * when there is no check-in yet. They belong to the next one.
@@ -163,13 +167,24 @@ export type TrendReadiness = {
   worthAt: number;
   /** True once enough has arrived since the latest check-in for another. */
   nextIsDue: boolean;
+  /** An automatic check-in closes at this many read responses… */
+  periodMinResponses: number;
+  /** …spanning at least this many days. */
+  periodMinDays: number;
 };
 
 export function buildTrendReadiness(input: PortalInput): TrendReadiness {
   const intel = input.intelligence;
   const ordered = [...input.snapshots].sort((a, b) => b.capturedAt.getTime() - a.capturedAt.getTime());
   const side = (s: (typeof ordered)[number] | undefined) =>
-    s ? { label: s.label ?? formatDate(s.capturedAt), held: s.feedback.length } : null;
+    s
+      ? {
+          label: s.label ?? formatDate(s.capturedAt),
+          held: s.feedback.length,
+          at: s.capturedAt,
+          automatic: isAutomaticPeriod(s),
+        }
+      : null;
   const latest = side(ordered[0]);
   const previous = side(ordered[1]);
 
@@ -196,5 +211,7 @@ export function buildTrendReadiness(input: PortalInput): TrendReadiness {
     needPerSide: MIN_PERIOD_FEEDBACK_TO_COMPARE,
     worthAt: MIN_FEEDBACK_TO_MEASURE,
     nextIsDue: since >= MIN_FEEDBACK_TO_MEASURE,
+    periodMinResponses: AUTO_PERIOD_MIN_RESPONSES,
+    periodMinDays: AUTO_PERIOD_MIN_DAYS,
   };
 }

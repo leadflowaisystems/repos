@@ -150,14 +150,14 @@ export const intelligence = {
   // The two points being compared
   // -------------------------------------------------------------------------
   'intelligence.window.single_checkin': {
-    en: 'There is only one check-in so far, so there is nothing to compare against yet.',
-    hi: 'अभी तक सिर्फ़ एक चेक-इन हुआ है, इसलिए तुलना करने के लिए अभी कुछ नहीं है।',
-    mr: 'आतापर्यंत फक्त एकच चेक-इन झालं आहे, त्यामुळे तुलना करण्यासाठी अजून काहीच नाही.',
+    en: 'Headway has one comparable set of feedback so far, the record of where things stood, so there is nothing to compare it with yet.',
+    hi: 'Headway के पास अभी तक फ़ीडबैक की एक ही तुलना लायक़ अवधि है — तुलना का आधार — इसलिए अभी उससे तुलना करने के लिए कुछ नहीं है।',
+    mr: 'Headway कडे आतापर्यंत फीडबॅकचा एकच तुलनायोग्य कालावधी आहे — तुलनेचा आधार — त्यामुळे त्याच्याशी तुलना करण्यासाठी अजून काही नाही.',
   },
   'intelligence.window.both_empty': {
-    en: 'Your check-ins of {previous} and {current} have no feedback between them to compare. Everything read so far came in after them. Your next check-in will include it.',
-    hi: '{previous} और {current} के आपके चेक-इन के बीच तुलना करने लायक कोई फ़ीडबैक नहीं है। अब तक जो कुछ पढ़ा गया, वह इनके बाद आया है। आपके अगले चेक-इन में वह शामिल होगा।',
-    mr: '{previous} आणि {current} या तुमच्या चेक-इनदरम्यान तुलना करण्यासारखा कोणताही फीडबॅक नाही. आतापर्यंत जे वाचलं गेलं ते यांच्या नंतर आलं आहे. तुमच्या पुढच्या चेक-इनमध्ये ते समाविष्ट असेल.',
+    en: 'The check-ins of {previous} and {current} hold no feedback to compare. Everything read so far came in after them, and Headway’s next comparison will include it.',
+    hi: '{previous} और {current} के चेक-इन में तुलना करने लायक़ कोई फ़ीडबैक नहीं है। अब तक जो कुछ पढ़ा गया, वह इनके बाद आया है, और Headway की अगली तुलना में वह शामिल होगा।',
+    mr: '{previous} आणि {current} च्या चेक-इनमध्ये तुलना करण्यासारखा फीडबॅक नाही. आतापर्यंत जे वाचलं गेलं ते यांच्या नंतर आलं आहे, आणि Headway च्या पुढच्या तुलनेत ते समाविष्ट असेल.',
   },
   'intelligence.window.too_thin': {
     en: 'There is not enough feedback between your check-ins to compare topic by topic: {previousCount} at {previous} and {currentCount} at {current}. Headway needs {needed} on each side.',
@@ -430,9 +430,9 @@ export const intelligence = {
   // Which way things are going overall
   // -------------------------------------------------------------------------
   'intelligence.trend.single_checkin': {
-    en: 'There is only one check-in so far, so Headway cannot say which way things are going.',
-    hi: 'अभी तक सिर्फ़ एक चेक-इन हुआ है, इसलिए Headway यह नहीं कह सकता कि चीज़ें किस दिशा में जा रही हैं।',
-    mr: 'आतापर्यंत फक्त एकच चेक-इन झालं आहे, त्यामुळे गोष्टी कोणत्या दिशेने चालल्या आहेत हे Headway सांगू शकत नाही.',
+    en: 'Headway has one comparable set of feedback so far, so it cannot yet say which way things are going.',
+    hi: 'Headway के पास अभी तक फ़ीडबैक की एक ही तुलना लायक़ अवधि है, इसलिए वह अभी नहीं कह सकता कि चीज़ें किस दिशा में जा रही हैं।',
+    mr: 'Headway कडे आतापर्यंत फीडबॅकचा एकच तुलनायोग्य कालावधी आहे, त्यामुळे गोष्टी कोणत्या दिशेने चालल्या आहेत हे ते अजून सांगू शकत नाही.',
   },
   'intelligence.trend.improving': {
     en: 'Things are moving the right way.',
@@ -922,14 +922,14 @@ export const intelligence = {
 
   // --- the pulse: one check-in against the one before it --------------------
   'intelligence.health.pulse.no_checkin': {
-    en: 'No check-in recorded yet. Once two are on record, Headway can say which way things are moving.',
-    hi: 'अभी तक कोई चेक-इन दर्ज नहीं हुआ। जब दो दर्ज हो जाएँगे, तब Headway बता सकेगा कि चीज़ें किस दिशा में जा रही हैं।',
-    mr: 'अजून कोणतंही चेक-इन नोंदवलेलं नाही. दोन नोंदवली गेली की गोष्टी कोणत्या दिशेने चालल्या आहेत हे Headway सांगू शकेल.',
+    en: 'Headway is still building the first comparable set of feedback. Once there are two, it can say which way things are moving.',
+    hi: 'Headway अभी फ़ीडबैक की पहली तुलना लायक़ अवधि बना रहा है। दो अवधियाँ होते ही वह बता सकेगा कि चीज़ें किस दिशा में जा रही हैं।',
+    mr: 'Headway अजून फीडबॅकचा पहिला तुलनायोग्य कालावधी तयार करत आहे. दोन कालावधी झाले की गोष्टी कोणत्या दिशेने चालल्या आहेत हे ते सांगू शकेल.',
   },
   'intelligence.health.pulse.one_checkin': {
-    en: 'Only one check-in so far. The next one will let Headway compare the two.',
-    hi: 'अभी तक सिर्फ़ एक चेक-इन। अगला चेक-इन होने पर Headway दोनों की तुलना कर सकेगा।',
-    mr: 'आतापर्यंत फक्त एकच चेक-इन. पुढचं चेक-इन झाल्यावर Headway दोघांची तुलना करू शकेल.',
+    en: 'Headway has one comparable set of feedback so far. It collects the next one by itself, and then compares the two.',
+    hi: 'Headway के पास अभी तक फ़ीडबैक की एक तुलना लायक़ अवधि है। अगली अवधि वह अपने-आप जमा करता है, और फिर दोनों की तुलना करता है।',
+    mr: 'Headway कडे आतापर्यंत फीडबॅकचा एक तुलनायोग्य कालावधी आहे. पुढचा कालावधी ते आपोआप गोळा करतं, आणि मग दोन्हींची तुलना करतं.',
   },
   /** Both labels are dates or the operator's own check-in label: data. */
   'intelligence.health.pulse.comparing': {

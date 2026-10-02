@@ -2,7 +2,7 @@ import { Link } from '@/components/portal/link';
 import clsx from 'clsx';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
-import { getEvidenceIndex, getReviewsView } from '@/lib/portal/service';
+import { getEvidenceIndex, getEvidenceState, getReviewsView } from '@/lib/portal/service';
 import { quotesFor, type Quote } from '@/lib/portal/evidence';
 import type { ReviewFilters, ReviewsView } from '@/lib/portal/pages';
 import { getTranslator } from '@/lib/i18n/request';
@@ -25,6 +25,8 @@ import { LiveRefresh } from '@/components/workspace/live-refresh';
 import { UpLink } from '@/components/portal/history';
 import { movesFor } from '@/lib/improve/owner-moves';
 import { getResponsibility } from '@/lib/responsibility/service';
+import { LevelChip, PulseLine } from '@/components/workspace/evidence-ladder';
+import type { EvidenceState, Finding } from '@/lib/portal/ladder';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Feedback' };
@@ -213,7 +215,13 @@ export function SayingRows({
   t,
   basePath,
 }: {
-  signals: ReviewsView['signals'];
+  /**
+   * One row per topic. `finding`, when present, is the topic's rung on the
+   * evidence ladder — "Mentioned once", "Early signal", "Emerging pattern" —
+   * shown beside the name, so a topic one customer raised is never read as a
+   * pattern and a pattern is never read as a one-off.
+   */
+  signals: Array<ReviewsView['signals'][number] & { finding?: Finding }>;
   base: string;
   /** Whether one of these rows is currently the filter. */
   active: boolean;
@@ -269,11 +277,12 @@ export function SayingRows({
             />
             <span
               className={clsx(
-                'min-w-0 flex-1 text-[16px] leading-snug font-medium',
+                'flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 text-[16px] leading-snug font-medium',
                 s.active ? 'text-white' : 'text-ink-900',
               )}
             >
-              {s.label}
+              <span>{s.label}</span>
+              {s.finding && !s.active ? <LevelChip finding={s.finding} /> : null}
             </span>
             {/* Which way it moved since the last check-in: the arrow is the
                 count's own direction, the colour whether that is good news
@@ -505,6 +514,38 @@ export async function TopicStory({
   );
 }
 
+/**
+ * The rows under "What customers are saying": EVERY topic a read response
+ * mentioned, each on its rung (evidence ladder pass, Oct 2026). This list used
+ * to show only topics raised three times or more, so at five responses it was
+ * empty while Home listed what those five had said. Complaints first, then
+ * praise; the trend arrow only where the engine read a movement, exactly as
+ * before. Without an evidence state (a business that vanished mid-request),
+ * the page's own pattern rows stand.
+ */
+function sayingRowsFrom(
+  state: EvidenceState | null,
+  view: ReviewsView,
+  theme: string | null,
+): Array<ReviewsView['signals'][number] & { finding?: Finding }> {
+  if (!state) return view.signals;
+  const arrow = (f: Finding): ReviewsView['signals'][number]['trend'] => {
+    if (!f.movement) return null;
+    if (f.movement === 'STABLE') return { mark: '→', tone: 'neutral' };
+    const rose = f.kind === 'ISSUE' ? f.movement === 'WORSENING' : f.movement === 'IMPROVING';
+    return { mark: rose ? '↑' : '↓', tone: f.movement === 'IMPROVING' ? 'good' : 'bad' };
+  };
+  return [...state.concerns, ...state.likes].slice(0, 10).map((f) => ({
+    key: f.key,
+    label: f.label,
+    kind: f.kind,
+    count: f.mentions,
+    active: theme === f.key,
+    trend: arrow(f),
+    finding: f,
+  }));
+}
+
 export async function PortalReviews({
   clientId,
   basePath,
@@ -525,11 +566,15 @@ export async function PortalReviews({
   // is where the sentences are written. Resolving it alongside would have
   // raced the thing it is needed for.
   const t = await getTranslator();
-  const [view, evidence] = await Promise.all([
+  const [view, evidence, state] = await Promise.all([
     getReviewsView(prisma, client.id, filters, { page, t }),
     getEvidenceIndex(prisma, client.id),
+    // The one evidence state every page reads (src/lib/portal/ladder.ts), so
+    // this page's counts, rungs and pulse are Home's and Trends'.
+    getEvidenceState(prisma, client.id, { t }),
   ]);
   if (!view) notFound();
+  const rows = sayingRowsFrom(state, view, filters.theme);
 
   // The whole reading of the selected theme, loaded ONLY when one is selected.
   // It is what turns this page from evidence into a decision, and it costs a
@@ -619,12 +664,16 @@ export async function PortalReviews({
               complaints before praise, each with which way it moved. What used
               to lead here — the funnel of Headway's own work — is under "How
               Headway read these", with the rest of the method. */}
-          {view.signals.length > 0 ? (
+          {/* HOW MUCH, AND HOW IT SPLIT — with its denominators: the same
+              pulse Home's band shows, from the same evidence state. */}
+          {state && state.read > 0 ? <PulseLine state={state} className="mb-5" /> : null}
+
+          {rows.length > 0 ? (
             <section className="mb-6" aria-label={t('feedback.saying.heading')}>
               <SayingRows
-                signals={view.signals}
+                signals={rows}
                 base={base}
-                active={activeSignal !== null}
+                active={rows.some((r) => r.active)}
                 t={t}
                 basePath={basePath}
               />
@@ -644,14 +693,23 @@ export async function PortalReviews({
             ...(view.failed > 0
               ? [{ label: t('feedback.status.failed'), value: view.failed, tone: 'bad' as const }]
               : []),
-            ...(view.averageRating !== null
+            // The average over the READ responses, beside "Read" — the same
+            // number, over the same pile, as Home's pulse.
+            ...(state && state.pulse.average !== null
               ? [
                   {
-                    label: t.plural('feedback.status.average', view.withRating),
-                    value: `${view.averageRating.toFixed(1)}★`,
+                    label: t.plural('feedback.status.average', state.pulse.rated),
+                    value: `${state.pulse.average.toFixed(1)}★`,
                   },
                 ]
-              : []),
+              : !state && view.averageRating !== null
+                ? [
+                    {
+                      label: t.plural('feedback.status.average', view.withRating),
+                      value: `${view.averageRating.toFixed(1)}★`,
+                    },
+                  ]
+                : []),
           ]}
         />
       ) : null}

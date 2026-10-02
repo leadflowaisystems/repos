@@ -234,18 +234,21 @@ A missed topic is preferred to a false one, by design.
 
 Every figure an owner sees is stated with its denominator ("18 of 87").
 
-**The evidence ladder.**
+**The evidence ladder** (`src/lib/portal/ladder.ts`, `LADDER_VERSION = 1`, Oct 2026). More evidence → stronger claims. Every topic any read response mentioned stands on exactly one rung, and is worded for that rung and no higher. The top two rungs ARE the engine's confidence rule; the two below it are what the owner may see before anything is named.
 
-| Level | Rule |
-|---|---|
-| per-response reading | every response, as soon as it is read |
-| emerging signal | 3+ responses mention it, fewer than 10 read: an early sign |
-| recurring pattern | 3+ responses mention it, 10+ read (MODERATE) |
-| strong pattern | 6+ responses mention it, 25+ read (STRONG) |
-| actionable issue | a complaint pattern at MODERATE or STRONG, chosen as the lead |
-| trend | two check-ins with 10+ read in each, and a share move the comparison rule accepts |
+| Rung (`levelOf`) | Rule | Owner wording | Action (`actionLevelOf`) |
+|---|---|---|---|
+| OBSERVATION | 1 response mentions it | "One customer mentioned this. Headway is watching to see whether others mention it too." | complaint: "Keep an eye on this." · praise: none |
+| EARLY_SIGNAL | 2+ mentions, or 3+ with fewer than 10 read (engine EARLY) | "2 of 3 customers mentioned this. Still early, so Headway is watching it rather than calling it a pattern." | complaint: "Keep an eye on this." · praise: none |
+| EMERGING_PATTERN | 3+ mentions **and** 10+ read (engine MODERATE) | "Emerging pattern: 3 of 14 customers mentioned this (21%)." | complaint: **Worth checking** + the pack's suggestion · praise: "Keep doing this." |
+| STRONG_PATTERN | 6+ mentions **and** 25+ read (engine STRONG) | "Strong recurring pattern: 7 of 30 customers mentioned this (23%)." | complaint: **What to do** + the pack's suggestion · praise: "Keep doing this." |
+| trend | two comparable periods with 10+ read in each, and a share move the comparison rule accepts (I) | Trends shelves, both shares and both totals | — |
 
-Pinned in `tests/m47.evidence-levels.test.ts`.
+A share is worded only from EMERGING up: a percentage of five is a number that looks like a finding and is not one. The suggestion is the pack's own, with the owner's constraints applied; with none, nothing generic is invented. Nothing reaches a rung by one response.
+
+The business as a whole sits at one **stage** (`stageOf`), by read responses: NONE (0) · PULSE (1–4) · FIRST_READ (5–9) · EMERGING_PICTURE (10–24) · STRONG_PATTERNS (25+). Direction is a separate readiness (I1). The stage, the rungs, the pulse and the direction are ONE object, `EvidenceState`, built once per request by `getEvidenceState` and read by Home, Feedback, Customers, Trends, Check-in and the period reports — no page decides its own readiness.
+
+Pinned in `tests/m47.evidence-levels.test.ts`, `src/lib/portal/ladder.test.ts` and `tests/m50.evidence-ladder.test.ts`.
 
 **The unit is the response, not the customer.** Customers are anonymous: no identity, device or contact is kept. "Minimum distinct customers" therefore cannot be measured. The guards that exist are:
 - a response counts at most once per topic, however many times it names it;
@@ -259,7 +262,12 @@ Reviews pasted into a check-in are read at creation by the same reader (`normali
 
 ## I. Trends: comparing two check-ins
 
-A **check-in** is a Snapshot. **Only an operator creates one**, from the console (`/clients/[id]/snapshots/new`). Each check-in holds the feedback that arrived after the previous check-in, up to its own date. Feedback after the latest check-in belongs to no check-in yet.
+A **check-in** is a comparison point. There are two kinds, and they are boundaries of the same kind:
+
+- **Operator check-ins** — Snapshots an operator records from the console (`/clients/[id]/snapshots/new`), with what they observed on the public listing. Each holds the feedback that arrived after the previous one, up to its own date.
+- **Automatic check-ins** (Oct 2026, `src/lib/snapshots/periods.ts`) — drawn by Headway from the read feedback that arrived after the latest operator check-in (or all of it, when there is none). Walking it in arrival order, a period closes at the first response that gives it **both** at least 10 read responses (`AUTO_PERIOD_MIN_RESPONSES = MIN_FEEDBACK_FOR_TREND_CLAIMS`) **and** at least 7 days from its first response (`AUTO_PERIOD_MIN_DAYS`); responses sharing the closing moment close with it. They are **derived, never stored** — recomputed from the rows every time, so they are retroactive, race-free and need no migration. They observe no listing, so the **health card keeps reading operator check-ins only**; pulse, trends, recurrence and the direction read both (`loadComparisonPeriods`).
+
+Feedback after the latest check-in of either kind belongs to no check-in yet. The owner is never asked to record, run or wait on one.
 
 A topic's trend compares its **share** of each check-in's feedback, never the raw count. `src/lib/health/compare.ts` (`compareShares`), the one rule every comparison uses. The first rule that applies is the answer:
 
@@ -301,16 +309,17 @@ The same rule decides:
 
 ### I1. When trends appear
 
-A Trends page never shows a blank. Until a comparison exists it shows *why* (`buildTrendReadiness`):
+A Trends page never shows a blank, and never a dead end. It always opens with **what customers are saying now** — the evidence state, every topic on its rung — and keeps that apart from **which way it is moving**. Until a comparison exists the direction panel (`directionOf`, read off `buildTrendReadiness`) says where it stands, as what Headway is doing by itself:
 
-| State | Condition | What the owner sees |
+| Direction | Condition | What the owner reads |
 |---|---|---|
-| NO_CHECKIN | no check-in yet | current patterns; "no check-in has been recorded yet" |
-| ONE_CHECKIN | one check-in | current patterns; how many responses since, of the 10 the next comparison needs |
-| TOO_THIN | two check-ins, one under 10 | current patterns; both totals and the floor |
-| READY | two check-ins of 10+ each | the trend shelves |
+| NOT_STARTED | nothing read | Headway builds a starting point to compare against by itself |
+| BUILDING_BASELINE | read, no check-in yet | "Headway has started building a starting point from your customers' feedback. When there is enough comparable feedback, Headway will show whether things are improving, worsening, or staying about the same." |
+| BASELINE_SET | one check-in | its size and date, and that Headway needs another comparable set |
+| TOO_THIN | two, one under 10 (an operator check-in) | both totals; Headway compares again by itself |
+| READY | two of 10+ each | the trend shelves |
 
-No owner-facing sentence tells the owner to create or run a check-in; check-ins are the operator's.
+Every state but READY adds "Headway keeps collecting and analysing feedback automatically. You don't need to do anything." The method — 10 read responses over 7 days, shares not counts, a move too large to be chance — is one tap away. No countdown, no progress bar, and no owner-facing sentence tells the owner to create, record or wait on a check-in.
 
 **Recurrence** ("keeps coming back") is a count claim, not a share comparison. A topic named (3+ mentions) at two or more check-ins, each holding at least 3 entries.
 
@@ -320,15 +329,19 @@ No owner-facing sentence tells the owner to create or run a check-in; check-ins 
 
 ## J. What each stage of an account shows
 
-| Responses read | Home | Customers | Trends |
-|---|---|---|---|
-| 0 | "waiting for your first feedback" | — | not ready |
-| 1–4 | insights building, *n of 5*; responses readable in full | building | building |
-| 5–9 | **first reading**, marked early; topics at 3+ mentions listed as *early signs*; nothing led with | early signs under "not yet clear" | not ready + current early signs |
-| 10–24 | patterns at MODERATE; one problem led with, if any | patterns with denominators | ready only with two check-ins of 10+ |
-| 25+ | STRONG where ≥ 6 mentions | | |
+A ladder, not a gate (Oct 2026). Every page shows the strongest truthful thing the evidence supports at every count; there is no countdown card and no "n more to go" anywhere.
 
-Five responses unlock a first reading, never "patterns and trends". The readiness copy and the marketing site both say so; the site quotes `firstReadingAt = 5`, `namedAt = 3` and `compareAt = 10`, held equal to the code by `tests/m26.marketing-site.test.ts`.
+| Read | Stage | Home | Feedback | Customers | Trends |
+|---|---|---|---|---|---|
+| 0 | NONE | "Ready for your first customer" / "Reading your first response"; the kit; the newest responses | the list | the same reading | the same reading; direction NOT_STARTED |
+| 1 | PULSE | "Your first customer has been heard": their rating, tone, what they praised and raised, line by line; the topic an observation | pulse; topics with rungs | reading + every topic | current picture + direction |
+| 2–4 | PULSE | what repeats is an early signal ("2 of 3 … still early"); "Nothing has repeated yet" when true | " | " | " |
+| 5–9 | FIRST_READ | "Your first customer read is ready": the pulse with its denominators ("Of 5 responses read · 4 star ratings · 4.8★ average"), what stands out, what customers seem to like, worth watching, not sure yet, what more feedback will show, what Headway is doing; nothing led with | " | " | " |
+| 10–24 | EMERGING_PICTURE | emerging patterns with count and share; a complaint pattern can lead ("Worth checking"); "nothing has repeated enough yet to call a recurring problem" when true; "Nothing needs your attention" only now | " | board + everything else on its rung | " |
+| 25+ | STRONG_PATTERNS | strong recurring patterns where earned ("What to do") | " | " | " |
+| any | — | — | — | — | trend shelves once two comparable periods exist (I1) |
+
+Below ten read, "Nothing needs your attention" is not said — it is a conclusion the evidence has not earned; the band says the stage instead ("First read · 5 responses read"). The site quotes `firstReadingAt = 5`, `namedAt = 3`, `patternReadAt = 10` and `compareAt = 10`, held equal to the code by `tests/m26.marketing-site.test.ts`.
 
 ## K. "Headway just read X"
 
@@ -338,9 +351,9 @@ The other states of the same line count something different, and name it differe
 
 ## L. When Headway says nothing
 
-- fewer than 5 responses: no reading
-- a topic under 3 mentions: listed on its entries only, never named as a pattern
-- under 10 read: every named topic is an early sign; no lead problem, no suggestion
+- nothing read: no reading — the page says how feedback arrives
+- a topic under 3 mentions: shown on its rung (observation or early signal), never named as a pattern, never given a suggestion
+- under 10 read: every repeated topic is an early signal; no lead problem, no suggestion, and no "nothing needs your attention"
 - a comparison with either side under 10, or under 3 mentions, or a move within chance: no direction
 - no rating, no measurable feedback between two check-ins: overall trend is "not enough to compare", **never "holding steady"**
 - a response whose words cannot be classified safely: "Not enough evidence to classify this safely." (G)
@@ -366,3 +379,9 @@ Deterministic: every count, share, threshold, confidence level, bucket, comparis
 | Rating × wording, every combination | `tests/m46.rating-matrix.test.ts` |
 | Every surface counts the topics each response shows | `tests/m46.semantic-consistency.test.ts` |
 | The evidence ladder and the live-line wording | `tests/m47.evidence-levels.test.ts` |
+| The ladder module: stages, rungs held to the engine, pulse arithmetic, direction, no countdown or chore in three languages, every page reads one state | `src/lib/portal/ladder.test.ts` |
+| The ladder at 0–100 responses × ten kinds of feedback, on every surface | `tests/m50.evidence-ladder.test.ts` |
+| The Crazy Cheesy first read (5 responses, 4 rated, 4.8), in memory and through the real feedback page | `tests/m50.crazy-cheesy.test.ts` |
+| Automatic check-ins: the rule, the required trend cases through them, operator check-ins untouched, on a real database | `tests/m50.automatic-periods.test.ts` |
+| One ladder, seven verticals: own topics and suggestions, no café words, real development-corpus text | `tests/m50.ladder-verticals.test.ts` |
+| The brief's twelve example sentences at every rung; customer words intact from storage to screen | `tests/m50.ladder-text.test.ts` |

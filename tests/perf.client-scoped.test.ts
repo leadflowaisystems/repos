@@ -18,6 +18,7 @@ import {
   getFreshFeed,
   getImprovementsView,
   getReviewsView,
+  getEvidenceState,
   loadCore,
 } from '@/lib/portal/service';
 import { getAnalysisCoverage } from '@/lib/feedback/analysis';
@@ -159,6 +160,9 @@ const PAGES: Record<string, (ctx: Ctx) => Promise<unknown>> = {
       getResponsibility(db, clientId, { t }),
       getEvidenceIndex(db, clientId),
       getAnalysisCoverage(db, clientId),
+      // The one evidence state every page reads (evidence ladder pass):
+      // built from the same memoised core and ledger, so it adds no scan.
+      getEvidenceState(db, clientId, { t }),
     ]);
     await getFreshFeed(db, clientId, { now: new Date() });
   },
@@ -180,6 +184,7 @@ const PAGES: Record<string, (ctx: Ctx) => Promise<unknown>> = {
       getAnalysisView(db, clientId, { t }),
       getResponsibility(db, clientId, { t }),
       getEvidenceIndex(db, clientId),
+      getEvidenceState(db, clientId, { t }),
     ]);
   },
   feedback: async ({ db, clientId, locale }) => {
@@ -187,6 +192,7 @@ const PAGES: Record<string, (ctx: Ctx) => Promise<unknown>> = {
     await Promise.all([
       getReviewsView(db, clientId, { q: '', stars: null, sentiment: null, theme: null, source: null, needs: null }, { page: 1, t }),
       getEvidenceIndex(db, clientId),
+      getEvidenceState(db, clientId, { t }),
     ]);
   },
   // Feedback with one topic selected (owner action-loop pass). The page then
@@ -205,12 +211,17 @@ const PAGES: Record<string, (ctx: Ctx) => Promise<unknown>> = {
         { page: 1, t },
       ),
       getEvidenceIndex(db, clientId),
+      getEvidenceState(db, clientId, { t }),
     ]);
     await getResponsibility(db, clientId, { t });
   },
   improvements: async ({ db, clientId, locale }) => {
     const t = translatorFor(locale);
-    await Promise.all([getImprovementsView(db, clientId, { t }), getEvidenceIndex(db, clientId)]);
+    await Promise.all([
+      getImprovementsView(db, clientId, { t }),
+      getEvidenceIndex(db, clientId),
+      getEvidenceState(db, clientId, { t }),
+    ]);
   },
   checkin: async ({ db, clientId, locale }) => {
     const t = translatorFor(locale);
@@ -218,6 +229,7 @@ const PAGES: Record<string, (ctx: Ctx) => Promise<unknown>> = {
       getCheckinView(db, clientId, { t }),
       getResponsibility(db, clientId, { t }),
       getEvidenceIndex(db, clientId),
+      getEvidenceState(db, clientId, { t }),
     ]);
   },
   account: async ({ db, clientId, locale }) => {

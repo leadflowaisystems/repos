@@ -58,7 +58,7 @@ describe('customers — why Headway is saying this', () => {
     const v = buildAnalysisView(input());
     expect(v.recurring).toEqual([]);
     expect(v.fresh).toEqual([]);
-    expect(v.recurrenceNote).toMatch(/No check-in has been recorded yet/);
+    expect(v.recurrenceNote).toMatch(/Headway has not closed its first comparable set of feedback yet/);
   });
 
   it('puts early themes under not-yet-clear with the no-action sentence', () => {
@@ -358,7 +358,7 @@ describe('check-in — what changed', () => {
   it('is named after the latest check-in and says what it compares', () => {
     const v = buildCheckinView({ ...input(), checkins: TWO });
     expect(v.title).toBe('May check-in');
-    expect(v.periodNote).toMatch(/^This compares your check-in on .* with your check-in on /);
+    expect(v.periodNote).toMatch(/^This compares the check-in on .* with the check-in on /);
     expect(v.periodNote).not.toContain('check-in of');
   });
 
@@ -391,7 +391,10 @@ describe('check-in — what changed', () => {
   it('does not invent movement without two check-ins', () => {
     const v = buildCheckinView({ ...input(), checkins: TWO.slice(0, 1) });
     expect(v.movementLine).toMatch(/two check-ins/);
-    expect(v.periodNote).toMatch(/A second check-in/);
+    // Headway collects the next comparable set itself (snapshots/periods.ts);
+    // the page says so, never that the owner owes a second check-in.
+    expect(v.periodNote).toMatch(/Headway collects the next comparable set by itself/);
+    expect(v.periodNote).not.toMatch(/second check-in/i);
     expect(v.unchangedNote).toBe('');
   });
 

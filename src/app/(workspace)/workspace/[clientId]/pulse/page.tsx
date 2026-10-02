@@ -5,7 +5,7 @@ import { PeriodReportView } from '@/components/workspace/period-report';
 import { requireOpenWorkspace } from '@/lib/lifecycle/access';
 import { getTranslator } from '@/lib/i18n/request';
 import { getWeeklyPulse } from '@/lib/reporting/service';
-import { getReadiness } from '@/lib/portal/service';
+import { getEvidenceState } from '@/lib/portal/service';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,11 +31,12 @@ export default async function WEEKPage({
   const { clientId } = await params;
   await requireOpenWorkspace(clientId);
 
-  const [report, readiness] = await Promise.all([
-    getWeeklyPulse(prisma, clientId, { t: await getTranslator() }),
-    getReadiness(prisma, clientId),
+  const t = await getTranslator();
+  const [report, state] = await Promise.all([
+    getWeeklyPulse(prisma, clientId, { t }),
+    getEvidenceState(prisma, clientId, { t }),
   ]);
   if (!report) notFound();
 
-  return <PeriodReportView report={report} basePath={`/workspace/${clientId}`} readiness={readiness} />;
+  return <PeriodReportView report={report} basePath={`/workspace/${clientId}`} state={state} />;
 }

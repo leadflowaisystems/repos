@@ -1,12 +1,12 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
-import { getAnalysisView, getEvidenceIndex, getReadiness } from '@/lib/portal/service';
+import { getAnalysisView, getEvidenceIndex, getEvidenceState } from '@/lib/portal/service';
 import { getResponsibility } from '@/lib/responsibility/service';
 import { getTranslator } from '@/lib/i18n/request';
-import { Callout, Limits, PageIntro, Quiet, Section, SoFar, ThemeRows, WorkList } from '@/components/portal/portal-ui';
+import { Callout, Limits, PageIntro, SoFar, ThemeRows, WorkList } from '@/components/portal/portal-ui';
 import { Reveal } from '@/components/portal/disclose';
 import { SignalBoard, type SignalGroup } from '@/components/workspace/signal-board';
-import { InsightsBuilding } from '@/components/workspace/insights-building';
+import { AllFindings, EvidenceReading } from '@/components/workspace/evidence-ladder';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Customers' };
@@ -52,24 +52,24 @@ export async function PortalAnalysis({
   // Resolved before the fetch, not after: the sentences these builders write
   // are generated during the fetch, so the language has to be in hand first.
   const t = await getTranslator();
-  const [view, bundle, evidence, search, readiness] = await Promise.all([
+  const [view, bundle, evidence, search, state] = await Promise.all([
     getAnalysisView(prisma, client.id, { t }),
     getResponsibility(prisma, client.id, { t }),
     getEvidenceIndex(prisma, client.id),
     searchParams ?? Promise.resolve({} as Search),
-    getReadiness(prisma, client.id),
+    getEvidenceState(prisma, client.id, { t }),
   ]);
-  if (!view || !bundle) notFound();
+  if (!view || !bundle || !state) notFound();
 
-  // Before the first reading this page has nothing honest to put on its
-  // board: no piles, no movement, no method, because there is not yet enough
-  // to read. The shared card says so — the same card Home shows — and the
-  // customers' own words are one tap away on Feedback.
-  if (!readiness.ready) {
+  // Nothing read yet: the same reading Home shows, which says how feedback
+  // arrives. From the first read response this page has something true to
+  // say — there is no countdown gate in front of it any more (evidence
+  // ladder pass, Oct 2026).
+  if (state.stage === 'NONE') {
     return (
       <div className="max-w-3xl">
         <PageIntro eyebrow={t('customers.page.eyebrow')} title={t('customers.page.title')} />
-        <InsightsBuilding readiness={readiness} basePath={basePath} />
+        <EvidenceReading state={state} basePath={basePath} />
       </div>
     );
   }
@@ -107,6 +107,9 @@ export async function PortalAnalysis({
     },
   ];
   const named = groups.some((g) => g.signals.length > 0);
+  // Every topic the board already shows in full is left out of the list of
+  // everything else mentioned, so no topic is on this page twice.
+  const onBoard = new Set(groups.flatMap((g) => g.signals.map((s) => s.themeKey)));
 
   const changing = view.better.length + view.worse.length > 0;
   const compared = changing || view.steadyLine !== null;
@@ -145,15 +148,20 @@ export async function PortalAnalysis({
         </div>
       ) : null}
 
-      {named ? (
-        <SignalBoard groups={groups} evidence={evidence} basePath={basePath} open={open} />
-      ) : view.soFar.read > 0 || view.soFar.waiting > 0 ? (
-        <Section eyebrow={t('customers.page.everything')}>
-          <SoFar soFar={view.soFar} basePath={basePath} explain />
-        </Section>
-      ) : (
-        <Quiet>{t('customers.page.empty')}</Quiet>
-      )}
+      {/* WHAT HEADWAY KNOWS NOW — the stage, what stands out, what is not
+          yet sure and what more feedback will show, from the one evidence
+          state Home and Trends read. The topics themselves follow below, each
+          on its rung, so the summary does not list them twice. */}
+      <EvidenceReading state={state} basePath={basePath} evidence={evidence} lists={false} className="mb-8" />
+
+      {named ? <SignalBoard groups={groups} evidence={evidence} basePath={basePath} open={open} /> : null}
+      <AllFindings
+        state={state}
+        basePath={basePath}
+        evidence={evidence}
+        exclude={onBoard}
+        className={named ? 'mt-8' : undefined}
+      />
 
       {view.early.length > 0 ? (
         <p className="mt-3 text-[13px] leading-relaxed text-ink-500">{view.noAction}</p>

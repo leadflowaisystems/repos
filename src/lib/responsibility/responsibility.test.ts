@@ -502,28 +502,43 @@ describe('continuity', () => {
     expect(quiet.did).not.toContain('Found no new problem big enough to act on.');
   });
 
-  it('says when the next check would show something, as a condition, never a countdown', () => {
-    expect(build().nextUsefulCheck).toBe('A first check-in now would give Headway something to compare your next one against.');
+  it('says where the comparisons stand, as what Headway does by itself — never a countdown, never a chore', () => {
+    // Evidence ladder pass (Oct 2026): comparisons are drawn by Headway from
+    // the feedback (snapshots/periods.ts). Every line used to be a chore for
+    // the owner — "A first check-in now would…", "Worth a check-in now".
+    expect(build().nextUsefulCheck).toBe(
+      'Headway has started recording where things stand, to compare against later. When there is enough comparable feedback, it will show which way things are moving.',
+    );
     const one = build({ checkins: [checkin('s1', new Date(2026, 2, 1))], feedbackSince: { total: 4, read: 4, unread: 0, direct: 0 } });
     expect(one.nextUsefulCheck).toBe(
-      'A second check-in will show what changed. Headway needs 10 new feedback entries to compare. 4 have come in so far.',
+      'Headway has recorded where things stood, and is collecting the next comparable set by itself: 4 responses read since 01 Mar 2026.',
     );
-    const enough = build({ checkins: [checkin('s1', new Date(2026, 2, 1))], feedbackSince: { total: 12, read: 12, unread: 0, direct: 0 } });
-    expect(enough.nextUsefulCheck).toBe('A second check-in now would show what changed. 12 feedback entries have come in since the first.');
     const two = build({
       checkins: [checkin('s2', new Date(2026, 4, 20)), checkin('s1', new Date(2026, 2, 1))],
       feedbackSince: { total: 3, read: 3, unread: 0, direct: 0 },
     });
     expect(two.nextUsefulCheck).toBe(
-      'Not yet. 3 feedback entries have come in since your check-in on 20 May 2026. Headway will tell you when another check-in would show something new.',
+      'Headway compares each new set of feedback with the one before, by itself. 3 responses read since 20 May 2026 are part of the next comparison.',
     );
-    const stale = build({
+    const quiet = build({
       checkins: [checkin('s2', new Date(2026, 1, 1)), checkin('s1', new Date(2025, 11, 1))],
-      feedbackSince: { total: 2, read: 2, unread: 0, direct: 0 },
+      feedbackSince: { total: 0, read: 0, unread: 0, direct: 0 },
     });
-    expect(stale.nextUsefulCheck).toMatch(/^Worth a check-in now\. It has been 120 days since your last one/);
-    for (const r of [one, enough, two, stale]) {
+    expect(quiet.nextUsefulCheck).toBe(
+      'Headway compares each new set of feedback with the one before, by itself. Nothing new has been read since 01 Feb 2026 yet.',
+    );
+    // The comparison points the portal hands over — automatic ones included —
+    // decide the sentence when they are given, over the operator's list.
+    const automatic = build({
+      checkins: [],
+      comparison: { periods: 2, latestAt: new Date(2026, 4, 20), readSince: 6 },
+    });
+    expect(automatic.nextUsefulCheck).toBe(
+      'Headway compares each new set of feedback with the one before, by itself. 6 responses read since 20 May 2026 are part of the next comparison.',
+    );
+    for (const r of [one, two, quiet, automatic]) {
       expect(r.nextUsefulCheck).not.toMatch(/days left|remaining|due in|countdown|streak/i);
+      expect(r.nextUsefulCheck).not.toMatch(/check-in now|worth a check-in|record a check-in|first check-in|second check-in/i);
     }
   });
 });
@@ -558,9 +573,9 @@ describe('the edges', () => {
     expect(build({ needsYourWords: 0 }).needsYou.some((i) => i.id.endsWith('needs-your-words'))).toBe(false);
   });
 
-  it('a one-check-in business is told what the second one will do', () => {
+  it('a one-check-in business is told Headway is collecting the next comparable set itself', () => {
     const r = build({ portal: { snapshots: [] }, checkins: [checkin('s1', new Date(2026, 4, 1))], feedbackSince: { total: 5, read: 5, unread: 0, direct: 0 } });
-    expect(r.nextUsefulCheck).toMatch(/^A second check-in will show what changed/);
+    expect(r.nextUsefulCheck).toMatch(/^Headway has recorded where things stood, and is collecting the next comparable set by itself/);
     expect(text(r)).not.toMatch(/holding steady|held steady/);
   });
 

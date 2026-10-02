@@ -2,12 +2,11 @@ import { Link } from '@/components/portal/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { getResponsibility } from '@/lib/responsibility/service';
-import { getEvidenceIndex, getFreshFeed } from '@/lib/portal/service';
+import { getEvidenceIndex, getEvidenceState, getFreshFeed } from '@/lib/portal/service';
 import { getAnalysisCoverage } from '@/lib/feedback/analysis';
-import { readinessOf, usableResponses } from '@/lib/portal/readiness';
 import type { Responsibility } from '@/lib/responsibility/engine';
 import { buildBrief } from '@/lib/portal/brief';
-import { Knows, Limits, Question, Section, SoFar } from '@/components/portal/portal-ui';
+import { Knows, Limits, Question, Section } from '@/components/portal/portal-ui';
 import { NeedsYouItem, StrengthsList, WatchingList } from '@/components/portal/responsibility';
 import { Reveal } from '@/components/portal/disclose';
 import { OwnerBrief } from '@/components/workspace/brief';
@@ -114,15 +113,16 @@ export async function PortalHome({
   // responsibility bundle both go through `loadFeedbackLedger`, which is
   // memoized per request — so the split shown in the brief is counted over
   // exactly the rows the rest of the page counted, and costs no extra query.
-  const [bundle, evidence, coverage] = await Promise.all([
+  const [bundle, evidence, coverage, state] = await Promise.all([
     getResponsibility(prisma, client.id, { t }),
     getEvidenceIndex(prisma, client.id),
     getAnalysisCoverage(prisma, client.id),
+    // What Headway knows right now, from the same memoised reads: the one
+    // evidence state every page shows (src/lib/portal/ladder.ts).
+    getEvidenceState(prisma, client.id, { t }),
   ]);
-  if (!bundle) notFound();
+  if (!bundle || !state) notFound();
   const { view, responsibility: r } = bundle;
-  // Counted off the coverage just read, which is what getReadiness would read.
-  const readiness = readinessOf(usableResponses(coverage));
 
   // The visit and the clock are handed in, as everything is: the builder reads
   // no database and no clock of its own.
@@ -152,13 +152,6 @@ export async function PortalHome({
   // needs them — rare — follows under the reveal.
   const alsoNeedsYou = r.needsYou.slice(1);
 
-  // Before anything is a pattern, the early mentions ARE the news: what the
-  // first customers said, counted, and marked as not-yet-a-pattern. Once
-  // patterns exist they take the stage and the full count lives on Customers.
-  const named = view.loved.length + view.unhappy.length > 0;
-  const reading = view.basedOn === 0 && view.soFar.waiting > 0;
-  const showSoFar = !named && (view.basedOn > 0 || reading);
-
   // By key, never by label: the labels are reworded and translated, and a
   // lookup that matches on display text disappears the row instead of failing.
   const rating = view.facts.find((f) => f.key === 'publicRating') ?? null;
@@ -166,16 +159,14 @@ export async function PortalHome({
   // Whether the reveal has anything in it at all. An empty disclosure that
   // opens onto nothing is worse than no disclosure.
   //
-  // Nothing at all before the first reading. Every list under the reveal is a
-  // reading of some kind, and below the line the brief has already said, in
-  // the one shared card, why there is none yet.
+  // Nothing before anything is read: every list under the reveal is a reading
+  // of some kind, and the brief has already said that Headway is reading.
   const hasFullReading =
-    readiness.ready &&
+    state.read > 0 &&
     (since !== null ||
     alsoNeedsYou.length > 0 ||
     watching.length > 0 ||
     strengths.length > 0 ||
-    showSoFar ||
     view.question !== null ||
     view.knows.length > 0 ||
     r.did.length > 0 ||
@@ -185,12 +176,13 @@ export async function PortalHome({
     <>
       <OwnerBrief
         brief={brief}
+        state={state}
         clientId={clientId}
         basePath={basePath}
+        evidence={evidence}
         fresh={fresh}
         stamp={stamp}
         now={now}
-        readiness={readiness}
       />
 
       {hasFullReading ? (
@@ -238,23 +230,17 @@ export async function PortalHome({
                   </Section>
                 ) : null}
 
-                {showSoFar ? (
-                  <Section eyebrow={t('home.soFar.title')} note={t('home.soFar.note')}>
-                    <SoFar soFar={view.soFar} basePath={basePath} />
-                  </Section>
-                ) : null}
-
                 {view.question ? (
                   <Section eyebrow={t('home.question.title')}>
                     <Question q={view.question} />
                   </Section>
                 ) : null}
 
-                {/* The "nothing yet" message used to live here as well. The
-                    brief says it now, at the top, in half the words — and an
-                    owner who has told Headway about their business still opens
-                    this reveal, so leaving it here meant the same news twice on
-                    one screen. `BriefEmpty` owns it. */}
+                {/* What customers mentioned so far, and what is not yet a
+                    pattern, used to be listed here as chips. The reading at
+                    the top of Home now says it, rung by rung (see
+                    components/workspace/evidence-ladder.tsx), so it is not
+                    said twice on one screen. */}
               </div>
 
               <aside className="min-w-0 lg:border-l lg:border-ink-200 lg:pl-8">

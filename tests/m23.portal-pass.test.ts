@@ -556,18 +556,18 @@ describe('the words an owner reads', () => {
 
   it('keeps current signals on Home and the full method on Customers, once', () => {
     const home = stripComments(read('src', 'components', 'workspace', 'home.tsx'));
-    expect(home).toContain('<SoFar soFar={view.soFar} basePath={basePath} />');
-    // The counts-not-conclusions qualifier over the early mentions, now read
-    // from the dictionary and said as "Counts only, not conclusions".
-    expect(home).toContain("note={t('home.soFar.note')}");
-    expect(MESSAGES['home.soFar.note'].en).toBe('Counts only, not conclusions');
+    // The early mentions are said once, by the reading at the top of Home,
+    // each on its rung (evidence ladder pass, Oct 2026) — not again as chips
+    // under the reveal.
+    expect(stripComments(read('src', 'components', 'workspace', 'brief.tsx'))).toContain('<EvidenceReading');
+    expect(home).not.toContain('<SoFar');
     expect(home).toContain('<Limits limits={r.limitations} collapsed />');
     expect(home).not.toContain('Not worth your time right now');
     // The reason to come back is still on Home. The bold "Next check." run-in
     // went with the copy pass — the eyebrow above it already names the
     // check-in — so the section itself is what this holds in place.
     expect(home).toContain("eyebrow={t('home.nextCheck.title')}");
-    expect(MESSAGES['home.nextCheck.title'].en).toBe('Your next check-in');
+    expect(MESSAGES['home.nextCheck.title'].en).toBe('Comparing over time');
     expect(home).toContain('{r.nextUsefulCheck}');
 
     const customers = stripComments(read('src', 'components', 'workspace', 'analysis.tsx'));

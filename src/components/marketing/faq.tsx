@@ -25,7 +25,7 @@ const FAQ = [
   },
   {
     q: 'What if I only have a few responses?',
-    a: `Headway reads every response as it arrives, and some insights only appear when enough evidence supports them. It gives a first reading once you have ${PRODUCT_RULES.firstReadingAt} responses. Before that, your workspace shows how many responses have arrived and how many more it needs. Even then, a topic is named only once at least ${PRODUCT_RULES.namedAt} responses mention it, and a change over time is shown only when two check-ins each hold at least ${PRODUCT_RULES.compareAt} — Headway will not turn two comments into a trend.`,
+    a: `Headway is useful from the first response: you see what each customer said, anything that repeats, and what Headway is watching. At ${PRODUCT_RULES.firstReadingAt} responses it gives a first read. It calls something a pattern only once at least ${PRODUCT_RULES.namedAt} customers raise it among ${PRODUCT_RULES.patternReadAt} or more responses. It shows a change over time only between two comparable sets of feedback that each hold at least ${PRODUCT_RULES.compareAt} responses — sets Headway draws by itself. It will not turn two comments into a trend.`,
   },
   {
     q: 'Does Headway contact my customers?',

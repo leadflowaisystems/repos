@@ -279,7 +279,7 @@ describe('the workspace navigation', () => {
     for (const route of ['pulse', 'review']) {
       const page = code(read('app', '(workspace)', 'workspace', '[clientId]', route, 'page.tsx'));
       expect(page).toContain(
-        '<PeriodReportView report={report} basePath={`/workspace/${clientId}`} readiness={readiness} />',
+        '<PeriodReportView report={report} basePath={`/workspace/${clientId}`} state={state} />',
       );
     }
     const report = code(read('components', 'workspace', 'period-report.tsx'));
@@ -425,7 +425,7 @@ describe('home, as the owner’s brief', () => {
     // The eyebrows in that order are the words an owner reads.
     expect(says('home.watching.title')).toBe('Headway is watching');
     expect(says('home.goingWell.title')).toBe('Going well');
-    expect(says('home.nextCheck.title')).toBe('Your next check-in');
+    expect(says('home.nextCheck.title')).toBe('Comparing over time');
     expect(says('brief.more.summary')).toBe('More detail');
   });
 
@@ -455,7 +455,10 @@ describe('home, as the owner’s brief', () => {
     // And the page is composed in that order.
     // OwnerBrief is the last thing in the file: from its name to the end.
     const composed = brief.slice(brief.indexOf('export async function OwnerBrief('));
-    const blocks = ['<Band', '<Story', '<Latest', '<Loved', '<Changed', '<Memory'];
+    // Evidence ladder pass (Oct 2026): the reading — what Headway knows at
+    // this stage — follows the story, and the direction's readiness opens the
+    // side column. Calm and Loved were folded into the reading.
+    const blocks = ['<Band', '<Story', '<EvidenceReading', '<Latest', '<DirectionPanel', '<Changed', '<Memory'];
     const where = blocks.map((token) => {
       const i = composed.indexOf(token);
       expect(i, token).toBeGreaterThan(-1);
@@ -468,7 +471,7 @@ describe('home, as the owner’s brief', () => {
     // OWNER UX PASS: the problem's name is the headline and the count is said
     // as people ("39 customers mentioned it"), then "↑ Getting worse", then
     // what to do. The evidence behind the count is one tap away, every time.
-    const block = between(brief, 'async function Story(', 'async function Calm(');
+    const block = between(brief, 'async function Story(', 'async function Latest(');
     const order = ['{card.label}', "t.plural('brief.mentioned', card.count)", '<Trend trend={card.trend} />', "t('brief.suggest.title')"];
     const at = order.map((token) => {
       const i = block.indexOf(token);
@@ -522,22 +525,21 @@ describe('home, as the owner’s brief', () => {
   });
 
   it("shows the first customers' signals before anything is a pattern, and never a blank", () => {
-    expect(home).toContain('<SoFar soFar={view.soFar} basePath={basePath} />');
-    expect(home).toContain("eyebrow={t('home.soFar.title')}");
-    expect(says('home.soFar.title')).toBe('What customers are mentioning so far');
-    // Counted, and said to be counts — never dressed up as a conclusion.
-    expect(home).toContain("note={t('home.soFar.note')}");
-    expect(says('home.soFar.note')).toBe('Counts only, not conclusions');
+    // Evidence ladder pass (Oct 2026): the reading at the top of Home says
+    // what the first customers said, rung by rung — "mentioned once", "early
+    // signal" — at every stage, so the chips that used to sit under the reveal
+    // are gone rather than said twice.
+    expect(brief).toContain('<EvidenceReading');
+    expect(home).not.toContain('<SoFar');
+    // From the very first read response the full brief shows: no countdown
+    // card stands in front of it.
+    expect(brief).toContain("if (state.stage === 'NONE')");
+    expect(brief).not.toMatch(/InsightsBuilding|readiness\.ready/);
     // Before the first piece of feedback the page still says what will happen
-    // and where it comes from, rather than stopping at the absence. The brief
-    // owns that message now, and says it in half the words — Home used to say
-    // it a second time under the reveal, which was the same news twice.
-    expect(brief).toContain("t('brief.early.body')");
-    expect(says('brief.early.body')).toBe(
-      'Headway will brief you here as soon as customers start giving feedback.',
-    );
+    // and where it comes from, rather than stopping at the absence.
+    expect(says('ladder.intro.none.empty')).toMatch(/QR card or feedback link/);
     expect(brief).not.toMatch(/No data/i);
-    expect(says('brief.early.body')).not.toMatch(/No data/i);
+    expect(says('ladder.intro.none.empty')).not.toMatch(/No data/i);
     expect(home).not.toContain("t('home.empty.body')");
   });
 
@@ -566,7 +568,7 @@ describe('home, as the owner’s brief', () => {
 
   it('says when the next check-in is worth opening, as a condition', () => {
     expect(home).toContain("eyebrow={t('home.nextCheck.title')}");
-    expect(says('home.nextCheck.title')).toBe('Your next check-in');
+    expect(says('home.nextCheck.title')).toBe('Comparing over time');
     expect(home).toContain('{r.nextUsefulCheck}');
     expect(home).not.toMatch(/countdown|days left|streak/i);
   });

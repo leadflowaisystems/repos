@@ -4,7 +4,8 @@ import { buildAnalysisView, buildCheckinView, buildImprovementsView } from '@/li
 import { buildBrief, trendOf } from '@/lib/portal/brief';
 import { buildEvidenceIndex } from '@/lib/portal/evidence';
 import { buildTrendReadiness } from '@/lib/portal/trends';
-import { FIRST_READING_AT, readinessOf } from '@/lib/portal/readiness';
+import { FIRST_READING_AT } from '@/lib/portal/readiness';
+import { buildEvidenceState, directionOf, stageOf } from '@/lib/portal/ladder';
 import { buildResponsibility } from '@/lib/responsibility/engine';
 import type { AnalysisCoverage } from '@/lib/feedback/analysis';
 import type { SnapshotListRow } from '@/lib/snapshots/service';
@@ -23,7 +24,9 @@ import { NOW, runScenario, type Scenario } from './eval/trend-scenarios';
  *
  * Then the owner's experience as feedback arrives: what each screen is
  * allowed to claim at 0, 1–4, 5, 6–9, 10 and 20+ responses, with no check-in,
- * one, two thin ones and two that can be compared.
+ * one, two thin ones and two that can be compared. Since the evidence ladder
+ * (Oct 2026) that is a ladder, not a gate: something useful at every count,
+ * and every claim no stronger than its rung.
  */
 
 type Surface = {
@@ -174,22 +177,20 @@ describe('every screen tells the same story about a topic', () => {
 });
 
 describe('what an owner is told as feedback arrives', () => {
-  it('shows no reading below five responses, and a first reading at five', () => {
+  it('reads from the first response, and gives a first read at five — a ladder, not a gate', () => {
     expect(FIRST_READING_AT).toBe(5);
-    expect(readinessOf(0).state).toBe('NONE');
-    for (const n of [1, 2, 3, 4]) {
-      const r = readinessOf(n);
-      expect(r.state, `${n}`).toBe('BUILDING');
-      expect(r.remaining, `${n}`).toBe(5 - n);
-    }
-    for (const n of [5, 6, 9, 10, 20, 250]) expect(readinessOf(n).state, `${n}`).toBe('READY');
+    expect(stageOf(0)).toBe('NONE');
+    for (const n of [1, 2, 3, 4]) expect(stageOf(n), `${n}`).toBe('PULSE');
+    for (const n of [5, 6, 9]) expect(stageOf(n), `${n}`).toBe('FIRST_READ');
+    for (const n of [10, 20]) expect(stageOf(n), `${n}`).toBe('EMERGING_PICTURE');
+    expect(stageOf(250)).toBe('STRONG_PATTERNS');
   });
 
   it('never promises trends at five responses, in any language', () => {
     for (const t of [EN]) {
-      const text = [t('readiness.promise', { target: 5 }), t.plural('readiness.almost.body', 4, { target: 5 })].join(' ');
-      expect(text).not.toMatch(/patterns and trends|how it changes over time/i);
-      expect(text).toMatch(/first reading/i);
+      const text = [t('ladder.title.firstRead'), t.plural('ladder.intro.firstRead', 5), t('ladder.notSure.firstRead')].join(' ');
+      expect(text).not.toMatch(/patterns and trends|how it changes over time|trend/i);
+      expect(text).toMatch(/first customer read|so far/i);
     }
   });
 
@@ -221,6 +222,21 @@ describe('what an owner is told as feedback arrives', () => {
       expect(brief.thin, `${total}`).toBe(true);
       expect(brief.attention, `${total}`).toBeNull();
       expect(brief.earlySigns.map((e) => e.themeKey), `${total}`).toContain('service_speed');
+      // The evidence state agrees: a first read, the complaint an early signal
+      // that is watched, never a pattern.
+      const state = buildEvidenceState({
+        view,
+        themes: s.input.themes,
+        pile: { collected: total, read: total, waiting: 0, failed: 0, happy: 0, mixed: 0, unhappy: total, rated: 0, ratingSum: 0, withWords: total },
+        trendReadiness: buildTrendReadiness(s.input),
+        pack: s.input.pack,
+      });
+      expect(state.stage, `${total}`).toBe('FIRST_READ');
+      const finding = state.findings.find((f) => f.key === 'service_speed');
+      expect(finding?.level, `${total}`).toBe('EARLY_SIGNAL');
+      expect(state.watching.map((f) => f.key), `${total}`).toContain('service_speed');
+      expect(state.patterns, `${total}`).toEqual([]);
+      expect(finding?.action?.level, `${total}`).toBe('WATCH');
     }
   });
 
@@ -243,16 +259,14 @@ describe('what an owner is told as feedback arrives', () => {
       const improvements = buildImprovementsView(s.input);
       expect(improvements.trendReadiness.state, name).toBe(state);
     }
-    // The owner-facing copy for every not-ready state.
-    const keys = [
-      'improvements.notReady.body',
-      'improvements.notReady.next.none',
-      'improvements.notReady.next.oneWaiting',
-      'improvements.notReady.next.oneDue',
-      'improvements.notReady.next.thin',
-      'evidence.recurrence.noCheckin',
-    ] as const;
-    for (const k of keys) {
+    // The owner-facing copy for every not-ready state: what Headway is doing
+    // by itself, never a check-in for the owner to make or wait on.
+    for (const [name, scenario] of stages) {
+      const d = directionOf(buildTrendReadiness(runScenario(scenario).input), EN);
+      const line = [d.body, d.automatic ?? ''].join(' ');
+      expect(line, name).not.toMatch(/\b(create|record|run|do|make|schedule|take) (a|your|another|the next|the first) check-in|first check-in|waiting for your/i);
+    }
+    for (const k of ['evidence.recurrence.noCheckin', 'ladder.next.building', 'ladder.next.none'] as const) {
       const line = EN(k as never, { count: 3, need: 10, since: 4, date: '1 Sept', label: 'Check-in', target: 10 } as never);
       expect(line, k).not.toMatch(/\b(create|record|run|do|make|schedule) (a|your|another|the next) check-in/i);
     }

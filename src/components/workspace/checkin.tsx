@@ -2,7 +2,7 @@ import { Link } from '@/components/portal/link';
 import clsx from 'clsx';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
-import { getCheckinView, getEvidenceIndex, getReadiness } from '@/lib/portal/service';
+import { getCheckinView, getEvidenceIndex, getEvidenceState } from '@/lib/portal/service';
 import { getResponsibility } from '@/lib/responsibility/service';
 import { checkinPulse, type CheckinBlock } from '@/lib/portal/focus';
 import type { ResponsibilityItem } from '@/lib/responsibility/engine';
@@ -20,8 +20,7 @@ import { SinceThen } from '@/components/portal/responsibility';
 import { SignalCard, type SignalGroupKey } from '@/components/workspace/signal-board';
 import type { EvidenceIndex } from '@/lib/portal/evidence';
 import { getTranslator } from '@/lib/i18n/request';
-import { InsightsBuilding } from '@/components/workspace/insights-building';
-import { TrendsNotReady } from '@/components/workspace/trends-not-ready';
+import { DirectionPanel, EvidenceReading } from '@/components/workspace/evidence-ladder';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Check-in' };
@@ -127,35 +126,36 @@ export async function PortalCheckin({
 }) {
   const client = { id: clientId };
   const t = await getTranslator();
-  const [view, bundle, evidence, readiness] = await Promise.all([
+  const [view, bundle, evidence, state] = await Promise.all([
     getCheckinView(prisma, client.id, { t }),
     getResponsibility(prisma, client.id, { t }),
     getEvidenceIndex(prisma, client.id),
-    getReadiness(prisma, client.id),
+    getEvidenceState(prisma, client.id, { t }),
   ]);
-  if (!view || !bundle) notFound();
+  if (!view || !bundle || !state) notFound();
 
-  // A check-in is movement between two readings, and before the first reading
-  // there is nothing to move. The page keeps its place in the check-in family
-  // — the intro and the switch — and says, in the shared card, how far off the
-  // first reading is.
-  if (!readiness.ready) {
+  // Nothing read yet: the page keeps its place in the check-in family — the
+  // intro and the switch — and shows the same reading Home shows. From the
+  // first read response the page has something true to say; the countdown
+  // gate that stood here is gone (evidence ladder pass, Oct 2026).
+  if (state.stage === 'NONE') {
     return (
       <div className="max-w-3xl">
         <PageIntro eyebrow={t('checkin.title')} title={view.title} />
         <PeriodSwitch basePath={basePath} current="checkin" />
-        <InsightsBuilding readiness={readiness} basePath={basePath} className="mt-6" />
+        <EvidenceReading state={state} basePath={basePath} className="mt-6" />
       </div>
     );
   }
   const r = bundle.responsibility;
+  const settled = state.stage === 'EMERGING_PICTURE' || state.stage === 'STRONG_PATTERNS';
 
   const moved = view.better.length + view.worse.length + view.returning.length + view.checked.length > 0;
   // Was: a regex over the English of `movementLine`. The view now says so with
   // a flag, so rewording the sentence cannot silently switch the pulse off.
   const compared = view.compared;
   // In the owner's language: the sentence was staying English in Hindi.
-  const pulse = checkinPulse(r, bundle.view, compared, t);
+  const pulse = checkinPulse(r, bundle.view, compared, t, settled);
   // The page's own intro already names the two check-ins compared.
   const since = {
     ...r,
@@ -195,9 +195,15 @@ export async function PortalCheckin({
       ) : null}
 
       <div className="mt-10 max-w-3xl space-y-6">
-        {/* Nothing was compared: say why, in the open, with the counts — the
-            same card Trends shows — rather than one line behind a reveal. */}
-        {!compared ? <TrendsNotReady readiness={view.trendReadiness} /> : null}
+        {/* Nothing compared yet: what customers are saying now, then what the
+            direction waits for — the same two blocks Trends shows, and never
+            a chore: Headway draws the comparable periods itself. */}
+        {!compared ? (
+          <>
+            <EvidenceReading state={state} basePath={basePath} evidence={evidence} variant="compact" />
+            <DirectionPanel direction={state.direction} basePath={basePath} />
+          </>
+        ) : null}
 
         {compared || hasDetail ? (
         <Reveal summary={t('checkin.reveal.changed')} tone="strong">

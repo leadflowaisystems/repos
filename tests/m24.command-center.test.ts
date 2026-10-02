@@ -79,7 +79,7 @@ describe('home is a brief, not a dashboard', () => {
     // The headings themselves, so a key can be rewired but not quietly reworded.
     expect(MESSAGES['home.watching.title'].en).toBe('Headway is watching');
     expect(MESSAGES['home.goingWell.title'].en).toBe('Going well');
-    expect(MESSAGES['home.nextCheck.title'].en).toBe('Your next check-in');
+    expect(MESSAGES['home.nextCheck.title'].en).toBe('Comparing over time');
   });
 
   it('reads as a decision: pattern, magnitude, change, action, then evidence', () => {
@@ -162,11 +162,12 @@ describe('home is a brief, not a dashboard', () => {
     //
     // Two cards reach the brief — the problem and the strength — and each
     // states its own count once. The total appears once, under the problem.
-    const story = brief.slice(brief.indexOf('async function Story('), brief.indexOf('async function Calm('));
-    const loved = brief.slice(brief.indexOf('async function Loved('), brief.indexOf('async function Changed('));
+    const story = brief.slice(brief.indexOf('async function Story('), brief.indexOf('async function Latest('));
     // Owner UX pass: each count is said once, as people, and no "18 of 87".
+    // The strengths are told by the reading now (evidence ladder pass), each
+    // with its own count and denominator in one sentence.
     expect(story.split('card.count').length - 1).toBe(1);
-    expect(loved.split('card.count').length - 1).toBe(1);
+    expect(brief).not.toContain('async function Loved(');
     expect(brief).not.toContain('{card.basis}');
   });
 

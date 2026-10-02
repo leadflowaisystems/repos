@@ -472,7 +472,10 @@ describe('pulse', () => {
     const p = pulse([]);
     expect(p.available).toBe(false);
     expect(p.current).toBeNull();
-    expect(p.reason).toContain('No check-in recorded yet');
+    // Headway draws the comparison points itself now (snapshots/periods.ts),
+    // so the reason says where that stands, never that a check-in is missing.
+    expect(p.reason).toContain('still building the first comparable set of feedback');
+    expect(p.reason).not.toMatch(/check-in/i);
   });
 
   it('shows the current period but no comparison after one snapshot', () => {
@@ -481,7 +484,7 @@ describe('pulse', () => {
     expect(p.current?.feedbackCount).toBe(5);
     expect(p.previous).toBeNull();
     expect(p.reason).toContain(
-      'Only one check-in so far. The next one will let Headway compare the two.',
+      'Headway has one comparable set of feedback so far. It collects the next one by itself, and then compares the two.',
     );
   });
 

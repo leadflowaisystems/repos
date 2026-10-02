@@ -254,7 +254,7 @@ describe('the check-in pulse', () => {
     const { r, view } = build();
     const pulse = checkinPulse(r, view, false);
     expect(pulse.sentence).toBe(
-      'One thing needs your attention. One thing needs watching. A second check-in will show what is holding steady.',
+      'One thing needs your attention. One thing needs watching. Once Headway has two comparable sets of feedback, it will show what is holding steady.',
     );
   });
 
@@ -266,6 +266,20 @@ describe('the check-in pulse', () => {
       },
     });
     expect(checkinPulse(r, view, false).sentence).toMatch(/^Nothing needs your attention\./);
+  });
+
+  it('does not say "nothing needs your attention" before ten are read — it says it is too early', () => {
+    // The evidence ladder (Oct 2026): below ten read, "nothing needs your
+    // attention" is a conclusion the evidence has not earned.
+    const { r, view } = build({
+      portal: {
+        intelligence: intel({ themes: themes([theme('doctor_care', "Doctor's care and explanation", 'PRAISE', 2)], [], 6), totalFeedback: 6 }),
+        themes: themes([theme('doctor_care', "Doctor's care and explanation", 'PRAISE', 2)], [], 6),
+      },
+    });
+    const sentence = checkinPulse(r, view, false, undefined, false).sentence;
+    expect(sentence).toMatch(/^Too early to call anything a pattern\. Headway is watching\./);
+    expect(sentence).not.toMatch(/Nothing needs your attention/);
   });
 });
 

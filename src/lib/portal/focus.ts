@@ -641,6 +641,13 @@ export function checkinPulse(
   view: PortalView,
   compared: boolean,
   translator?: PortalTranslator,
+  /**
+   * Whether enough has been read for "nothing needs your attention" to be a
+   * conclusion (ten or more — the evidence ladder's EMERGING_PICTURE). Below
+   * it the sentence says it is too early to call anything, which is the state
+   * of the evidence rather than a verdict (evidence ladder pass, Oct 2026).
+   */
+  settled: boolean = true,
 ): CheckinPulse {
   const t = translator ?? EN;
   const needs = r.needsYou.length;
@@ -650,7 +657,9 @@ export function checkinPulse(
   const parts: string[] = [];
   parts.push(
     needs === 0
-      ? t('focus.pulse.attention.none')
+      ? settled
+        ? t('focus.pulse.attention.none')
+        : t('focus.pulse.attention.early')
       : t.plural('focus.pulse.attention', needs, { word: countWord(needs, t) }),
   );
   if (watching > 0) {

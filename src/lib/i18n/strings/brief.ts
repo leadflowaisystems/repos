@@ -153,31 +153,6 @@ export const brief = {
   // -------------------------------------------------------------------------
   // Nothing to say yet
   //
-  // One honest line, not four empty headings. A first week with no feedback is
-  // a normal state of this product, not an error, and it should read like one.
-  // -------------------------------------------------------------------------
-  'brief.early.title': {
-    en: 'Nothing to report yet',
-    hi: 'अभी बताने लायक़ कुछ नहीं',
-    mr: 'अजून सांगण्यासारखं काही नाही',
-  },
-  'brief.early.body': {
-    en: 'Headway will brief you here as soon as customers start giving feedback.',
-    hi: 'ग्राहकों के फ़ीडबैक देते ही Headway आपको यहाँ बता देगा।',
-    mr: 'ग्राहकांनी फीडबॅक द्यायला सुरुवात करताच Headway तुम्हाला इथे सांगेल.',
-  },
-  // Feedback has arrived, but not enough of it to be a pattern. The customers'
-  // words are on the page below this; the brief only says why it is quiet.
-  'brief.early.someTitle': {
-    en: 'Too early to tell',
-    hi: 'अभी कुछ कहना जल्दबाज़ी होगी',
-    mr: 'आत्ताच काही सांगणं घाईचं होईल',
-  },
-  'brief.early.someBody': {
-    en: 'Headway has read what customers sent so far. It will brief you here once a topic comes up often enough to be a pattern.',
-    hi: 'ग्राहकों ने अब तक जो भेजा, Headway ने पढ़ लिया है। कोई विषय बार-बार आने पर Headway आपको यहाँ बताएगा।',
-    mr: 'ग्राहकांनी आतापर्यंत जे पाठवलं ते Headway ने वाचलं आहे. एखादा विषय वारंवार आला की Headway तुम्हाला इथे सांगेल.',
-  },
 
   // -------------------------------------------------------------------------
   // The rest of Home, moved behind one tap
@@ -211,16 +186,6 @@ export const brief = {
 
   // What Headway is doing for this business, in counts it already keeps. A
   // statement of work, never a claim about results.
-  'brief.status.watching.one': {
-    en: 'Headway is watching {count} topic for you',
-    hi: 'Headway आपके लिए {count} विषय पर नज़र रख रहा है',
-    mr: 'Headway तुमच्यासाठी {count} विषयावर लक्ष ठेवत आहे',
-  },
-  'brief.status.watching.other': {
-    en: 'Headway is watching {count} topics for you',
-    hi: 'Headway आपके लिए {count} विषयों पर नज़र रख रहा है',
-    mr: 'Headway तुमच्यासाठी {count} विषयांवर लक्ष ठेवत आहे',
-  },
   'brief.status.arrived.one': {
     en: '{count} new since your last visit',
     hi: 'आपकी पिछली विज़िट के बाद {count} नया',
@@ -342,16 +307,6 @@ export const brief = {
     hi: 'ग्राहक कैसा महसूस करते हैं',
     mr: 'ग्राहकांना कसं वाटतं',
   },
-  'brief.mood.basis.one': {
-    en: 'From {count} customer',
-    hi: '{count} ग्राहक से',
-    mr: '{count} ग्राहकाकडून',
-  },
-  'brief.mood.basis.other': {
-    en: 'From {count} customers',
-    hi: '{count} ग्राहकों से',
-    mr: '{count} ग्राहकांकडून',
-  },
 
   // -------------------------------------------------------------------------
   // The story
@@ -381,68 +336,19 @@ export const brief = {
   },
 
   // -------------------------------------------------------------------------
-  // Nothing needs the owner — said plainly, and meant
+  // Nothing needs the owner — said plainly, and meant. Only ever said once ten
+  // or more responses are read (the evidence ladder's EMERGING_PICTURE): below
+  // that it is a conclusion the evidence has not earned.
   // -------------------------------------------------------------------------
-  'brief.calm.eyebrow': {
-    en: 'Headway is watching',
-    hi: 'Headway नज़र रख रहा है',
-    mr: 'Headway लक्ष ठेवत आहे',
-  },
   'brief.calm.title': {
     en: 'Nothing needs your attention',
     hi: 'अभी किसी बात पर ध्यान देने की ज़रूरत नहीं',
     mr: 'आत्ता कशाकडेही लक्ष द्यायची गरज नाही',
   },
-  'brief.calm.body': {
-    en: 'Headway is not seeing a strong problem right now.',
-    hi: 'Headway को अभी कोई बड़ी समस्या नहीं दिख रही।',
-    mr: 'Headway ला आत्ता कोणतीही मोठी अडचण दिसत नाही.',
-  },
-  'brief.calm.reading': {
-    en: 'New feedback is still coming in, and Headway is reading it.',
-    hi: 'नया फ़ीडबैक अभी आ रहा है, और Headway उसे पढ़ रहा है।',
-    mr: 'नवा फीडबॅक अजून येत आहे, आणि Headway तो वाचत आहे.',
-  },
-
-  // WHILE THE EVIDENCE IS THIN (intelligence audit). Below the engine's
-  // "enough to spot patterns" line, "Nothing needs your attention" is a
-  // conclusion Headway has not earned. This says the state of the evidence
-  // instead, and lists anything mentioned a few times as an early sign — never
-  // as a problem to act on.
-  'brief.thin.title': {
-    en: 'No strong pattern yet',
-    hi: 'अभी कोई पक्का पैटर्न नहीं',
-    mr: 'अजून कोणताही ठोस पॅटर्न नाही',
-  },
-  'brief.thin.body.one': {
-    en: 'Headway has read {count} response. Nothing has come up often enough yet to be sure of.',
-    hi: 'Headway ने {count} जवाब पढ़ा है। अभी कोई बात इतनी बार नहीं आई कि उस पर भरोसा किया जा सके।',
-    mr: 'Headway ने {count} प्रतिसाद वाचला आहे. अजून कोणतीही गोष्ट खात्री वाटेल इतक्या वेळा आलेली नाही.',
-  },
-  'brief.thin.body.other': {
-    en: 'Headway has read {count} responses. Nothing has come up often enough yet to be sure of.',
-    hi: 'Headway ने {count} जवाब पढ़े हैं। अभी कोई बात इतनी बार नहीं आई कि उस पर भरोसा किया जा सके।',
-    mr: 'Headway ने {count} प्रतिसाद वाचले आहेत. अजून कोणतीही गोष्ट खात्री वाटेल इतक्या वेळा आलेली नाही.',
-  },
-  'brief.earlySigns.title': {
-    en: 'Early signs',
-    hi: 'शुरुआती संकेत',
-    mr: 'सुरुवातीचे संकेत',
-  },
-  'brief.earlySigns.note': {
-    en: 'Mentioned a few times. Not a pattern yet. Headway will confirm or drop these as more feedback arrives.',
-    hi: 'कुछ बार कहा गया। अभी पैटर्न नहीं है। और फ़ीडबैक आने पर Headway इनकी पुष्टि करेगा या इन्हें हटा देगा।',
-    mr: 'काही वेळा सांगितलं गेलं. अजून पॅटर्न नाही. आणखी फीडबॅक आल्यावर Headway यांची खात्री करेल किंवा हे काढून टाकेल.',
-  },
 
   // -------------------------------------------------------------------------
   // What follows the story
   // -------------------------------------------------------------------------
-  'brief.love.title': {
-    en: 'Customers love',
-    hi: 'ग्राहकों को पसंद है',
-    mr: 'ग्राहकांना आवडतं',
-  },
   'brief.changed.count.one': {
     en: '{count} change since your last check-in',
     hi: 'पिछले चेक-इन के बाद {count} बदलाव',
@@ -584,11 +490,6 @@ export const brief = {
     en: '{count} customers praised it',
     hi: '{count} ग्राहकों ने इसकी तारीफ़ की',
     mr: '{count} ग्राहकांनी याचं कौतुक केलं',
-  },
-  'brief.love.keep': {
-    en: 'Keep doing this.',
-    hi: 'ऐसे ही करते रहें।',
-    mr: 'असंच करत राहा.',
   },
   'brief.evidence.cta': {
     en: 'See what customers said',
