@@ -175,20 +175,15 @@ export const ladder = {
   // -------------------------------------------------------------------------
   // The sections of the reading
   // -------------------------------------------------------------------------
-  'ladder.section.first': {
-    en: 'What they told you',
-    hi: 'उन्होंने आपसे क्या कहा',
-    mr: 'त्यांनी तुम्हाला काय सांगितलं',
-  },
   'ladder.section.standsOut': {
     en: 'What stands out',
     hi: 'सबसे ख़ास बात',
     mr: 'सगळ्यात ठळक गोष्ट',
   },
   'ladder.section.likes': {
-    en: 'Customers like',
-    hi: 'ग्राहकों को पसंद है',
-    mr: 'ग्राहकांना आवडतं',
+    en: 'What customers are saying',
+    hi: 'ग्राहक क्या कह रहे हैं',
+    mr: 'ग्राहक काय म्हणत आहेत',
   },
   'ladder.section.patterns': {
     en: 'Keeps coming up',

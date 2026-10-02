@@ -351,12 +351,13 @@ async function Story({
 /**
  * LATEST FROM CUSTOMERS — the newest few, in their own words (freshness pass).
  *
- * The brief is Headway's reading; this is what it is reading. Three rows, the
- * newest first, including what has not been read yet — that is exactly the
- * feedback no summary can show, and an owner who just watched a customer fill
- * in the card should find it here. Each row opens the whole entry. The count
- * under it is everything the business holds, one tap away. Not a feed: three,
- * and the way to the rest.
+ * The brief is Headway's reading; this is what it is reading. Up to three rows
+ * of what customers WROTE, the newest first, including what has not been read
+ * yet — that is exactly the feedback no summary can show, and an owner who
+ * just watched a customer fill in the card should find it here. Responses
+ * without words that came in among them are one line, not rows (semantic
+ * Home pass). Each row opens the whole entry; the count under it is
+ * everything the business holds, one tap away.
  */
 async function Latest({ fresh, basePath, now }: { fresh: FreshFeed; basePath: string; now: Date }) {
   const t = await getTranslator();
@@ -374,6 +375,11 @@ async function Latest({ fresh, basePath, now }: { fresh: FreshFeed; basePath: st
           </li>
         ))}
       </ul>
+      {/* Ratings left without words, as one line rather than a row each: the
+          rows are for what customers wrote. */}
+      {fresh.quiet > 0 ? (
+        <p className="mt-2 px-1 text-[13px] text-ink-500 tabular-nums">{t.plural('brief.latest.quiet', fresh.quiet)}</p>
+      ) : null}
       <Link
         href={`${basePath}/reviews#entries`}
         className="mt-1 inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-ink-700 hover:text-ink-900"

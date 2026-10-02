@@ -250,6 +250,16 @@ export const brief = {
     hi: 'ग्राहकों की ताज़ा बातें',
     mr: 'ग्राहकांचं ताजं म्हणणं',
   },
+  'brief.latest.quiet.one': {
+    en: '+ 1 more response without words',
+    hi: '+ 1 और जवाब, बिना कुछ लिखे',
+    mr: '+ आणखी 1 प्रतिसाद, काही न लिहिता',
+  },
+  'brief.latest.quiet.other': {
+    en: '+ {count} more responses without words',
+    hi: '+ {count} और जवाब, बिना कुछ लिखे',
+    mr: '+ आणखी {count} प्रतिसाद, काही न लिहिता',
+  },
   'brief.latest.all.one': {
     en: 'See the {count} response',
     hi: '{count} जवाब देखें',

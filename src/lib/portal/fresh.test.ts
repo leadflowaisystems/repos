@@ -242,33 +242,67 @@ describe('when a customer said it', () => {
   });
 });
 
-describe('Home’s list prefers words to bare ratings (quieter ladder pass)', () => {
-  const rated = (msAgo: number) => row({ text: '', stars: 5, createdAt: at(msAgo), reviewDate: at(msAgo), themesJson: '[]' });
+describe('Home’s list shows what customers wrote (semantic Home pass)', () => {
+  const rated = (msAgo: number, stars: number | null = 5) =>
+    row({ text: '', stars, createdAt: at(msAgo), reviewDate: at(msAgo), themesJson: '[]' });
   const said = (msAgo: number, text: string) => row({ text, createdAt: at(msAgo), reviewDate: at(msAgo) });
 
-  it('shows the newest feedback with words first, and a bare rating only to fill the list', () => {
-    // Bare ratings from half an hour ago — read then, so not "just read" now.
-    const ledger = [rated(30 * MIN), rated(35 * MIN), rated(40 * MIN), said(60 * MIN, 'Lovely coffee'), said(90 * MIN, 'Slow service')];
+  it('lists the written feedback, and folds bare ratings into one count — the production Crazy Cheesy shape', () => {
+    // One customer wrote "Good service"; four left no words, the newest two after it.
+    const ledger = [rated(15 * 60 * MIN, null), rated(19 * 60 * MIN), said(20 * 60 * MIN, 'Good service'), rated(21 * 60 * MIN), rated(22 * 60 * MIN, 4)];
     const plain = buildFreshFeed({ ledger, now: NOW, readingPaused: false });
-    expect(plain.latest.map((e) => e.text)).toEqual(['', '', '']);
-    const worded = buildFreshFeed({ ledger, now: NOW, readingPaused: false, preferWords: true });
-    // Two with words and the newest bare rating to fill the third row — in time order.
-    expect(worded.latest.map((e) => e.text)).toEqual(['', 'Lovely coffee', 'Slow service']);
+    expect(plain.latest.map((e) => e.text)).toEqual(['', '', 'Good service']);
+    expect(plain.quiet).toBe(0);
+    const home = buildFreshFeed({ ledger, now: NOW, readingPaused: false, preferWords: true });
+    expect(home.latest.map((e) => e.text)).toEqual(['Good service']);
+    // The two that arrived after it; the two older ones are in "See all".
+    expect(home.quiet).toBe(2);
     // Nothing is dropped from the count: the way to every response still says all five.
-    expect(worded.total).toBe(5);
+    expect(home.total).toBe(5);
   });
 
-  it('keeps a bare rating read moments ago: the live line is announcing it', () => {
-    const older = [said(180 * MIN, 'Lovely coffee'), said(240 * MIN, 'Slow service'), said(300 * MIN, 'Nice staff')];
-    const fresh = row({ text: '', stars: 5, createdAt: at(2 * MIN), reviewDate: at(2 * MIN), analysedAt: at(1 * MIN), themesJson: '[]' });
-    const feed = buildFreshFeed({ ledger: [...older, fresh], now: NOW, readingPaused: false, preferWords: true });
-    expect(feed.live?.kind).toBe('JUST_READ');
-    expect(feed.latest[0]?.id).toBe(fresh.id);
+  it('shows the newest written ones in time order', () => {
+    const ledger = [rated(30 * MIN), said(60 * MIN, 'Lovely coffee'), said(90 * MIN, 'Slow service'), said(120 * MIN, 'Nice staff'), said(150 * MIN, 'Old one')];
+    const home = buildFreshFeed({ ledger, now: NOW, readingPaused: false, preferWords: true });
+    expect(home.latest.map((e) => e.text)).toEqual(['Lovely coffee', 'Slow service', 'Nice staff']);
+    expect(home.quiet).toBe(1);
+  });
+
+  it('when nobody has written anything, the ratings take the rows — never an empty list', () => {
+    const ledger = [rated(10 * MIN), rated(20 * MIN, 4), rated(30 * MIN, 3), rated(40 * MIN)];
+    const home = buildFreshFeed({ ledger, now: NOW, readingPaused: false, preferWords: true });
+    expect(home.latest).toHaveLength(LATEST_ON_HOME);
+    expect(home.latest.every((e) => e.text === '')).toBe(true);
+    expect(home.quiet).toBe(0);
+  });
+
+  it('does not shrink while a bare rating is being read, when nobody has written anything', () => {
+    const ledger = [justSent(1 * MIN, { text: '' }), rated(10 * MIN), rated(20 * MIN, 4), rated(30 * MIN, 3), rated(40 * MIN)];
+    const home = buildFreshFeed({ ledger, now: NOW, readingPaused: false, preferWords: true });
+    expect(home.latest).toHaveLength(LATEST_ON_HOME);
+    expect(home.latest[0]?.state).toBe('NEW');
+    expect(home.quiet).toBe(0);
+  });
+
+  it('counts any text a customer wrote — an emoji is written, not "without words"', () => {
+    const ledger = [said(10 * MIN, '👍👍'), rated(20 * MIN), said(30 * MIN, 'Lovely coffee')];
+    const home = buildFreshFeed({ ledger, now: NOW, readingPaused: false, preferWords: true });
+    expect(home.latest.map((e) => e.text)).toEqual(['👍👍', 'Lovely coffee']);
+    expect(home.quiet).toBe(1);
+  });
+
+  it('says "+ N more" only for what arrived among the rows shown, never all history', () => {
+    const old = Array.from({ length: 50 }, (_, i) => rated((500 + i) * MIN));
+    const ledger = [said(10 * MIN, 'One'), said(20 * MIN, 'Two'), said(30 * MIN, 'Three'), ...old];
+    const home = buildFreshFeed({ ledger, now: NOW, readingPaused: false, preferWords: true });
+    expect(home.latest.map((e) => e.text)).toEqual(['One', 'Two', 'Three']);
+    expect(home.quiet).toBe(0);
+    expect(home.total).toBe(53);
   });
 
   it('always shows a response not read yet, even without words: it is the one the owner just watched arrive', () => {
     const ledger = [justSent(1 * MIN, { text: '' }), said(60 * MIN, 'Lovely coffee'), said(90 * MIN, 'Slow service'), said(120 * MIN, 'Nice')];
-    const worded = buildFreshFeed({ ledger, now: NOW, readingPaused: false, preferWords: true });
-    expect(worded.latest[0]?.state).toBe('NEW');
+    const home = buildFreshFeed({ ledger, now: NOW, readingPaused: false, preferWords: true });
+    expect(home.latest[0]?.state).toBe('NEW');
   });
 });

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { EN, translatorFor } from '@/lib/i18n/translator';
 import {
-  EARLY_SIGNAL_MENTIONS,
+  compareFindings,
   EMERGING_AT,
   HOME_LIMITS,
   headlineOf,
@@ -63,26 +63,31 @@ function homeShown(state: EvidenceState, omit: string | null = null) {
 
 const words = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
 
-describe('the Crazy Cheesy first read, quietly', () => {
+describe('the Crazy Cheesy first read: what customers talked about, each on its rung', () => {
   const r = runLadder(CRAZY_CHEESY);
   const s = r.state;
   const { headline, lists } = homeShown(s);
 
-  it('says the strongest true thing in one short sentence, with the counts beside it once', () => {
+  it('leads with the counts once, and no mood sentence restating them', () => {
     expect(s.stage).toBe('FIRST_READ');
-    expect(headline).toMatchObject({ kind: 'MOOD', title: 'Most customers are happy.', tone: 'good' });
     expect(`${s.copy.eyebrow} · ${s.copy.countLine}`).toBe('First read · 5 responses');
     expect([s.pulse.happy, s.pulse.mixed, s.pulse.unhappy]).toEqual([4, 1, 0]);
     expect(s.pulse.from).toBe('4.8★ from 4 ratings');
+    // Nothing is a pattern or a repeated complaint, and topics exist: the
+    // topics are the reading, not "Most customers are happy".
+    expect(headline).toBeNull();
   });
 
-  it('keeps the useful early signals and the one complaint, and leaves single compliments for Customers', () => {
+  it('shows every topic it read — the repeat first, the one-offs said as one-offs', () => {
+    expect(lists.likes.map((f) => [f.key, f.levelLabel])).toEqual([
+      ['drink_praise', 'Early signal'],
+      ['food_taste', 'Praised once'],
+      ['staff_warmth', 'Praised once'],
+    ]);
+    expect(lists.likes[0]!.line).toBe('2 of 5 customers');
     expect(lists.watching.map((f) => [f.key, f.levelLabel])).toEqual([['service_speed', 'Mentioned once']]);
-    expect(lists.likes.map((f) => [f.key, f.levelLabel, f.line])).toEqual([['drink_praise', 'Early signal', '2 of 5 customers']]);
     expect(lists.patterns).toEqual([]);
-    // Food and staff, praised once each, are one tap away and counted.
-    expect(lists.more).toBe(2);
-    expect(s.likes.map((f) => f.key)).toEqual(expect.arrayContaining(['food_taste', 'staff_warmth']));
+    expect(lists.more).toBe(0);
   });
 
   it('states its confidence once, in one line — and keeps the reasoning for "How Headway decides"', () => {
@@ -92,35 +97,44 @@ describe('the Crazy Cheesy first read, quietly', () => {
     expect(s.copy.doing.length).toBeGreaterThan(0);
   });
 
-  it('reads the same in Hindi and Marathi: same headline kind, same rows, same order', () => {
+  it('reads the same in Hindi and Marathi: same rows, same order, its own words', () => {
     for (const locale of ['hi', 'mr'] as const) {
       const local = runLadder(CRAZY_CHEESY, { t: translatorFor(locale) });
       const shown = homeShown(local.state);
-      expect(shown.headline?.kind, locale).toBe('MOOD');
-      expect(shown.headline?.tone, locale).toBe('good');
+      expect(shown.headline, locale).toBeNull();
+      expect(shown.lists.likes.map((f) => f.key), locale).toEqual(['drink_praise', 'food_taste', 'staff_warmth']);
       expect(shown.lists.watching.map((f) => f.key), locale).toEqual(['service_speed']);
-      expect(shown.lists.likes.map((f) => f.key), locale).toEqual(['drink_praise']);
       expect(local.state.copy.note, locale).not.toBe(s.copy.note);
       expect(local.state.copy.note, locale).toBeTruthy();
     }
   });
 });
 
-describe('the production Crazy Cheesy shape: one compliment, nothing repeated', () => {
+describe('the production Crazy Cheesy, exactly: one written compliment and four bare responses', () => {
+  // As production holds it on 2026-10-02: "Good service" 5★, three bare
+  // ratings (5, 5, 4) and one response with neither words nor stars.
   const r = runLadder([
-    { text: 'Very attentive staff', stars: 5 },
+    { text: 'Good service', stars: 5 },
     { text: '', stars: 5 },
     { text: '', stars: 5 },
     { text: '', stars: 4 },
-    { text: 'Okay', stars: null },
+    { text: '', stars: null },
   ]);
-  it('is not an empty state: the mood leads, and nothing single is dressed up as a row', () => {
-    const { headline, lists } = homeShown(r.state);
-    expect(headline?.title).toBe('Most customers are happy.');
-    expect(lists.likes).toEqual([]);
-    expect(lists.watching).toEqual([]);
-    expect(lists.more).toBe(r.state.findings.length);
-    expect(r.state.copy.note).toBe('Still early — nothing has repeated yet.');
+  const s = r.state;
+  it('has the production pulse', () => {
+    expect([s.pulse.happy, s.pulse.mixed, s.pulse.unhappy]).toEqual([4, 1, 0]);
+    expect(s.pulse.from).toBe('4.8★ from 4 ratings');
+    expect(s.findings.map((f) => [f.key, f.kind, f.levelLabel])).toEqual([['service_quality', 'PRAISE', 'Praised once']]);
+  });
+  it('shows the one thing Headway read — "Attentive service · Praised once" — not just the rating', () => {
+    const { headline, lists } = homeShown(s);
+    expect(headline).toBeNull();
+    expect(lists.likes.map((f) => [f.label, f.levelLabel])).toEqual([['Attentive service', 'Praised once']]);
+    expect(lists.more).toBe(0);
+    expect(s.copy.note).toBe('Still early — nothing has repeated yet.');
+    // Shown as evidence, never as a conclusion: no "strength", no action.
+    expect(lists.likes[0]!.action).toBeNull();
+    expect(JSON.stringify(lists)).not.toMatch(/strength|consistently|keep doing/i);
   });
 });
 
@@ -140,17 +154,28 @@ describe('Home’s rows, at every count and for every kind of feedback', () => {
         expect(new Set(keys).size, keys.join()).toBe(keys.length);
         expect(keys.length + lists.more).toBe(s.findings.length);
 
-        // ---- what earns a row ---------------------------------------------
+        // ---- what earns a row: the strongest, never a weaker one over it -----
         for (const f of lists.patterns) expect(f.kind === 'ISSUE' && isPattern(f.level), f.key).toBe(true);
-        for (const f of lists.likes) {
-          expect(f.kind, f.key).toBe('PRAISE');
-          expect(f.mentions, `${f.key}: a single compliment is not on Home`).toBeGreaterThanOrEqual(EARLY_SIGNAL_MENTIONS);
-        }
+        for (const f of lists.likes) expect(f.kind, f.key).toBe('PRAISE');
         for (const f of lists.watching) {
           expect(f.kind, f.key).toBe('ISSUE');
           expect(isPattern(f.level), f.key).toBe(false);
-          if (n >= EMERGING_AT) expect(f.level, `${f.key}: a one-off at ${n} is not on Home`).not.toBe('OBSERVATION');
         }
+        const strongestFirst = (shown: typeof s.findings, pool: typeof s.findings) => {
+          const hidden = pool.filter((f) => !keys.includes(f.key));
+          for (const h of hidden) for (const v of shown) expect(compareFindings(v, h) <= 0, `${h.key} hidden behind ${v.key}`).toBe(true);
+        };
+        strongestFirst(lists.likes, s.likes);
+        strongestFirst(lists.watching, s.watching);
+        // Nothing useful is hidden while there is room for it.
+        if (s.likes.filter((f) => f.key !== headline?.findingKey).length <= HOME_LIMITS.likes) {
+          for (const f of s.likes) expect(keys, `${f.key} hidden with room to spare`).toContain(f.key);
+        }
+        if (s.watching.filter((f) => f.key !== headline?.findingKey).length <= HOME_LIMITS.watching) {
+          for (const f of s.watching) expect(keys, `${f.key} hidden with room to spare`).toContain(f.key);
+        }
+        // Never an empty reading while Headway read topics.
+        if (s.findings.length > 0) expect(keys.length, 'topics exist but Home shows none').toBeGreaterThan(0);
         // A complaint pattern is never left off Home for lack of room.
         const complaintPatterns = s.concerns.filter((f) => isPattern(f.level));
         if (complaintPatterns.length <= HOME_LIMITS.patterns) {
@@ -158,7 +183,9 @@ describe('Home’s rows, at every count and for every kind of feedback', () => {
         }
 
         // ---- the headline never outruns its evidence -------------------------
-        if (n >= 2) expect(headline, 'a headline from two read').not.toBeNull();
+        // A mood sentence only when there is no topic at all to show instead.
+        if (headline?.kind === 'MOOD') expect(s.findings, 'mood over topics').toEqual([]);
+        if (n >= 2 && s.findings.length === 0 && s.pulse.counted >= 2) expect(headline?.kind).toBe('MOOD');
         if (headline?.kind === 'FINDING') {
           const f = headline.finding!;
           expect(f.level === 'EARLY_SIGNAL' || isPattern(f.level), f.key).toBe(true);
@@ -232,10 +259,13 @@ describe('the page grows with the evidence', () => {
   ];
   const at = (n: number) => runLadder(cycle(cafe, n, 'g')).state;
 
-  it('one response is what that customer said, never a headline about "customers"', () => {
+  it('one response already shows what that customer talked about, each "once", never a headline about "customers"', () => {
     const s = at(1);
-    expect(s.firstResponse?.length).toBeGreaterThan(0);
-    expect(headlineOf(s)).toBeNull();
+    const { headline, lists } = homeShown(s);
+    expect(headline).toBeNull();
+    const rows = [...lists.likes, ...lists.watching];
+    expect(rows.length).toBeGreaterThan(0);
+    for (const f of rows) expect(f.level).toBe('OBSERVATION');
     expect(s.copy.note).toBe('One customer’s view — not a pattern.');
   });
 
@@ -348,5 +378,24 @@ describe('review fixes: the quiet never contradicts itself', () => {
     expect(d.state).toBe('BUILDING_BASELINE');
     expect(d.body).not.toMatch(/another/i);
     expect(d.body).toMatch(/two comparable sets/);
+  });
+});
+
+describe('review fixes: the semantic Home', () => {
+  it('a complaint pattern that does not fit is never outranked by a watched complaint', () => {
+    const patternBank = [
+      { text: 'Service was very slow, we waited 40 minutes', stars: 1 },
+      { text: 'The food arrived cold', stars: 2 },
+      { text: 'The washroom was dirty', stars: 1 },
+      { text: 'The bill was wrong, they overcharged us', stars: 1 },
+      { text: 'Too expensive for what you get', stars: 2 },
+    ];
+    const s = runLadder([...cycle(patternBank, 35, 'p'), ...cycle(PRAISE_BANK, 6, 'q'), { text: 'The music was too loud', stars: 3 }]).state;
+    const complaintPatterns = s.concerns.filter((f) => isPattern(f.level));
+    const lists = homeLists(s, null);
+    if (complaintPatterns.length > HOME_LIMITS.patterns) {
+      expect(lists.watching).toEqual([]);
+    }
+    for (const f of lists.watching) for (const p of complaintPatterns) expect(lists.patterns.map((x) => x.key).includes(p.key) || compareFindings(p, f) > 0, `${f.key} over ${p.key}`).toBe(true);
   });
 });

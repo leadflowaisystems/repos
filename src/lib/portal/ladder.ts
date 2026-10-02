@@ -320,9 +320,9 @@ export type EvidenceState = {
   /** The single strongest thing the evidence supports saying. */
   standsOut: StandsOut | null;
   /**
-   * How customers felt, as one short sentence ("Most customers are happy.") —
-   * the headline whenever no topic is the strongest thing to say, or when the
-   * topic that is has a card of its own on the page. Null below two read.
+   * How customers felt, as one short sentence ("Most customers are happy.").
+   * Pages show it only when no topic was read at all (`headlineOf`): over
+   * topics it restated the counts beside it. Null below two read.
    */
   mood: StandsOut | null;
   /** Whether anything at all has repeated. */
@@ -842,49 +842,55 @@ export function evidenceNumbers(state: EvidenceState): Set<string> {
 }
 
 // ---------------------------------------------------------------------------
-// What Home shows (quieter ladder pass)
+// What Home shows (quieter ladder pass; semantic Home pass)
 // ---------------------------------------------------------------------------
 
 /**
- * HOME'S BUDGET. Home is a briefing, not the whole reading: the strongest
- * truth, then at most this many rows per list. Everything else is one tap
- * away on Customers, which lists every topic on its rung.
+ * HOME'S BUDGET. Home is a briefing, not the whole reading: at most this many
+ * rows per list, strongest evidence first. Everything else is one tap away on
+ * Customers, which lists every topic on its rung.
  */
 export const HOME_LIMITS = { patterns: 3, likes: 3, watching: 2 } as const;
 
 /**
- * The headline: the strongest thing the evidence supports — unless another
- * card on the page already tells that topic in full (Home's story card), in
- * which case it is how customers felt.
+ * THE HEADLINE — only when there is a topic worth leading with: a pattern, or
+ * a complaint that has repeated (`standsOut`). Never a mood sentence over
+ * topics: "Most customers are happy" restated the counts shown right above it
+ * and took the place where Headway's own reading belongs — what customers
+ * talked about (semantic Home pass). The mood sentence remains for a pile
+ * with no topic at all (ratings only), where it is the reading.
+ *
+ * Null too when another card on the page already tells that topic in full
+ * (Home's story card).
  */
 export function headlineOf(state: EvidenceState, omit: string | null = null): StandsOut | null {
   const s = state.standsOut;
-  // The story card IS what stands out; a mood sentence under it would only
-  // restate the counts in the band above.
-  if (s && omit !== null && s.findingKey === omit) return null;
-  return s ?? state.mood;
+  if (s?.kind === 'FINDING') return omit !== null && s.findingKey === omit ? null : s;
+  return state.findings.length === 0 ? state.mood : null;
 }
 
 export type HomeLists = {
   /** Complaints that are patterns, beside the story card's own. */
   patterns: Finding[];
-  /** Praise that has repeated — a single compliment is not on Home. */
+  /** Praise, strongest first — from the first compliment, said as what it is. */
   likes: Finding[];
-  /** Complaints below a pattern. From ten read, only those that repeated. */
+  /** Complaints below a pattern, strongest first. */
   watching: Finding[];
   /** Topics left for Customers, so Home can say how many more there are. */
   more: number;
 };
 
 /**
- * WHICH TOPICS EARN A ROW ON HOME — signal over completeness.
+ * WHICH TOPICS EARN A ROW ON HOME.
  *
- *   A complaint pattern always does.
- *   Praise does once it has repeated: "Praised once" changes nothing an owner
- *   would think or do, and it is still listed on Customers.
- *   A complaint below a pattern does while the pile is small — at five, one
- *   customer's complaint is worth knowing — and from ten read only once it has
- *   repeated, because there a one-off is exactly that.
+ * DISPLAY IS NOT A CLAIM. A topic one customer raised is evidence worth
+ * showing — "Attentive service · Praised once" tells an owner something a
+ * 4.8★ average cannot — and its rung says exactly how much it is. What the
+ * evidence limits is the CLAIM ("Strong pattern", "What to do"), never
+ * whether Headway may say what it read. So every topic may take a row, and
+ * the budget, not a mention count, decides which: complaint patterns first,
+ * then praise and the complaints still being watched, each strongest first
+ * (`compareFindings`), so a repeat always outranks a one-off.
  *
  * The rungs are unchanged: this decides only what Home has room for, never
  * what anything is called.
@@ -896,15 +902,20 @@ export function homeLists(state: EvidenceState, omit: string | null = null): Hom
   const told = omit !== null && state.findings.some((f) => f.key === omit) ? omit : null;
   const shown = new Set<string>([told, headline?.findingKey].filter((k): k is string => typeof k === 'string'));
   const keep = (f: Finding) => !shown.has(f.key);
-  const patterns = state.concerns.filter((f) => isPattern(f.level)).filter(keep).slice(0, HOME_LIMITS.patterns);
-  const likes = state.likes
-    .filter((f) => f.mentions >= EARLY_SIGNAL_MENTIONS)
-    .filter(keep)
-    .slice(0, HOME_LIMITS.likes);
-  const watching = state.watching
-    .filter((f) => state.read < EMERGING_AT || f.level !== 'OBSERVATION')
-    .filter(keep)
-    .slice(0, HOME_LIMITS.watching);
+  const allPatterns = state.concerns.filter((f) => isPattern(f.level)).filter(keep);
+  const patterns = allPatterns.slice(0, HOME_LIMITS.patterns);
+  const likes = state.likes.filter(keep).slice(0, HOME_LIMITS.likes);
+  // When a complaint pattern did not fit, no weaker complaint takes a row
+  // ahead of it: "Worth watching" waits, and both are counted under "more".
+  const watching = allPatterns.length > patterns.length ? [] : state.watching.filter(keep).slice(0, HOME_LIMITS.watching);
   const listed = shown.size + patterns.length + likes.length + watching.length;
   return { patterns, likes, watching, more: Math.max(0, state.findings.length - listed) };
+}
+
+/**
+ * RIGHT NOW, IN A FEW ROWS — the strongest topics of either kind, for a page
+ * whose job is something else (Trends). Strongest evidence first.
+ */
+export function topFindings(state: EvidenceState, limit = 3): Finding[] {
+  return state.findings.slice(0, limit);
 }

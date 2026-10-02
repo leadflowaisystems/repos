@@ -136,7 +136,7 @@ export async function PortalHome({
   const fresh = await getFreshFeed(prisma, client.id, {
     now,
     t,
-    // Words before bare ratings, newest first (quieter ladder pass).
+    // What customers wrote; responses without words become one line.
     preferWords: true,
     labelFor: (key) => signalByTheme.get(key)?.themeLabel ?? null,
   });

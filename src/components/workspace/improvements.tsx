@@ -12,7 +12,8 @@ import type { EvidenceIndex } from '@/lib/portal/evidence';
 import type { TrendRow, Trends } from '@/lib/portal/trends';
 import { trendOf, type BriefTrend } from '@/lib/portal/brief';
 import { Quiet, Section } from '@/components/portal/portal-ui';
-import { DirectionPanel, PulseLine } from '@/components/workspace/evidence-ladder';
+import { DirectionPanel, PulseLine, TopicRows } from '@/components/workspace/evidence-ladder';
+import { topFindings } from '@/lib/portal/ladder';
 import type { EvidenceState } from '@/lib/portal/ladder';
 import { Reveal } from '@/components/portal/disclose';
 import { ImprovementStory } from '@/components/workspace/improvement-story';
@@ -615,11 +616,11 @@ export function TrendsBoard({ trends, basePath, t }: { trends: Trends; basePath:
 }
 
 /**
- * RIGHT NOW — the current picture in one line, kept apart from which way it is
- * moving (quieter ladder pass). Trends used to repeat Home's whole first read
- * here; Trends' job is change over time, so the current state is the counts
- * and the way to Customers, where every topic is listed on its rung. Never a
- * direction: nothing here says better or worse.
+ * RIGHT NOW — the current picture in a glance, kept apart from which way it is
+ * moving. Trends used to repeat Home's whole first read here; Trends' job is
+ * change over time, so the current state is the counts, the strongest few
+ * topics on their rungs, and the way to Customers, where every topic is
+ * listed. Never a direction: nothing here says better or worse.
  */
 async function CurrentPicture({
   state,
@@ -640,6 +641,9 @@ async function CurrentPicture({
         <span className="font-medium tracking-normal normal-case">· {state.copy.countLine}</span>
       </h2>
       <PulseLine state={state} eyebrow={false} className="mt-1.5" />
+      {/* What customers are talking about now, in a glance — the strongest
+          few topics, each on its rung. The full list is on Customers. */}
+      <TopicRows findings={topFindings(state)} basePath={basePath} className="mt-2 border-t border-ink-100" />
       <Link
         href={`${basePath}/analysis`}
         className="mt-1 inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-ink-700 hover:text-ink-900"

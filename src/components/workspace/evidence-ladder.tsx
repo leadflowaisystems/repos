@@ -191,10 +191,29 @@ export async function AllFindings({
  * suggestion carries it underneath — from ten read, Home is meant to be more
  * useful, not just longer.
  */
-function TopicLine({ finding, basePath, t, withAction }: { finding: Finding; basePath: string; t: PortalTranslator; withAction: boolean }) {
+function TopicLine({
+  finding,
+  basePath,
+  t,
+  withAction,
+  movement = true,
+}: {
+  finding: Finding;
+  basePath: string;
+  t: PortalTranslator;
+  withAction: boolean;
+  /** Off on a current-state card: "right now" never says which way anything moved. */
+  movement?: boolean;
+}) {
   return (
     <li className="py-2.5">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        {/* Praise or complaint, as a mark the eye catches before the words;
+            the section heading says it in words. */}
+        <span
+          aria-hidden
+          className={clsx('h-2 w-2 shrink-0 rounded-full', finding.kind === 'PRAISE' ? 'bg-good-600' : 'bg-bad-600')}
+        />
         <Link
           href={`${basePath}/reviews?theme=${encodeURIComponent(finding.key)}`}
           className="text-[15px] leading-snug font-semibold text-ink-900 underline decoration-ink-200 underline-offset-4 hover:decoration-ink-900"
@@ -203,7 +222,7 @@ function TopicLine({ finding, basePath, t, withAction }: { finding: Finding; bas
         </Link>
         <LevelChip finding={finding} />
         <Counts finding={finding} />
-        <Mark finding={finding} t={t} />
+        {movement ? <Mark finding={finding} t={t} /> : null}
       </div>
       {withAction && finding.action?.eyebrow ? (
         <p className="mt-1 line-clamp-2 text-[14px] leading-snug text-ink-700">
@@ -231,7 +250,7 @@ function TopicList({
 }) {
   if (findings.length === 0) return null;
   return (
-    <section className="mt-5">
+    <section>
       <h3
         className={clsx(
           EYEBROW,
@@ -251,6 +270,19 @@ function TopicList({
         ))}
       </ul>
     </section>
+  );
+}
+
+/** Topic rows without a heading, for a page that only needs a glance (Trends' "Right now"). */
+export async function TopicRows({ findings, basePath, className }: { findings: Finding[]; basePath: string; className?: string }) {
+  if (findings.length === 0) return null;
+  const t = await getTranslator();
+  return (
+    <ul className={clsx('divide-y divide-ink-100', className)}>
+      {findings.map((f) => (
+        <TopicLine key={`${f.kind}:${f.key}`} finding={f} basePath={basePath} t={t} withAction={false} movement={false} />
+      ))}
+    </ul>
   );
 }
 
@@ -315,18 +347,20 @@ function Confidence({
 }
 
 /**
- * HOME'S READING — the briefing (quieter ladder pass).
+ * HOME'S READING — the briefing (quieter ladder pass; semantic Home pass).
  *
- *   1 response    what they told you, a line each
- *   2 and up      what stands out, in one sentence
- *   then          what keeps coming up (patterns), what customers like (praise
- *                 that has repeated), what is worth watching — a few rows each,
- *                 by `homeLists`, so one compliment never fills a row
+ *   headline      a pattern or a repeated complaint, when one earns it
+ *   then          what keeps coming up (complaint patterns, with what to do),
+ *                 what customers are saying (praise) and what is worth
+ *                 watching (complaints below a pattern) — every topic read,
+ *                 from the first mention, each said as what it is ("Praised
+ *                 once"), a few rows each by `homeLists`
  *   last          how sure Headway is, in one line
  *
- * Density follows the evidence: at five there may be two rows; at thirty there
- * are patterns with what to do about them. `omit` is the topic Home's story
- * card already tells in full.
+ * Display is not a claim: a topic one customer raised is shown, and its rung
+ * says it is one customer. Density follows the evidence: at five there may be
+ * four rows of first mentions; at thirty, patterns with what to do about
+ * them. `omit` is the topic Home's story card already tells in full.
  */
 export async function HomeReading({
   state,
@@ -345,46 +379,35 @@ export async function HomeReading({
   const rows = lists.patterns.length + lists.likes.length + lists.watching.length;
   // With the story card above telling the one topic there is, and nothing
   // else to list, the card would hold only a reveal: say nothing instead.
-  if (!state.firstResponse && !headline && rows === 0 && !state.copy.note) return null;
+  if (!headline && rows === 0 && !state.copy.note) return null;
   return (
     <section
       aria-label={t('ladder.section.standsOut')}
       className={clsx('rounded-2xl border border-ink-200 bg-white p-5 shadow-[0_1px_2px_rgba(16,42,67,0.04)] sm:p-6', className)}
     >
-      {state.firstResponse ? (
-        <div>
-          <p className={clsx(EYEBROW, 'text-ink-500')}>{t('ladder.section.first')}</p>
-          <ul className="mt-1.5 space-y-0.5">
-            {state.firstResponse.map((line) => (
-              <li key={line} className="text-[16px] leading-snug font-medium text-ink-900">
-                {line}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : headline ? (
-        <Headline headline={headline} eyebrow t={t} />
+      {/* One card, in this order: a topic worth leading with (when one
+          earns it), what keeps coming up, what customers are saying (praise,
+          from the first mention), what is worth watching. Every row is a
+          topic Headway read in their words; the rung beside it says how sure
+          that is. */}
+      <div className="space-y-5">
+        {headline ? <Headline headline={headline} eyebrow t={t} /> : null}
+        <TopicList title={t('ladder.section.patterns')} findings={lists.patterns} basePath={basePath} t={t} tone="bad" withAction />
+        <TopicList title={t('ladder.section.likes')} findings={lists.likes} basePath={basePath} t={t} tone="good" />
+        <TopicList title={t('ladder.section.watching')} findings={lists.watching} basePath={basePath} t={t} tone="neutral" />
+      </div>
+      {/* What Home left out is one tap away, and says how much there is,
+          so a topic kept off Home is never a topic hidden. */}
+      {lists.more > 0 ? (
+        <Link
+          href={`${basePath}/analysis`}
+          className="mt-2 inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-ink-700 hover:text-ink-900"
+        >
+          {t.plural('ladder.more.topics', lists.more)} <span aria-hidden>→</span>
+        </Link>
       ) : null}
 
-      {state.read > 1 ? (
-        <>
-          <TopicList title={t('ladder.section.patterns')} findings={lists.patterns} basePath={basePath} t={t} tone="bad" withAction />
-          <TopicList title={t('ladder.section.watching')} findings={lists.watching} basePath={basePath} t={t} tone="neutral" />
-          <TopicList title={t('ladder.section.likes')} findings={lists.likes} basePath={basePath} t={t} tone="good" />
-          {/* What Home left out is one tap away, and says how much there is,
-              so a topic kept off Home is never a topic hidden. */}
-          {lists.more > 0 ? (
-            <Link
-              href={`${basePath}/analysis`}
-              className="mt-2 inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-ink-700 hover:text-ink-900"
-            >
-              {t.plural('ladder.more.topics', lists.more)} <span aria-hidden>→</span>
-            </Link>
-          ) : null}
-        </>
-      ) : null}
-
-      <Confidence state={state} t={t} className="mt-4 border-t border-ink-100 pt-4" />
+      <Confidence state={state} t={t} className={clsx(headline || rows > 0 ? 'mt-4 border-t border-ink-100 pt-4' : null)} />
     </section>
   );
 }

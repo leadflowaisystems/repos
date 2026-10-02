@@ -80,6 +80,11 @@ export type FreshFeed = {
   latest: LatestEntry[];
   /** Everything this business holds, read or not — the size of "see all". */
   total: number;
+  /**
+   * Ratings left without words that are not shown as rows (`preferWords`):
+   * Home says how many in one line instead of a row each.
+   */
+  quiet: number;
 };
 
 /** The same evidence date every other reader of the ledger uses. */
@@ -114,12 +119,16 @@ export function buildFreshFeed(input: {
   labelFor?: (key: string) => string | null;
   limit?: number;
   /**
-   * Home's list (quieter ladder pass): the newest feedback with words in it
-   * first, and a rating left without words only when there are not enough of
-   * those. Three rows of "Rated without writing anything" told an owner
-   * nothing the star count above them had not; the ratings are still counted
-   * in the pulse and listed on Feedback. Anything not read yet always counts
-   * as worth showing — it is the row the owner just watched arrive.
+   * Home's list (semantic Home pass): what customers WROTE, newest first.
+   * Responses without words become one line ("+ 2 more responses without
+   * words") rather than rows: two rows of "Rated without writing anything"
+   * above the one customer who wrote something buried the only words there
+   * were. The line counts only those that arrived among the rows shown — it
+   * belongs under "Latest", not a tally of all history — and every response is
+   * still counted in the pulse and listed on Feedback. Only when nobody has
+   * written anything do bare ratings take the rows, so the list is never
+   * empty while there is feedback. A response not read yet always takes a
+   * row — it is the one the owner just watched arrive.
    */
   preferWords?: boolean;
 }): FreshFeed {
@@ -133,23 +142,20 @@ export function buildFreshFeed(input: {
   // Top `limit` by evidence date, found in one pass: the ledger can be ten
   // thousand rows and the answer is three of them.
   const top: LedgerRow[] = [];
-  // Worth a row: words in it, or not read yet, or read moments ago — the
-  // response the live line is announcing is never missing from the list.
-  const worded = (row: LedgerRow) =>
-    !input.preferWords ||
-    awaitingFirstRead(row) ||
-    (row.analysedAt !== null && row.analysedAt.getTime() >= justSince && row.createdAt.getTime() >= newSince) ||
-    /[\p{L}\p{N}]/u.test(row.text)
-      ? 1
-      : 0;
+  // Written: any text at all — the same rule the pulse counts words by, so
+  // "👍👍" is something a customer wrote. Worth a row: written, or not read yet.
+  const written = (row: LedgerRow) => row.text.trim().length > 0;
+  const worthy = (row: LedgerRow) => (!input.preferWords || awaitingFirstRead(row) || written(row) ? 1 : 0);
+  let writtenTotal = 0;
   const newer = (a: LedgerRow, b: LedgerRow) =>
-    worded(a) - worded(b) ||
+    worthy(a) - worthy(b) ||
     evidenceAt(a).getTime() - evidenceAt(b).getTime() ||
     a.createdAt.getTime() - b.createdAt.getTime() ||
     // Ties broken the same way the ledger breaks them, so the three are stable.
     (a.id < b.id ? 1 : a.id > b.id ? -1 : 0);
 
   for (const row of ledger) {
+    if (written(row)) writtenTotal += 1;
     if (awaitingFirstRead(row)) unread += 1;
     else if (
       isCurrentAnalysis(row) &&
@@ -183,7 +189,18 @@ export function buildFreshFeed(input: {
   // "Latest" always read in order.
   const byTime = (a: LedgerRow, b: LedgerRow) =>
     evidenceAt(b).getTime() - evidenceAt(a).getTime() || b.createdAt.getTime() - a.createdAt.getTime() || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
-  const latest = [...top].sort(byTime).map((row): LatestEntry => {
+  // With anything written, responses without words leave the rows for the
+  // one-line count. Decided on what is WRITTEN, not on what is waiting to be
+  // read, so the list does not shrink and grow back while a bare rating is
+  // being read.
+  const pickWritten = input.preferWords === true && writtenTotal > 0;
+  const rows = pickWritten ? top.filter((row) => worthy(row) === 1) : top;
+  let quiet = 0;
+  if (pickWritten && rows.length > 0) {
+    const oldestShown = Math.min(...rows.map((row) => evidenceAt(row).getTime()));
+    for (const row of ledger) if (worthy(row) === 0 && evidenceAt(row).getTime() >= oldestShown) quiet += 1;
+  }
+  const latest = [...rows].sort(byTime).map((row): LatestEntry => {
     const state = stateOf(row);
     const topics =
       state === 'READ'
@@ -206,7 +223,7 @@ export function buildFreshFeed(input: {
     };
   });
 
-  return { live, latest, total: ledger.length };
+  return { live, latest, total: ledger.length, quiet };
 }
 
 const MINUTE = 60_000;
