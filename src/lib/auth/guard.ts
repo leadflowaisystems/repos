@@ -80,6 +80,14 @@ export async function isOperator(): Promise<boolean> {
 }
 
 /**
+ * Said to a form submitted with no session behind it any more — signed out on
+ * another device, a password changed elsewhere, or simply expired. Not
+ * "no access": the person may well own the business; they need to sign in.
+ * It names nothing about the business, so it tells a stranger nothing either.
+ */
+export const SIGNED_OUT_MESSAGE = 'Your session has ended. Sign in again, then try once more.';
+
+/**
  * Admin-only actions, as a result rather than a redirect.
  *
  * Actions return an ActionState, so a redirect out of one loses whatever the
@@ -89,7 +97,7 @@ export async function adminGate(): Promise<
   { ok: true; actor: Actor } | { ok: false; state: ActionState }
 > {
   const actor = await currentActor(prisma);
-  if (!actor) return { ok: false, state: failure(DENIED_MESSAGE) };
+  if (!actor) return { ok: false, state: failure(SIGNED_OUT_MESSAGE) };
   if (!actor.isPlatformAdmin) return { ok: false, state: failure(DENIED_MESSAGE) };
   return { ok: true, actor };
 }
@@ -167,7 +175,7 @@ export async function tenantGate(
   const clientId = typeof raw === 'string' ? raw.trim() : '';
 
   const actor = await currentActor(prisma);
-  if (!actor) return { ok: false, state: failure(DENIED_MESSAGE) };
+  if (!actor) return { ok: false, state: failure(SIGNED_OUT_MESSAGE) };
   if (clientId.length === 0) return { ok: false, state: failure(DENIED_MESSAGE) };
 
   const allowed = level === 'OWNER' ? canManage(actor, clientId) : canRead(actor, clientId);

@@ -72,7 +72,7 @@ export async function middleware(request: NextRequest) {
   const anonKey = (process.env[SUPABASE_ANON_KEY_VAR] ?? '').trim();
   // Nothing is configured yet: send people to sign in rather than letting them
   // through on the grounds that the check could not run.
-  if (!url || !anonKey) return signedOut(request);
+  if (!url || !anonKey) return isServerAction(request) ? NextResponse.next() : signedOut(request);
 
   let response = NextResponse.next({ request });
 
@@ -113,7 +113,19 @@ export async function middleware(request: NextRequest) {
   // getUser, not getSession: the cookie is re-verified with the auth server
   // rather than believed as it stands.
   const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) return signedOut(request, rotated);
+  if (error || !data.user) {
+    // A form submitted from a page whose session has since ended (signed out
+    // on another device, a password changed elsewhere, simply expired) is a
+    // Server Action: a POST the browser makes with fetch and expects an answer
+    // in Next's own format. A redirect here is followed as a POST to /login,
+    // which has no such action, and Next shows "Something went wrong" instead
+    // of the sign-in page. So it goes through, with any cookies Supabase just
+    // cleared, to the action itself — whose own gate is the real check (every
+    // action's first statement, enforced by the compliance suite) and answers
+    // a missing session by sending the person to sign in.
+    if (isServerAction(request)) return response;
+    return signedOut(request, rotated);
+  }
 
   return response;
 }
@@ -124,6 +136,11 @@ type Rotated = Array<{ name: string; value: string; options?: Partial<ResponseCo
  * Where a request with no usable session goes: the front door for `/`, the
  * sign-in page for anything else.
  */
+/** A Server Action: Next posts these with the action's id in this header. */
+function isServerAction(request: NextRequest): boolean {
+  return request.method === 'POST' && request.headers.has('next-action');
+}
+
 function signedOut(request: NextRequest, rotated: Rotated = []) {
   if (request.nextUrl.pathname === '/') return toFrontDoor(request, rotated);
   return toLogin(request, rotated);
