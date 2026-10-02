@@ -12,7 +12,7 @@ import type { EvidenceIndex } from '@/lib/portal/evidence';
 import type { TrendRow, Trends } from '@/lib/portal/trends';
 import { trendOf, type BriefTrend } from '@/lib/portal/brief';
 import { Quiet, Section } from '@/components/portal/portal-ui';
-import { DirectionPanel, EvidenceReading } from '@/components/workspace/evidence-ladder';
+import { DirectionPanel, PulseLine } from '@/components/workspace/evidence-ladder';
 import type { EvidenceState } from '@/lib/portal/ladder';
 import { Reveal } from '@/components/portal/disclose';
 import { ImprovementStory } from '@/components/workspace/improvement-story';
@@ -501,28 +501,28 @@ function TrendCard({
       href={`${basePath}/reviews?theme=${encodeURIComponent(row.key)}`}
       className="hw-focus-inset flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-ink-50"
     >
+      {/* THE CHANGE IS THE HERO (quieter ladder pass): the topic, the share
+          of each comparable set that mentioned it — what the verdict was
+          judged on — and which way, then the counts it rests on, quietly. */}
       <span className="min-w-0 flex-1">
-        <span
-          className={clsx(
-            'block leading-snug font-semibold text-ink-900',
-            tone === 'stable' ? 'text-[15px]' : 'text-[16px]',
-          )}
-        >
-          {row.label}
-        </span>
-        {/* How much, then which way — the two things a glance needs. */}
-        <span className="mt-0.5 flex flex-wrap items-baseline gap-x-3">
-          <span className="text-[14px] text-ink-800 tabular-nums">
-            {t.plural('improvements.trends.mentions', row.mentions)}
+        <span className="flex flex-wrap items-baseline justify-between gap-x-3">
+          <span
+            className={clsx(
+              'leading-snug font-semibold text-ink-900',
+              tone === 'stable' ? 'text-[15px]' : 'text-[16px]',
+            )}
+          >
+            {row.label}
           </span>
-          <span className={clsx('text-[14px] font-semibold', tone === 'stable' ? 'text-ink-500' : colour.head)}>
-            {movedPhrase(row, t)}
-          </span>
+          {pct ? (
+            <span className={clsx('font-mono text-[17px] font-semibold tabular-nums', colour.figure)}>{pct}</span>
+          ) : null}
         </span>
-        {/* The two check-ins it rests on, quietly. */}
-        <span className="mt-0.5 block text-[12px] text-ink-500 tabular-nums">
-          {pct ? <span className={clsx(tone !== 'stable' && 'font-semibold', colour.figure)}>{pct} · </span> : null}
-          {countOf(row.previous, row.previousTotal)} → {countOf(row.current, row.currentTotal)}
+        <span className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-[13px] tabular-nums">
+          <span className={clsx('font-semibold', tone === 'stable' ? 'text-ink-500' : colour.head)}>{movedPhrase(row, t)}</span>
+          <span className="text-ink-500">
+            {countOf(row.previous, row.previousTotal)} → {countOf(row.current, row.currentTotal)}
+          </span>
         </span>
       </span>
       <span aria-hidden className="shrink-0 text-[18px] leading-none text-ink-300">
@@ -615,44 +615,36 @@ export function TrendsBoard({ trends, basePath, t }: { trends: Trends; basePath:
 }
 
 /**
- * WHAT CUSTOMERS ARE SAYING NOW — kept apart from which way it is moving.
- *
- * Current state needs no comparison: it is counted over everything Headway has
- * read, and it is never empty once anything has been read. Each topic says its
- * rung — mentioned once, early signal, emerging or strong pattern — so the
- * owner can see what is known and what is only being watched. Never a
+ * RIGHT NOW — the current picture in one line, kept apart from which way it is
+ * moving (quieter ladder pass). Trends used to repeat Home's whole first read
+ * here; Trends' job is change over time, so the current state is the counts
+ * and the way to Customers, where every topic is listed on its rung. Never a
  * direction: nothing here says better or worse.
  */
 async function CurrentPicture({
   state,
   basePath,
-  evidence,
   t,
+  className,
 }: {
   state: EvidenceState;
   basePath: string;
-  evidence: EvidenceIndex;
   t: Translator<MessageKey>;
+  className?: string;
 }) {
+  if (state.read === 0) return null;
   return (
-    <section aria-labelledby="trends-now" className="mt-6">
-      <h2 id="trends-now" className="font-display text-[20px] leading-tight font-semibold text-ink-900">
-        {t('ladder.section.now')}
+    <section aria-labelledby="trends-now" className={clsx('rounded-xl border border-ink-200 bg-white px-4 py-3.5', className)}>
+      <h2 id="trends-now" className="flex flex-wrap items-center gap-x-2 text-[11px] font-semibold tracking-[0.14em] text-ink-500 uppercase">
+        <span>{t('ladder.trends.now')}</span>
+        <span className="font-medium tracking-normal normal-case">· {state.copy.countLine}</span>
       </h2>
-      <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-ink-600">{t('ladder.section.nowNote')}</p>
-      <EvidenceReading
-        state={state}
-        basePath={basePath}
-        evidence={evidence}
-        variant="compact"
-        headingLevel={3}
-        className="mt-4"
-      />
+      <PulseLine state={state} eyebrow={false} className="mt-1.5" />
       <Link
         href={`${basePath}/analysis`}
         className="mt-1 inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-ink-700 hover:text-ink-900"
       >
-        {t('improvements.now.all')} <span aria-hidden>→</span>
+        {t('ladder.trends.nowLink')} <span aria-hidden>→</span>
       </Link>
     </section>
   );
@@ -701,8 +693,6 @@ export async function PortalImprovements({
       <h1 className="mt-1.5 font-display text-[28px] leading-[1.12] font-semibold tracking-[-0.01em] text-balance text-ink-900 sm:text-[32px]">
         {t('improvements.trends.title')}
       </h1>
-      <p className="mt-1.5 text-[15px] leading-snug text-ink-700">{t('improvements.trends.intro')}</p>
-
       {/* TRENDS — the page's first answer: what is changing, once two
           comparable periods exist. Until then, two separate things, said
           separately: what customers are saying NOW — which needs no
@@ -711,14 +701,18 @@ export async function PortalImprovements({
           and "no trend yet" is never mistaken for "nothing to say". */}
       {view.trends.comparable ? (
         <>
-          <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-ink-600">{state.direction.body}</p>
+          <h2 className="mt-4 font-display text-[22px] leading-tight font-semibold text-ink-900">{state.direction.title}</h2>
+          <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-ink-500">{state.direction.body}</p>
           <TrendsBoard trends={view.trends} basePath={basePath} t={t} />
-          <CurrentPicture state={state} basePath={basePath} evidence={evidence} t={t} />
+          <CurrentPicture state={state} basePath={basePath} t={t} className="mt-8" />
         </>
       ) : (
         <>
-          <CurrentPicture state={state} basePath={basePath} evidence={evidence} t={t} />
-          <DirectionPanel direction={state.direction} basePath={basePath} className="mt-8" />
+          {/* No comparison yet: the answer is the headline ("Not enough
+              history yet"), with the current picture in one line above it.
+              Nothing from Home's reading is repeated here. */}
+          <CurrentPicture state={state} basePath={basePath} t={t} className="mt-5" />
+          <DirectionPanel direction={state.direction} className="mt-4" />
         </>
       )}
 

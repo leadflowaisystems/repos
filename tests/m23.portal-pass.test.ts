@@ -572,7 +572,7 @@ describe('the words an owner reads', () => {
 
     const customers = stripComments(read('src', 'components', 'workspace', 'analysis.tsx'));
     expect(customers).toContain('<SoFar soFar={view.soFar} basePath={basePath} explain />');
-    expect(customers).toContain('<Limits limits={view.limits} />');
+    expect(customers).toContain('<Limits limits={view.limits} collapsed />');
     expect(customers).toContain('<WorkList work={view.work} />');
 
     // The same methodology sentence is not written into two pages.

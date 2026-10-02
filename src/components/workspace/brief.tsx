@@ -6,13 +6,12 @@ import { Reveal } from '@/components/portal/disclose';
 import { OwnerDecision } from '@/components/workspace/owner-decision';
 import { Greeting } from '@/components/workspace/greeting';
 import { LiveRefresh } from '@/components/workspace/live-refresh';
-import { DirectionPanel, EvidenceReading } from '@/components/workspace/evidence-ladder';
+import { EvidenceReading, HomeReading } from '@/components/workspace/evidence-ladder';
 import { movesFor } from '@/lib/improve/owner-moves';
 import { whenSaid, type FreshFeed, type LatestEntry, type LiveState } from '@/lib/portal/fresh';
 import { formatDate } from '@/lib/format';
 import type { PortalTranslator } from '@/lib/i18n/translator';
 import type { EvidenceState } from '@/lib/portal/ladder';
-import type { EvidenceIndex } from '@/lib/portal/evidence';
 
 /**
  * YOUR HEADWAY BRIEF — the screen an owner opens (final experience pass).
@@ -193,7 +192,7 @@ async function Band({ brief, state, live }: { brief: Brief; state: EvidenceState
           {header.needsYou > 0
             ? t.plural('brief.status.needs', header.needsYou)
             : early
-              ? `${state.copy.eyebrow} · ${state.copy.readLine}`
+              ? `${state.copy.eyebrow} · ${state.copy.countLine}`
               : t('brief.calm.title')}
         </p>
         <LiveLine live={live} arrivedSinceVisit={header.arrivedSinceVisit} t={t} />
@@ -220,22 +219,23 @@ async function Band({ brief, state, live }: { brief: Brief; state: EvidenceState
       ) : null}
 
       {/* How customers feel — one quiet line, not three tiles (mobile polish
-          pass). Three big figures above the problem made the top of Home read
-          as a dashboard and pushed "what to do" below the fold; the counts are
-          the same, said once, small. The dot is decoration and the word
-          carries the meaning, so colour is never the only signal. */}
-      <p className={clsx(EYEBROW, 'mt-5 text-ink-300')}>{t('brief.mood.title')}</p>
-      <dl className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
+          pass). The counts say what they are ("4 Happy"), so they need no
+          heading of their own; the rating line under them says its own
+          denominator ("4.8★ from 4 ratings"). The response count is said once
+          on this band: in the status line while the evidence is early, here
+          once the status line is about whether anything needs the owner. The
+          dot is decoration and the word carries the meaning. */}
+      <dl className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1">
         {tiles.map((tile) => (
           <div key={tile.key} className="flex items-baseline gap-1.5">
             <span aria-hidden className={clsx('h-2 w-2 shrink-0 self-center rounded-full', tile.dot)} />
-            <dd className="text-[16px] font-semibold text-white tabular-nums">{tile.value}</dd>
+            <dd className="text-[17px] font-semibold text-white tabular-nums">{tile.value}</dd>
             <dt className="text-[13px] text-ink-200">{tile.label}</dt>
           </div>
         ))}
       </dl>
       <p className="mt-1 text-[12px] text-ink-300 tabular-nums">
-        {pulse.basis} · {pulse.ratings}
+        {early && header.needsYou === 0 ? pulse.from : `${state.copy.countLine} · ${pulse.from}`}
         {brief.waiting > 0 ? ` · ${t.plural('brief.today.waiting', brief.waiting)}` : ''}
       </p>
     </section>
@@ -637,7 +637,6 @@ export async function OwnerBrief({
   state,
   clientId,
   basePath,
-  evidence,
   fresh = null,
   stamp,
   now = new Date(),
@@ -653,8 +652,6 @@ export async function OwnerBrief({
   clientId?: string;
   /** Where this door lives, so the record can link to the full action centre. */
   basePath: string;
-  /** The rows behind every count, so a pattern can show one customer's words. */
-  evidence?: EvidenceIndex;
   /** The newest feedback and where Headway is with it. See `portal/fresh.ts`. */
   fresh?: FreshFeed | null;
   /**
@@ -682,33 +679,33 @@ export async function OwnerBrief({
   const undecided = brief.attention ? brief.attention.loop.state === 'NONE' || brief.attention.loop.state === 'SUGGESTED' : false;
   const suggestTitle =
     lead && undecided && lead.level === 'EMERGING_PATTERN' ? t('ladder.action.check') : undefined;
-  // "Nothing needs your attention" is said only once ten or more are read —
-  // below that it is a conclusion the evidence has not earned.
-  const settled = state.stage === 'EMERGING_PICTURE' || state.stage === 'STRONG_PATTERNS';
-  const calm = settled && brief.calm ? t('brief.calm.title') : null;
+  // Which way things are moving is Trends' question, not Home's (quieter
+  // ladder pass): Home used to carry a two-paragraph "Which way things are
+  // moving" card at every stage, saying there was no answer yet. Home now says
+  // something about direction only when there is something to say — the
+  // topics that moved — and otherwise leaves it to the Trends tab.
+  const side = brief.changed.length > 0 || brief.memory !== null;
   return (
     <>
       {watcher}
       <Band brief={brief} state={state} live={fresh?.live ?? null} />
-      <div className="mt-6 grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div
+        className={clsx(
+          'mt-6 grid grid-cols-1 items-start gap-8',
+          side ? 'lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]' : 'max-w-3xl',
+        )}
+      >
         <div className="min-w-0 space-y-8">
           {brief.attention ? <Story card={brief.attention} clientId={clientId} suggestTitle={suggestTitle} /> : null}
-          <EvidenceReading
-            state={state}
-            basePath={basePath}
-            evidence={evidence}
-            omit={brief.attention?.themeKey ?? null}
-            calm={calm}
-            // The band says the stage and the read count one line above.
-            eyebrow={false}
-          />
+          <HomeReading state={state} basePath={basePath} omit={brief.attention?.themeKey ?? null} />
           {fresh ? <Latest fresh={fresh} basePath={basePath} now={now} /> : null}
         </div>
-        <div className="min-w-0 space-y-8">
-          <DirectionPanel direction={state.direction} basePath={basePath} variant="compact" />
-          <Changed brief={brief} basePath={basePath} />
-          {brief.memory ? <Memory memory={brief.memory} basePath={basePath} /> : null}
-        </div>
+        {side ? (
+          <div className="min-w-0 space-y-8">
+            <Changed brief={brief} basePath={basePath} />
+            {brief.memory ? <Memory memory={brief.memory} basePath={basePath} /> : null}
+          </div>
+        ) : null}
       </div>
     </>
   );

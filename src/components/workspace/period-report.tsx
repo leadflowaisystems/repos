@@ -4,7 +4,7 @@ import type { MessageKey } from '@/lib/i18n/strings';
 import type { Translator } from '@/lib/i18n/t';
 import type { PeriodReport, PeriodTheme } from '@/lib/reporting/service';
 import type { EvidenceState } from '@/lib/portal/ladder';
-import { EvidenceReading } from '@/components/workspace/evidence-ladder';
+import { EvidenceReading, ReadingSummary } from '@/components/workspace/evidence-ladder';
 
 /**
  * The weekly Pulse and the monthly Review, rendered (M20 Stage 4). Those are
@@ -193,7 +193,7 @@ export async function PeriodReportView({
         // Too little in this window to compare with the last one — which is
         // a fact about the window, not about what Headway knows. The reading
         // of everything read so far follows, marked with its own stage.
-        <EvidenceReading state={state} basePath={basePath} variant="compact" headingLevel={3} className="mt-8" />
+        <ReadingSummary state={state} className="mt-8" />
       ) : null}
 
       {report.actions.length > 0 ? (

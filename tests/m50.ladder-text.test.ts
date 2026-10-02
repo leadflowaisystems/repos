@@ -108,7 +108,7 @@ describe('each surfaces at the rung its evidence reaches, and no higher', () => 
       for (const f of r.state.findings) expect(f.level, s.text).toBe('OBSERVATION');
       if (s.praise.length + s.issues.length === 0) {
         expect(r.state.findings, s.text).toEqual([]);
-        expect(r.state.firstResponse?.join(' '), s.text).toMatch(/didn’t name anything specific|without words/);
+        expect(r.state.firstResponse?.join(' '), s.text).toMatch(/Nothing specific named|Rating only, no words/);
       }
     }
   });

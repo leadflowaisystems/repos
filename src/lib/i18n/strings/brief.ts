@@ -302,11 +302,6 @@ export const brief = {
   // How customers feel: the three counts, and the pile they come from. Not
   // "today" — the counts cover everything Headway has read, and a heading
   // that said "today" over them would be a small lie on the first screen.
-  'brief.mood.title': {
-    en: 'How customers feel',
-    hi: 'ग्राहक कैसा महसूस करते हैं',
-    mr: 'ग्राहकांना कसं वाटतं',
-  },
 
   // -------------------------------------------------------------------------
   // The story

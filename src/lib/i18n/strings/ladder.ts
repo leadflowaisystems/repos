@@ -117,9 +117,9 @@ export const ladder = {
   // The line under the heading
   // -------------------------------------------------------------------------
   'ladder.intro.none.empty': {
-    en: 'Headway starts reading the moment a customer uses your QR card or feedback link. Put the card where customers can see it, or share the link with them.',
-    hi: 'जैसे ही कोई ग्राहक आपका QR कार्ड या फ़ीडबैक लिंक इस्तेमाल करता है, Headway पढ़ना शुरू कर देता है। कार्ड ऐसी जगह रखें जहाँ ग्राहक उसे देख सकें, या लिंक उनके साथ शेयर करें।',
-    mr: 'ग्राहकाने तुमचं QR कार्ड किंवा फीडबॅक लिंक वापरताच Headway वाचायला सुरुवात करतं. कार्ड ग्राहकांना दिसेल अशा ठिकाणी ठेवा, किंवा लिंक त्यांना पाठवा.',
+    en: 'Headway starts reading as soon as a customer uses your QR card or feedback link.',
+    hi: 'जैसे ही कोई ग्राहक आपका QR कार्ड या फ़ीडबैक लिंक इस्तेमाल करता है, Headway पढ़ना शुरू कर देता है।',
+    mr: 'ग्राहकाने तुमचं QR कार्ड किंवा फीडबॅक लिंक वापरताच Headway वाचायला सुरुवात करतं.',
   },
   'ladder.intro.none.reading.one': {
     en: 'It has arrived, and Headway is reading it now. What it finds appears here within moments.',
@@ -186,49 +186,24 @@ export const ladder = {
     mr: 'सगळ्यात ठळक गोष्ट',
   },
   'ladder.section.likes': {
-    en: 'What customers seem to like',
-    hi: 'ग्राहकों को क्या पसंद आ रहा है',
-    mr: 'ग्राहकांना काय आवडताना दिसतं',
+    en: 'Customers like',
+    hi: 'ग्राहकों को पसंद है',
+    mr: 'ग्राहकांना आवडतं',
   },
   'ladder.section.patterns': {
-    en: 'What customers keep raising',
-    hi: 'ग्राहक बार-बार क्या कह रहे हैं',
-    mr: 'ग्राहक पुन्हा पुन्हा काय सांगत आहेत',
+    en: 'Keeps coming up',
+    hi: 'बार-बार आ रहा है',
+    mr: 'वारंवार येत आहे',
   },
   'ladder.section.watching': {
     en: 'Worth watching',
     hi: 'नज़र रखने लायक़',
     mr: 'लक्ष ठेवण्यासारखं',
   },
-  'ladder.section.notSure': {
-    en: 'Not sure yet',
-    hi: 'अभी पक्का नहीं',
-    mr: 'अजून खात्री नाही',
-  },
-  'ladder.section.clearer': {
-    en: 'What more feedback will show',
-    hi: 'ज़्यादा फ़ीडबैक से क्या साफ़ होगा',
-    mr: 'आणखी फीडबॅकने काय स्पष्ट होईल',
-  },
-  'ladder.section.doing': {
-    en: 'What Headway is doing',
-    hi: 'Headway क्या कर रहा है',
-    mr: 'Headway काय करत आहे',
-  },
   'ladder.section.everything': {
     en: 'Everything mentioned so far',
     hi: 'अब तक जिन बातों का ज़िक्र हुआ',
     mr: 'आतापर्यंत ज्या गोष्टींचा उल्लेख झाला',
-  },
-  'ladder.section.now': {
-    en: 'What customers are saying now',
-    hi: 'ग्राहक अभी क्या कह रहे हैं',
-    mr: 'ग्राहक सध्या काय सांगत आहेत',
-  },
-  'ladder.section.nowNote': {
-    en: 'Counted across everything Headway has read. This is where things stand today, not which way they are moving.',
-    hi: 'Headway ने जो कुछ पढ़ा है, उस सबमें से गिना गया। यह आज की स्थिति है, यह नहीं कि चीज़ें किस तरफ़ जा रही हैं।',
-    mr: 'Headway ने वाचलेल्या सगळ्यातून मोजलेलं. ही आजची स्थिती आहे, गोष्टी कोणत्या दिशेने जात आहेत ते नाही.',
   },
   'ladder.more.summary': {
     en: 'More from this read',
@@ -239,11 +214,6 @@ export const ladder = {
     en: 'Get your QR card and link',
     hi: 'अपना QR कार्ड और लिंक देखें',
     mr: 'तुमचं QR कार्ड आणि लिंक पाहा',
-  },
-  'ladder.reviews.cta': {
-    en: 'Read what customers wrote',
-    hi: 'पढ़ें ग्राहकों ने क्या लिखा',
-    mr: 'ग्राहकांनी काय लिहिलं ते वाचा',
   },
 
   // -------------------------------------------------------------------------
@@ -279,65 +249,10 @@ export const ladder = {
   // The evidence line under a topic. Never names the topic: the row is headed
   // with it, so each language keeps its own word order around the counts.
   // -------------------------------------------------------------------------
-  'ladder.line.issue.observation.early': {
-    en: 'One customer mentioned this. Headway is watching to see whether others mention it too.',
-    hi: 'एक ग्राहक ने इसका ज़िक्र किया। Headway देख रहा है कि क्या दूसरे ग्राहक भी इसका ज़िक्र करते हैं।',
-    mr: 'एका ग्राहकाने याचा उल्लेख केला. इतर ग्राहकही याचा उल्लेख करतात का हे Headway पाहत आहे.',
-  },
-  'ladder.line.issue.observation.later': {
-    en: 'One customer mentioned this. A one-off so far.',
-    hi: 'एक ग्राहक ने इसका ज़िक्र किया। अब तक यह एक अकेली बात है।',
-    mr: 'एका ग्राहकाने याचा उल्लेख केला. आतापर्यंत ही एकच घटना आहे.',
-  },
-  'ladder.line.praise.observation': {
-    en: 'One customer praised this so far.',
-    hi: 'अब तक एक ग्राहक ने इसकी तारीफ़ की है।',
-    mr: 'आतापर्यंत एका ग्राहकाने याचं कौतुक केलं आहे.',
-  },
-  'ladder.line.issue.signal.early': {
-    en: '{count} of {total} customers mentioned this. Still early, so Headway is watching it rather than calling it a pattern.',
-    hi: '{total} में से {count} ग्राहकों ने इसका ज़िक्र किया। अभी शुरुआत है, इसलिए Headway इसे पैटर्न कहने के बजाय इस पर नज़र रख रहा है।',
-    mr: '{total} पैकी {count} ग्राहकांनी याचा उल्लेख केला. अजून सुरुवात आहे, म्हणून Headway याला पॅटर्न म्हणण्याऐवजी याकडे लक्ष ठेवत आहे.',
-  },
-  'ladder.line.issue.signal.later': {
-    en: '{count} of {total} customers mentioned this. Not enough to call it a pattern yet, so Headway is watching it.',
-    hi: '{total} में से {count} ग्राहकों ने इसका ज़िक्र किया। इसे पैटर्न कहने के लिए अभी इतना काफ़ी नहीं, इसलिए Headway इस पर नज़र रख रहा है।',
-    mr: '{total} पैकी {count} ग्राहकांनी याचा उल्लेख केला. याला पॅटर्न म्हणण्यासाठी अजून इतकं पुरेसं नाही, म्हणून Headway याकडे लक्ष ठेवत आहे.',
-  },
-  'ladder.line.praise.signal': {
-    en: '{count} of {total} customers praised this so far.',
-    hi: 'अब तक {total} में से {count} ग्राहकों ने इसकी तारीफ़ की है।',
-    mr: 'आतापर्यंत {total} पैकी {count} ग्राहकांनी याचं कौतुक केलं आहे.',
-  },
-  'ladder.line.issue.emerging': {
-    en: 'Emerging pattern: {count} of {total} customers mentioned this ({pct}%).',
-    hi: 'उभरता पैटर्न: {total} में से {count} ग्राहकों ने इसका ज़िक्र किया ({pct}%)।',
-    mr: 'आकार घेणारा पॅटर्न: {total} पैकी {count} ग्राहकांनी याचा उल्लेख केला ({pct}%).',
-  },
-  'ladder.line.praise.emerging': {
-    en: 'Emerging: {count} of {total} customers praised this ({pct}%).',
-    hi: 'उभरता हुआ: {total} में से {count} ग्राहकों ने इसकी तारीफ़ की ({pct}%)।',
-    mr: 'आकार घेत आहे: {total} पैकी {count} ग्राहकांनी याचं कौतुक केलं ({pct}%).',
-  },
-  'ladder.line.issue.strong': {
-    en: 'Strong recurring pattern: {count} of {total} customers mentioned this ({pct}%).',
-    hi: 'बार-बार आने वाला पक्का पैटर्न: {total} में से {count} ग्राहकों ने इसका ज़िक्र किया ({pct}%)।',
-    mr: 'वारंवार येणारा ठोस पॅटर्न: {total} पैकी {count} ग्राहकांनी याचा उल्लेख केला ({pct}%).',
-  },
-  'ladder.line.praise.strong': {
-    en: 'Consistently praised: {count} of {total} customers ({pct}%).',
-    hi: 'लगातार तारीफ़: {total} में से {count} ग्राहक ({pct}%)।',
-    mr: 'सातत्याने कौतुक: {total} पैकी {count} ग्राहक ({pct}%).',
-  },
 
   // -------------------------------------------------------------------------
   // What to do, scaled to the evidence
   // -------------------------------------------------------------------------
-  'ladder.action.watch': {
-    en: 'Keep an eye on this.',
-    hi: 'इस पर नज़र रखें।',
-    mr: 'याकडे लक्ष ठेवा.',
-  },
   'ladder.action.check': {
     en: 'Worth checking',
     hi: 'जाँचने लायक़',
@@ -358,88 +273,68 @@ export const ladder = {
   // How customers felt, when nothing repeated stands out more
   // -------------------------------------------------------------------------
   'ladder.mood.allHappy': {
-    en: 'All {count} responses so far were happy.',
-    hi: 'अब तक के सभी {count} जवाब ख़ुश थे।',
-    mr: 'आतापर्यंतचे सगळे {count} प्रतिसाद खूश होते.',
+    en: 'Every customer so far was happy.',
+    hi: 'अब तक हर ग्राहक ख़ुश था।',
+    mr: 'आतापर्यंत प्रत्येक ग्राहक खूश होता.',
   },
   'ladder.mood.allUnhappy': {
-    en: 'All {count} responses so far were unhappy.',
-    hi: 'अब तक के सभी {count} जवाब नाख़ुश थे।',
-    mr: 'आतापर्यंतचे सगळे {count} प्रतिसाद नाराज होते.',
-  },
-  'ladder.mood.happyNoneUnhappy': {
-    en: '{happy} of {total} responses so far were happy, and none were unhappy.',
-    hi: 'अब तक {total} में से {happy} जवाब ख़ुश थे, और कोई भी नाख़ुश नहीं था।',
-    mr: 'आतापर्यंत {total} पैकी {happy} प्रतिसाद खूश होते, आणि एकही नाराज नव्हता.',
+    en: 'Every customer so far was unhappy.',
+    hi: 'अब तक हर ग्राहक नाख़ुश था।',
+    mr: 'आतापर्यंत प्रत्येक ग्राहक नाराज होता.',
   },
   'ladder.mood.happy': {
-    en: '{happy} of {total} responses so far were happy.',
-    hi: 'अब तक {total} में से {happy} जवाब ख़ुश थे।',
-    mr: 'आतापर्यंत {total} पैकी {happy} प्रतिसाद खूश होते.',
+    en: 'Most customers are happy.',
+    hi: 'ज़्यादातर ग्राहक ख़ुश हैं।',
+    mr: 'बहुतेक ग्राहक खूश आहेत.',
   },
   'ladder.mood.unhappy': {
-    en: '{unhappy} of {total} responses so far were unhappy.',
-    hi: 'अब तक {total} में से {unhappy} जवाब नाख़ुश थे।',
-    mr: 'आतापर्यंत {total} पैकी {unhappy} प्रतिसाद नाराज होते.',
+    en: 'Most customers are unhappy.',
+    hi: 'ज़्यादातर ग्राहक नाख़ुश हैं।',
+    mr: 'बहुतेक ग्राहक नाराज आहेत.',
   },
   'ladder.mood.mixed': {
-    en: '{mixed} of {total} responses so far were mixed or neutral.',
-    hi: 'अब तक {total} में से {mixed} जवाब मिले-जुले या तटस्थ थे।',
-    mr: 'आतापर्यंत {total} पैकी {mixed} प्रतिसाद संमिश्र किंवा तटस्थ होते.',
+    en: 'Most responses are mixed.',
+    hi: 'ज़्यादातर जवाब मिले-जुले हैं।',
+    mr: 'बहुतेक प्रतिसाद संमिश्र आहेत.',
   },
   'ladder.mood.split': {
-    en: 'Responses so far are split: {happy} happy, {mixed} mixed, {unhappy} unhappy.',
-    hi: 'अब तक के जवाब बँटे हुए हैं: {happy} ख़ुश, {mixed} मिले-जुले, {unhappy} नाख़ुश।',
-    mr: 'आतापर्यंतचे प्रतिसाद विभागलेले आहेत: {happy} खूश, {mixed} संमिश्र, {unhappy} नाराज.',
+    en: 'Customers are split.',
+    hi: 'ग्राहकों की राय बँटी हुई है।',
+    mr: 'ग्राहकांची मतं विभागलेली आहेत.',
   },
 
   // -------------------------------------------------------------------------
   // The very first response, line by line
   // -------------------------------------------------------------------------
   'ladder.first.rated': {
-    en: 'They rated you {stars}★.',
-    hi: 'उन्होंने आपको {stars}★ दिए।',
-    mr: 'त्यांनी तुम्हाला {stars}★ दिले.',
+    en: 'Rated {stars}★',
+    hi: '{stars}★ रेटिंग',
+    mr: '{stars}★ रेटिंग',
   },
   'ladder.first.noRating': {
-    en: 'They didn’t leave a star rating.',
-    hi: 'उन्होंने स्टार रेटिंग नहीं दी।',
-    mr: 'त्यांनी स्टार रेटिंग दिली नाही.',
-  },
-  'ladder.first.tone.happy': {
-    en: 'Headway reads it as a happy response.',
-    hi: 'Headway इसे एक ख़ुश जवाब के रूप में पढ़ता है।',
-    mr: 'Headway हा एक खूश प्रतिसाद म्हणून वाचतं.',
-  },
-  'ladder.first.tone.mixed': {
-    en: 'Headway reads it as mixed.',
-    hi: 'Headway इसे मिला-जुला जवाब मानता है।',
-    mr: 'Headway हा संमिश्र प्रतिसाद मानतं.',
-  },
-  'ladder.first.tone.unhappy': {
-    en: 'Headway reads it as an unhappy response.',
-    hi: 'Headway इसे एक नाख़ुश जवाब के रूप में पढ़ता है।',
-    mr: 'Headway हा एक नाराज प्रतिसाद म्हणून वाचतं.',
+    en: 'No star rating',
+    hi: 'कोई स्टार रेटिंग नहीं',
+    mr: 'स्टार रेटिंग नाही',
   },
   'ladder.first.praised': {
-    en: 'They praised: {things}.',
-    hi: 'उन्होंने इनकी तारीफ़ की: {things}।',
-    mr: 'त्यांनी यांचं कौतुक केलं: {things}.',
+    en: 'Praised: {things}',
+    hi: 'तारीफ़: {things}',
+    mr: 'कौतुक: {things}',
   },
   'ladder.first.mentioned': {
-    en: 'They mentioned a problem with: {things}.',
-    hi: 'उन्होंने इनमें समस्या बताई: {things}।',
-    mr: 'त्यांनी यांत अडचण सांगितली: {things}.',
+    en: 'Problem: {things}',
+    hi: 'समस्या: {things}',
+    mr: 'अडचण: {things}',
   },
   'ladder.first.nothingNamed': {
-    en: 'They didn’t name anything specific, so it is not filed under a topic.',
-    hi: 'उन्होंने कोई ख़ास बात नहीं बताई, इसलिए इसे किसी विषय में नहीं रखा गया।',
-    mr: 'त्यांनी कोणतीही विशिष्ट गोष्ट सांगितली नाही, म्हणून हा कोणत्याही विषयात ठेवलेला नाही.',
+    en: 'Nothing specific named',
+    hi: 'कोई ख़ास बात नहीं बताई',
+    mr: 'विशिष्ट गोष्ट सांगितली नाही',
   },
   'ladder.first.noWords': {
-    en: 'They left a rating without words.',
-    hi: 'उन्होंने बिना कुछ लिखे रेटिंग दी।',
-    mr: 'त्यांनी काही न लिहिता रेटिंग दिली.',
+    en: 'Rating only, no words',
+    hi: 'सिर्फ़ रेटिंग, कुछ लिखा नहीं',
+    mr: 'फक्त रेटिंग, काही लिहिलं नाही',
   },
 
   // -------------------------------------------------------------------------
@@ -566,45 +461,40 @@ export const ladder = {
   // -------------------------------------------------------------------------
   // Which way things are moving — and what that waits for, done by Headway
   // -------------------------------------------------------------------------
-  'ladder.direction.title': {
-    en: 'Which way things are moving',
-    hi: 'चीज़ें किस तरफ़ जा रही हैं',
-    mr: 'गोष्टी कोणत्या दिशेने जात आहेत',
-  },
   'ladder.direction.notStarted': {
-    en: 'Once feedback arrives, Headway records where things stand by itself, and compares later feedback with it to show what is improving, worsening or staying about the same.',
-    hi: 'फ़ीडबैक आते ही Headway तुलना का आधार अपने-आप बनाता है। बाद का फ़ीडबैक उससे मिलाकर दिखाया जाता है कि क्या सुधर रहा है, क्या बिगड़ रहा है और क्या लगभग वैसा ही है।',
-    mr: 'फीडबॅक आला की Headway तुलनेचा आधार आपोआप तयार करतं. नंतरचा फीडबॅक त्याच्याशी जुळवून काय सुधारत आहे, काय बिघडत आहे आणि काय साधारण तसंच आहे ते दाखवलं जातं.',
+    en: 'Once feedback arrives, Headway records where things stand and compares later feedback with it.',
+    hi: 'फ़ीडबैक आते ही Headway मौजूदा स्थिति दर्ज करता है और बाद के फ़ीडबैक की तुलना उससे करता है।',
+    mr: 'फीडबॅक आल्यावर Headway सध्याची स्थिती नोंदवतं आणि नंतरच्या फीडबॅकची तिच्याशी तुलना करतं.',
   },
   'ladder.direction.building': {
-    en: 'Headway has started recording where things stand, to compare against later. When there is enough comparable feedback, Headway will show whether things are improving, worsening, or staying about the same.',
-    hi: 'Headway ने आपके ग्राहकों के फ़ीडबैक से तुलना का आधार बनाना शुरू कर दिया है। जब तुलना लायक़ पर्याप्त फ़ीडबैक होगा, Headway दिखाएगा कि चीज़ें सुधर रही हैं, बिगड़ रही हैं या लगभग वैसी ही हैं।',
-    mr: 'Headway ने तुमच्या ग्राहकांच्या फीडबॅकमधून तुलनेचा आधार तयार करायला सुरुवात केली आहे. तुलना करता येईल इतका फीडबॅक झाला की गोष्टी सुधारत आहेत, बिघडत आहेत की साधारण तशाच आहेत ते Headway दाखवेल.',
+    en: 'Headway needs two comparable sets of feedback before it can show what is improving, worsening or staying about the same.',
+    hi: 'क्या सुधर रहा है, क्या बिगड़ रहा है या लगभग वैसा ही है, यह दिखाने से पहले Headway को फ़ीडबैक की दो तुलना लायक़ अवधियाँ चाहिए।',
+    mr: 'काय सुधारत आहे, काय बिघडत आहे किंवा साधारण तसंच आहे हे दाखवण्याआधी Headway ला फीडबॅकचे दोन तुलनायोग्य कालावधी लागतात.',
   },
   'ladder.direction.baselineSet.one': {
-    en: 'Headway has recorded where things stood: {count} response up to {date}. Headway needs another comparable set of customer feedback before it can tell you whether something is improving, worsening, or staying about the same.',
-    hi: 'Headway के पास तुलना का आधार है: {date} तक का {count} जवाब। कोई चीज़ सुधर रही है, बिगड़ रही है या लगभग वैसी ही है, यह बताने से पहले Headway को ग्राहक फ़ीडबैक की एक और तुलना लायक़ अवधि चाहिए।',
-    mr: 'Headway कडे तुलनेचा आधार आहे: {date} पर्यंतचा {count} प्रतिसाद. एखादी गोष्ट सुधारत आहे, बिघडत आहे की साधारण तशीच आहे हे सांगण्याआधी Headway ला ग्राहक फीडबॅकचा आणखी एक तुलनायोग्य कालावधी लागतो.',
+    en: 'Headway recorded where things stood as of {date} ({count} response). After the next comparable set, it will show what changed.',
+    hi: 'Headway ने {date} तक की स्थिति दर्ज की ({count} जवाब)। अगली तुलना लायक़ अवधि के बाद वह दिखाएगा कि क्या बदला।',
+    mr: 'Headway ने {date} पर्यंतची स्थिती नोंदवली ({count} प्रतिसाद). पुढच्या तुलनायोग्य कालावधीनंतर ते काय बदललं ते दाखवेल.',
   },
   'ladder.direction.baselineSet.other': {
-    en: 'Headway has recorded where things stood: {count} responses up to {date}. Headway needs another comparable set of customer feedback before it can tell you whether something is improving, worsening, or staying about the same.',
-    hi: 'Headway के पास तुलना का आधार है: {date} तक के {count} जवाब। कोई चीज़ सुधर रही है, बिगड़ रही है या लगभग वैसी ही है, यह बताने से पहले Headway को ग्राहक फ़ीडबैक की एक और तुलना लायक़ अवधि चाहिए।',
-    mr: 'Headway कडे तुलनेचा आधार आहे: {date} पर्यंतचे {count} प्रतिसाद. एखादी गोष्ट सुधारत आहे, बिघडत आहे की साधारण तशीच आहे हे सांगण्याआधी Headway ला ग्राहक फीडबॅकचा आणखी एक तुलनायोग्य कालावधी लागतो.',
+    en: 'Headway recorded where things stood as of {date} ({count} responses). After the next comparable set, it will show what changed.',
+    hi: 'Headway ने {date} तक की स्थिति दर्ज की ({count} जवाब)। अगली तुलना लायक़ अवधि के बाद वह दिखाएगा कि क्या बदला।',
+    mr: 'Headway ने {date} पर्यंतची स्थिती नोंदवली ({count} प्रतिसाद). पुढच्या तुलनायोग्य कालावधीनंतर ते काय बदललं ते दाखवेल.',
   },
   'ladder.direction.tooThin': {
-    en: 'Headway has two sets of feedback to compare, but one is too small to compare fairly ({previous} and {current} responses). It keeps collecting and compares again by itself.',
-    hi: 'Headway के पास तुलना के लिए फ़ीडबैक की दो अवधियाँ हैं, पर एक इतनी छोटी है कि ठीक से तुलना नहीं हो सकती ({previous} और {current} जवाब)। यह फ़ीडबैक जमा करता रहता है और अपने-आप फिर तुलना करेगा।',
-    mr: 'Headway कडे तुलनेसाठी फीडबॅकचे दोन कालावधी आहेत, पण एक इतका छोटा आहे की नीट तुलना होऊ शकत नाही ({previous} आणि {current} प्रतिसाद). ते फीडबॅक गोळा करत राहतं आणि आपोआप पुन्हा तुलना करेल.',
+    en: 'At least one of the two sets of feedback is too small to compare fairly ({previous} and {current} responses).',
+    hi: 'फ़ीडबैक की दो अवधियों में से कम से कम एक निष्पक्ष तुलना के लिए बहुत छोटी है ({previous} और {current} जवाब)।',
+    mr: 'फीडबॅकच्या दोन कालावधींपैकी किमान एक योग्य तुलनेसाठी खूप लहान आहे ({previous} आणि {current} प्रतिसाद).',
   },
   'ladder.direction.ready': {
-    en: 'Compared by Headway: {previous} responses up to {previousDate}, and {current} up to {currentDate}.',
-    hi: 'Headway ने तुलना की: {previousDate} तक के {previous} जवाब, और {currentDate} तक के {current}।',
-    mr: 'Headway ने तुलना केली: {previousDate} पर्यंतचे {previous} प्रतिसाद, आणि {currentDate} पर्यंतचे {current}.',
+    en: 'Comparing {previous} responses up to {previousDate} with {current} up to {currentDate}.',
+    hi: '{previousDate} तक के {previous} जवाबों की तुलना {currentDate} तक के {current} जवाबों से।',
+    mr: '{previousDate} पर्यंतच्या {previous} प्रतिसादांची {currentDate} पर्यंतच्या {current} प्रतिसादांशी तुलना.',
   },
   'ladder.direction.automatic': {
-    en: 'Headway keeps collecting and analysing feedback automatically. You don’t need to do anything.',
-    hi: 'Headway अपने-आप फ़ीडबैक जमा करता और पढ़ता रहता है। आपको कुछ करने की ज़रूरत नहीं।',
-    mr: 'Headway आपोआप फीडबॅक गोळा करत आणि वाचत राहतं. तुम्हाला काहीही करायची गरज नाही.',
+    en: 'Headway keeps collecting feedback automatically.',
+    hi: 'Headway अपने-आप फ़ीडबैक जमा करता रहता है।',
+    mr: 'Headway आपोआप फीडबॅक गोळा करत राहतं.',
   },
   'ladder.direction.methodTitle': {
     en: 'How Headway decides',
@@ -615,11 +505,6 @@ export const ladder = {
     en: 'A comparable set is at least {min} read responses collected over at least {days} days. Headway compares the share of feedback that mentions each topic, never the raw count, and calls something better or worse only when the change is too large to be chance.',
     hi: 'तुलना लायक़ अवधि में कम से कम {days} दिनों में आए कम से कम {min} पढ़े गए जवाब होते हैं। Headway हर विषय का ज़िक्र करने वाले फ़ीडबैक का हिस्सा मिलाता है, सिर्फ़ गिनती नहीं, और किसी चीज़ को बेहतर या ख़राब तभी कहता है जब बदलाव इतना बड़ा हो कि वह संयोग न हो।',
     mr: 'तुलनायोग्य कालावधीत किमान {days} दिवसांत आलेले किमान {min} वाचलेले प्रतिसाद असतात. Headway प्रत्येक विषयाचा उल्लेख करणाऱ्या फीडबॅकचा वाटा तुलना करतं, फक्त संख्या नाही, आणि बदल योगायोग नसावा इतका मोठा असेल तरच एखादी गोष्ट चांगली किंवा वाईट म्हणतं.',
-  },
-  'ladder.direction.see': {
-    en: 'See trends',
-    hi: 'रुझान देखें',
-    mr: 'कल पाहा',
   },
 
   // -------------------------------------------------------------------------
@@ -665,5 +550,153 @@ export const ladder = {
     en: 'Headway compares each new set of feedback with the one before, by itself. Nothing new has been read since {date} yet.',
     hi: 'Headway फ़ीडबैक की हर नई अवधि की तुलना पिछली से अपने-आप करता है। {date} के बाद अभी कुछ नया नहीं पढ़ा गया।',
     mr: 'Headway फीडबॅकच्या प्रत्येक नव्या कालावधीची आधीच्याशी तुलना आपोआप करतं. {date} नंतर अजून नवं काही वाचलेलं नाही.',
+  },
+  // -------------------------------------------------------------------------
+  // Quieter ladder pass (Oct 2026): one line per idea
+  // -------------------------------------------------------------------------
+  'ladder.line.of': {
+    en: '{count} of {total} customers',
+    hi: '{total} में से {count} ग्राहक',
+    mr: '{total} पैकी {count} ग्राहक',
+  },
+  'ladder.line.ofPct': {
+    en: '{count} of {total} customers · {pct}%',
+    hi: '{total} में से {count} ग्राहक · {pct}%',
+    mr: '{total} पैकी {count} ग्राहक · {pct}%',
+  },
+  'ladder.count.one': {
+    en: '{count} response',
+    hi: '{count} जवाब',
+    mr: '{count} प्रतिसाद',
+  },
+  'ladder.count.other': {
+    en: '{count} responses',
+    hi: '{count} जवाब',
+    mr: '{count} प्रतिसाद',
+  },
+  'ladder.pulse.from.one': {
+    en: '{average}★ from 1 rating',
+    hi: '1 रेटिंग: {average}★',
+    mr: '1 रेटिंग: {average}★',
+  },
+  'ladder.pulse.from.other': {
+    en: '{average}★ from {count} ratings',
+    hi: '{count} रेटिंग का औसत {average}★',
+    mr: '{count} रेटिंगची सरासरी {average}★',
+  },
+  'ladder.mood.early.happy': {
+    en: 'Most customers so far were happy.',
+    hi: 'अब तक ज़्यादातर ग्राहक ख़ुश थे।',
+    mr: 'आतापर्यंत बहुतेक ग्राहक खूश होते.',
+  },
+  'ladder.mood.early.unhappy': {
+    en: 'Most customers so far were unhappy.',
+    hi: 'अब तक ज़्यादातर ग्राहक नाख़ुश थे।',
+    mr: 'आतापर्यंत बहुतेक ग्राहक नाराज होते.',
+  },
+  'ladder.mood.early.mixed': {
+    en: 'Most responses so far were mixed.',
+    hi: 'अब तक ज़्यादातर जवाब मिले-जुले थे।',
+    mr: 'आतापर्यंत बहुतेक प्रतिसाद संमिश्र होते.',
+  },
+  'ladder.mood.early.split': {
+    en: 'Customers are split so far.',
+    hi: 'अब तक ग्राहकों की राय बँटी हुई है।',
+    mr: 'आतापर्यंत ग्राहकांची मतं विभागलेली आहेत.',
+  },
+  'ladder.note.single': {
+    en: 'One customer’s view — not a pattern.',
+    hi: 'यह एक ग्राहक की राय है — पैटर्न नहीं।',
+    mr: 'हे एका ग्राहकाचं मत आहे — पॅटर्न नाही.',
+  },
+  'ladder.note.early': {
+    en: 'Still early — nothing has repeated yet.',
+    hi: 'अभी शुरुआत है — अब तक कुछ दोहराया नहीं गया।',
+    mr: 'अजून सुरुवात आहे — आतापर्यंत काहीही पुन्हा आलेलं नाही.',
+  },
+  'ladder.note.earlyRepeat': {
+    en: 'Still early — nothing is a pattern yet.',
+    hi: 'अभी शुरुआत है — अभी कुछ भी पैटर्न नहीं है।',
+    mr: 'अजून सुरुवात आहे — अजून काहीही पॅटर्न नाही.',
+  },
+  'ladder.note.noProblemPattern': {
+    en: 'No recurring problem so far.',
+    hi: 'अब तक कोई बार-बार आने वाली समस्या नहीं।',
+    mr: 'आतापर्यंत कोणतीही वारंवार येणारी अडचण नाही.',
+  },
+  'ladder.how.title': {
+    en: 'How Headway decides',
+    hi: 'Headway कैसे तय करता है',
+    mr: 'Headway कसं ठरवतं',
+  },
+  'ladder.more.topics.one': {
+    en: '1 more topic on Customers',
+    hi: '1 और विषय — ग्राहक पेज पर',
+    mr: 'आणखी 1 विषय — ग्राहक पानावर',
+  },
+  'ladder.more.topics.other': {
+    en: '{count} more topics on Customers',
+    hi: '{count} और विषय — ग्राहक पेज पर',
+    mr: 'आणखी {count} विषय — ग्राहक पानावर',
+  },
+  'ladder.trends.now': {
+    en: 'Right now',
+    hi: 'अभी',
+    mr: 'सध्या',
+  },
+  'ladder.trends.nowLink': {
+    en: 'See what customers are saying',
+    hi: 'देखें ग्राहक क्या कह रहे हैं',
+    mr: 'ग्राहक काय म्हणत आहेत ते पाहा',
+  },
+  'ladder.direction.title.notStarted': {
+    en: 'No history yet',
+    hi: 'अभी कोई इतिहास नहीं',
+    mr: 'अजून इतिहास नाही',
+  },
+  'ladder.direction.title.building': {
+    en: 'Not enough history yet',
+    hi: 'अभी पर्याप्त इतिहास नहीं',
+    mr: 'अजून पुरेसा इतिहास नाही',
+  },
+  'ladder.direction.title.baselineSet': {
+    en: 'Starting point recorded',
+    hi: 'शुरुआती स्थिति दर्ज हो गई',
+    mr: 'सुरुवातीची स्थिती नोंदवली',
+  },
+  'ladder.direction.title.tooThin': {
+    en: 'Not enough to compare yet',
+    hi: 'अभी तुलना के लिए पर्याप्त नहीं',
+    mr: 'अजून तुलनेसाठी पुरेसं नाही',
+  },
+  'ladder.direction.title.ready': {
+    en: 'What changed',
+    hi: 'क्या बदला',
+    mr: 'काय बदललं',
+  },
+  'ladder.mood.leanHappy': {
+    en: 'More customers are happy than unhappy.',
+    hi: 'नाख़ुश से ज़्यादा ग्राहक ख़ुश हैं।',
+    mr: 'नाराज ग्राहकांपेक्षा खूश ग्राहक जास्त आहेत.',
+  },
+  'ladder.mood.leanUnhappy': {
+    en: 'More customers are unhappy than happy.',
+    hi: 'ख़ुश से ज़्यादा ग्राहक नाख़ुश हैं।',
+    mr: 'खूश ग्राहकांपेक्षा नाराज ग्राहक जास्त आहेत.',
+  },
+  'ladder.mood.early.leanHappy': {
+    en: 'So far, more customers were happy than unhappy.',
+    hi: 'अब तक नाख़ुश से ज़्यादा ग्राहक ख़ुश थे।',
+    mr: 'आतापर्यंत नाराज ग्राहकांपेक्षा खूश ग्राहक जास्त होते.',
+  },
+  'ladder.mood.early.leanUnhappy': {
+    en: 'So far, more customers were unhappy than happy.',
+    hi: 'अब तक ख़ुश से ज़्यादा ग्राहक नाख़ुश थे।',
+    mr: 'आतापर्यंत खूश ग्राहकांपेक्षा नाराज ग्राहक जास्त होते.',
+  },
+  'ladder.note.notYetPattern': {
+    en: 'No problem is a pattern yet.',
+    hi: 'अभी कोई समस्या पैटर्न नहीं बनी है।',
+    mr: 'अजून कोणतीही अडचण पॅटर्न बनलेली नाही.',
   },
 } satisfies Namespace;

@@ -435,7 +435,7 @@ describe('home, as the owner’s brief', () => {
     // a count with no conclusion is a dashboard, and a conclusion with no
     // count is an opinion. The customers' own words close it, newest first.
     const order = [
-      "t('brief.mood.title')", // WHAT HAPPENED — the pile, split three ways
+      "t('brief.today.happy')", // WHAT HAPPENED — the pile, split three ways
       "t('brief.attention.title')", // WHAT MATTERS
       "t('brief.suggest.title')", // WHAT TO DO
       "t('brief.evidence.cta')", // and the evidence, AFTER the conclusion
@@ -447,7 +447,7 @@ describe('home, as the owner’s brief', () => {
       return i;
     });
     expect(at).toEqual([...at].sort((a, b) => a - b));
-    expect(says('brief.mood.title')).toBe('How customers feel');
+    expect(says('brief.today.happy')).toBe('Happy');
     expect(says('brief.attention.title')).toBe('Needs your attention');
     expect(says('brief.suggest.title')).toBe('What to do');
     expect(says('brief.evidence.cta')).toBe('See what customers said');
@@ -456,9 +456,10 @@ describe('home, as the owner’s brief', () => {
     // OwnerBrief is the last thing in the file: from its name to the end.
     const composed = brief.slice(brief.indexOf('export async function OwnerBrief('));
     // Evidence ladder pass (Oct 2026): the reading — what Headway knows at
-    // this stage — follows the story, and the direction's readiness opens the
-    // side column. Calm and Loved were folded into the reading.
-    const blocks = ['<Band', '<Story', '<EvidenceReading', '<Latest', '<DirectionPanel', '<Changed', '<Memory'];
+    // this stage — follows the story. Quieter ladder pass: the direction's
+    // readiness is Trends' job and no longer on Home; what moved still is.
+    const blocks = ['<Band', '<Story', '<HomeReading', '<Latest', '<Changed', '<Memory'];
+    expect(composed).not.toContain('<DirectionPanel');
     const where = blocks.map((token) => {
       const i = composed.indexOf(token);
       expect(i, token).toBeGreaterThan(-1);

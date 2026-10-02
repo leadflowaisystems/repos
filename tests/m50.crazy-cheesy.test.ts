@@ -56,14 +56,17 @@ function expectFirstRead(s: EvidenceState) {
   // ---- what stands out: the plain truth of how they felt ----------------------
   expect(s.standsOut).toMatchObject({
     kind: 'MOOD',
-    title: '4 of 5 responses so far were happy, and none were unhappy.',
+    title: 'Most customers are happy.',
     tone: 'good',
   });
+  // The counts sit beside it, said once each, with their denominators.
+  expect(s.copy.countLine).toBe('5 responses');
+  expect(s.pulse.from).toBe('4.8★ from 4 ratings');
 
   // ---- what customers seem to like: the coffee twice, said as twice --------
   const coffee = s.likes.find((f) => f.key === 'drink_praise');
   expect(coffee).toMatchObject({ mentions: 2, level: 'EARLY_SIGNAL', levelLabel: 'Early signal' });
-  expect(coffee?.line).toBe('2 of 5 customers praised this so far.');
+  expect(coffee?.line).toBe('2 of 5 customers');
   expect(coffee?.line).not.toMatch(/consistently|always|everyone/i);
   expect(s.likes.map((f) => [f.key, f.level])).toEqual([
     ['drink_praise', 'EARLY_SIGNAL'],
@@ -75,8 +78,9 @@ function expectFirstRead(s: EvidenceState) {
   expect(s.watching.map((f) => f.key)).toEqual(['service_speed']);
   const slow = s.watching[0]!;
   expect(slow).toMatchObject({ mentions: 1, level: 'OBSERVATION', levelLabel: 'Mentioned once' });
-  expect(slow.line).toBe('One customer mentioned this. Headway is watching to see whether others mention it too.');
-  expect(slow.action).toEqual({ level: 'WATCH', eyebrow: null, text: 'Keep an eye on this.' });
+  expect(slow.line).toBe('1 of 5 customers');
+  // Watched, so nothing is asked of the owner: "Mentioned once" says it.
+  expect(slow.action).toBeNull();
 
   // ---- nothing is a pattern, and the page says why ---------------------------
   expect(s.patterns).toEqual([]);
@@ -91,10 +95,14 @@ function expectFirstRead(s: EvidenceState) {
 
   // ---- direction: what Headway is doing by itself, no check-in ---------------
   expect(s.direction.state).toBe('BUILDING_BASELINE');
+  expect(s.direction.title).toBe('Not enough history yet');
   expect(s.direction.body).toBe(
-    'Headway has started recording where things stand, to compare against later. When there is enough comparable feedback, Headway will show whether things are improving, worsening, or staying about the same.',
+    'Headway needs two comparable sets of feedback before it can show what is improving, worsening or staying about the same.',
   );
-  expect(s.direction.automatic).toBe('Headway keeps collecting and analysing feedback automatically. You don’t need to do anything.');
+  expect(s.direction.automatic).toBe('Headway keeps collecting feedback automatically.');
+
+  // ---- how sure, in one line --------------------------------------------------
+  expect(s.copy.note).toBe('Still early — nothing is a pattern yet.');
 
   // ---- and none of the old empty-feeling messages, anywhere in it -------------
   expect(everything(s)).not.toMatch(OLD_EMPTY);

@@ -234,7 +234,7 @@ A missed topic is preferred to a false one, by design.
 
 Every figure an owner sees is stated with its denominator ("18 of 87").
 
-**The evidence ladder** (`src/lib/portal/ladder.ts`, `LADDER_VERSION = 1`, Oct 2026). More evidence → stronger claims. Every topic any read response mentioned stands on exactly one rung, and is worded for that rung and no higher. The top two rungs ARE the engine's confidence rule; the two below it are what the owner may see before anything is named.
+**The evidence ladder** (`src/lib/portal/ladder.ts`, `LADDER_VERSION = 2`, Oct 2026). More evidence → stronger claims. Every topic any read response mentioned stands on exactly one rung, and is worded for that rung and no higher. The top two rungs ARE the engine's confidence rule; the two below it are what the owner may see before anything is named.
 
 | Rung (`levelOf`) | Rule | Owner wording | Action (`actionLevelOf`) |
 |---|---|---|---|
@@ -331,17 +331,27 @@ Every state but READY adds "Headway keeps collecting and analysing feedback auto
 
 A ladder, not a gate (Oct 2026). Every page shows the strongest truthful thing the evidence supports at every count; there is no countdown card and no "n more to go" anywhere.
 
+**Quieter ladder (Oct 2026, `LADDER_VERSION = 2`).** Compress the communication, not the intelligence. The rungs and every threshold are unchanged; what changed is how much each page shows:
+
+- **Home is a briefing.** The band: stage and count once ("First read · 5 responses"), the three counts, "4.8★ from 4 ratings". Then one headline ("What stands out": a mood sentence, or a topic with its rung), at most 3 complaint patterns, 2 worth-watching complaints and 3 liked topics (`HOME_LIMITS`, chosen by `homeLists`), one confidence line (`copy.note`), and the latest feedback with words before bare ratings. No direction card: that is Trends' job; Home shows only what moved.
+- **What earns a Home row.** A complaint pattern always. Praise only once it has repeated (two or more) — a single compliment is listed on Customers, and Home says how many topics it left there. A complaint below a pattern while fewer than ten are read; from ten read only if it repeated.
+- **One confidence line**, never four blocks: "One customer’s view — not a pattern." (1), "Still early — nothing has repeated yet." / "Still early — nothing is a pattern yet." (2–9), "No problem is a pattern yet." (10+, a complaint repeated but is not a pattern) or "No recurring problem so far." (10+, none repeated), nothing once a complaint is a pattern. The longer reasoning (not sure yet, what more feedback will show, what Headway does) is behind "How Headway decides".
+- **Mood sentences carry no numbers** (the counts sit beside them). "Most customers…" needs two in three, or a majority the other side barely contests (a fifth or less); a contested lead is "More customers are happy than unhappy"; closer is "split". Below five read they say "so far".
+- **The evidence line is counts** ("2 of 5 customers", "7 of 30 customers · 23%" from a pattern up). The rung is the chip beside it; below a pattern nothing is asked of the owner ("Keep an eye on this" is gone — the rung says it).
+- **Trends answers in its title** ("No history yet", "Not enough history yet", "Starting point recorded", "Not enough to compare yet", "What changed"), shows the current picture as one line of counts, and never repeats Home's reading. When trends exist, the share change is the row's hero ("17% → 90%").
+- **Customers** opens with the counts, the headline and the confidence line, then lists every topic on its rung; the limits sit behind a tap. **Check-in**, before anything is compared, is the same summary, any blocks, and the direction card — once each.
+
 | Read | Stage | Home | Feedback | Customers | Trends |
 |---|---|---|---|---|---|
-| 0 | NONE | "Ready for your first customer" / "Reading your first response"; the kit; the newest responses | the list | the same reading | the same reading; direction NOT_STARTED |
-| 1 | PULSE | "Your first customer has been heard": their rating, tone, what they praised and raised, line by line; the topic an observation | pulse; topics with rungs | reading + every topic | current picture + direction |
-| 2–4 | PULSE | what repeats is an early signal ("2 of 3 … still early"); "Nothing has repeated yet" when true | " | " | " |
-| 5–9 | FIRST_READ | "Your first customer read is ready": the pulse with its denominators ("Of 5 responses read · 4 star ratings · 4.8★ average"), what stands out, what customers seem to like, worth watching, not sure yet, what more feedback will show, what Headway is doing; nothing led with | " | " | " |
-| 10–24 | EMERGING_PICTURE | emerging patterns with count and share; a complaint pattern can lead ("Worth checking"); "nothing has repeated enough yet to call a recurring problem" when true; "Nothing needs your attention" only now | " | board + everything else on its rung | " |
+| 0 | NONE | "Ready for your first customer" / "Reading your first response"; the kit; the newest responses | the list | the same start card | "No history yet" |
+| 1 | PULSE | "What they told you": rating, praised, problem — a line each; "One customer’s view — not a pattern." | pulse; topics with rungs | summary + every topic | current picture in a line + direction |
+| 2–4 | PULSE | mood sentence ("…so far"); repeated complaint as headline when there is one; one-off complaints worth watching; repeated praise; one note | " | " | " |
+| 5–9 | FIRST_READ | the same at "First read · n responses"; nothing led with | " | " | " |
+| 10–24 | EMERGING_PICTURE | a complaint pattern can lead ("Worth checking"); other patterns with count, share and what to check; "Nothing needs your attention" only now | " | board + everything else on its rung | " |
 | 25+ | STRONG_PATTERNS | strong recurring patterns where earned ("What to do") | " | " | " |
-| any | — | — | — | — | trend shelves once two comparable periods exist (I1) |
+| any | — | "What changed" when topics moved | — | — | trend shelves once two comparable periods exist (I1) |
 
-Below ten read, "Nothing needs your attention" is not said — it is a conclusion the evidence has not earned; the band says the stage instead ("First read · 5 responses read"). The site quotes `firstReadingAt = 5`, `namedAt = 3`, `patternReadAt = 10` and `compareAt = 10`, held equal to the code by `tests/m26.marketing-site.test.ts`.
+Below ten read, "Nothing needs your attention" is not said — it is a conclusion the evidence has not earned; the band says the stage instead ("First read · 5 responses"). The site quotes `firstReadingAt = 5`, `namedAt = 3`, `patternReadAt = 10` and `compareAt = 10`, held equal to the code by `tests/m26.marketing-site.test.ts`.
 
 ## K. "Headway just read X"
 
@@ -385,3 +395,4 @@ Deterministic: every count, share, threshold, confidence level, bucket, comparis
 | Automatic check-ins: the rule, the required trend cases through them, operator check-ins untouched, on a real database | `tests/m50.automatic-periods.test.ts` |
 | One ladder, seven verticals: own topics and suggestions, no café words, real development-corpus text | `tests/m50.ladder-verticals.test.ts` |
 | The brief's twelve example sentences at every rung; customer words intact from storage to screen | `tests/m50.ladder-text.test.ts` |
+| The quieter ladder: Home's budget and what earns a row, one confidence line, mood wording, counts-only evidence lines, Trends' titles, one job per page, three languages | `tests/m51.quiet-ladder.test.ts` |

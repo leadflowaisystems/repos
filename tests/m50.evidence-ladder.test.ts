@@ -198,7 +198,7 @@ describe('the evidence ladder at every count, for every kind of feedback', () =>
 
         // ---- actions scale with the evidence -------------------------------
         for (const f of s.concerns) {
-          if (f.level === 'OBSERVATION' || f.level === 'EARLY_SIGNAL') expect(f.action?.level, f.key).toBe('WATCH');
+          if (f.level === 'OBSERVATION' || f.level === 'EARLY_SIGNAL') expect(f.action, f.key).toBeNull();
           if (f.level === 'EMERGING_PATTERN' && f.action) expect(f.action.level, f.key).toBe('CHECK');
           if (f.level === 'STRONG_PATTERN' && f.action) expect(f.action.level, f.key).toBe('ACT');
         }
@@ -259,26 +259,18 @@ describe('what each rung is allowed to say', () => {
   it('one response: the customer heard, line by line — never a pattern', () => {
     const r = runLadder([{ text: 'Loved the cappuccino, but the service was slow.', stars: null }]);
     expect(r.state.copy.title).toBe('Your first customer has been heard');
-    expect(r.state.firstResponse).toEqual([
-      'They didn’t leave a star rating.',
-      'Headway reads it as mixed.',
-      'They praised: Great coffee & drinks.',
-      'They mentioned a problem with: Slow service.',
-    ]);
+    expect(r.state.firstResponse).toEqual(['No star rating', 'Praised: Great coffee & drinks', 'Problem: Slow service']);
     const slow = r.state.findings.find((f) => f.key === 'service_speed');
     expect(slow?.level).toBe('OBSERVATION');
-    expect(slow?.line).toBe('One customer mentioned this. Headway is watching to see whether others mention it too.');
-    expect(slow?.action?.text).toBe('Keep an eye on this.');
+    expect(slow?.levelLabel).toBe('Mentioned once');
+    expect(slow?.action).toBeNull();
+    expect(r.state.copy.note).toBe('One customer’s view — not a pattern.');
     expect(r.state.copy.notSure).toBe('One response is one customer’s view, so Headway draws no conclusion from it.');
   });
 
   it('a 5★ first response with praise says so', () => {
     const r = runLadder([{ text: 'Loved the coffee, really smooth', stars: 5 }]);
-    expect(r.state.firstResponse?.slice(0, 3)).toEqual([
-      'They rated you 5★.',
-      'Headway reads it as a happy response.',
-      'They praised: Great coffee & drinks.',
-    ]);
+    expect(r.state.firstResponse).toEqual(['Rated 5★', 'Praised: Great coffee & drinks']);
   });
 
   it('two of three mention slow service: an early signal, still early, watched — not a pattern', () => {
@@ -289,9 +281,9 @@ describe('what each rung is allowed to say', () => {
     ]);
     const slow = r.state.findings.find((f) => f.key === 'service_speed');
     expect(slow?.level).toBe('EARLY_SIGNAL');
-    expect(slow?.line).toBe(
-      '2 of 3 customers mentioned this. Still early, so Headway is watching it rather than calling it a pattern.',
-    );
+    expect(slow?.line).toBe('2 of 3 customers');
+    expect(slow?.levelLabel).toBe('Early signal');
+    expect(r.state.copy.note).toBe('Still early — nothing is a pattern yet.');
     expect(r.state.standsOut).toMatchObject({ kind: 'FINDING', findingKey: 'service_speed', tone: 'bad' });
     expect(r.state.patterns).toEqual([]);
     expect(findingLines(r).join(' ')).not.toMatch(/major problem|recurring|pattern:/i);
@@ -306,8 +298,10 @@ describe('what each rung is allowed to say', () => {
     ]);
     expect(r.state.repeated).toBe(false);
     expect(r.state.copy.nothingRepeated).toBe('Nothing has repeated yet. Each topic so far has come from one customer.');
-    expect(r.state.standsOut).toMatchObject({ kind: 'MOOD', title: '3 of 4 responses so far were happy.' });
+    expect(r.state.standsOut).toMatchObject({ kind: 'MOOD', title: 'Most customers so far were happy.' });
+    expect(r.state.copy.note).toBe('Still early — nothing has repeated yet.');
     expect(r.state.pulse.ratings).toBe('4 star ratings · 4.0★ average');
+    expect(r.state.pulse.from).toBe('4.0★ from 4 ratings');
   });
 
   it('three of fourteen: an emerging pattern, with the count, the share, and "worth checking"', () => {
@@ -318,7 +312,8 @@ describe('what each rung is allowed to say', () => {
     const slow = r.state.findings.find((f) => f.key === 'service_speed');
     expect(r.state.stage).toBe('EMERGING_PICTURE');
     expect(slow?.level).toBe('EMERGING_PATTERN');
-    expect(slow?.line).toBe('Emerging pattern: 3 of 14 customers mentioned this (21%).');
+    expect(slow?.line).toBe('3 of 14 customers · 21%');
+    expect(slow?.levelLabel).toBe('Emerging pattern');
     expect(slow?.action).toMatchObject({ level: 'CHECK', eyebrow: 'Worth checking' });
     expect(slow?.action?.text).toMatch(/ticket time/i); // the pack's own suggestion
     // And Home now leads with it, as the one thing worth deciding.
@@ -342,7 +337,8 @@ describe('what each rung is allowed to say', () => {
     const slow = r.state.findings.find((f) => f.key === 'service_speed');
     expect(r.state.stage).toBe('STRONG_PATTERNS');
     expect(slow?.level).toBe('STRONG_PATTERN');
-    expect(slow?.line).toBe('Strong recurring pattern: 7 of 30 customers mentioned this (23%).');
+    expect(slow?.line).toBe('7 of 30 customers · 23%');
+    expect(slow?.levelLabel).toBe('Strong pattern');
     expect(slow?.action).toMatchObject({ level: 'ACT', eyebrow: 'What to do' });
   });
 

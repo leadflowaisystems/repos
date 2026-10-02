@@ -291,7 +291,7 @@ export async function getEvidenceIndex(db: PrismaClient, clientId: string): Prom
 export async function getFreshFeed(
   db: PrismaClient,
   clientId: string,
-  options: { now?: Date; labelFor?: (key: string) => string | null; t?: PortalTranslator } = {},
+  options: { now?: Date; labelFor?: (key: string) => string | null; t?: PortalTranslator; preferWords?: boolean } = {},
 ): Promise<FreshFeed | null> {
   const client = await findClient(db, clientId);
   if (!client) return null;
@@ -302,6 +302,7 @@ export async function getFreshFeed(
     // The same rule the pipeline's own gate applies (`isServiceSuspended`):
     // a paused or closed account keeps collecting and stops being read.
     readingPaused: client.subscriptionStatus === 'PAUSED' || client.subscriptionStatus === 'CANCELLED',
+    preferWords: options.preferWords,
     // The page's own name for a topic first, then the pack's name for it in
     // the owner's language, then the stored English — never the bare key.
     labelFor: (key) =>

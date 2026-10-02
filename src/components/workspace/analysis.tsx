@@ -6,7 +6,7 @@ import { getTranslator } from '@/lib/i18n/request';
 import { Callout, Limits, PageIntro, SoFar, ThemeRows, WorkList } from '@/components/portal/portal-ui';
 import { Reveal } from '@/components/portal/disclose';
 import { SignalBoard, type SignalGroup } from '@/components/workspace/signal-board';
-import { AllFindings, EvidenceReading } from '@/components/workspace/evidence-ladder';
+import { AllFindings, EvidenceReading, ReadingSummary } from '@/components/workspace/evidence-ladder';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Customers' };
@@ -116,11 +116,7 @@ export async function PortalAnalysis({
 
   return (
     <div className="max-w-3xl">
-      <PageIntro
-        eyebrow={t('customers.page.eyebrow')}
-        title={t('customers.page.title')}
-        description={view.basis}
-      />
+      <PageIntro eyebrow={t('customers.page.eyebrow')} title={t('customers.page.title')} />
 
       {/* THE FIRST SENTENCE IS THE ANSWER; the rest is elaboration on it.
           All three used to be stacked here, which on a phone is three
@@ -129,7 +125,10 @@ export async function PortalAnalysis({
           sentences that qualify it sit behind one tap. Nothing is lost —
           `telling` is the engine's own executive reading and every line of it
           is still on the page. */}
-      {view.telling.length > 0 ? (
+      {/* The engine's own reading leads only once it stands behind one — ten
+          or more read. Below that its sentence ("no complaint has come up
+          often enough…") was a third way of saying the confidence line. */}
+      {view.telling.length > 0 && named && state.read >= 10 ? (
         <div className="mb-8 max-w-2xl">
           <p className="text-[17px] leading-snug font-medium text-ink-900 sm:text-[19px]">
             {view.telling[0]}
@@ -148,11 +147,13 @@ export async function PortalAnalysis({
         </div>
       ) : null}
 
-      {/* WHAT HEADWAY KNOWS NOW — the stage, what stands out, what is not
-          yet sure and what more feedback will show, from the one evidence
-          state Home and Trends read. The topics themselves follow below, each
-          on its rung, so the summary does not list them twice. */}
-      <EvidenceReading state={state} basePath={basePath} evidence={evidence} lists={false} className="mb-8" />
+      {/* THE READING IN ONE BLOCK — the counts, what stands out, how sure.
+          The topics themselves follow, every one on its rung: this is the
+          page that lists them all, so the summary does not (quieter ladder
+          pass). The reasoning is behind "How Headway decides". */}
+      {/* One "how" per page: once topics are named, the method reveal below
+          explains the reading, so the summary does not offer a second one. */}
+      <ReadingSummary state={state} reasons={!named} className="mb-8" />
 
       {named ? <SignalBoard groups={groups} evidence={evidence} basePath={basePath} open={open} /> : null}
       <AllFindings
@@ -227,7 +228,7 @@ export async function PortalAnalysis({
         </div>
       ) : null}
 
-      <Limits limits={view.limits} />
+      <Limits limits={view.limits} collapsed />
     </div>
   );
 }

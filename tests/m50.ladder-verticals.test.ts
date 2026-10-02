@@ -137,7 +137,7 @@ describe('every vertical climbs the same rungs at the same counts', () => {
             expect(complaint.action?.text).toBe(EN.soft(`pack.${pack.id}.${issue.key}.action`) ?? issue.action);
             expect(complaint.action?.level).toBe(complaint.level === 'STRONG_PATTERN' ? 'ACT' : 'CHECK');
           } else {
-            expect(complaint.action?.text).toBe('Keep an eye on this.');
+            expect(complaint.action).toBeNull();
           }
           // Nothing but this pack's keys, and no café words outside the café.
           const keys = new Set([...pack.issueTaxonomy, ...pack.praiseTaxonomy].map((x) => x.key));

@@ -236,7 +236,8 @@ describe('what an owner is told as feedback arrives', () => {
       expect(finding?.level, `${total}`).toBe('EARLY_SIGNAL');
       expect(state.watching.map((f) => f.key), `${total}`).toContain('service_speed');
       expect(state.patterns, `${total}`).toEqual([]);
-      expect(finding?.action?.level, `${total}`).toBe('WATCH');
+      // Watched, so nothing is asked of the owner: the rung says it.
+      expect(finding?.action, `${total}`).toBeNull();
     }
   });
 

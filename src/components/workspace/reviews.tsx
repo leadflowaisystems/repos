@@ -693,16 +693,10 @@ export async function PortalReviews({
             ...(view.failed > 0
               ? [{ label: t('feedback.status.failed'), value: view.failed, tone: 'bad' as const }]
               : []),
-            // The average over the READ responses, beside "Read" — the same
-            // number, over the same pile, as Home's pulse.
-            ...(state && state.pulse.average !== null
-              ? [
-                  {
-                    label: t.plural('feedback.status.average', state.pulse.rated),
-                    value: `${state.pulse.average.toFixed(1)}★`,
-                  },
-                ]
-              : !state && view.averageRating !== null
+            // The average is the pulse's, one line above ("4.8★ from 4
+            // ratings"), so it is not stated a second time here; only a page
+            // without an evidence state shows its own.
+            ...(!state && view.averageRating !== null
                 ? [
                     {
                       label: t.plural('feedback.status.average', view.withRating),

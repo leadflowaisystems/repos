@@ -136,6 +136,8 @@ export async function PortalHome({
   const fresh = await getFreshFeed(prisma, client.id, {
     now,
     t,
+    // Words before bare ratings, newest first (quieter ladder pass).
+    preferWords: true,
     labelFor: (key) => signalByTheme.get(key)?.themeLabel ?? null,
   });
   // One server render, named. A copy of this page the browser restores from
@@ -179,7 +181,6 @@ export async function PortalHome({
         state={state}
         clientId={clientId}
         basePath={basePath}
-        evidence={evidence}
         fresh={fresh}
         stamp={stamp}
         now={now}

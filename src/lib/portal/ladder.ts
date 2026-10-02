@@ -70,7 +70,7 @@ import type { TrendReadiness } from './trends';
  */
 
 /** Bump when a rung, a stage or the wording rules change. */
-export const LADDER_VERSION = 1;
+export const LADDER_VERSION = 2;
 
 /** The first read. The same line the website quotes (`PRODUCT_RULES.firstReadingAt`). */
 export const FIRST_READ_AT = FIRST_READING_AT;
@@ -241,9 +241,17 @@ export type Finding = {
    * engine read a direction or a genuine steady. Never inferred here.
    */
   movement: PortalSignal['movementDirection'];
-  /** The evidence sentence, without the topic's name (the row heads with it). */
+  /**
+   * The evidence, as counts with the denominator: "2 of 5 customers", and the
+   * share from a pattern up ("7 of 30 customers · 23%"). The rung itself is
+   * `levelLabel`, shown beside it, so the line never says it again (quieter
+   * ladder pass).
+   */
   line: string;
-  /** What the owner might do, scaled to the rung. Null when there is nothing to do. */
+  /**
+   * What the owner might do, scaled to the rung. Null when there is nothing to
+   * do — and for a topic only being watched, whose rung already says so.
+   */
   action: { level: ActionLevel; eyebrow: string | null; text: string } | null;
 };
 
@@ -255,6 +263,8 @@ export type StandsOut = {
   title: string;
   line: string | null;
   tone: 'good' | 'bad' | 'neutral';
+  /** The rung, for a FINDING, so the headline can carry it as a chip. */
+  finding: Finding | null;
 };
 
 export type DirectionState = 'NOT_STARTED' | 'BUILDING_BASELINE' | 'BASELINE_SET' | 'TOO_THIN' | 'READY';
@@ -293,6 +303,8 @@ export type EvidenceState = {
     basis: string;
     /** "4 star ratings · 4.8★ average" | "No star ratings yet" */
     ratings: string;
+    /** The compact form under the counts: "4.8★ from 4 ratings" | "No star ratings yet". */
+    from: string;
   };
 
   /** Every topic any read response mentioned, strongest evidence first. */
@@ -307,6 +319,12 @@ export type EvidenceState = {
   watching: Finding[];
   /** The single strongest thing the evidence supports saying. */
   standsOut: StandsOut | null;
+  /**
+   * How customers felt, as one short sentence ("Most customers are happy.") —
+   * the headline whenever no topic is the strongest thing to say, or when the
+   * topic that is has a card of its own on the page. Null below two read.
+   */
+  mood: StandsOut | null;
   /** Whether anything at all has repeated. */
   repeated: boolean;
   /** At one response: what that customer said, line by line. */
@@ -329,6 +347,15 @@ export type EvidenceState = {
     doing: string[];
     /** "5 responses read" */
     readLine: string;
+    /** "5 responses" — said once, beside the stage. */
+    countLine: string;
+    /**
+     * HOW SURE, IN ONE LINE (quieter ladder pass): "Still early — nothing has
+     * repeated yet." The one place a page states its confidence; the longer
+     * `notSure`, `clearer` and `doing` sit behind "How Headway decides". Null
+     * once a complaint is a pattern, because the rung on it says so.
+     */
+    note: string | null;
   };
 };
 
@@ -367,31 +394,14 @@ export function compareFindings(a: Finding, b: Finding): number {
   );
 }
 
-function lineFor(kind: 'PRAISE' | 'ISSUE', level: FindingLevel, mentions: number, read: number, share: number, t: PortalTranslator): string {
+/**
+ * The evidence, as counts: "2 of 5 customers". The rung is the chip beside it
+ * ("Early signal"), so the line does not say it again, and the share is added
+ * only from a pattern up — a percentage of five is not a finding.
+ */
+function lineFor(level: FindingLevel, mentions: number, read: number, share: number, t: PortalTranslator): string {
   const vars = { count: mentions, total: read, pct: share };
-  const early = read < EMERGING_AT;
-  if (kind === 'PRAISE') {
-    switch (level) {
-      case 'OBSERVATION':
-        return t('ladder.line.praise.observation');
-      case 'EARLY_SIGNAL':
-        return t('ladder.line.praise.signal', vars);
-      case 'EMERGING_PATTERN':
-        return t('ladder.line.praise.emerging', vars);
-      default:
-        return t('ladder.line.praise.strong', vars);
-    }
-  }
-  switch (level) {
-    case 'OBSERVATION':
-      return early ? t('ladder.line.issue.observation.early') : t('ladder.line.issue.observation.later');
-    case 'EARLY_SIGNAL':
-      return early ? t('ladder.line.issue.signal.early', vars) : t('ladder.line.issue.signal.later', vars);
-    case 'EMERGING_PATTERN':
-      return t('ladder.line.issue.emerging', vars);
-    default:
-      return t('ladder.line.issue.strong', vars);
-  }
+  return isPattern(level) ? t('ladder.line.ofPct', vars) : t('ladder.line.of', vars);
 }
 
 function levelLabelFor(kind: 'PRAISE' | 'ISSUE', level: FindingLevel, t: PortalTranslator): string {
@@ -417,8 +427,11 @@ function actionFor(
   switch (actionLevel) {
     case 'KEEP':
       return { level: 'KEEP', eyebrow: null, text: t('ladder.action.keep') };
+    // Below a pattern the owner is asked for nothing: "Mentioned once" and
+    // "Early signal" already say Headway is watching, and "Keep an eye on
+    // this" under every one of them was the page saying it twice.
     case 'WATCH':
-      return { level: 'WATCH', eyebrow: null, text: t('ladder.action.watch') };
+      return null;
     case 'CHECK': {
       const text = signal?.suggestion ?? null;
       return text ? { level: 'CHECK', eyebrow: t('ladder.action.check'), text } : null;
@@ -432,32 +445,50 @@ function actionFor(
   }
 }
 
-function moodOf(pile: PileFacts, t: PortalTranslator): StandsOut | null {
+/**
+ * HOW CUSTOMERS FELT, AS ONE SHORT SENTENCE. The counts sit right beside it
+ * in every place it is shown ("4 Happy · 1 Mixed · 0 Unhappy"), so the
+ * sentence carries the reading, not the numbers again. Below five read it says
+ * "so far" in the past tense: two of three customers is not "most customers".
+ */
+function moodOf(pile: PileFacts, read: number, t: PortalTranslator): StandsOut | null {
   const { happy, mixed, unhappy } = pile;
   const total = happy + mixed + unhappy;
   if (total < 2) return null;
-  const vars = { happy, mixed, unhappy, total, count: total };
+  const early = read < FIRST_READ_AT;
+  // "Most" is said for two in three or more — or for a majority the other side
+  // barely contests (a fifth or less). Without the numbers in the sentence,
+  // "most customers are happy" over 13 happy and 11 unhappy would be a true
+  // majority and a misleading headline; that is "more happy than unhappy", and
+  // anything closer is "split".
   const majority = (x: number) => x * 2 > total;
+  const most = (x: number, against: number) => x * 3 >= total * 2 || (majority(x) && against * 5 <= total);
   let title: string;
   let tone: StandsOut['tone'] = 'neutral';
   if (happy === total) {
-    title = t('ladder.mood.allHappy', vars);
+    title = t('ladder.mood.allHappy');
     tone = 'good';
   } else if (unhappy === total) {
-    title = t('ladder.mood.allUnhappy', vars);
+    title = t('ladder.mood.allUnhappy');
     tone = 'bad';
-  } else if (majority(happy)) {
-    title = unhappy === 0 ? t('ladder.mood.happyNoneUnhappy', vars) : t('ladder.mood.happy', vars);
+  } else if (most(happy, unhappy)) {
+    title = early ? t('ladder.mood.early.happy') : t('ladder.mood.happy');
     tone = 'good';
-  } else if (majority(unhappy)) {
-    title = t('ladder.mood.unhappy', vars);
+  } else if (most(unhappy, happy)) {
+    title = early ? t('ladder.mood.early.unhappy') : t('ladder.mood.unhappy');
     tone = 'bad';
-  } else if (majority(mixed)) {
-    title = t('ladder.mood.mixed', vars);
+  } else if (mixed * 3 >= total * 2) {
+    title = early ? t('ladder.mood.early.mixed') : t('ladder.mood.mixed');
+  } else if (majority(happy) && happy > unhappy) {
+    title = early ? t('ladder.mood.early.leanHappy') : t('ladder.mood.leanHappy');
+    tone = 'good';
+  } else if (majority(unhappy) && unhappy > happy) {
+    title = early ? t('ladder.mood.early.leanUnhappy') : t('ladder.mood.leanUnhappy');
+    tone = 'bad';
   } else {
-    title = t('ladder.mood.split', vars);
+    title = early ? t('ladder.mood.early.split') : t('ladder.mood.split');
   }
-  return { kind: 'MOOD', findingKey: null, title, line: null, tone };
+  return { kind: 'MOOD', findingKey: null, title, line: null, tone, finding: null };
 }
 
 /**
@@ -469,7 +500,7 @@ function moodOf(pile: PileFacts, t: PortalTranslator): StandsOut | null {
  * pattern is already under "what customers seem to like", so it is not said
  * twice.
  */
-function standsOutOf(findings: Finding[], pile: PileFacts, t: PortalTranslator): StandsOut | null {
+function standsOutOf(findings: Finding[], mood: StandsOut | null): StandsOut | null {
   const pick =
     findings.find((f) => f.kind === 'ISSUE' && isPattern(f.level)) ??
     findings.find((f) => f.kind === 'PRAISE' && isPattern(f.level)) ??
@@ -482,18 +513,20 @@ function standsOutOf(findings: Finding[], pile: PileFacts, t: PortalTranslator):
       title: pick.label,
       line: pick.line,
       tone: pick.kind === 'ISSUE' ? 'bad' : 'good',
+      finding: pick,
     };
   }
-  return moodOf(pile, t);
+  return mood;
 }
 
+/**
+ * At one response: the rating and what they named, a line each. How they felt
+ * is the pulse right above it (one Mixed), so it is not said again here.
+ */
 function firstResponseOf(findings: Finding[], pile: PileFacts, t: PortalTranslator): string[] {
   const lines: string[] = [];
   const average = averageOf(pile);
   lines.push(average !== null ? t('ladder.first.rated', { stars: average }) : t('ladder.first.noRating'));
-  if (pile.happy === 1) lines.push(t('ladder.first.tone.happy'));
-  else if (pile.unhappy === 1) lines.push(t('ladder.first.tone.unhappy'));
-  else if (pile.mixed === 1) lines.push(t('ladder.first.tone.mixed'));
   const join = (labels: string[]) =>
     labels.length <= 1
       ? (labels[0] ?? '')
@@ -519,9 +552,11 @@ export function directionOf(r: TrendReadiness, t: PortalTranslator = EN): Direct
     min: r.periodMinResponses ?? AUTO_PERIOD_MIN_RESPONSES,
     days: r.periodMinDays ?? AUTO_PERIOD_MIN_DAYS,
   });
+  // The title is the answer for each state ("Not enough history yet"), not
+  // the question: the old one heading ("Which way things are moving") made
+  // the owner read a paragraph to find out there was no answer yet.
   const base = {
     periods: r.checkins,
-    title: t('ladder.direction.title'),
     method,
     methodTitle: t('ladder.direction.methodTitle'),
   };
@@ -529,6 +564,7 @@ export function directionOf(r: TrendReadiness, t: PortalTranslator = EN): Direct
     return {
       ...base,
       state: 'READY',
+      title: t('ladder.direction.title.ready'),
       body: t('ladder.direction.ready', {
         previous: r.previous?.held ?? 0,
         previousDate: r.previous?.label ?? '',
@@ -543,6 +579,7 @@ export function directionOf(r: TrendReadiness, t: PortalTranslator = EN): Direct
     return {
       ...base,
       state: 'TOO_THIN',
+      title: t('ladder.direction.title.tooThin'),
       body: t('ladder.direction.tooThin', { previous: r.previous?.held ?? 0, current: r.latest?.held ?? 0 }),
       automatic,
     };
@@ -551,6 +588,7 @@ export function directionOf(r: TrendReadiness, t: PortalTranslator = EN): Direct
     return {
       ...base,
       state: 'BASELINE_SET',
+      title: t('ladder.direction.title.baselineSet'),
       body: t.plural('ladder.direction.baselineSet', r.latest.held, {
         date: r.latest.at ? formatDate(r.latest.at) : r.latest.label,
       }),
@@ -560,9 +598,33 @@ export function directionOf(r: TrendReadiness, t: PortalTranslator = EN): Direct
   return {
     ...base,
     state: r.read > 0 ? 'BUILDING_BASELINE' : 'NOT_STARTED',
+    title: r.read > 0 ? t('ladder.direction.title.building') : t('ladder.direction.title.notStarted'),
     body: r.read > 0 ? t('ladder.direction.building') : t('ladder.direction.notStarted'),
     automatic,
   };
+}
+
+/**
+ * THE ONE CONFIDENCE LINE (quieter ladder pass). Four stacked blocks used to
+ * say one idea — "nothing has repeated yet", "not sure yet", "what more
+ * feedback will show", "what Headway is doing". Each page now says it once,
+ * in the fewest words that are still true; the longer reasoning sits behind
+ * "How Headway decides". Nothing here is a countdown.
+ */
+function noteFor(
+  read: number,
+  repeated: boolean,
+  issuePatterns: number,
+  issueSignals: number,
+  t: PortalTranslator,
+): string | null {
+  if (read === 0) return null;
+  if (read === 1) return t('ladder.note.single');
+  if (read < EMERGING_AT) return repeated ? t('ladder.note.earlyRepeat') : t('ladder.note.early');
+  if (issuePatterns > 0) return null;
+  // A complaint that has repeated is on the page with "Early signal" beside
+  // it; "no recurring problem" right under it would read as a contradiction.
+  return issueSignals > 0 ? t('ladder.note.notYetPattern') : t('ladder.note.noProblemPattern');
 }
 
 function copyFor(
@@ -571,10 +633,16 @@ function copyFor(
   waiting: number,
   repeated: boolean,
   patterns: number,
+  issuePatterns: number,
+  issueSignals: number,
   direction: Direction,
   t: PortalTranslator,
 ): EvidenceState['copy'] {
-  const readLine = t.plural('ladder.read', read);
+  const shared = {
+    readLine: t.plural('ladder.read', read),
+    countLine: t.plural('ladder.count', read),
+    note: noteFor(read, repeated, issuePatterns, issueSignals, t),
+  };
   const doing: string[] = [t('ladder.doing.reads')];
   switch (stage) {
     case 'NONE':
@@ -586,7 +654,7 @@ function copyFor(
         notSure: null,
         clearer: null,
         doing,
-        readLine,
+        ...shared,
       };
     case 'PULSE':
       doing.push(t('ladder.doing.separate'));
@@ -598,7 +666,7 @@ function copyFor(
         notSure: read === 1 ? t('ladder.notSure.first') : t('ladder.notSure.pulse'),
         clearer: t('ladder.clearer.early'),
         doing,
-        readLine,
+        ...shared,
       };
     case 'FIRST_READ':
       doing.push(t('ladder.doing.separate'));
@@ -610,7 +678,7 @@ function copyFor(
         notSure: t('ladder.notSure.firstRead'),
         clearer: repeated ? t('ladder.clearer.firstRead') : t('ladder.clearer.early'),
         doing,
-        readLine,
+        ...shared,
       };
     case 'EMERGING_PICTURE':
       doing.push(t('ladder.doing.patterns'));
@@ -623,7 +691,7 @@ function copyFor(
         notSure: patterns > 0 ? t('ladder.notSure.emerging') : t('ladder.notSure.firstRead'),
         clearer: t('ladder.clearer.emerging'),
         doing,
-        readLine,
+        ...shared,
       };
     default:
       doing.push(t('ladder.doing.patterns'));
@@ -636,7 +704,7 @@ function copyFor(
         notSure: direction.state === 'READY' ? null : t('ladder.notSure.direction'),
         clearer: direction.state === 'READY' ? t('ladder.clearer.strong') : t('ladder.clearer.direction'),
         doing,
-        readLine,
+        ...shared,
       };
   }
 }
@@ -678,7 +746,7 @@ export function buildEvidenceState(input: EvidenceInput): EvidenceState {
         level,
         levelLabel: levelLabelFor(row.kind, level, t),
         movement: signal?.movementDirection ?? null,
-        line: lineFor(row.kind, level, row.count, read, share, t),
+        line: lineFor(level, row.count, read, share, t),
         action: actionFor(row.kind, level, signal, t),
       };
     })
@@ -696,6 +764,7 @@ export function buildEvidenceState(input: EvidenceInput): EvidenceState {
 
   const average = averageOf(pile);
   const counted = pile.happy + pile.mixed + pile.unhappy;
+  const mood = read >= 2 ? moodOf(pile, read, t) : null;
 
   return {
     version: LADDER_VERSION,
@@ -716,17 +785,22 @@ export function buildEvidenceState(input: EvidenceInput): EvidenceState {
         average === null
           ? t('ladder.pulse.noRatings')
           : t.plural('ladder.pulse.rated', pile.rated, { average: average.toFixed(1) }),
+      from:
+        average === null
+          ? t('ladder.pulse.noRatings')
+          : t.plural('ladder.pulse.from', pile.rated, { average: average.toFixed(1) }),
     },
     findings,
     likes,
     concerns,
     patterns,
     watching,
-    standsOut: read >= 2 ? standsOutOf(findings, pile, t) : null,
+    standsOut: read >= 2 ? standsOutOf(findings, mood) : null,
+    mood,
     repeated,
     firstResponse: read === 1 ? firstResponseOf(findings, pile, t) : null,
     direction,
-    copy: copyFor(stage, read, pile.waiting, repeated, patterns.length, direction, t),
+    copy: copyFor(stage, read, pile.waiting, repeated, patterns.length, concerns.filter((f) => isPattern(f.level)).length, concerns.filter((f) => f.level === 'EARLY_SIGNAL').length, direction, t),
   };
 }
 
@@ -765,4 +839,72 @@ export function evidenceNumbers(state: EvidenceState): Set<string> {
     add(f.share);
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// What Home shows (quieter ladder pass)
+// ---------------------------------------------------------------------------
+
+/**
+ * HOME'S BUDGET. Home is a briefing, not the whole reading: the strongest
+ * truth, then at most this many rows per list. Everything else is one tap
+ * away on Customers, which lists every topic on its rung.
+ */
+export const HOME_LIMITS = { patterns: 3, likes: 3, watching: 2 } as const;
+
+/**
+ * The headline: the strongest thing the evidence supports — unless another
+ * card on the page already tells that topic in full (Home's story card), in
+ * which case it is how customers felt.
+ */
+export function headlineOf(state: EvidenceState, omit: string | null = null): StandsOut | null {
+  const s = state.standsOut;
+  // The story card IS what stands out; a mood sentence under it would only
+  // restate the counts in the band above.
+  if (s && omit !== null && s.findingKey === omit) return null;
+  return s ?? state.mood;
+}
+
+export type HomeLists = {
+  /** Complaints that are patterns, beside the story card's own. */
+  patterns: Finding[];
+  /** Praise that has repeated — a single compliment is not on Home. */
+  likes: Finding[];
+  /** Complaints below a pattern. From ten read, only those that repeated. */
+  watching: Finding[];
+  /** Topics left for Customers, so Home can say how many more there are. */
+  more: number;
+};
+
+/**
+ * WHICH TOPICS EARN A ROW ON HOME — signal over completeness.
+ *
+ *   A complaint pattern always does.
+ *   Praise does once it has repeated: "Praised once" changes nothing an owner
+ *   would think or do, and it is still listed on Customers.
+ *   A complaint below a pattern does while the pile is small — at five, one
+ *   customer's complaint is worth knowing — and from ten read only once it has
+ *   repeated, because there a one-off is exactly that.
+ *
+ * The rungs are unchanged: this decides only what Home has room for, never
+ * what anything is called.
+ */
+export function homeLists(state: EvidenceState, omit: string | null = null): HomeLists {
+  const headline = headlineOf(state, omit);
+  // A story topic counts as shown only when it is one of these findings: the
+  // engine can name a theme the live theme summary does not hold (mid re-read).
+  const told = omit !== null && state.findings.some((f) => f.key === omit) ? omit : null;
+  const shown = new Set<string>([told, headline?.findingKey].filter((k): k is string => typeof k === 'string'));
+  const keep = (f: Finding) => !shown.has(f.key);
+  const patterns = state.concerns.filter((f) => isPattern(f.level)).filter(keep).slice(0, HOME_LIMITS.patterns);
+  const likes = state.likes
+    .filter((f) => f.mentions >= EARLY_SIGNAL_MENTIONS)
+    .filter(keep)
+    .slice(0, HOME_LIMITS.likes);
+  const watching = state.watching
+    .filter((f) => state.read < EMERGING_AT || f.level !== 'OBSERVATION')
+    .filter(keep)
+    .slice(0, HOME_LIMITS.watching);
+  const listed = shown.size + patterns.length + likes.length + watching.length;
+  return { patterns, likes, watching, more: Math.max(0, state.findings.length - listed) };
 }

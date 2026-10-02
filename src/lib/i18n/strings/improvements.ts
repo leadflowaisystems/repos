@@ -286,11 +286,6 @@ export const improvements = {
     hi: 'रुझान',
     mr: 'कल',
   },
-  'improvements.trends.intro': {
-    en: 'See what’s getting better, worse, or staying the same.',
-    hi: 'देखें क्या बेहतर हो रहा है, क्या बिगड़ रहा है और क्या वैसा ही है।',
-    mr: 'काय सुधारतंय, काय बिघडतंय आणि काय तसंच आहे ते पाहा.',
-  },
   'improvements.trends.worse': {
     en: 'Getting worse',
     hi: 'बिगड़ रहा है',
@@ -350,17 +345,6 @@ export const improvements = {
     en: 'Trends appear after your second check-in.',
     hi: 'रुझान आपके दूसरे चेक-इन के बाद दिखेंगे।',
     mr: 'तुमच्या दुसऱ्या चेक-इननंतर कल दिसतील.',
-  },
-
-  // -------------------------------------------------------------------------
-  // WHAT CUSTOMERS ARE SAYING NOW — kept apart from the trends. The section
-  // itself is the evidence ladder's (`ladder.section.now`); this is the way on
-  // to every topic.
-  // -------------------------------------------------------------------------
-  'improvements.now.all': {
-    en: 'See every topic on Customers',
-    hi: 'हर विषय ग्राहक पेज पर देखें',
-    mr: 'प्रत्येक विषय ग्राहक पानावर पाहा',
   },
 
   // -------------------------------------------------------------------------

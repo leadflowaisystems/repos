@@ -301,7 +301,7 @@ describe('customers is a signal board', () => {
       "t('customers.changed.summary')",
       "t('customers.method.summary')",
       '<WorkList work={view.work} />',
-      '<Limits limits={view.limits} />',
+      '<Limits limits={view.limits} collapsed />',
     ]);
     expect(MESSAGES['customers.changed.summary'].en).toBe('Show what changed between your check-ins');
     expect(MESSAGES['customers.method.summary'].en).toBe('How Headway read this');
@@ -457,15 +457,23 @@ describe('the check-in is a pulse', () => {
   const page = code(read('src', 'components', 'workspace', 'checkin.tsx'));
 
   it('says the whole check-in in one sentence and three blocks, then the detail on request', () => {
+    // Quieter ladder pass: before anything has been compared, the page is the
+    // reading in one block, the blocks, and the direction's own answer — once
+    // each. Once compared, it is the sentence, the blocks and the next check.
     ordered(page, [
       '<PeriodSwitch basePath={basePath} current="checkin" />',
-      '{pulse.sentence}',
+      '{!compared ? (',
+      '<ReadingSummary state={state} reasons={false} />',
       '<Blocks blocks={pulse.blocks}',
+      '<DirectionPanel direction={state.direction} title={false} />',
+      '{pulse.sentence}',
       "t('checkin.nextCheck.title')",
       '{r.nextUsefulCheck}',
       "summary={t('checkin.reveal.changed')}",
       "t('checkin.reveal.did'",
     ]);
+    const comparedBranch = page.slice(page.indexOf('{pulse.sentence}'));
+    ordered(comparedBranch, ['{pulse.sentence}', '<Blocks blocks={pulse.blocks}', "t('checkin.nextCheck.title')"]);
     expect(MESSAGES['checkin.nextCheck.title'].en).toBe('What Headway will check next');
     expect(MESSAGES['checkin.reveal.changed'].en).toBe('Show what changed');
     expect(MESSAGES['checkin.reveal.did'].en).toBe('What Headway did · {since}');

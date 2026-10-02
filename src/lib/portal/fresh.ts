@@ -113,6 +113,15 @@ export function buildFreshFeed(input: {
    */
   labelFor?: (key: string) => string | null;
   limit?: number;
+  /**
+   * Home's list (quieter ladder pass): the newest feedback with words in it
+   * first, and a rating left without words only when there are not enough of
+   * those. Three rows of "Rated without writing anything" told an owner
+   * nothing the star count above them had not; the ratings are still counted
+   * in the pulse and listed on Feedback. Anything not read yet always counts
+   * as worth showing — it is the row the owner just watched arrive.
+   */
+  preferWords?: boolean;
 }): FreshFeed {
   const { ledger, now, readingPaused } = input;
   const limit = input.limit ?? LATEST_ON_HOME;
@@ -124,7 +133,17 @@ export function buildFreshFeed(input: {
   // Top `limit` by evidence date, found in one pass: the ledger can be ten
   // thousand rows and the answer is three of them.
   const top: LedgerRow[] = [];
+  // Worth a row: words in it, or not read yet, or read moments ago — the
+  // response the live line is announcing is never missing from the list.
+  const worded = (row: LedgerRow) =>
+    !input.preferWords ||
+    awaitingFirstRead(row) ||
+    (row.analysedAt !== null && row.analysedAt.getTime() >= justSince && row.createdAt.getTime() >= newSince) ||
+    /[\p{L}\p{N}]/u.test(row.text)
+      ? 1
+      : 0;
   const newer = (a: LedgerRow, b: LedgerRow) =>
+    worded(a) - worded(b) ||
     evidenceAt(a).getTime() - evidenceAt(b).getTime() ||
     a.createdAt.getTime() - b.createdAt.getTime() ||
     // Ties broken the same way the ledger breaks them, so the three are stable.
@@ -160,7 +179,11 @@ export function buildFreshFeed(input: {
         ? { kind: 'JUST_READ', count: justRead }
         : null;
 
-  const latest = top.map((row): LatestEntry => {
+  // Shown newest first whatever earned them their place, so the times under
+  // "Latest" always read in order.
+  const byTime = (a: LedgerRow, b: LedgerRow) =>
+    evidenceAt(b).getTime() - evidenceAt(a).getTime() || b.createdAt.getTime() - a.createdAt.getTime() || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  const latest = [...top].sort(byTime).map((row): LatestEntry => {
     const state = stateOf(row);
     const topics =
       state === 'READ'

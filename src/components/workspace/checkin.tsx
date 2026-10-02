@@ -20,7 +20,7 @@ import { SinceThen } from '@/components/portal/responsibility';
 import { SignalCard, type SignalGroupKey } from '@/components/workspace/signal-board';
 import type { EvidenceIndex } from '@/lib/portal/evidence';
 import { getTranslator } from '@/lib/i18n/request';
-import { DirectionPanel, EvidenceReading } from '@/components/workspace/evidence-ladder';
+import { DirectionPanel, EvidenceReading, ReadingSummary } from '@/components/workspace/evidence-ladder';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Check-in' };
@@ -175,35 +175,40 @@ export async function PortalCheckin({
         <PeriodSwitch basePath={basePath} current="checkin" />
       </div>
 
-      {r.basedOn > 0 ? (
-        <p className="mb-6 max-w-3xl text-[22px] leading-[1.25] font-semibold tracking-[-0.015em] text-balance text-ink-900 sm:text-[27px]">
-          {pulse.sentence}
-        </p>
-      ) : (
-        <div className="mb-6 max-w-3xl">
-          <Quiet>{t('checkin.empty')}</Quiet>
+      {/* NOTHING COMPARED YET (quieter ladder pass): the reading in one block,
+          anything that needs the owner, and the direction's own answer — once
+          each. The large pulse sentence and "what Headway will check next"
+          used to say the same two things again above them. */}
+      {!compared ? (
+        <div className="max-w-3xl space-y-6">
+          <ReadingSummary state={state} reasons={false} />
+          <Blocks blocks={pulse.blocks} evidence={evidence} basePath={basePath} />
+          <DirectionPanel direction={state.direction} title={false} />
         </div>
+      ) : (
+        <>
+          {r.basedOn > 0 ? (
+            <p className="mb-6 max-w-3xl text-[22px] leading-[1.25] font-semibold tracking-[-0.015em] text-balance text-ink-900 sm:text-[27px]">
+              {pulse.sentence}
+            </p>
+          ) : (
+            <div className="mb-6 max-w-3xl">
+              <Quiet>{t('checkin.empty')}</Quiet>
+            </div>
+          )}
+
+          <Blocks blocks={pulse.blocks} evidence={evidence} basePath={basePath} />
+
+          {r.basedOn > 0 ? (
+            <section aria-label={t('checkin.nextCheck.title')} className="mt-8 max-w-3xl border-l-2 border-ink-300 pl-4">
+              <p className="text-[11px] font-medium tracking-widest text-ink-500 uppercase">{t('checkin.nextCheck.title')}</p>
+              <p className="mt-1.5 text-[14px] leading-relaxed text-ink-800">{r.nextUsefulCheck}</p>
+            </section>
+          ) : null}
+        </>
       )}
 
-      <Blocks blocks={pulse.blocks} evidence={evidence} basePath={basePath} />
-
-      {r.basedOn > 0 ? (
-        <section aria-label={t('checkin.nextCheck.title')} className="mt-8 max-w-3xl border-l-2 border-ink-300 pl-4">
-          <p className="text-[11px] font-medium tracking-widest text-ink-500 uppercase">{t('checkin.nextCheck.title')}</p>
-          <p className="mt-1.5 text-[14px] leading-relaxed text-ink-800">{r.nextUsefulCheck}</p>
-        </section>
-      ) : null}
-
       <div className="mt-10 max-w-3xl space-y-6">
-        {/* Nothing compared yet: what customers are saying now, then what the
-            direction waits for — the same two blocks Trends shows, and never
-            a chore: Headway draws the comparable periods itself. */}
-        {!compared ? (
-          <>
-            <EvidenceReading state={state} basePath={basePath} evidence={evidence} variant="compact" />
-            <DirectionPanel direction={state.direction} basePath={basePath} />
-          </>
-        ) : null}
 
         {compared || hasDetail ? (
         <Reveal summary={t('checkin.reveal.changed')} tone="strong">

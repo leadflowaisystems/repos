@@ -1,30 +1,43 @@
 import clsx from 'clsx';
 import { Link } from '@/components/portal/link';
 import { Reveal } from '@/components/portal/disclose';
-import { HeadwayMark } from '@/components/brand';
 import { getTranslator } from '@/lib/i18n/request';
 import type { PortalTranslator } from '@/lib/i18n/translator';
 import { quotesFor, type EvidenceIndex } from '@/lib/portal/evidence';
-import type { Direction, EvidenceState, Finding, FindingLevel } from '@/lib/portal/ladder';
+import {
+  headlineOf,
+  homeLists,
+  type Direction,
+  type EvidenceState,
+  type Finding,
+  type FindingLevel,
+  type StandsOut,
+} from '@/lib/portal/ladder';
 
 /**
- * THE EVIDENCE LADDER, DRAWN (Oct 2026).
+ * THE EVIDENCE LADDER, DRAWN (Oct 2026; quieter ladder pass).
  *
  * One reading, from the one evidence state (`src/lib/portal/ladder.ts`),
- * drawn the same way wherever it appears: Home, Customers, Trends, Check-in
- * and the period reports. It replaces two cards that made Headway look idle —
- * the countdown ("3 more responses to go") and "Trends aren't ready yet" — with
- * what the evidence already supports at every stage:
+ * drawn at the density each page needs:
  *
- *   WHAT WE KNOW NOW      what stands out, what customers seem to like
- *   WHAT WE ARE WATCHING  complaints mentioned, not yet a pattern
- *   NOT SURE YET          said out loud, with why
- *   WHAT MORE WILL SHOW   what becomes clearer, never a number to reach
- *   WHAT HEADWAY DOES     reads, keeps one-offs apart, compares by itself
+ *   HOME        a briefing — the strongest truth, at most a few rows per list,
+ *               one line on how sure Headway is. Scan the headings and the
+ *               numbers and stop.
+ *   CUSTOMERS   the whole picture — every topic on its rung, with its counts,
+ *               a customer's words for a pattern, and what to do.
+ *   TRENDS      change over time — the current picture in one line, and the
+ *               direction as the headline.
  *
- * Every row says its rung in words ("Early signal", "Emerging pattern") and
- * its evidence in counts with the denominator. The component decides nothing:
- * every sentence and every list arrives built.
+ * The first version of this file drew the same reading everywhere, with four
+ * stacked blocks that said one idea ("nothing has repeated yet", "not sure
+ * yet", "what more feedback will show", "what Headway is doing"). They are one
+ * line now (`copy.note`), and the longer reasoning is behind "How Headway
+ * decides" — still on the page, never in the way.
+ *
+ * The rung is always said in words ("Mentioned once", "Early signal",
+ * "Emerging pattern") on a chip beside the topic; the evidence line beside it
+ * is counts with the denominator ("2 of 5 customers"). The component decides
+ * nothing: what earns a row on Home is `homeLists`, tested on its own.
  */
 
 const EYEBROW = 'text-[11px] font-semibold tracking-[0.14em] uppercase';
@@ -36,12 +49,14 @@ const LEVEL_TONE: Record<FindingLevel, string> = {
   STRONG_PATTERN: 'bg-ink-900 text-white ring-ink-900',
 };
 
+const TONE_TEXT = { good: 'text-good-700', bad: 'text-bad-700', neutral: 'text-ink-900' } as const;
+
 /** The rung, as a small labelled chip. Words always; colour only repeats them. */
 export function LevelChip({ finding }: { finding: Finding }) {
   return (
     <span
       className={clsx(
-        'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset',
+        'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ring-1 ring-inset',
         LEVEL_TONE[finding.level],
       )}
     >
@@ -61,16 +76,26 @@ function Mark({ finding, t }: { finding: Finding; t: PortalTranslator }) {
   const words =
     finding.movement === 'STABLE' ? t('brief.trend.same') : finding.movement === 'IMPROVING' ? t('brief.trend.better') : t('brief.trend.worse');
   return (
-    <span className={clsx('text-[13px] font-semibold', tone)}>
+    <span className={clsx('text-[13px] font-semibold whitespace-nowrap', tone)}>
       <span aria-hidden>{mark}</span> {words}
     </span>
   );
 }
 
+/** Counts, shown only when they add something: "Mentioned once" already says one. */
+function Counts({ finding }: { finding: Finding }) {
+  if (finding.level === 'OBSERVATION') return null;
+  return <span className="text-[13px] text-ink-600 tabular-nums">{finding.line}</span>;
+}
+
+// ---------------------------------------------------------------------------
+// Customers: every topic, in full
+// ---------------------------------------------------------------------------
+
 /**
- * One topic, as one row: its name, its rung, the evidence sentence, and —
- * scaled to the rung — what the owner might do. The whole name opens the
- * feedback behind it.
+ * One topic, in full: its name, its rung, its counts, a customer's own words
+ * for a pattern, and — only where the evidence earns it — what to do. The
+ * whole name opens the feedback behind it.
  */
 export function FindingRow({
   finding,
@@ -98,9 +123,9 @@ export function FindingRow({
           {finding.label}
         </Link>
         <LevelChip finding={finding} />
+        <Counts finding={finding} />
         <Mark finding={finding} t={t} />
       </div>
-      <p className="mt-1 max-w-2xl text-[14px] leading-snug text-ink-700 tabular-nums">{finding.line}</p>
       {quote ? (
         <blockquote className="mt-1.5 line-clamp-2 border-l-2 border-brand-400 pl-3 text-[14px] leading-snug text-ink-700">
           “{quote.text}”
@@ -113,12 +138,7 @@ export function FindingRow({
             <p className="mt-0.5 text-[14px] leading-snug font-medium text-ink-900">{finding.action.text}</p>
           </div>
         ) : (
-          <p
-            className={clsx(
-              'mt-1 text-[13px] font-medium',
-              finding.action.level === 'KEEP' ? 'text-good-700' : 'text-ink-600',
-            )}
-          >
+          <p className={clsx('mt-1 text-[13px] font-medium', finding.action.level === 'KEEP' ? 'text-good-700' : 'text-ink-600')}>
             {finding.action.text}
           </p>
         )
@@ -127,254 +147,9 @@ export function FindingRow({
   );
 }
 
-function FindingList({
-  title,
-  findings,
-  basePath,
-  evidence,
-  t,
-  tone = 'neutral',
-}: {
-  title: string;
-  findings: Finding[];
-  basePath: string;
-  evidence?: EvidenceIndex;
-  t: PortalTranslator;
-  tone?: 'good' | 'bad' | 'neutral';
-}) {
-  if (findings.length === 0) return null;
-  return (
-    <section className="mt-5">
-      <h3
-        className={clsx(
-          EYEBROW,
-          'flex items-center gap-2',
-          tone === 'good' ? 'text-good-700' : tone === 'bad' ? 'text-bad-700' : 'text-ink-500',
-        )}
-      >
-        <span
-          aria-hidden
-          className={clsx(
-            'h-1.5 w-1.5 rounded-full',
-            tone === 'good' ? 'bg-good-600' : tone === 'bad' ? 'bg-bad-600' : 'bg-ink-400',
-          )}
-        />
-        {title}
-      </h3>
-      <ul className="mt-1 divide-y divide-ink-100">
-        {findings.map((f) => (
-          <FindingRow key={`${f.kind}:${f.key}`} finding={f} basePath={basePath} evidence={evidence} t={t} />
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-/** How many rows a list shows on a card. The rest are one tap away on Customers. */
-const ROWS = 3;
-
 /**
- * THE READING — what Headway knows right now, at whatever stage this is.
- *
- * `omit` leaves out a topic another block on the same page already tells in
- * full (Home's story card), so no topic is said twice on one screen.
- */
-export async function EvidenceReading({
-  state,
-  basePath,
-  evidence,
-  omit = null,
-  calm = null,
-  variant = 'card',
-  headingLevel = 2,
-  lists = true,
-  eyebrow = true,
-  className,
-}: {
-  state: EvidenceState;
-  basePath: string;
-  evidence?: EvidenceIndex;
-  omit?: string | null;
-  /** A sentence to open with when nothing needs the owner — only ever earned at 10+ read. */
-  calm?: string | null;
-  /** `card` on Home; `page` sits on a page that has its own heading; `compact` keeps to the essentials. */
-  variant?: 'card' | 'page' | 'compact';
-  headingLevel?: 2 | 3;
-  /**
-   * Whether to list the topics here. A page that lists every topic in full
-   * below (Customers' board) keeps the reading to its summary, so no topic is
-   * listed twice.
-   */
-  lists?: boolean;
-  /**
-   * Whether to open with the stage and the read count. Home's band already
-   * says both, one line above, so Home's card leaves them out.
-   */
-  eyebrow?: boolean;
-  className?: string;
-}) {
-  const t = await getTranslator();
-  const { copy } = state;
-  const H = headingLevel === 2 ? 'h2' : 'h3';
-  const skip = (f: Finding) => f.key !== omit;
-  const stood = state.standsOut?.kind === 'FINDING' ? state.standsOut.findingKey : null;
-  // Three lists, by what they are to the owner: complaints customers keep
-  // raising (a pattern), everything they praise (strongest first, patterns
-  // included), and complaints only being watched. Praise is never filed under
-  // a heading — or a colour — meant for complaints.
-  const patterns = state.patterns.filter((f) => f.kind === 'ISSUE').filter(skip).filter((f) => f.key !== stood);
-  const likes = state.likes.filter(skip).filter((f) => f.key !== stood);
-  const watching = state.watching.filter(skip).filter((f) => f.key !== stood);
-  const compact = variant === 'compact';
-  const rows = compact ? 2 : ROWS;
-
-  return (
-    <section
-      aria-labelledby={`evidence-reading-${variant}`}
-      className={clsx(
-        variant === 'card' && 'rounded-2xl border border-ink-200 bg-white p-5 shadow-[0_1px_2px_rgba(16,42,67,0.04)] sm:p-6',
-        className,
-      )}
-    >
-      {eyebrow ? (
-        <p className={clsx(EYEBROW, 'mb-1.5 flex flex-wrap items-center gap-x-2 text-brand-700')}>
-          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand-500" />
-          <span>{copy.eyebrow}</span>
-          {state.read > 0 ? <span className="font-medium text-ink-500 normal-case tracking-normal">· {copy.readLine}</span> : null}
-        </p>
-      ) : null}
-      <H
-        id={`evidence-reading-${variant}`}
-        className={clsx(
-          'font-display leading-[1.15] font-semibold text-balance text-ink-900',
-          compact ? 'text-[20px]' : 'text-[24px] sm:text-[26px]',
-        )}
-      >
-        {calm ?? copy.title}
-      </H>
-      <p className="mt-1.5 max-w-2xl text-[15px] leading-relaxed text-ink-700">{copy.intro}</p>
-
-      {state.stage === 'NONE' ? (
-        <div className="mt-4 flex flex-wrap gap-x-6">
-          <Link
-            href={`${basePath}/kit`}
-            className="inline-flex min-h-11 items-center gap-1 text-[14px] font-semibold text-ink-900 underline decoration-brand-400 underline-offset-4 hover:decoration-ink-900"
-          >
-            {t('ladder.cta.kit')} <span aria-hidden>→</span>
-          </Link>
-        </div>
-      ) : null}
-
-      {state.firstResponse ? (
-        <section className="mt-5">
-          <h3 className={clsx(EYEBROW, 'text-ink-500')}>{t('ladder.section.first')}</h3>
-          <ul className="mt-1.5 space-y-1">
-            {state.firstResponse.map((line) => (
-              <li key={line} className="text-[15px] leading-snug text-ink-800">
-                {line}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {state.standsOut && !(state.standsOut.findingKey && state.standsOut.findingKey === omit) ? (
-        <section className="mt-5 rounded-xl bg-canvas px-4 py-3">
-          <h3 className={clsx(EYEBROW, 'text-ink-500')}>{t('ladder.section.standsOut')}</h3>
-          <p
-            className={clsx(
-              'mt-1 text-[17px] leading-snug font-semibold',
-              state.standsOut.tone === 'good' ? 'text-good-700' : state.standsOut.tone === 'bad' ? 'text-bad-700' : 'text-ink-900',
-            )}
-          >
-            {state.standsOut.title}
-          </p>
-          {state.standsOut.line ? (
-            <p className="mt-0.5 text-[14px] leading-snug text-ink-700 tabular-nums">{state.standsOut.line}</p>
-          ) : null}
-        </section>
-      ) : null}
-
-      {lists && state.read > 1 ? (
-        <>
-          <FindingList
-            title={t('ladder.section.patterns')}
-            findings={patterns.slice(0, rows)}
-            basePath={basePath}
-            evidence={evidence}
-            t={t}
-            tone="bad"
-          />
-          <FindingList
-            title={t('ladder.section.likes')}
-            findings={likes.slice(0, rows)}
-            basePath={basePath}
-            evidence={evidence}
-            t={t}
-            tone="good"
-          />
-          <FindingList
-            title={t('ladder.section.watching')}
-            findings={watching.slice(0, rows)}
-            basePath={basePath}
-            evidence={evidence}
-            t={t}
-          />
-        </>
-      ) : null}
-
-      {copy.nothingRepeated ? (
-        <p className="mt-4 border-l-2 border-ink-300 pl-3 text-[14px] leading-snug text-ink-700">{copy.nothingRepeated}</p>
-      ) : null}
-
-      {state.stage !== 'NONE' && (copy.notSure || copy.clearer) ? (
-        <dl className="mt-5 grid gap-3 border-t border-ink-200 pt-4 sm:grid-cols-2">
-          {copy.notSure ? (
-            <div>
-              <dt className={clsx(EYEBROW, 'text-ink-500')}>{t('ladder.section.notSure')}</dt>
-              <dd className="mt-1 text-[14px] leading-snug text-ink-700">{copy.notSure}</dd>
-            </div>
-          ) : null}
-          {copy.clearer ? (
-            <div>
-              <dt className={clsx(EYEBROW, 'text-ink-500')}>{t('ladder.section.clearer')}</dt>
-              <dd className="mt-1 text-[14px] leading-snug text-ink-700">{copy.clearer}</dd>
-            </div>
-          ) : null}
-        </dl>
-      ) : null}
-
-      {!compact && state.stage !== 'NONE' ? (
-        <div className="mt-4 flex items-start gap-3">
-          <HeadwayMark className="mt-0.5 h-6 w-6 shrink-0" />
-          <div>
-            <p className={clsx(EYEBROW, 'text-ink-500')}>{t('ladder.section.doing')}</p>
-            <ul className="mt-1 space-y-0.5">
-              {copy.doing.map((line) => (
-                <li key={line} className="text-[13px] leading-snug text-ink-600">
-                  {line}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      ) : null}
-
-      {state.collected > 0 ? (
-        <Link
-          href={`${basePath}/reviews#entries`}
-          className="mt-3 inline-flex min-h-11 items-center gap-1 text-[14px] font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
-        >
-          {t('ladder.reviews.cta')} <span aria-hidden>→</span>
-        </Link>
-      ) : null}
-    </section>
-  );
-}
-
-/**
- * EVERY TOPIC MENTIONED, each on its rung — for the pages whose job is the
- * whole picture (Customers, Trends). Complaints first, then praise.
+ * EVERY TOPIC MENTIONED, each on its rung — for the page whose job is the
+ * whole picture (Customers). Complaints first, then praise.
  */
 export async function AllFindings({
   state,
@@ -407,64 +182,329 @@ export async function AllFindings({
   );
 }
 
+// ---------------------------------------------------------------------------
+// Home: the briefing
+// ---------------------------------------------------------------------------
+
 /**
- * WHICH WAY THINGS ARE MOVING — the direction's own readiness, without a
- * chore in it. Replaces "Trends aren't ready yet", which listed "responses
- * waiting for your first check-in" as if the owner owed Headway one.
+ * One topic as one line: name, rung, counts, movement. A pattern that has a
+ * suggestion carries it underneath — from ten read, Home is meant to be more
+ * useful, not just longer.
  */
-export async function DirectionPanel({
-  direction,
+function TopicLine({ finding, basePath, t, withAction }: { finding: Finding; basePath: string; t: PortalTranslator; withAction: boolean }) {
+  return (
+    <li className="py-2.5">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <Link
+          href={`${basePath}/reviews?theme=${encodeURIComponent(finding.key)}`}
+          className="text-[15px] leading-snug font-semibold text-ink-900 underline decoration-ink-200 underline-offset-4 hover:decoration-ink-900"
+        >
+          {finding.label}
+        </Link>
+        <LevelChip finding={finding} />
+        <Counts finding={finding} />
+        <Mark finding={finding} t={t} />
+      </div>
+      {withAction && finding.action?.eyebrow ? (
+        <p className="mt-1 line-clamp-2 text-[14px] leading-snug text-ink-700">
+          <span className="font-semibold text-ink-900">{finding.action.eyebrow}:</span> {finding.action.text}
+        </p>
+      ) : null}
+    </li>
+  );
+}
+
+function TopicList({
+  title,
+  findings,
   basePath,
-  variant = 'full',
+  t,
+  tone,
+  withAction = false,
+}: {
+  title: string;
+  findings: Finding[];
+  basePath: string;
+  t: PortalTranslator;
+  tone: 'good' | 'bad' | 'neutral';
+  withAction?: boolean;
+}) {
+  if (findings.length === 0) return null;
+  return (
+    <section className="mt-5">
+      <h3
+        className={clsx(
+          EYEBROW,
+          'flex items-center gap-2',
+          tone === 'good' ? 'text-good-700' : tone === 'bad' ? 'text-bad-700' : 'text-ink-500',
+        )}
+      >
+        <span
+          aria-hidden
+          className={clsx('h-1.5 w-1.5 rounded-full', tone === 'good' ? 'bg-good-600' : tone === 'bad' ? 'bg-bad-600' : 'bg-ink-400')}
+        />
+        {title}
+      </h3>
+      <ul className="mt-0.5 divide-y divide-ink-100">
+        {findings.map((f) => (
+          <TopicLine key={`${f.kind}:${f.key}`} finding={f} basePath={basePath} t={t} withAction={withAction} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** The strongest truth, as a headline: a sentence for a mood, a topic and its rung for a finding. */
+function Headline({ headline, eyebrow, t }: { headline: StandsOut; eyebrow: boolean; t: PortalTranslator }) {
+  return (
+    <div>
+      {eyebrow ? <p className={clsx(EYEBROW, 'text-ink-500')}>{t('ladder.section.standsOut')}</p> : null}
+      <p
+        className={clsx(
+          'font-display text-[22px] leading-[1.2] font-semibold tracking-[-0.01em] text-balance sm:text-[24px]',
+          eyebrow && 'mt-1',
+          TONE_TEXT[headline.tone],
+        )}
+      >
+        {headline.title}
+      </p>
+      {headline.finding ? (
+        <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <LevelChip finding={headline.finding} />
+          <Counts finding={headline.finding} />
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * HOW SURE, IN ONE LINE — and the reasoning one tap down. The note is the
+ * whole answer an owner needs; "How Headway decides" holds what used to be
+ * three blocks on every page, for the owner who asks.
+ */
+function Confidence({
+  state,
+  t,
+  reveal = true,
   className,
 }: {
-  direction: Direction;
+  state: EvidenceState;
+  t: PortalTranslator;
+  /** Off where the page has its own "How Headway decides" (Check-in's direction card), so one label never means two things. */
+  reveal?: boolean;
+  className?: string;
+}) {
+  const { copy } = state;
+  const reasons = reveal ? [copy.notSure, copy.clearer, ...copy.doing].filter((x): x is string => Boolean(x)) : [];
+  if (!copy.note && reasons.length === 0) return null;
+  return (
+    <div className={className}>
+      {copy.note ? <p className="text-[14px] leading-snug font-medium text-ink-700">{copy.note}</p> : null}
+      {reasons.length > 0 ? (
+        <Reveal summary={t('ladder.how.title')} className="mt-1">
+          <ul className="max-w-2xl space-y-1 text-[13px] leading-relaxed text-ink-600">
+            {reasons.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </Reveal>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * HOME'S READING — the briefing (quieter ladder pass).
+ *
+ *   1 response    what they told you, a line each
+ *   2 and up      what stands out, in one sentence
+ *   then          what keeps coming up (patterns), what customers like (praise
+ *                 that has repeated), what is worth watching — a few rows each,
+ *                 by `homeLists`, so one compliment never fills a row
+ *   last          how sure Headway is, in one line
+ *
+ * Density follows the evidence: at five there may be two rows; at thirty there
+ * are patterns with what to do about them. `omit` is the topic Home's story
+ * card already tells in full.
+ */
+export async function HomeReading({
+  state,
+  basePath,
+  omit = null,
+  className,
+}: {
+  state: EvidenceState;
   basePath: string;
-  /** `compact` is Home's side note, with the way to Trends. */
-  variant?: 'full' | 'compact';
+  omit?: string | null;
   className?: string;
 }) {
   const t = await getTranslator();
+  const headline = headlineOf(state, omit);
+  const lists = homeLists(state, omit);
+  const rows = lists.patterns.length + lists.likes.length + lists.watching.length;
+  // With the story card above telling the one topic there is, and nothing
+  // else to list, the card would hold only a reveal: say nothing instead.
+  if (!state.firstResponse && !headline && rows === 0 && !state.copy.note) return null;
   return (
     <section
-      aria-labelledby={`direction-${variant}`}
-      className={clsx('rounded-2xl border border-ink-200 bg-white p-5 sm:p-6', className)}
+      aria-label={t('ladder.section.standsOut')}
+      className={clsx('rounded-2xl border border-ink-200 bg-white p-5 shadow-[0_1px_2px_rgba(16,42,67,0.04)] sm:p-6', className)}
     >
-      <h2
-        id={`direction-${variant}`}
-        className={clsx(
-          'font-display leading-[1.15] font-semibold text-ink-900',
-          variant === 'compact' ? 'text-[18px]' : 'text-[22px] sm:text-[24px]',
-        )}
-      >
-        {direction.title}
-      </h2>
-      <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink-700">{direction.body}</p>
-      {direction.automatic ? (
-        <p className="mt-2 border-l-2 border-brand-400 pl-3 text-[14px] leading-snug text-ink-700">{direction.automatic}</p>
+      {state.firstResponse ? (
+        <div>
+          <p className={clsx(EYEBROW, 'text-ink-500')}>{t('ladder.section.first')}</p>
+          <ul className="mt-1.5 space-y-0.5">
+            {state.firstResponse.map((line) => (
+              <li key={line} className="text-[16px] leading-snug font-medium text-ink-900">
+                {line}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : headline ? (
+        <Headline headline={headline} eyebrow t={t} />
       ) : null}
-      {variant === 'full' ? (
-        <Reveal summary={direction.methodTitle} className="mt-3">
-          <p className="max-w-2xl text-[13px] leading-relaxed text-ink-600">{direction.method}</p>
-        </Reveal>
-      ) : (
-        <Link
-          href={`${basePath}/improvements`}
-          className="mt-2 inline-flex min-h-11 items-center gap-1 text-[14px] font-medium text-ink-900 underline decoration-ink-300 underline-offset-4 hover:decoration-ink-900"
-        >
-          {t('ladder.direction.see')} <span aria-hidden>→</span>
-        </Link>
-      )}
+
+      {state.read > 1 ? (
+        <>
+          <TopicList title={t('ladder.section.patterns')} findings={lists.patterns} basePath={basePath} t={t} tone="bad" withAction />
+          <TopicList title={t('ladder.section.watching')} findings={lists.watching} basePath={basePath} t={t} tone="neutral" />
+          <TopicList title={t('ladder.section.likes')} findings={lists.likes} basePath={basePath} t={t} tone="good" />
+          {/* What Home left out is one tap away, and says how much there is,
+              so a topic kept off Home is never a topic hidden. */}
+          {lists.more > 0 ? (
+            <Link
+              href={`${basePath}/analysis`}
+              className="mt-2 inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-ink-700 hover:text-ink-900"
+            >
+              {t.plural('ladder.more.topics', lists.more)} <span aria-hidden>→</span>
+            </Link>
+          ) : null}
+        </>
+      ) : null}
+
+      <Confidence state={state} t={t} className="mt-4 border-t border-ink-100 pt-4" />
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// The summary every other page opens with
+// ---------------------------------------------------------------------------
+
+/**
+ * THE READING IN ONE BLOCK — the pulse, the headline, the one confidence line.
+ * Customers, Check-in and the period reports open with it and then do their
+ * own job; none of them repeats Home's lists.
+ */
+export async function ReadingSummary({
+  state,
+  reasons = true,
+  className,
+}: {
+  state: EvidenceState;
+  /** Whether to offer "How Headway decides" — off where the page offers its own. */
+  reasons?: boolean;
+  className?: string;
+}) {
+  const t = await getTranslator();
+  const headline = headlineOf(state);
+  return (
+    <section className={className}>
+      <PulseLine state={state} className="mb-3" />
+      {headline ? <Headline headline={headline} eyebrow={false} t={t} /> : null}
+      <Confidence state={state} t={t} reveal={reasons} className="mt-2" />
     </section>
   );
 }
 
 /**
- * HOW MUCH, AND HOW IT SPLIT — the pulse with its denominators said out
- * loud: "Of 5 responses read", and the ratings counted on their own ("4 star
- * ratings · 4.8★ average"), so a five never sits over an average of four.
+ * BEFORE ANYTHING IS READ — how feedback arrives, and the way to the card.
+ * From the first read response, every page shows the summary instead.
  */
-export async function PulseLine({ state, className }: { state: EvidenceState; className?: string }) {
+export async function EvidenceReading({
+  state,
+  basePath,
+  className,
+}: {
+  state: EvidenceState;
+  basePath: string;
+  className?: string;
+}) {
+  if (state.stage !== 'NONE') return <ReadingSummary state={state} className={className} />;
+  const t = await getTranslator();
+  return (
+    <section
+      aria-labelledby="evidence-start"
+      className={clsx('rounded-2xl border border-ink-200 bg-white p-5 shadow-[0_1px_2px_rgba(16,42,67,0.04)] sm:p-6', className)}
+    >
+      <h2 id="evidence-start" className="font-display text-[24px] leading-[1.15] font-semibold text-balance text-ink-900 sm:text-[26px]">
+        {state.copy.title}
+      </h2>
+      <p className="mt-1.5 max-w-2xl text-[15px] leading-relaxed text-ink-700">{state.copy.intro}</p>
+      <Link
+        href={`${basePath}/kit`}
+        className="mt-3 inline-flex min-h-11 items-center gap-1 text-[14px] font-semibold text-ink-900 underline decoration-brand-400 underline-offset-4 hover:decoration-ink-900"
+      >
+        {t('ladder.cta.kit')} <span aria-hidden>→</span>
+      </Link>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Direction and pulse
+// ---------------------------------------------------------------------------
+
+/**
+ * WHICH WAY THINGS ARE MOVING — answered in the title ("Not enough history
+ * yet"), explained in one sentence, reassured in one more, and the method one
+ * tap down. Trends' and Check-in's job, never Home's.
+ */
+export async function DirectionPanel({
+  direction,
+  title = true,
+  className,
+}: {
+  direction: Direction;
+  /** Off where the page heading already says the state (Check-in's "Nothing compared yet"). */
+  title?: boolean;
+  className?: string;
+}) {
+  return (
+    <section
+      aria-labelledby={title ? 'direction-title' : undefined}
+      className={clsx('rounded-2xl border border-ink-200 bg-white p-5 sm:p-6', className)}
+    >
+      {title ? (
+        <h2 id="direction-title" className="font-display text-[22px] leading-[1.15] font-semibold text-ink-900 sm:text-[24px]">
+          {direction.title}
+        </h2>
+      ) : null}
+      <p className={clsx('max-w-2xl text-[15px] leading-relaxed text-ink-700', title && 'mt-2')}>{direction.body}</p>
+      {direction.automatic ? <p className="mt-2 text-[14px] leading-snug text-ink-600">{direction.automatic}</p> : null}
+      <Reveal summary={direction.methodTitle} className="mt-2">
+        <p className="max-w-2xl text-[13px] leading-relaxed text-ink-600">{direction.method}</p>
+      </Reveal>
+    </section>
+  );
+}
+
+/**
+ * HOW CUSTOMERS FEEL, COMPACTLY: "First read · 5 responses", the three counts,
+ * and "4.8★ from 4 ratings" — each figure once, with its denominator.
+ */
+export async function PulseLine({
+  state,
+  eyebrow = true,
+  className,
+}: {
+  state: EvidenceState;
+  /** The stage and the count above the figures; off where the page heading says them. */
+  eyebrow?: boolean;
+  className?: string;
+}) {
   const t = await getTranslator();
   if (state.read === 0) return null;
   const tiles = [
@@ -474,11 +514,13 @@ export async function PulseLine({ state, className }: { state: EvidenceState; cl
   ];
   return (
     <div className={className}>
-      <p className={clsx(EYEBROW, 'flex flex-wrap items-center gap-x-2 text-brand-700')}>
-        <span>{state.copy.eyebrow}</span>
-        <span className="font-medium text-ink-500 normal-case tracking-normal">· {state.copy.readLine}</span>
-      </p>
-      <dl className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
+      {eyebrow ? (
+        <p className={clsx(EYEBROW, 'flex flex-wrap items-center gap-x-2 text-brand-700')}>
+          <span>{state.copy.eyebrow}</span>
+          <span className="font-medium tracking-normal text-ink-500 normal-case">· {state.copy.countLine}</span>
+        </p>
+      ) : null}
+      <dl className={clsx('flex flex-wrap items-center gap-x-4 gap-y-1', eyebrow && 'mt-1.5')}>
         {tiles.map((tile) => (
           <div key={tile.key} className="flex items-baseline gap-1.5">
             <span aria-hidden className={clsx('h-2 w-2 shrink-0 self-center rounded-full', tile.dot)} />
@@ -487,9 +529,7 @@ export async function PulseLine({ state, className }: { state: EvidenceState; cl
           </div>
         ))}
       </dl>
-      <p className="mt-1 text-[12px] text-ink-500 tabular-nums">
-        {state.pulse.basis} · {state.pulse.ratings}
-      </p>
+      <p className="mt-1 text-[12px] text-ink-500 tabular-nums">{state.pulse.from}</p>
     </div>
   );
 }
