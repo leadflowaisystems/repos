@@ -143,7 +143,7 @@ export async function signInAction(_prev: ActionState, form: FormData): Promise<
     if (error instanceof IdentityConflictError) return failure(SIGN_IN_FAILED);
     throw error;
   }
-  const actor = await loadActor(prisma, data.user.id);
+  const actor = await loadActor(prisma, data.user.id, data.user.email ?? '');
 
   // A suspended account authenticates with Supabase and still gets nowhere.
   // The session is ended rather than left open with no destination.
@@ -306,6 +306,11 @@ export async function completeOnboardingAction(
 ): Promise<ActionState> {
   const actor = await currentActor(prisma);
   if (!actor) redirect('/login');
+  // A temporary login opens the one business it was made for, and creates
+  // no other.
+  if (actor.temporaryAccessClientId) {
+    return failure('You are signed in with temporary access. Sign in with your own email to add a business.');
+  }
 
   const result = await completeOnboarding(prisma, actor.userId, {
     businessName: str(form, 'businessName'),

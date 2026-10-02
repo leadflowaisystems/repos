@@ -8,7 +8,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  *      nothing.
  *   2. RepOS records it on the same owner User (`finalizeAccountSetup`). If
  *      that cannot be written, the new login is removed again: nothing
- *      half-made is left.
+ *      half-made is left — unless the write did land and only its
+ *      acknowledgement was lost, which is read back before anything goes.
  *   3. The owner's own session asks Supabase for the confirmation email — the
  *      one email in the handover. The login works only once that link is
  *      opened; a problem sending it never undoes steps 1–2.
@@ -24,8 +25,11 @@ const h = vi.hoisted(() => ({
   currentAuthIdentity: vi.fn(),
   createOwnerIdentity: vi.fn(),
   deleteIdentity: vi.fn(),
-  deleteUnconfirmedIdentity: vi.fn(),
   getIdentitySnapshot: vi.fn(),
+  setIdentityPassword: vi.fn(),
+  recordedOwnLogin: vi.fn(),
+  restoreOwnLogin: vi.fn(),
+  detachedSignIn: vi.fn(),
   signUp: vi.fn(),
 }));
 
@@ -63,7 +67,7 @@ vi.mock('@/lib/auth/guard', () => ({
 vi.mock('@/lib/auth/supabase', () => ({
   supabaseConfig: () => ({ ok: true, config: { url: 'https://x.supabase.co', anonKey: 'anon' } }),
   supabaseServerClient: async () => ({ auth: { signUp: h.signUp } }),
-  detachedAuthClient: vi.fn(),
+  detachedAuthClient: () => ({ auth: { signInWithPassword: h.detachedSignIn, signOut: async () => ({ error: null }) } }),
   SUPABASE_URL_VAR: 'SUPABASE_URL',
 }));
 
@@ -75,9 +79,9 @@ vi.mock('@/lib/auth/redirect', () => ({
 vi.mock('@/lib/auth/supabase-admin', () => ({
   createOwnerIdentity: h.createOwnerIdentity,
   deleteIdentity: h.deleteIdentity,
-  deleteUnconfirmedIdentity: h.deleteUnconfirmedIdentity,
   getIdentitySnapshot: h.getIdentitySnapshot,
-  setIdentityPassword: vi.fn(),
+  IDENTITY_MISSING: 'missing',
+  setIdentityPassword: h.setIdentityPassword,
   createTempIdentity: vi.fn(),
   randomizeIdentityPassword: vi.fn(),
 }));
@@ -86,6 +90,8 @@ vi.mock('@/lib/account-access/service', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/account-access/service')>()),
   validateAccountSetup: h.validateAccountSetup,
   finalizeAccountSetup: h.finalizeAccountSetup,
+  recordedOwnLogin: h.recordedOwnLogin,
+  restoreOwnLogin: h.restoreOwnLogin,
 }));
 
 function form(fields: Record<string, string>): FormData {
@@ -132,6 +138,17 @@ beforeEach(() => {
   });
   h.finalizeAccountSetup.mockImplementation(async () => {
     h.calls.push('finalize');
+    return 'recorded';
+  });
+  h.setIdentityPassword.mockImplementation(async () => {
+    h.calls.push('password');
+    return { ok: true };
+  });
+  h.deleteIdentity.mockImplementation(async (id: string) => {
+    h.calls.push(`delete:${id}`);
+  });
+  h.restoreOwnLogin.mockImplementation(async () => {
+    h.calls.push('restore');
     return true;
   });
   h.signUp.mockImplementation(async () => {
@@ -167,22 +184,168 @@ describe('completeAccountSetupAction — the happy path', () => {
     expect(h.deleteIdentity).not.toHaveBeenCalled();
   });
 
-  it('a redo before the email is confirmed replaces the unconfirmed login, and only then', async () => {
+  const PENDING = (email: string) => ({ email, confirmed: false, confirmationSent: true, lastSignInAt: null });
+  const CONFIRMED = (email: string) => ({ email, confirmed: true, confirmationSent: true, lastSignInAt: null });
+
+  it('a redo with a corrected address makes a new login, and only then removes the unconfirmed one', async () => {
     h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
-    h.getIdentitySnapshot.mockResolvedValueOnce({ email: 'typo@example.com', confirmed: false, lastSignInAt: null });
+    h.getIdentitySnapshot.mockResolvedValue(PENDING('typo@example.com'));
 
     expect(await run()).toBe('redirected');
-    expect(h.deleteUnconfirmedIdentity).toHaveBeenCalledWith('auth-own-old');
+    expect(h.calls).toEqual([
+      'create',
+      'finalize',
+      'delete:auth-own-old',
+      'email',
+      'redirect:/workspace/client1/account?setup=sent',
+    ]);
+  });
+
+  it('a redo with the SAME address and the same password sends a fresh link — and changes no password', async () => {
+    // Supabase refuses a second login for an address one already holds, and a
+    // temporary session never overwrites the pending one's password: it only
+    // proves it knows it (right password on an unconfirmed login answers
+    // "Email not confirmed"), then Supabase re-sends.
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
+    h.getIdentitySnapshot.mockResolvedValue(PENDING('new-owner@example.com'));
+    h.detachedSignIn.mockResolvedValueOnce({
+      data: { user: null, session: null },
+      error: { code: 'email_not_confirmed', status: 400, message: 'Email not confirmed' },
+    });
+    h.signUp.mockImplementationOnce(async () => {
+      h.calls.push('email');
+      return { data: { user: { id: 'auth-own-old' }, session: null }, error: null };
+    });
+
+    expect(await run()).toBe('redirected');
+    expect(h.detachedSignIn).toHaveBeenCalledWith({ email: 'new-owner@example.com', password: 'a-new-password' });
+    expect(h.calls).toEqual(['finalize', 'email', 'redirect:/workspace/client1/account?setup=sent']);
+    expect(h.setIdentityPassword).not.toHaveBeenCalled();
+    expect(h.createOwnerIdentity).not.toHaveBeenCalled();
+    expect(h.finalizeAccountSetup).toHaveBeenCalledWith(
+      expect.anything(),
+      'owner1',
+      'auth-temp',
+      { ...VALID, previousOwnAuthId: 'auth-own-old' },
+      'auth-own-old',
+    );
+    expect(h.deleteIdentity).not.toHaveBeenCalled();
+  });
+
+  it('…refuses a different password for that address, and points to “Forgot password?”', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
+    h.getIdentitySnapshot.mockResolvedValue(PENDING('new-owner@example.com'));
+    h.detachedSignIn.mockResolvedValueOnce({
+      data: { user: null, session: null },
+      error: { code: 'invalid_credentials', status: 400, message: 'Invalid login credentials' },
+    });
+
+    const outcome = (await run()) as State;
+    expect(outcome.ok).toBe(false);
+    expect(outcome.errors.password).toMatch(/password chosen the first time/);
+    expect(outcome.errors.password).toMatch(/Forgot password/);
+    expect(h.setIdentityPassword).not.toHaveBeenCalled();
+    expect(h.finalizeAccountSetup).not.toHaveBeenCalled();
+    expect(h.signUp).not.toHaveBeenCalled();
+    expect(h.deleteIdentity).not.toHaveBeenCalled();
+  });
+
+  it('…and treats that address as already set up if it was confirmed meanwhile', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
+    h.getIdentitySnapshot.mockResolvedValue(PENDING('new-owner@example.com'));
+    h.detachedSignIn.mockResolvedValueOnce({
+      data: { user: { id: 'auth-own-old' }, session: { access_token: 't' } },
+      error: null,
+    });
+
+    const outcome = (await run()) as State;
+    expect(outcome.message).toMatch(/already set up/);
+    expect(h.finalizeAccountSetup).not.toHaveBeenCalled();
+  });
+
+  it('replaces a Headway-made own login (set up before M52, real email never arrived) even though it is confirmed', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-legacy' } });
+    h.getIdentitySnapshot.mockResolvedValue(CONFIRMED('z02brkuq@access.headway.local'));
+
+    expect(await run()).toBe('redirected');
+    expect(h.calls).toEqual([
+      'create',
+      'finalize',
+      'delete:auth-legacy',
+      'email',
+      'redirect:/workspace/client1/account?setup=sent',
+    ]);
+  });
+
+  it('treats an own login Supabase no longer has as nothing to keep', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-gone' } });
+    h.getIdentitySnapshot.mockResolvedValue('missing');
+
+    expect(await run()).toBe('redirected');
+    expect(h.createOwnerIdentity).toHaveBeenCalledTimes(1);
+    expect(h.calls.at(-1)).toBe('redirect:/workspace/client1/account?setup=sent');
+  });
+
+  it('changes nothing when Supabase cannot say whether the own login is confirmed', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
+    h.getIdentitySnapshot.mockResolvedValueOnce(null);
+
+    const outcome = (await run()) as State;
+    expect(outcome.ok).toBe(false);
+    expect(outcome.message).toMatch(/could not check/);
+    expect(h.createOwnerIdentity).not.toHaveBeenCalled();
+    expect(h.setIdentityPassword).not.toHaveBeenCalled();
+    expect(h.deleteIdentity).not.toHaveBeenCalled();
   });
 
   it('never redoes a setup whose own login is already confirmed', async () => {
     h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
-    h.getIdentitySnapshot.mockResolvedValueOnce({ email: 'owner@example.com', confirmed: true, lastSignInAt: null });
+    h.getIdentitySnapshot.mockResolvedValue(CONFIRMED('owner@example.com'));
 
     const outcome = (await run()) as State;
     expect(outcome.ok).toBe(false);
     expect(outcome.message).toMatch(/already set up/);
     expect(h.createOwnerIdentity).not.toHaveBeenCalled();
+    expect(h.setIdentityPassword).not.toHaveBeenCalled();
+    expect(h.deleteIdentity).not.toHaveBeenCalled();
+  });
+
+  it('keeps a login confirmed while setup ran (before the swap): the one made here goes', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
+    h.getIdentitySnapshot
+      .mockResolvedValueOnce(PENDING('typo@example.com'))
+      .mockResolvedValueOnce(CONFIRMED('typo@example.com'));
+
+    const outcome = (await run()) as State;
+    expect(outcome.message).toMatch(/just confirmed/);
+    expect(h.calls).toEqual(['create', 'delete:auth-own']);
+    expect(h.finalizeAccountSetup).not.toHaveBeenCalled();
+  });
+
+  it('…and puts it back if it was confirmed in the last moment (after the swap)', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
+    h.getIdentitySnapshot
+      .mockResolvedValueOnce(PENDING('typo@example.com'))
+      .mockResolvedValueOnce(PENDING('typo@example.com'))
+      .mockResolvedValueOnce(CONFIRMED('typo@example.com'));
+
+    const outcome = (await run()) as State;
+    expect(outcome.message).toMatch(/just confirmed/);
+    expect(h.restoreOwnLogin).toHaveBeenCalledWith(expect.anything(), 'owner1', 'auth-own', 'auth-own-old');
+    expect(h.calls).toEqual(['create', 'finalize', 'restore', 'delete:auth-own']);
+    expect(h.signUp).not.toHaveBeenCalled();
+  });
+
+  it('keeps the replaced login when Supabase cannot be asked about it after the swap', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
+    h.getIdentitySnapshot
+      .mockResolvedValueOnce(PENDING('typo@example.com'))
+      .mockResolvedValueOnce(PENDING('typo@example.com'))
+      .mockResolvedValueOnce(null);
+
+    expect(await run()).toBe('redirected');
+    expect(h.deleteIdentity).not.toHaveBeenCalled();
+    expect(h.calls.at(-1)).toBe('redirect:/workspace/client1/account?setup=sent');
   });
 });
 
@@ -241,28 +404,76 @@ describe('completeAccountSetupAction — refusals leave nothing behind', () => {
     expect(h.finalizeAccountSetup).not.toHaveBeenCalled();
   });
 
-  it('removes the new login again when RepOS cannot record it', async () => {
+  it('removes the new login again when RepOS did not record it', async () => {
     h.finalizeAccountSetup.mockRejectedValueOnce(new Error('Can’t reach database server'));
+    h.recordedOwnLogin.mockResolvedValueOnce(null);
     const outcome = (await run()) as State;
     expect(outcome.ok).toBe(false);
     expect(outcome.message).toMatch(/Nothing was changed/);
+    expect(h.recordedOwnLogin).toHaveBeenCalledWith(expect.anything(), 'owner1');
     expect(h.deleteIdentity).toHaveBeenCalledWith('auth-own');
     expect(h.signUp).not.toHaveBeenCalled();
   });
 
-  it('…and says the email is taken when the database says so', async () => {
-    h.finalizeAccountSetup.mockRejectedValueOnce(new Error('Unique constraint failed on the fields: (`email`)'));
+  it('keeps the new login, and carries on, when the write landed and only its acknowledgement was lost', async () => {
+    h.finalizeAccountSetup.mockRejectedValueOnce(new Error('Connection terminated unexpectedly'));
+    h.recordedOwnLogin.mockResolvedValueOnce('auth-own');
+    expect(await run()).toBe('redirected');
+    expect(h.deleteIdentity).not.toHaveBeenCalled();
+    expect(h.calls.at(-1)).toBe('redirect:/workspace/client1/account?setup=sent');
+  });
+
+  it('asks the database again over a short blip before deciding', async () => {
+    h.finalizeAccountSetup.mockRejectedValueOnce(new Error('Connection terminated unexpectedly'));
+    h.recordedOwnLogin.mockRejectedValueOnce(new Error('Can’t reach database server')).mockResolvedValueOnce('auth-own');
+    expect(await run()).toBe('redirected');
+    expect(h.recordedOwnLogin).toHaveBeenCalledTimes(2);
+    expect(h.deleteIdentity).not.toHaveBeenCalled();
+  });
+
+  it('removes the new login when the database never says whether it landed — no unrecorded login is left holding the address', async () => {
+    h.finalizeAccountSetup.mockRejectedValueOnce(new Error('Connection terminated unexpectedly'));
+    h.recordedOwnLogin.mockRejectedValue(new Error('Can’t reach database server'));
     const outcome = (await run()) as State;
-    expect(outcome.errors.email).toMatch(/already in use/);
+    expect(outcome.ok).toBe(false);
+    expect(outcome.message).toMatch(/Reload the page and try again/);
+    expect(h.recordedOwnLogin).toHaveBeenCalledTimes(3);
     expect(h.deleteIdentity).toHaveBeenCalledWith('auth-own');
+    expect(h.signUp).not.toHaveBeenCalled();
   });
 
   it('removes the new login and stops when an admin switched temporary access off first', async () => {
-    h.finalizeAccountSetup.mockResolvedValueOnce(false);
+    h.finalizeAccountSetup.mockResolvedValueOnce('access-off');
     const outcome = (await run()) as State;
     expect(outcome.message).toMatch(/turned off/);
     expect(h.deleteIdentity).toHaveBeenCalledWith('auth-own');
     expect(h.signUp).not.toHaveBeenCalled();
+  });
+
+  it('removes the new login and stops when another setup (a second tab) landed first', async () => {
+    h.finalizeAccountSetup.mockResolvedValueOnce('raced');
+    const outcome = (await run()) as State;
+    expect(outcome.message).toMatch(/another window/);
+    expect(h.deleteIdentity).toHaveBeenCalledWith('auth-own');
+    expect(h.signUp).not.toHaveBeenCalled();
+  });
+
+  it("never removes the owner's own pending login when setup does not land", async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
+    h.getIdentitySnapshot.mockResolvedValue({
+      email: 'new-owner@example.com',
+      confirmed: false,
+      confirmationSent: true,
+      lastSignInAt: null,
+    });
+    h.detachedSignIn.mockResolvedValueOnce({
+      data: { user: null, session: null },
+      error: { code: 'email_not_confirmed', status: 400, message: 'Email not confirmed' },
+    });
+    h.finalizeAccountSetup.mockResolvedValueOnce('access-off');
+    const outcome = (await run()) as State;
+    expect(outcome.message).toMatch(/turned off/);
+    expect(h.deleteIdentity).not.toHaveBeenCalled();
   });
 
   it('refuses when there is no session at all', async () => {

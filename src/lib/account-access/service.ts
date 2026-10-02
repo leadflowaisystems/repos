@@ -15,6 +15,7 @@ import {
   createTempIdentity,
   deleteIdentity,
   getIdentitySnapshot,
+  IDENTITY_MISSING,
   randomizeIdentityPassword,
   setIdentityPassword,
 } from '@/lib/auth/supabase-admin';
@@ -108,6 +109,32 @@ async function unusedTempEmail(db: PrismaClient): Promise<string> {
 export type GeneratedAccess = { email: string; password: string };
 
 /**
+ * A temporary login opens ONE business as its owner, and nothing more:
+ * whoever holds the handover sheet must not inherit staff authority or a
+ * second business. So an owner User who is platform staff, or who belongs to
+ * any other business, is never given one. (`loadActor` and
+ * `app.user_id_for_auth` hold the same line at sign-in, in case either changes
+ * after the login was issued.)
+ */
+function temporaryAccessRefusal(user: { isPlatformAdmin: boolean; memberships: unknown[] }): string | null {
+  const blocked = temporaryAccessBlock(user);
+  if (blocked === 'STAFF') return 'This owner is Headway staff, so their account cannot be given temporary access.';
+  if (blocked === 'OTHER_BUSINESS') {
+    return 'This owner also belongs to another business, so their account cannot be given temporary access.';
+  }
+  return null;
+}
+
+/** Why a temporary login can never sign in as this owner, if it cannot. */
+export type TemporaryBlock = 'STAFF' | 'OTHER_BUSINESS';
+
+function temporaryAccessBlock(user: { isPlatformAdmin: boolean; memberships: unknown[] }): TemporaryBlock | null {
+  if (user.isPlatformAdmin) return 'STAFF';
+  if (user.memberships.length > 0) return 'OTHER_BUSINESS';
+  return null;
+}
+
+/**
  * Turns temporary access ON for a business and returns the email and the
  * password to hand over — the only time the password is ever visible.
  *
@@ -141,11 +168,23 @@ export async function generateTempAccess(
   const owner = await db.membership.findFirst({
     where: { clientId, role: ROLE_OWNER, status: ACTIVE },
     orderBy: { createdAt: 'asc' },
-    select: { user: { select: { id: true, authProviderId: true, accountAccessOwned: { select: { id: true } } } } },
+    select: {
+      user: {
+        select: {
+          id: true,
+          authProviderId: true,
+          isPlatformAdmin: true,
+          accountAccessOwned: { select: { id: true } },
+          memberships: { where: { clientId: { not: clientId } }, select: { id: true }, take: 1 },
+        },
+      },
+    },
   });
   if (owner?.user.accountAccessOwned) {
     return err('This owner already has temporary access for another business.');
   }
+  const refusal = owner ? temporaryAccessRefusal(owner.user) : null;
+  if (refusal) return err(refusal);
 
   const email = await unusedTempEmail(db);
   const password = generateTemporaryPassword();
@@ -233,13 +272,28 @@ export async function generateTempAccess(
 async function enableTempAccess(
   db: PrismaClient,
   clientId: string,
-  existing: { loginId: string; tempAuthId: string | null },
+  existing: { userId: string; loginId: string; tempAuthId: string | null },
 ): Promise<ServiceResult<GeneratedAccess>> {
+  // Whoever the owner has become since (staff, or a member of another
+  // business) decides again, before anything is switched on.
+  const owner = await db.user.findUnique({
+    where: { id: existing.userId },
+    select: {
+      isPlatformAdmin: true,
+      memberships: { where: { clientId: { not: clientId } }, select: { id: true }, take: 1 },
+    },
+  });
+  if (!owner) return err('That business no longer has an owner account. Reload the page and try again.');
+  const refusal = temporaryAccessRefusal(owner);
+  if (refusal) return err(refusal);
+
   // The row first, as a compare-and-set: only one admin can win it, and until
   // a password is set nobody can sign in — the identity still holds the
-  // random password it was given when it was switched off.
+  // random password it was given when it was switched off. "Off" is exactly
+  // what `temporaryStatusOf` calls off — including a row left switched on
+  // with no temporary login behind it, which is otherwise stuck for good.
   const flipped = await db.accountAccess.updateMany({
-    where: { clientId, status: { not: 'TEMPORARY_ACTIVE' } },
+    where: { clientId, OR: [{ status: { not: 'TEMPORARY_ACTIVE' } }, { tempAuthId: null }] },
     data: { status: 'TEMPORARY_ACTIVE', disabledAt: null, disabledByUserId: null },
   });
   if (flipped.count === 0) {
@@ -262,7 +316,9 @@ async function enableTempAccess(
 
   const password = generateTemporaryPassword();
   if (existing.tempAuthId) {
-    const set = await setIdentityPassword(existing.tempAuthId, password);
+    // The Headway-made address goes back on with the new password: whoever
+    // held the login before could have moved it to an inbox of their own.
+    const set = await setIdentityPassword(existing.tempAuthId, password, { email: existing.loginId });
     if (set.ok) return ok({ email: existing.loginId, password });
     if (set.reason !== 'NOT_FOUND') {
       await switchBackOff();
@@ -279,8 +335,9 @@ async function enableTempAccess(
     await switchBackOff();
     return err('Could not create the temporary login. Try again.');
   }
+  let rebound: boolean;
   try {
-    await rebindTempAccess(db, clientId, tempAuthId, email);
+    rebound = await rebindTempAccess(db, clientId, existing.tempAuthId, tempAuthId, email);
   } catch (error) {
     await deleteIdentity(tempAuthId);
     await switchBackOff();
@@ -290,21 +347,43 @@ async function enableTempAccess(
     });
     return err('Could not re-enable temporary access. Try again.');
   }
+  if (!rebound) {
+    // Another admin pointed the row at a login of their own first. Theirs
+    // stands; the one made here never existed for anybody.
+    await deleteIdentity(tempAuthId);
+    return err('This changed while you were looking at it. Reload the page and try again.');
+  }
   return ok({ email, password });
 }
 
 /**
- * Points a row at a new temporary identity. Platform staff only, through the
- * definer function (`app.rebind_temp_access`) — there is deliberately no column
- * grant for these two columns. The direct write is only for test databases
- * built without `rls.sql`.
+ * Points a row at a new temporary identity, only if it still names
+ * `expected` (the login the caller saw, or none). Platform staff only, through
+ * the definer function (`app.rebind_temp_access`) — there is deliberately no
+ * column grant for these two columns. The direct write is only for test
+ * databases built without `rls.sql`. True when this call rebound the row.
  */
-async function rebindTempAccess(db: PrismaClient, clientId: string, tempAuthId: string, loginId: string) {
+async function rebindTempAccess(
+  db: PrismaClient,
+  clientId: string,
+  expected: string | null,
+  tempAuthId: string,
+  loginId: string,
+): Promise<boolean> {
   try {
-    await withRlsContext(db, (tx) => tx.$executeRaw`SELECT app.rebind_temp_access(${clientId}, ${tempAuthId}, ${loginId})`);
+    const rows = await withRlsContext(
+      db,
+      (tx) =>
+        tx.$queryRaw<{ n: number }[]>`SELECT app.rebind_temp_access(${clientId}, ${expected}, ${tempAuthId}, ${loginId}) AS n`,
+    );
+    return Number(rows[0]?.n ?? 0) === 1;
   } catch (error) {
     if (!isMissingDbFunction(error)) throw error;
-    await db.accountAccess.update({ where: { clientId }, data: { tempAuthId, loginId } });
+    const moved = await db.accountAccess.updateMany({
+      where: { clientId, tempAuthId: expected },
+      data: { tempAuthId, loginId },
+    });
+    return moved.count === 1;
   }
 }
 
@@ -333,7 +412,7 @@ export async function disableTempAccess(
 ): Promise<ServiceResult<{ clientId: string }>> {
   const access = await db.accountAccess.findUnique({
     where: { clientId },
-    select: { status: true, tempAuthId: true, user: { select: { authProviderId: true } } },
+    select: { status: true, tempAuthId: true, loginId: true, user: { select: { authProviderId: true } } },
   });
   if (!access || temporaryStatusOf(access) !== 'ACTIVE') {
     return err('Temporary access is not active for this business.');
@@ -354,7 +433,7 @@ export async function disableTempAccess(
   }
 
   try {
-    await randomizeIdentityPassword(access.tempAuthId!);
+    await randomizeIdentityPassword(access.tempAuthId!, access.loginId);
   } catch (error) {
     // Sign-in is already refused by step 1; this is the second lock.
     console.error('disableTempAccess: could not scramble the temporary password', {
@@ -426,7 +505,11 @@ export type AccountSetupValidated = {
   name: string;
   phone: string;
   email: string;
-  /** An earlier own login this setup replaces (the action allows that only while unconfirmed). */
+  /**
+   * The own login the owner User names right now, if any — one this setup
+   * replaces (the action allows that only while nobody has confirmed it, or
+   * while it is still a Headway-made address).
+   */
   previousOwnAuthId: string | null;
 };
 
@@ -437,6 +520,26 @@ export function fieldErrors(error: z.ZodError): Record<string, string> {
     if (typeof key === 'string' && !errors[key]) errors[key] = issue.message;
   }
   return errors;
+}
+
+/**
+ * Whether another RepOS account already has this address. Through the definer
+ * function `app.owner_email_taken`, because under RLS a temporary login sees
+ * only its own business's people; the function answers only for a temporary
+ * login that is switched on, so it tells nobody else anything. The direct read
+ * is only for test databases built without `rls.sql`.
+ */
+async function emailTakenByAnother(db: PrismaClient, actorUserId: string, email: string): Promise<boolean> {
+  try {
+    const rows = await withRlsContext(db, (tx) =>
+      tx.$queryRaw<{ taken: boolean }[]>`SELECT app.owner_email_taken(${email}) AS taken`,
+    );
+    return rows[0]?.taken === true;
+  } catch (error) {
+    if (!isMissingDbFunction(error)) throw error;
+    const collision = await db.user.findUnique({ where: { email }, select: { id: true } });
+    return Boolean(collision && collision.id !== actorUserId);
+  }
 }
 
 /**
@@ -468,10 +571,12 @@ export async function validateAccountSetup(
   if (!parsed.success) return err('Some fields need attention.', fieldErrors(parsed.error));
   const data = parsed.data;
 
-  // RepOS's own record of who has which address. Supabase is the real guard
-  // (it refuses an address another identity holds); this catches it early.
-  const collision = await db.user.findUnique({ where: { email: data.email }, select: { id: true } });
-  if (collision && collision.id !== actorUserId) {
+  // RepOS's own record of who has which address. Supabase refuses an address
+  // another identity holds; this catches the one Supabase cannot see — a
+  // RepOS account on that address whose Supabase login is gone. Left to
+  // confirmation, that would only fail once the owner had opened the link,
+  // leaving a confirmed login RepOS refuses at every sign-in.
+  if (await emailTakenByAnother(db, actorUserId, data.email)) {
     return err('Some fields need attention.', {
       email: 'That email is already in use by another account.',
     });
@@ -486,12 +591,37 @@ export async function validateAccountSetup(
   });
 }
 
+/** How recording setup went. */
+export type SetupRecord =
+  /** Written. */
+  | 'recorded'
+  /** An admin switched the temporary login off first; nothing was written. */
+  | 'access-off'
+  /** Another setup changed the owner's own login first; nothing was written. */
+  | 'raced';
+
+class SetupNotRecorded extends Error {
+  constructor(readonly outcome: Exclude<SetupRecord, 'recorded'>) {
+    super(outcome);
+  }
+}
+
 /**
- * The commit, called once Supabase has created the owner's own login
- * (`ownAuthId`, not yet confirmed). One transaction: the owner User now names
- * that login and the owner's email; the business's contact details are theirs;
- * the row records that setup happened. Compare-and-set on the temporary login
- * still being on — an admin's disable that landed first wins.
+ * The commit, called once Supabase has created (or re-armed) the owner's own
+ * login (`ownAuthId`, not yet confirmed). One transaction, all or nothing:
+ *
+ *   - the row records that setup happened — compare-and-set on the temporary
+ *     login still being on, so an admin's disable that landed first wins;
+ *   - the owner User names that login — compare-and-set on the login it named
+ *     when setup was validated, so of two setups at once (two tabs) exactly
+ *     one lands, and the other removes the login it made;
+ *   - the business's contact details are the owner's.
+ *
+ * NOT the User's email. That stays what it was until the owner proves the new
+ * address by opening its confirmation link (`app.provision_user` writes it
+ * then, from the identity Supabase has confirmed). An address nobody has
+ * proved must never become what RepOS matches people by — accepting a team
+ * invitation, for one, is matched on it.
  */
 export async function finalizeAccountSetup(
   db: PrismaClient,
@@ -500,44 +630,99 @@ export async function finalizeAccountSetup(
   fields: AccountSetupValidated,
   ownAuthId: string,
   options: { now?: Date } = {},
-): Promise<boolean> {
+): Promise<SetupRecord> {
   const now = options.now ?? new Date();
+  try {
+    await withRlsContext(db, async (tx) => {
+      const flipped = await tx.accountAccess.updateMany({
+        where: {
+          clientId: fields.clientId,
+          userId: actorUserId,
+          tempAuthId: sessionAuthId,
+          status: 'TEMPORARY_ACTIVE',
+        },
+        data: { setupCompletedAt: now },
+      });
+      if (flipped.count === 0) throw new SetupNotRecorded('access-off');
+      const moved = await tx.user.updateMany({
+        where: { id: actorUserId, authProviderId: fields.previousOwnAuthId },
+        data: { authProviderId: ownAuthId, ...(fields.name ? { name: fields.name } : {}) },
+      });
+      if (moved.count === 0) throw new SetupNotRecorded('raced');
+      await tx.client.update({
+        where: { id: fields.clientId },
+        data: { ownerName: fields.name || null, ownerPhone: fields.phone || null, ownerEmail: fields.email },
+      });
+    });
+    return 'recorded';
+  } catch (error) {
+    if (error instanceof SetupNotRecorded) return error.outcome;
+    throw error;
+  }
+}
+
+/**
+ * Puts the owner's previous own login back, only if setup's swap is still what
+ * RepOS has on record (compare-and-set). Used when that previous login turns
+ * out to have been confirmed while setup was running: it is the owner's, and
+ * the login setup just made goes instead. True when it was put back.
+ */
+export async function restoreOwnLogin(
+  db: PrismaClient,
+  actorUserId: string,
+  swappedTo: string,
+  previous: string,
+): Promise<boolean> {
   return withRlsContext(db, async (tx) => {
-    const flipped = await tx.accountAccess.updateMany({
-      where: {
-        clientId: fields.clientId,
-        userId: actorUserId,
-        tempAuthId: sessionAuthId,
-        status: 'TEMPORARY_ACTIVE',
-      },
-      data: { setupCompletedAt: now },
+    const moved = await tx.user.updateMany({
+      where: { id: actorUserId, authProviderId: swappedTo },
+      data: { authProviderId: previous },
     });
-    if (flipped.count === 0) return false;
-    await tx.user.update({
-      where: { id: actorUserId },
-      data: { authProviderId: ownAuthId, email: fields.email, ...(fields.name ? { name: fields.name } : {}) },
-    });
-    await tx.client.update({
-      where: { id: fields.clientId },
-      data: { ownerName: fields.name || null, ownerPhone: fields.phone || null, ownerEmail: fields.email },
-    });
-    return true;
+    return moved.count === 1;
   });
+}
+
+/**
+ * The owner login RepOS has on record for this User right now, read back after
+ * a failed commit to tell "it never landed" from "it landed and only the
+ * acknowledgement was lost". Throws when the database cannot say.
+ */
+export async function recordedOwnLogin(db: PrismaClient, actorUserId: string): Promise<string | null> {
+  const user = await db.user.findUnique({ where: { id: actorUserId }, select: { authProviderId: true } });
+  return user?.authProviderId ?? null;
 }
 
 // ---------------------------------------------------------------------------
 // Reading — for the admin panel and the owner's own Account page
 // ---------------------------------------------------------------------------
 
-/** The owner's own login, as Supabase sees it. */
-export type OwnLogin = { email: string; confirmed: boolean };
+/**
+ * The owner's own login, as Supabase sees it.
+ *
+ * `confirmed` is null when Supabase could not be asked just now: that says
+ * nothing either way, so nothing may read it as "ready" (an admin told the
+ * owner has their own sign-in might switch off the only one that works). The
+ * email is then RepOS's own record, or null where that is still the
+ * temporary address (the real one is recorded only once it is confirmed).
+ * `confirmationSent` is whether a confirmation link is actually out there.
+ */
+export type OwnLogin = { email: string | null; confirmed: boolean | null; confirmationSent: boolean };
 
+/**
+ * Null — no own login — also when the identity RepOS names no longer exists
+ * in Supabase, and when it is still a Headway-made address (an owner who "set
+ * up" before M52 but whose real email never arrived): neither is anything the
+ * owner can sign in with as themselves, and both are replaced by setup.
+ */
 async function ownLoginOf(user: { authProviderId: string | null; email: string }): Promise<OwnLogin | null> {
   if (!user.authProviderId) return null;
   const live = await getIdentitySnapshot(user.authProviderId);
-  // Without the admin API, RepOS's own record of the address is used; a login
-  // RepOS knows about has signed in at least once, so it is confirmed.
-  return live ? { email: live.email, confirmed: live.confirmed } : { email: user.email, confirmed: true };
+  if (live === IDENTITY_MISSING) return null;
+  if (!live) {
+    return { email: isTemporaryEmail(user.email) ? null : user.email, confirmed: null, confirmationSent: false };
+  }
+  if (isTemporaryEmail(live.email)) return null;
+  return { email: live.email, confirmed: live.confirmed, confirmationSent: live.confirmationSent };
 }
 
 /** Everything the admin panel shows, already decided. */
@@ -547,26 +732,47 @@ export type AdminAccessView = {
   temporary: TemporaryStatus;
   /** The temporary email, when there is a temporary login. */
   temporaryEmail: string | null;
+  /**
+   * Set when no temporary login can sign in as this owner at all — they are
+   * Headway staff, or belong to another business (see
+   * `temporaryAccessRefusal`). The panel says so rather than offering, or
+   * calling "active", a login that sign-in will refuse.
+   */
+  temporaryBlocked: TemporaryBlock | null;
 };
+
+const OWNER_VIEW_SELECT = (clientId: string) =>
+  ({
+    authProviderId: true,
+    email: true,
+    isPlatformAdmin: true,
+    memberships: { where: { clientId: { not: clientId } }, select: { id: true }, take: 1 },
+  }) as const;
 
 export async function getAdminAccessView(db: PrismaClient, clientId: string): Promise<AdminAccessView> {
   const row = await db.accountAccess.findUnique({
     where: { clientId },
-    select: { loginId: true, status: true, tempAuthId: true, user: { select: { authProviderId: true, email: true } } },
+    select: { loginId: true, status: true, tempAuthId: true, user: { select: OWNER_VIEW_SELECT(clientId) } },
   });
   if (row) {
     return {
       ownLogin: await ownLoginOf(row.user),
       temporary: temporaryStatusOf(row),
       temporaryEmail: row.tempAuthId ? row.loginId : null,
+      temporaryBlocked: temporaryAccessBlock(row.user),
     };
   }
   const owner = await db.membership.findFirst({
     where: { clientId, role: ROLE_OWNER, status: ACTIVE },
     orderBy: { createdAt: 'asc' },
-    select: { user: { select: { authProviderId: true, email: true } } },
+    select: { user: { select: OWNER_VIEW_SELECT(clientId) } },
   });
-  return { ownLogin: owner ? await ownLoginOf(owner.user) : null, temporary: 'NONE', temporaryEmail: null };
+  return {
+    ownLogin: owner ? await ownLoginOf(owner.user) : null,
+    temporary: 'NONE',
+    temporaryEmail: null,
+    temporaryBlocked: owner ? temporaryAccessBlock(owner.user) : null,
+  };
 }
 
 /** What Account needs to know about the signed-in person and this business. */

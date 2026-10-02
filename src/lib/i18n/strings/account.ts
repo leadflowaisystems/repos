@@ -402,6 +402,16 @@ export const account = {
     hi: 'आपका अकाउंट सेट हो गया है, पर हम पुष्टि वाला ईमेल नहीं भेज सके। नीचे का फ़ॉर्म दोबारा भरें, या Headway से संपर्क करें।',
     mr: 'तुमचं अकाउंट सेट झालं आहे, पण आम्ही खात्रीचा ईमेल पाठवू शकलो नाही. खालचा फॉर्म पुन्हा भरा, किंवा Headway शी संपर्क करा.',
   },
+  'account.setup.notSent': {
+    en: 'Your own sign-in is saved as {email}, but no confirmation email has gone out yet. Fill in the form below again to send it.',
+    hi: 'आपका अपना साइन-इन {email} के रूप में सेव है, पर अभी तक पुष्टि वाला ईमेल नहीं गया है। उसे भेजने के लिए नीचे का फ़ॉर्म दोबारा भरें।',
+    mr: 'तुमचं स्वतःचं साइन-इन {email} म्हणून सेव्ह झालं आहे, पण अजून खात्रीचा ईमेल गेलेला नाही. तो पाठवण्यासाठी खालचा फॉर्म पुन्हा भरा.',
+  },
+  'account.setup.unknown': {
+    en: 'We could not check your own sign-in just now. Reload this page in a minute.',
+    hi: 'हम अभी आपका अपना साइन-इन जाँच नहीं सके। एक मिनट बाद यह पेज दोबारा लोड करें।',
+    mr: 'आम्ही आत्ता तुमचं स्वतःचं साइन-इन तपासू शकलो नाही. एक मिनिटाने हे पेज पुन्हा लोड करा.',
+  },
 
   // -------------------------------------------------------------------------
   // Signing in with your own email: the email and the password (M52)

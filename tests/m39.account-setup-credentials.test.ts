@@ -211,12 +211,18 @@ describe('validateAccountSetup / finalizeAccountSetup', () => {
     });
 
     it('records the owner’s own login on the SAME User, and the business’s contact details', async () => {
+      const emailBefore = (await db.user.findUnique({ where: { id: OWNER } }))?.email;
       const committed = await finalizeAccountSetup(db, OWNER, TEMP_AUTH, FIELDS(clientId), 'auth-own');
-      expect(committed).toBe(true);
+      expect(committed).toBe('recorded');
 
       const user = await db.user.findUnique({ where: { id: OWNER } });
       expect(user?.authProviderId).toBe('auth-own');
-      expect(user?.email).toBe('new-owner@example.com');
+      // NOT the email: an address nobody has proved yet is not what RepOS
+      // matches people by (a team invitation is accepted on it). It changes
+      // when the confirmation link is opened — app.provision_user writes it
+      // from the identity Supabase confirmed.
+      expect(user?.email).toBe(emailBefore);
+      expect(user?.email).not.toBe('new-owner@example.com');
       expect(user?.name).toBe('Priya');
 
       const client = await db.client.findUnique({ where: { id: clientId } });
@@ -246,7 +252,7 @@ describe('validateAccountSetup / finalizeAccountSetup', () => {
     it('loses to a disable that landed first, and writes nothing', async () => {
       await db.accountAccess.update({ where: { userId: OWNER }, data: { status: 'DISABLED', disabledAt: new Date() } });
 
-      expect(await finalizeAccountSetup(db, OWNER, TEMP_AUTH, FIELDS(clientId), 'auth-own')).toBe(false);
+      expect(await finalizeAccountSetup(db, OWNER, TEMP_AUTH, FIELDS(clientId), 'auth-own')).toBe('access-off');
       const user = await db.user.findUnique({ where: { id: OWNER } });
       expect(user?.authProviderId).toBeNull();
       const client = await db.client.findUnique({ where: { id: clientId } });
@@ -254,19 +260,40 @@ describe('validateAccountSetup / finalizeAccountSetup', () => {
     });
 
     it('only from the temporary login itself', async () => {
-      expect(await finalizeAccountSetup(db, OWNER, 'auth-someone-else', FIELDS(clientId), 'auth-own')).toBe(false);
+      expect(await finalizeAccountSetup(db, OWNER, 'auth-someone-else', FIELDS(clientId), 'auth-own')).toBe('access-off');
       expect((await db.user.findUnique({ where: { id: OWNER } }))?.authProviderId).toBeNull();
     });
 
     it('a redo (a typo, a lost email) replaces the unconfirmed own login on the same User', async () => {
       await finalizeAccountSetup(db, OWNER, TEMP_AUTH, FIELDS(clientId), 'auth-own-1');
       expect(
-        await finalizeAccountSetup(db, OWNER, TEMP_AUTH, { ...FIELDS(clientId), email: 'fixed@example.com' }, 'auth-own-2'),
-      ).toBe(true);
+        await finalizeAccountSetup(
+          db,
+          OWNER,
+          TEMP_AUTH,
+          { ...FIELDS(clientId), email: 'fixed@example.com', previousOwnAuthId: 'auth-own-1' },
+          'auth-own-2',
+        ),
+      ).toBe('recorded');
       const user = await db.user.findUnique({ where: { id: OWNER } });
       expect(user?.authProviderId).toBe('auth-own-2');
-      expect(user?.email).toBe('fixed@example.com');
+      expect((await db.client.findUnique({ where: { id: clientId } }))?.ownerEmail).toBe('fixed@example.com');
       expect(await db.user.count({ where: { authProviderId: 'auth-own-1' } })).toBe(0);
+    });
+
+    it('of two setups validated at once (two tabs), exactly one lands; the other writes nothing', async () => {
+      // Both were validated while the User named no own login.
+      expect(await finalizeAccountSetup(db, OWNER, TEMP_AUTH, FIELDS(clientId), 'auth-tab-1')).toBe('recorded');
+      expect(
+        await finalizeAccountSetup(db, OWNER, TEMP_AUTH, { ...FIELDS(clientId), name: 'Tab two', phone: '111' }, 'auth-tab-2'),
+      ).toBe('raced');
+
+      const user = await db.user.findUnique({ where: { id: OWNER } });
+      expect(user?.authProviderId).toBe('auth-tab-1');
+      expect(user?.name).toBe('Priya');
+      const client = await db.client.findUnique({ where: { id: clientId } });
+      expect(client?.ownerName).toBe('Priya');
+      expect(client?.ownerPhone).toBe('9876543210');
     });
   });
 });

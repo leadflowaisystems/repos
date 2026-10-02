@@ -10,7 +10,7 @@ import { resetDb } from './helpers/test-db';
  *
  * Before M52 the temporary login WAS the owner User's own identity. The
  * migration (`prisma/m52/migration.sql`) moves each existing row into the
- * two-login shape. Production has eight rows, in these five shapes; each is
+ * two-login shape. Production has eight rows, in five of these shapes; each is
  * built here exactly as the old code left it, the migration file is run as it
  * will be run on production (as the owner, statement by statement), and the
  * result is checked — then run again, to prove it changes nothing the second
@@ -26,21 +26,43 @@ const SHAPES = {
   // Temporary access, never set up: the identity moves to tempAuthId.
   activeNeverSetUp: { status: 'TEMPORARY_ACTIVE', setup: null, emailIsLogin: true },
   disabledNeverSetUp: { status: 'DISABLED', setup: null, emailIsLogin: true },
-  // The old temporary login became the owner's own: it stays theirs.
+  // "Set up" before M52, but the real email never arrived: the owner signs in
+  // today with the temporary address and a password they chose. That login
+  // is the temporary one, it stays ON (an old DISABLED never locked a set-up
+  // owner out), and Account offers setup again. (Production: TEST, ZZZ Test 2.)
   setUp: { status: 'SETUP_COMPLETE', setup: NOW, emailIsLogin: true },
   disabledAfterSetUp: { status: 'DISABLED', setup: NOW, emailIsLogin: true },
+  // The old temporary login moved to the owner's real email: it is theirs.
   emailAlreadyMoved: { status: 'TEMPORARY_ACTIVE', setup: null, emailIsLogin: false },
+  setUpWithRealEmail: { status: 'SETUP_COMPLETE', setup: NOW, emailIsLogin: false },
 } as const;
 
 type Shape = keyof typeof SHAPES;
 const ids = {} as Record<Shape, { clientId: string; userId: string; authId: string; loginId: string }>;
 
+/** The file's statements, one by one; a dollar-quoted body ($ ... $) stays whole. */
 function statements(): string[] {
-  const sql = readFileSync(join(process.cwd(), 'prisma/m52/migration.sql'), 'utf8');
-  return sql
-    .split(/;\s*\n/)
-    .map((s) => s.replace(/^\s*--.*$/gm, '').trim())
-    .filter((s) => s.length > 0);
+  const sql = readFileSync(join(process.cwd(), 'prisma/m52/migration.sql'), 'utf8')
+    .replace(/\r\n/g, '\n')
+    .replace(/^\s*--.*$/gm, '');
+  const out: string[] = [];
+  let current = '';
+  sql.split('$$').forEach((part, i) => {
+    if (i % 2 === 1) {
+      current += `$$${part}$$`;
+      return;
+    }
+    const pieces = part.split(/;\s*\n/);
+    pieces.forEach((piece, j) => {
+      current += piece;
+      if (j < pieces.length - 1) {
+        out.push(current);
+        current = '';
+      }
+    });
+  });
+  out.push(current);
+  return out.map((s) => s.trim()).filter((s) => s.length > 0 && s !== ';');
 }
 
 async function migrate() {
@@ -130,9 +152,21 @@ describe('prisma/m52/migration.sql', () => {
       userEmail: ids.disabledNeverSetUp.loginId,
     });
 
-    // The old temporary login became the owner's own: it stays theirs, and
-    // temporary access is off (an admin can issue a fresh one).
-    for (const shape of ['setUp', 'disabledAfterSetUp', 'emailAlreadyMoved'] as const) {
+    // Set up before M52 on the temporary address: still how the owner signs
+    // in, so it stays on — as the temporary login — and setup is open again.
+    for (const shape of ['setUp', 'disabledAfterSetUp'] as const) {
+      expect(after[shape], shape).toEqual({
+        status: 'TEMPORARY_ACTIVE',
+        tempAuthId: ids[shape].authId,
+        setupCompletedAt: false,
+        userAuth: null,
+        userEmail: ids[shape].loginId,
+      });
+    }
+
+    // The old temporary login became the owner's own (their real email): it
+    // stays theirs, and temporary access is off (an admin can issue a fresh one).
+    for (const shape of ['emailAlreadyMoved', 'setUpWithRealEmail'] as const) {
       expect(after[shape], shape).toMatchObject({
         status: 'DISABLED',
         tempAuthId: null,
@@ -155,15 +189,16 @@ describe('prisma/m52/migration.sql', () => {
     // A temporary login that is on opens its owner; one that is off opens nothing.
     expect(await resolve(ids.activeNeverSetUp.authId)).toBe(ids.activeNeverSetUp.userId);
     expect(await resolve(ids.disabledNeverSetUp.authId)).toBeNull();
-    // An owner's own login keeps working, whatever its temporary access says.
-    for (const shape of ['setUp', 'disabledAfterSetUp', 'emailAlreadyMoved'] as const) {
+    // Every owner who could sign in before M52 still can, with the same login.
+    for (const shape of ['setUp', 'disabledAfterSetUp', 'emailAlreadyMoved', 'setUpWithRealEmail'] as const) {
       expect(await resolve(ids[shape].authId), shape).toBe(ids[shape].userId);
     }
   });
 
   it('touched nothing but AccountAccess and the moved User logins', async () => {
-    expect(await owner.membership.count({ where: { status: 'ACTIVE' } })).toBe(5);
-    expect(await owner.client.count()).toBe(5);
-    expect(await owner.user.count()).toBe(5);
+    const n = Object.keys(SHAPES).length;
+    expect(await owner.membership.count({ where: { status: 'ACTIVE' } })).toBe(n);
+    expect(await owner.client.count()).toBe(n);
+    expect(await owner.user.count()).toBe(n);
   });
 });

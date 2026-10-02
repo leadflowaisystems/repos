@@ -114,6 +114,11 @@ export async function acceptInviteAction(
 ): Promise<ActionState> {
   const actor = await currentActor(prisma);
   if (!actor) return failure('Sign in to accept this invitation.');
+  // A temporary login opens one business and joins no other: an invitation
+  // is accepted from a login of the person's own, whose address they proved.
+  if (actor.temporaryAccessClientId) {
+    return failure('You are signed in with temporary access. Sign in with your own email to accept this invitation.');
+  }
 
   const result = await acceptInviteViaResolver(prisma, str(form, 'token'), actor.userId);
   if (!result.ok) return failure(result.message, result.errors);

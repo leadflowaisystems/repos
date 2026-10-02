@@ -146,6 +146,8 @@ async function resolveInternalUserId(authId: string): Promise<string | null> {
     UNION ALL
     SELECT u.id FROM "AccountAccess" a JOIN "User" u ON u.id = a."userId"
     WHERE a."tempAuthId" = ${authId} AND a.status = 'TEMPORARY_ACTIVE' AND u.status = 'ACTIVE'
+      AND NOT u."isPlatformAdmin"
+      AND NOT EXISTS (SELECT 1 FROM "Membership" m WHERE m."userId" = u.id AND m."clientId" <> a."clientId")
     LIMIT 1`;
   return rows[0]?.id ?? null;
 }

@@ -71,7 +71,10 @@ $$;
 -- identity for the same owner User, and resolves to that User -- but only
 -- while its access is TEMPORARY_ACTIVE. Switched off, it resolves to nothing,
 -- here at the database as well as in loadActor, and the owner's own login
--- (`User."authProviderId"`) is not affected either way.
+-- (`User."authProviderId"`) is not affected either way. It opens ONE business:
+-- a User who is platform staff, or who belongs to any other business, is never
+-- reachable through a temporary login (whoever holds a handover sheet must not
+-- inherit either), so for them it resolves to nothing too.
 CREATE OR REPLACE FUNCTION app.user_id_for_auth(p_auth_id text)
   RETURNS text
   LANGUAGE sql
@@ -91,6 +94,11 @@ AS $$
     WHERE a."tempAuthId" = p_auth_id
       AND a.status = 'TEMPORARY_ACTIVE'
       AND u.status = 'ACTIVE'
+      AND NOT u."isPlatformAdmin"
+      AND NOT EXISTS (
+        SELECT 1 FROM public."Membership" m
+        WHERE m."userId" = u.id AND m."clientId" <> a."clientId"
+      )
   ) resolved
   LIMIT 1
 $$;
@@ -755,9 +763,13 @@ BEGIN
     RETURN;
   END IF;
 
+  -- M52: never a User with temporary access. Its email is the synthetic
+  -- address (or, before M52, was); its own login is made only by setup, never
+  -- claimed by whichever identity happens to carry that address.
   SELECT u.id, u."authProviderId" INTO v_id, v_bound
   FROM public."User" u
-  WHERE lower(u.email) = v_email;
+  WHERE lower(u.email) = v_email
+    AND NOT EXISTS (SELECT 1 FROM public."AccountAccess" a WHERE a."userId" = u.id);
 
   IF v_id IS NOT NULL THEN
     -- The address is spoken for by a different Supabase identity. Refusing is
@@ -1127,17 +1139,25 @@ CREATE POLICY client_delete_admin_archived ON public."Client"
 -- grant on "tempAuthId" or "loginId" — the bound owner's own self-update
 -- policy could otherwise aim them at somebody else's identity — and this
 -- function is the one way to change them, for platform staff only.
+--
+-- Compare-and-set on the identity the caller saw (`p_expected`, NULL for
+-- none): of two admins enabling at once, one rebinds and the other is told
+-- (0 rows) and removes the login it minted, so none is left orphaned.
+DROP FUNCTION IF EXISTS app.rebind_temp_access(text, text, text);
 CREATE OR REPLACE FUNCTION app.rebind_temp_access(
   p_client_id    text,
+  p_expected     text,
   p_temp_auth_id text,
   p_login_id     text
 )
-  RETURNS void
+  RETURNS integer
   LANGUAGE plpgsql
   VOLATILE
   SECURITY DEFINER
   SET search_path = pg_catalog, public
 AS $fn$
+DECLARE
+  v_rows integer;
 BEGIN
   IF NOT app.is_platform_admin() THEN
     RAISE EXCEPTION 'not authorised';
@@ -1147,8 +1167,71 @@ BEGIN
      SET "tempAuthId" = p_temp_auth_id,
          "loginId"    = lower(btrim(p_login_id)),
          "updatedAt"  = now()
-   WHERE "clientId" = p_client_id;
+   WHERE "clientId" = p_client_id
+     AND "tempAuthId" IS NOT DISTINCT FROM p_expected;
+  GET DIAGNOSTICS v_rows = ROW_COUNT;
+  RETURN v_rows;
 END $fn$;
 
-REVOKE ALL ON FUNCTION app.rebind_temp_access(text, text, text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION app.rebind_temp_access(text, text, text) TO repos_app;
+REVOKE ALL ON FUNCTION app.rebind_temp_access(text, text, text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION app.rebind_temp_access(text, text, text, text) TO repos_app;
+
+-- Setting up the owner's own login asks whether ANOTHER RepOS account already
+-- has the address typed. Under RLS a temporary login sees only its own
+-- business's people, so it could not tell; Supabase can only tell for an
+-- address a Supabase login still holds. This answers it — and only for the
+-- owner of a business whose temporary access is switched on, the one time
+-- setup can run; for anyone else it says false, and so tells them nothing
+-- about who has an account.
+CREATE OR REPLACE FUNCTION app.owner_email_taken(p_email text)
+  RETURNS boolean
+  LANGUAGE sql
+  STABLE
+  SECURITY DEFINER
+  SET search_path = pg_catalog, public
+AS $fn$
+  SELECT EXISTS (
+           SELECT 1 FROM public."AccountAccess" a
+            WHERE a."userId" = app.current_user_id()
+              AND a.status = 'TEMPORARY_ACTIVE'
+         )
+     AND EXISTS (
+           SELECT 1 FROM public."User" u
+            WHERE lower(u.email) = lower(btrim(p_email))
+              AND u.id <> app.current_user_id()
+         )
+$fn$;
+
+REVOKE ALL ON FUNCTION app.owner_email_taken(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION app.owner_email_taken(text) TO repos_app;
+
+-- Switching temporary access on and off is the platform's alone. The bound
+-- owner's update policy above shares the column grant with platform staff, so
+-- it still reaches "status", "disabledAt" and "disabledByUserId" — and since
+-- M52 "status" alone decides whether the temporary login signs in. The owner's
+-- one legitimate write is "setupCompletedAt"; anything else from the runtime
+-- role without platform authority is refused here. (The owner role, running a
+-- migration, is not the runtime role and is not affected.)
+CREATE OR REPLACE FUNCTION app.guard_account_access_switch()
+  RETURNS trigger
+  LANGUAGE plpgsql
+  SET search_path = pg_catalog, public
+AS $fn$
+BEGIN
+  IF current_user = 'repos_app'
+     AND NOT app.is_platform_admin()
+     AND (NEW.status IS DISTINCT FROM OLD.status
+          OR NEW."disabledAt" IS DISTINCT FROM OLD."disabledAt"
+          OR NEW."disabledByUserId" IS DISTINCT FROM OLD."disabledByUserId") THEN
+    RAISE EXCEPTION 'only platform staff can switch temporary access'
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+  RETURN NEW;
+END $fn$;
+
+REVOKE ALL ON FUNCTION app.guard_account_access_switch() FROM PUBLIC;
+
+DROP TRIGGER IF EXISTS account_access_switch_guard ON public."AccountAccess";
+CREATE TRIGGER account_access_switch_guard
+  BEFORE UPDATE ON public."AccountAccess"
+  FOR EACH ROW EXECUTE FUNCTION app.guard_account_access_switch();

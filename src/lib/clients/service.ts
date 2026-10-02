@@ -554,7 +554,10 @@ async function generatedLoginOnlyFor(
   if (!access) return null;
   const { user } = access;
   const nobodysAccount = user.authProviderId === null && !user.isPlatformAdmin && user.memberships.length === 0;
-  return { tempAuthId: access.tempAuthId, userId: nobodysAccount ? user.id : null };
+  // Never the owner's own login, even if a row were ever left naming it as
+  // the temporary one: a person's own sign-in is not the business's to take.
+  const tempAuthId = access.tempAuthId !== user.authProviderId ? access.tempAuthId : null;
+  return { tempAuthId, userId: nobodysAccount ? user.id : null };
 }
 
 /**

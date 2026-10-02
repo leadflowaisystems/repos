@@ -8,7 +8,7 @@ import {
   type Role,
 } from '@/lib/tenancy/service';
 import { cache } from 'react';
-import { currentAuthUserId } from '@/lib/db';
+import { currentAuthIdentity } from '@/lib/db';
 
 /**
  * AUTHORIZATION PRIMITIVES (M20).
@@ -102,15 +102,15 @@ export function requireTenantStaffOrOwner(
  * here on top of the one `db.ts` already makes for the RLS context -- so a
  * page paid for the same answer twice.
  *
- * `currentAuthUserId` is the same call, memoised per request by React's
+ * `currentAuthIdentity` is the same call, memoised per request by React's
  * `cache()`. Reusing it changes nothing about what is verified or how often a
  * revoked session is caught: within one request the cookie cannot change, and
  * the next request verifies again from scratch.
  */
 export async function currentActor(db: PrismaClient): Promise<Actor | null> {
-  const authProviderId = await currentAuthUserId();
-  if (!authProviderId) return null;
-  return actorFor(db, authProviderId);
+  const identity = await currentAuthIdentity();
+  if (!identity) return null;
+  return actorFor(db, identity.id, identity.email);
 }
 
 /**
@@ -122,6 +122,6 @@ export async function currentActor(db: PrismaClient): Promise<Actor | null> {
  * store, and nothing survives the response.
  */
 const actorFor = cache(
-  async (db: PrismaClient, authProviderId: string): Promise<Actor | null> =>
-    loadActor(db, authProviderId),
+  async (db: PrismaClient, authProviderId: string, authEmail: string): Promise<Actor | null> =>
+    loadActor(db, authProviderId, authEmail),
 );

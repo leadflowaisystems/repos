@@ -79,10 +79,15 @@ export type Actor = {
  *
  * Nothing means: no such user, or a suspended one. A suspended account keeps
  * its rows and its history — it simply stops being an actor.
+ *
+ * `authEmail` is the address Supabase itself says this session's identity
+ * has. Every caller that has it passes it: a temporary login is only itself
+ * while it still carries the Headway-made address it was issued under.
  */
 export async function loadActor(
   db: PrismaClient,
   authProviderId: string | null | undefined,
+  authEmail?: string | null,
 ): Promise<Actor | null> {
   const id = (authProviderId ?? '').trim();
   if (id.length === 0) return null;
@@ -99,10 +104,22 @@ export async function loadActor(
   // affected by any of this.
   const temporary = await db.accountAccess.findUnique({
     where: { tempAuthId: id },
-    select: { clientId: true, status: true, user: { select: ACTOR_SELECT } },
+    select: { clientId: true, status: true, loginId: true, user: { select: ACTOR_SELECT } },
   });
   if (!temporary || temporary.status !== 'TEMPORARY_ACTIVE') return null;
   if (temporary.user.status !== ACTIVE) return null;
+  // Its address moved (a holder can ask Supabase for that with nothing but a
+  // session): it is no longer the login Headway handed over, and a password
+  // reset to wherever it went must not open the business.
+  if (authEmail !== undefined && (authEmail ?? '').trim().toLowerCase() !== temporary.loginId.toLowerCase()) {
+    return null;
+  }
+  // It opens ONE business, and never with staff authority: whoever holds the
+  // handover sheet inherits neither. An owner User who is platform staff or
+  // belongs anywhere else is not reachable through it at all — the same line
+  // `app.user_id_for_auth` holds in the database.
+  if (temporary.user.isPlatformAdmin) return null;
+  if (temporary.user.memberships.some((m) => m.clientId !== temporary.clientId)) return null;
   return toActor(temporary.user, temporary.clientId);
 }
 

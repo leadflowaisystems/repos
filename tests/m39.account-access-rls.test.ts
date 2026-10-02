@@ -187,12 +187,23 @@ describe('b) the bound owner', () => {
 
   it('may complete their own setup, but not touch an immutable column', async () => {
     session = { id: AUTH.alphaBound };
+    // Since M52 the owner’s one write is recording that setup happened.
     const updated = await app.accountAccess.update({
       where: { userId: ids.alphaBound },
-      data: { status: 'SETUP_COMPLETE', setupCompletedAt: new Date() },
-      select: { status: true },
+      data: { setupCompletedAt: new Date() },
+      select: { setupCompletedAt: true },
     });
-    expect(updated.status).toBe('SETUP_COMPLETE');
+    expect(updated.setupCompletedAt).not.toBeNull();
+
+    // The switch itself is the platform’s alone (M52): status alone decides
+    // whether the temporary login signs in, so the bound owner cannot flip it,
+    // nor rewrite who disabled it, even on their own row.
+    await expect(
+      app.accountAccess.update({ where: { userId: ids.alphaBound }, data: { status: 'DISABLED' } }),
+    ).rejects.toThrow(/only platform staff/);
+    await expect(
+      app.accountAccess.update({ where: { userId: ids.alphaBound }, data: { disabledAt: new Date() } }),
+    ).rejects.toThrow(/only platform staff/);
 
     // loginId has no column grant for repos_app at all — not even for the
     // row's own bound user — because nothing in the product ever rewrites it.

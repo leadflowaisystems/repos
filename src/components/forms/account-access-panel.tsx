@@ -76,23 +76,48 @@ function GenerateForm({
       <SubmitButton variant="primary" pendingLabel="Working…">
         {label}
       </SubmitButton>
-      <Notice state={state} />
+      {/* Failures only: a success is shown with the password, above. Kept
+          after a Disable, it would say "on" under "disabled". */}
+      <Notice state={state.ok ? IDLE : state} />
     </form>
   );
 }
 
+/**
+ * The note under the permanent account, true for the temporary access it sits
+ * beside: an owner whose own login is not confirmed can only get a new link
+ * through "Set up your account", which only the temporary login reaches.
+ */
+function permanentNote(view: AdminAccessView): string | null {
+  const own = view.ownLogin;
+  if (own === null || own.confirmed === true) return null;
+  const temporaryOn = view.temporary === 'ACTIVE' && view.temporaryBlocked === null;
+  if (own.confirmed === null) {
+    return temporaryOn
+      ? 'Could not check this sign-in with Supabase just now. Reload the page before switching temporary access off.'
+      : 'Could not check this sign-in with Supabase just now. Reload the page.';
+  }
+  if (temporaryOn) {
+    return own.confirmationSent
+      ? 'Waiting for the owner to open the confirmation email. Until then they cannot sign in with it.'
+      : 'No confirmation email has gone out yet. Signed in with the temporary access, the owner can fill in "Set up your account" again to send one. Until then they cannot sign in with it.';
+  }
+  // With temporary access off, "Forgot password?" is the owner's way in: a
+  // reset link to that address confirms it too.
+  return own.confirmationSent
+    ? 'Not confirmed yet, and the temporary access is off. The owner can open the confirmation email, or use "Forgot password?" on the sign-in page with this address — that confirms it too.'
+    : 'Not confirmed, and no confirmation email has gone out. With the temporary access off, the owner can use "Forgot password?" on the sign-in page with this address — that confirms it too.';
+}
+
 function PermanentAccount({ view }: { view: AdminAccessView }) {
   const own = view.ownLogin;
+  const note = permanentNote(view);
   return (
     <Row label="Permanent account">
       {own ? (
         <>
-          {own.email}
-          {own.confirmed ? null : (
-            <span className="mt-0.5 block text-[13px] font-normal text-ink-600">
-              Waiting for the owner to open the confirmation email. Until then they cannot sign in with it.
-            </span>
-          )}
+          {own.email ?? <span className="font-normal text-ink-600">Set up, address not known yet</span>}
+          {note ? <span className="mt-0.5 block text-[13px] font-normal text-ink-600">{note}</span> : null}
         </>
       ) : (
         <span className="font-normal text-ink-600">Not set up yet</span>
@@ -182,7 +207,9 @@ export function AccountAccessPanel({ clientId, view }: { clientId: string; view:
           <>
             <Row label="Temporary access">
               {view.temporary === 'ACTIVE'
-                ? 'Temporary access active'
+                ? view.temporaryBlocked
+                  ? 'On, but it cannot sign in'
+                  : 'Temporary access active'
                 : view.temporary === 'DISABLED'
                   ? 'Temporary access disabled'
                   : 'No temporary access'}
@@ -198,10 +225,20 @@ export function AccountAccessPanel({ clientId, view }: { clientId: string; view:
 
       {justGenerated ? (
         <GeneratedCredentials clientId={clientId} data={generated!} state={generateState} />
+      ) : view.temporaryBlocked ? (
+        <div className="mt-3">
+          <p className="text-[13px] leading-relaxed text-ink-600">
+            {view.temporaryBlocked === 'STAFF'
+              ? 'This owner is Headway staff, so a temporary login cannot sign in as them.'
+              : 'This owner also belongs to another business, so a temporary login cannot sign in as them.'}
+            {view.temporary === 'ACTIVE' ? ' Switch it off to tidy up.' : ''}
+          </p>
+          {view.temporary === 'ACTIVE' ? <DisableForm clientId={clientId} /> : null}
+        </div>
       ) : view.temporary === 'ACTIVE' ? (
         <div className="mt-3">
           <p className="text-[13px] leading-relaxed text-ink-600">
-            {view.ownLogin?.confirmed
+            {view.ownLogin?.confirmed === true
               ? 'The owner has their own sign-in now. Disable temporary access when they no longer need it; their own email and password keep working.'
               : 'The password was shown once, when it was generated. If it is lost, disable temporary access and enable it again for a new one.'}
           </p>

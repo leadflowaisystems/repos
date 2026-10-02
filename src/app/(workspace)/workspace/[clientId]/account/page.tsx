@@ -239,9 +239,11 @@ function Notice({ notice }: { notice: { tone: 'good' | 'warn'; text: string } | 
  * SIGNED IN WITH THE TEMPORARY LOGIN: setting up the owner's own.
  *
  *   no own login yet       the setup form
- *   own login, unconfirmed "check your email", and the form again (a typo, a
- *                          lost email)
+ *   own login, unconfirmed "check your email" (or, when no link has actually
+ *                          gone out, "fill this in again to send it"), and
+ *                          the form again (a typo, a lost email)
  *   own login, confirmed   "sign out and sign in with it"
+ *   Supabase not reachable "reload in a minute" — never "ready" on a guess
  */
 function SetupSection({
   clientId,
@@ -262,15 +264,21 @@ function SetupSection({
       <Notice notice={notice} />
       {!own ? (
         <AccountSetupForm clientId={clientId} initial={initial} />
+      ) : own.confirmed === null ? (
+        <p className="text-[15px] leading-relaxed text-ink-700">{t('account.setup.unknown')}</p>
       ) : own.confirmed ? (
-        <p className="text-[15px] leading-relaxed text-ink-700">{t('account.setup.ready', { email: own.email })}</p>
+        <p className="text-[15px] leading-relaxed text-ink-700">
+          {t('account.setup.ready', { email: own.email ?? '' })}
+        </p>
       ) : (
         <>
           <p className="text-[15px] leading-relaxed text-ink-700">
-            {t('account.setup.checkEmail', { email: own.email })}
+            {own.confirmationSent
+              ? t('account.setup.checkEmail', { email: own.email ?? '' })
+              : t('account.setup.notSent', { email: own.email ?? '' })}
           </p>
           <p className="mt-2 mb-6 text-[14px] leading-relaxed text-ink-600">{t('account.setup.untilConfirmed')}</p>
-          <AccountSetupForm clientId={clientId} initial={{ ...initial, email: own.email }} again />
+          <AccountSetupForm clientId={clientId} initial={{ ...initial, email: own.email ?? initial.email }} again />
         </>
       )}
     </Section>

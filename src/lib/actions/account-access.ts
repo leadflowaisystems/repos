@@ -8,17 +8,21 @@ import { detachedAuthClient, supabaseConfig, supabaseServerClient } from '@/lib/
 import {
   createOwnerIdentity,
   deleteIdentity,
-  deleteUnconfirmedIdentity,
   getIdentitySnapshot,
+  IDENTITY_MISSING,
   setIdentityPassword,
 } from '@/lib/auth/supabase-admin';
+import { isTemporaryEmail } from '@/lib/account-access/state';
 import { authRedirectUrl, emailConfirmCallback } from '@/lib/auth/redirect';
 import {
   disableTempAccess,
   finalizeAccountSetup,
   generateTempAccess,
   newPasswordSchema,
+  recordedOwnLogin,
+  restoreOwnLogin,
   validateAccountSetup,
+  type SetupRecord,
 } from '@/lib/account-access/service';
 import { failure, str, success, type ActionState } from './shared';
 
@@ -102,16 +106,27 @@ export async function disableTempAccessAction(
  *
  *   1. Supabase creates the owner's own login — their real email and their
  *      own password — NOT confirmed. Nothing can sign in with it yet.
- *   2. RepOS records it on the owner's User (one transaction).
+ *   2. RepOS records it on the owner User (one transaction). The User's email
+ *      itself changes only once the address is confirmed.
  *   3. The owner's own session asks Supabase to send the confirmation link to
  *      that address — the one email. Opening it is what makes the login work:
  *      a mistyped or somebody else's address never becomes a login or a
  *      password-reset address.
  *
  * The temporary login is not touched: it keeps working until an admin
- * disables it, so the owner is never stranded between the two. Filling setup
- * in again before the link is opened (a typo, a lost email) replaces the
- * unconfirmed login with a new one.
+ * disables it, so the owner is never stranded between the two.
+ *
+ * Filling setup in again before the link is opened is how a lost, late or
+ * expired email is recovered, and how a typo is fixed:
+ *
+ *   - the SAME address: the login that already holds it gets the password just
+ *     typed and a fresh link (Supabase would refuse to make a second login for
+ *     an address one already holds);
+ *   - a DIFFERENT address: a new login, and the unconfirmed one goes.
+ *
+ * A Headway-made own login (an owner who "set up" before M52 but whose real
+ * email never arrived) is replaced the same way. One somebody has confirmed
+ * is never replaced here.
  */
 export async function completeAccountSetupAction(
   _prev: ActionState,
@@ -142,60 +157,189 @@ export async function completeAccountSetupAction(
     confirmPassword: str(form, 'confirmPassword'),
   });
   if (!validated.ok) return refuse(validated.message, validated.errors);
+  const email = validated.data.email;
 
-  // Redoing setup is only for a login nobody has confirmed yet.
+  // The own login on record, if any, decides what a redo may do with it.
   const previous = validated.data.previousOwnAuthId;
+  let sameLogin = false;
   if (previous) {
     const snapshot = await getIdentitySnapshot(previous);
-    if (!snapshot || snapshot.confirmed) {
-      return refuse('Your own sign-in is already set up. Sign in with your email and password.');
+    if (snapshot === null) {
+      return refuse('We could not check your sign-in just now. Nothing was changed — try again in a minute.');
+    }
+    if (snapshot !== IDENTITY_MISSING) {
+      if (stillTheOwners(snapshot)) {
+        return refuse('Your own sign-in is already set up. Sign in with your email and password.');
+      }
+      sameLogin = !isTemporaryEmail(snapshot.email) && snapshot.email === email;
     }
   }
 
   // 1. The owner's own login, unconfirmed. No email yet.
-  const created = await createOwnerIdentity(validated.data.email, password);
-  if (!created.ok) {
-    if (created.reason === 'EMAIL_TAKEN') {
-      return refuse('Some fields need attention.', { email: 'That email is already in use by another account.' });
+  let ownAuthId: string;
+  if (sameLogin) {
+    // The SAME address again: the email never came, or its link expired. The
+    // login that holds it keeps the password it was given — a temporary
+    // session never overwrites it (whoever else holds the handover sheet could
+    // otherwise set the password the owner then confirms) — so the password
+    // typed now must be that one. Supabase then sends a fresh link.
+    const proof = await provePendingPassword(email, password, previous!);
+    if (proof === 'confirmed') {
+      return refuse('Your own sign-in is already set up. Sign in with your email and password.');
     }
-    if (created.reason === 'WEAK_PASSWORD') {
+    if (proof === 'wrong') {
       return refuse('Some fields need attention.', {
-        password: created.message || 'Choose a longer, less predictable password.',
+        password:
+          'This address is already waiting for confirmation, with the password chosen the first time. Enter that password to get a new link — or, if it is forgotten, use “Forgot password?” on the sign-in page with this address.',
       });
     }
-    return refuse('Account setup is unavailable right now. Nothing was changed — try again, or contact Headway.');
+    if (proof === 'busy') return refuse('Too many attempts. Wait a minute and try again.');
+    if (proof === 'unknown') {
+      return refuse('We could not check your sign-in just now. Nothing was changed — try again in a minute.');
+    }
+    ownAuthId = previous!;
+  } else {
+    const created = await createOwnerIdentity(email, password);
+    if (!created.ok) {
+      if (created.reason === 'EMAIL_TAKEN') {
+        return refuse('Some fields need attention.', { email: 'That email is already in use by another account.' });
+      }
+      if (created.reason === 'WEAK_PASSWORD') {
+        return refuse('Some fields need attention.', {
+          password: created.message || 'Choose a longer, less predictable password.',
+        });
+      }
+      return refuse('Account setup is unavailable right now. Nothing was changed — try again, or contact Headway.');
+    }
+    ownAuthId = created.authUserId;
+  }
+  // A login this request made, and only that, is removed if setup does not land.
+  const discardNew = async () => {
+    if (!sameLogin) await deleteIdentity(ownAuthId);
+  };
+
+  // A login being replaced may have been confirmed while this ran (its link
+  // opened in another tab). Then it is the owner's, and it stays.
+  if (previous && !sameLogin) {
+    const now = await getIdentitySnapshot(previous);
+    if (now !== null && now !== IDENTITY_MISSING && stillTheOwners(now)) {
+      await discardNew();
+      return refuse('Your own sign-in was just confirmed. Sign in with your email and password.');
+    }
   }
 
-  // 2. RepOS's record. If it cannot be written, the new login goes again, so
-  // nothing half-made is left behind.
-  let committed = false;
+  // 2. RepOS's record. If it cannot be written, a login made here goes again,
+  // so nothing half-made is left behind.
+  let recorded: SetupRecord;
   try {
-    committed = await finalizeAccountSetup(prisma, actor.userId, session.id, validated.data, created.authUserId);
+    recorded = await finalizeAccountSetup(prisma, actor.userId, session.id, validated.data, ownAuthId);
   } catch (error) {
-    await deleteIdentity(created.authUserId);
-    const taken = String(error).includes('Unique constraint') || String(error).includes('23505');
     console.error('completeAccountSetupAction: could not record the owner login', {
       clientId,
       message: error instanceof Error ? error.message : String(error),
     });
-    if (taken) {
-      return refuse('Some fields need attention.', { email: 'That email is already in use by another account.' });
+    // A commit whose acknowledgement was lost would otherwise have its live
+    // login deleted out from under it: if the record is there, it worked.
+    // If the database cannot even say (asked a few times), the login made
+    // here goes anyway — left behind unrecorded it would hold the owner's
+    // address for good. Had the commit landed, RepOS now names a login
+    // Supabase no longer has, which reads as not set up, and the next setup
+    // simply replaces it.
+    const landed = await readBack(() => recordedOwnLogin(prisma, actor.userId));
+    if (landed === undefined) {
+      await discardNew();
+      return refuse('Your account could not be set up. Reload the page and try again.');
     }
-    return refuse('Your account could not be set up. Nothing was changed — try again.');
+    if (landed !== ownAuthId) {
+      await discardNew();
+      return refuse('Your account could not be set up. Nothing was changed — try again.');
+    }
+    recorded = 'recorded';
   }
-  if (!committed) {
-    await deleteIdentity(created.authUserId);
+  if (recorded === 'access-off') {
+    await discardNew();
     return refuse('This temporary access was turned off by Headway. Please contact Headway.');
   }
-  if (previous) await deleteUnconfirmedIdentity(previous);
+  if (recorded === 'raced') {
+    await discardNew();
+    return refuse('Your account was just set up from another window. Reload the page to see it.');
+  }
+
+  // The login this replaced — an address the owner corrected, or the
+  // Headway-made one — goes: nothing points at it any more, and left behind
+  // it would sign in as a stranger to this account. Checked once more first:
+  // one confirmed in the last moment is the owner's, so it is put back and
+  // the one made here goes instead.
+  if (previous && previous !== ownAuthId) {
+    const after = await getIdentitySnapshot(previous);
+    if (after === null) {
+      console.error('completeAccountSetupAction: the replaced login could not be checked, so it was kept', { clientId });
+    } else if (after !== IDENTITY_MISSING && stillTheOwners(after)) {
+      const restored = await restoreOwnLogin(prisma, actor.userId, ownAuthId, previous).catch(() => false);
+      if (restored) {
+        await discardNew();
+        return refuse('Your own sign-in was just confirmed. Sign in with your email and password.');
+      }
+      console.error('completeAccountSetupAction: a just-confirmed own login could not be put back', { clientId });
+    } else {
+      await deleteIdentity(previous);
+    }
+  }
 
   // 3. The confirmation email, through the owner's own session. Supabase finds
-  // the unconfirmed login just made and sends its link; it changes nothing else.
-  const outcome = await sendConfirmationLink(clientId, validated.data.email, password, created.authUserId);
+  // the unconfirmed login and sends its link; it changes nothing else.
+  const outcome = await sendConfirmationLink(clientId, email, password, ownAuthId);
 
   revalidatePath(accountPath(clientId));
   revalidateClient(clientId);
   redirect(`${accountPath(clientId)}?setup=${outcome}`);
+}
+
+/** A confirmed login on a real address: the owner's own, never replaced by setup. */
+function stillTheOwners(snapshot: { email: string; confirmed: boolean }): boolean {
+  return snapshot.confirmed && !isTemporaryEmail(snapshot.email);
+}
+
+/**
+ * Whether `password` is the one the owner's pending (unconfirmed) login was
+ * given, asked of Supabase on a client that cannot touch this browser's
+ * session. Supabase checks the password before the confirmation, so the right
+ * one on an unconfirmed login answers "Email not confirmed", and a wrong one
+ * answers "Invalid login credentials". A session means the login has been
+ * confirmed since; it is ended at once.
+ */
+async function provePendingPassword(
+  email: string,
+  password: string,
+  expectedAuthId: string,
+): Promise<'match' | 'wrong' | 'confirmed' | 'busy' | 'unknown'> {
+  const detached = detachedAuthClient();
+  const { data, error } = await detached.auth.signInWithPassword({ email, password });
+  if (data?.session) {
+    await detached.auth.signOut({ scope: 'local' }).catch(() => undefined);
+    return data.user?.id === expectedAuthId ? 'confirmed' : 'unknown';
+  }
+  if (error?.code === 'email_not_confirmed') return 'match';
+  if (error?.code === 'invalid_credentials') return 'wrong';
+  if (error?.status === 429) return 'busy';
+  console.error('completeAccountSetupAction: could not check the pending password', {
+    code: error?.code,
+    status: error?.status,
+    message: error?.message,
+  });
+  return 'unknown';
+}
+
+/** A read retried a few times over a short blip; undefined when it never answered. */
+async function readBack<T>(read: () => Promise<T>): Promise<T | undefined> {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await read();
+    } catch {
+      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+  }
+  return undefined;
 }
 
 /** How asking for the confirmation email went, in words the page can use. */

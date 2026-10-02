@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
   if (isRecovery) return go(RESET_PATH);
   if (next) return go(next);
 
-  const actor = await loadActor(prisma, user.id);
+  const actor = await loadActor(prisma, user.id, user.email);
   // A confirmed login that belongs to a business lands on its Account page,
   // saying so; anyone else (a brand-new self-serve signup) goes where their
   // memberships say — for them, on to set up a business.

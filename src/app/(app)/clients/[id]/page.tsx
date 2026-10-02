@@ -435,8 +435,8 @@ export default async function ClientOverviewPage({
 
       <Card>
         <CardHeader
-          title="Temporary access"
-          description="A temporary email and password the owner can sign in with straight away. No email is sent; hand them over with the kit."
+          title="Owner sign-in"
+          description="The owner's permanent account, and the temporary email and password Headway can switch on or off. No email is sent; hand the temporary ones over with the kit."
         />
         <CardBody>
           <AccountAccessPanel clientId={client.id} view={accountAccess} />

@@ -135,10 +135,18 @@ export type SetPasswordResult =
  *
  * Returns a classified refusal rather than throwing: a password the project's
  * policy rejects is a normal form error, not a server error.
+ *
+ * `options.email` also puts the identity back on that address, confirmed, in
+ * the same call. For a TEMPORARY login: whoever held it could have moved its
+ * address to an inbox of their own straight through Supabase (an email
+ * change needs only a session), and a password reset to that inbox would let
+ * them back in. Every time temporary access is switched on or off, the
+ * address goes back to the Headway-made one with the password.
  */
 export async function setIdentityPassword(
   authUserId: string,
   password: string,
+  options: { email?: string } = {},
 ): Promise<SetPasswordResult> {
   const config = adminConfig();
   if (!config.ok) {
@@ -146,7 +154,10 @@ export async function setIdentityPassword(
     return { ok: false, reason: 'NOT_CONFIGURED', message: config.reason };
   }
   const supabase = adminClient();
-  const { error } = await supabase.auth.admin.updateUserById(authUserId, { password });
+  const { error } = await supabase.auth.admin.updateUserById(authUserId, {
+    password,
+    ...(options.email ? { email: options.email, email_confirm: true } : {}),
+  });
   if (!error) return { ok: true };
   console.error('setIdentityPassword: Supabase Auth admin update failed', {
     authUserId,
@@ -173,8 +184,8 @@ export async function setIdentityPassword(
  * An identity that is already gone counts as revoked: there is nothing left
  * that could sign in.
  */
-export async function randomizeIdentityPassword(authUserId: string): Promise<void> {
-  const result = await setIdentityPassword(authUserId, unguessablePassword());
+export async function randomizeIdentityPassword(authUserId: string, email?: string): Promise<void> {
+  const result = await setIdentityPassword(authUserId, unguessablePassword(), email ? { email } : {});
   if (result.ok || result.reason === 'NOT_FOUND') return;
   throw new Error(result.message);
 }
@@ -184,27 +195,55 @@ export type IdentitySnapshot = {
   email: string;
   /** The owner opened the confirmation link: this login can sign in. */
   confirmed: boolean;
+  /**
+   * A confirmation link has gone out for this login and not been replaced
+   * since. Supabase records it only once the email is actually sent (a new
+   * password clears it, along with the old link).
+   */
+  confirmationSent: boolean;
   lastSignInAt: string | null;
 };
+
+/** Supabase says this identity does not exist (deleted, or never made). */
+export const IDENTITY_MISSING = 'missing' as const;
 
 /**
  * The live email of one identity and whether it is confirmed — read from
  * Supabase, the only place that knows, so the admin panel and Account can
- * never disagree with what actually signs in. Null when the admin API is not
- * configured or the read fails.
+ * never disagree with what actually signs in.
+ *
+ * Three answers, kept apart on purpose: the snapshot; `IDENTITY_MISSING` when
+ * Supabase says there is no such identity; and null when Supabase could not
+ * be asked (not configured, or the read failed) — which says nothing either
+ * way, so no caller may treat it as "confirmed" or as "gone".
  */
-export async function getIdentitySnapshot(authUserId: string): Promise<IdentitySnapshot | null> {
+export async function getIdentitySnapshot(
+  authUserId: string,
+): Promise<IdentitySnapshot | typeof IDENTITY_MISSING | null> {
   if (!adminConfig().ok) return null;
   try {
     const supabase = adminClient();
     const { data, error } = await supabase.auth.admin.getUserById(authUserId);
-    if (error || !data.user) return null;
+    if (error) {
+      if (isNotFound(error)) return IDENTITY_MISSING;
+      console.error('getIdentitySnapshot: Supabase Auth admin read failed', {
+        code: error.code,
+        status: error.status,
+        message: error.message,
+      });
+      return null;
+    }
+    if (!data.user) return IDENTITY_MISSING;
     return {
       email: (data.user.email ?? '').toLowerCase(),
       confirmed: Boolean(data.user.email_confirmed_at),
+      confirmationSent: Boolean(data.user.confirmation_sent_at),
       lastSignInAt: data.user.last_sign_in_at ?? null,
     };
-  } catch {
+  } catch (error) {
+    console.error('getIdentitySnapshot: Supabase Auth admin read threw', {
+      message: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -246,18 +285,6 @@ export async function createOwnerIdentity(email: string, password: string): Prom
     return { ok: false, reason: 'WEAK_PASSWORD', message };
   }
   return { ok: false, reason: 'UNKNOWN', message };
-}
-
-/**
- * Removes an owner login that was never confirmed — and ONLY one never
- * confirmed: a login somebody has proved they own is never deleted here. Used
- * when the owner fills setup in again (a typo, or a lost email). Best-effort,
- * logged.
- */
-export async function deleteUnconfirmedIdentity(authUserId: string): Promise<void> {
-  const snapshot = await getIdentitySnapshot(authUserId);
-  if (!snapshot || snapshot.confirmed) return;
-  await deleteIdentity(authUserId);
 }
 
 /**
@@ -305,20 +332,25 @@ export async function removeGeneratedIdentity(
  * identity is at least findable.
  */
 export async function deleteIdentity(authUserId: string): Promise<void> {
-  try {
-    const supabase = adminClient();
-    const { error } = await supabase.auth.admin.deleteUser(authUserId);
-    if (error && !isNotFound(error)) {
-      console.error('deleteIdentity: orphaned temporary identity could not be removed', {
+  // Once more on a failure: a blip here would otherwise leave an identity
+  // holding an address (and a password) that nothing in RepOS points at.
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      const supabase = adminClient();
+      const { error } = await supabase.auth.admin.deleteUser(authUserId);
+      if (!error || isNotFound(error)) return;
+      console.error('deleteIdentity: orphaned identity could not be removed', {
         authUserId,
+        attempt,
         code: error.code,
         message: error.message,
       });
+    } catch (error) {
+      console.error('deleteIdentity: orphaned identity could not be removed', {
+        authUserId,
+        attempt,
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
-  } catch (error) {
-    console.error('deleteIdentity: orphaned temporary identity could not be removed', {
-      authUserId,
-      message: error instanceof Error ? error.message : String(error),
-    });
   }
 }
