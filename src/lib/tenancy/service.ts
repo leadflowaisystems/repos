@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
 import { isIdentityConflict, isMissingDbFunction, withRlsContext } from '@/lib/db';
+import { accessStatusOf } from '@/lib/account-access/state';
 
 /**
  * TENANT RESOLUTION (M20).
@@ -61,6 +62,12 @@ export type Actor = {
   isPlatformAdmin: boolean;
   status: string;
   memberships: ActorMembership[];
+  /**
+   * The business whose admin-issued temporary access this person is still
+   * signed in with, before they have set up their own password. Sign-in sends
+   * them straight to that business's Account page, where setup lives.
+   */
+  setupPendingClientId?: string | null;
 };
 
 /**
@@ -86,9 +93,22 @@ export async function loadActor(
       memberships: {
         select: { clientId: true, role: true, status: true },
       },
+      accountAccessOwned: {
+        select: { clientId: true, status: true, setupCompletedAt: true, loginId: true },
+      },
     },
   });
   if (!user || user.status !== ACTIVE) return null;
+
+  // A TEMPORARY LOGIN AN ADMIN TURNED OFF IS NOBODY. Disabling also scrambles
+  // the password in Supabase and ends its sessions there, but that is a second
+  // system: this line is what makes "Disabled" true inside RepOS on its own,
+  // for every page and action, the moment the row says so. Only while the
+  // login is still the temporary one — once it is the owner's own (see
+  // `accessStatusOf`), an old DISABLED flag must never lock them out of it.
+  const access = user.accountAccessOwned;
+  const accessStatus = access ? accessStatusOf(access, user.email) : null;
+  if (accessStatus === 'DISABLED') return null;
 
   return {
     userId: user.id,
@@ -96,6 +116,7 @@ export async function loadActor(
     isPlatformAdmin: user.isPlatformAdmin,
     status: user.status,
     memberships: user.memberships,
+    setupPendingClientId: accessStatus === 'TEMPORARY_ACTIVE' ? access!.clientId : null,
   };
 }
 

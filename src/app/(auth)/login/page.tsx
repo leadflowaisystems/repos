@@ -5,7 +5,14 @@ import { currentActor } from '@/lib/auth/authorize';
 import { prisma } from '@/lib/db';
 import { landingPathFor } from '@/lib/onboarding/service';
 import { safeNextPath } from '@/lib/auth/redirect';
-import { EXPIRED_LINK_PARAM, expiredLinkNotice, SETUP_NOTICE_PARAM, setupNotice } from '@/lib/auth/setup-notice';
+import {
+  EMAIL_NOTICE_PARAM,
+  emailNotice,
+  EXPIRED_LINK_PARAM,
+  expiredLinkNotice,
+  RESET_NOTICE_PARAM,
+  resetNotice,
+} from '@/lib/auth/setup-notice';
 import { HeadwayWordmark } from '@/components/brand';
 
 export const dynamic = 'force-dynamic';
@@ -52,13 +59,12 @@ export default async function LoginPage({
    */
   const bouncedByMiddleware = typeof raw === 'string' && raw.length > 0;
 
-  // Finishing account setup does not end the session it was done in — the
-  // credential change goes through the admin API, which leaves that session
-  // valid — so without this the owner would be sent straight back to their
-  // workspace and never see the confirmation. Same trade as the circuit
-  // breaker above: one extra click for someone already signed in, nothing
-  // gained by anyone else, since the notice is a fixed sentence chosen here.
-  const notice = setupNotice(query[SETUP_NOTICE_PARAM]);
+  // A fixed sentence after a password reset, or after a "confirm your new
+  // email" link opened in a browser that was not signed in. Shown even to
+  // someone who happens to be signed in already — the same trade as the
+  // circuit breaker above: one extra click, and nothing gained by anyone
+  // else, since the notice is chosen here, never taken from the URL.
+  const notice = resetNotice(query[RESET_NOTICE_PARAM]) ?? emailNotice(query[EMAIL_NOTICE_PARAM]);
   // A confirmation or reset link the auth callback could not use.
   const expired = expiredLinkNotice(query[EXPIRED_LINK_PARAM]);
 
@@ -104,7 +110,7 @@ export default async function LoginPage({
             href="/forgot-password"
             className="font-medium text-ink-900 underline underline-offset-4"
           >
-            Forgot your password?
+            Forgot password?
           </Link>
         </p>
         <p>

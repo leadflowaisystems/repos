@@ -181,6 +181,14 @@ export function ResetPasswordForm() {
         autoComplete="new-password"
         placeholder={t('common.form.auth.passwordHint')}
       />
+      <Field
+        name="confirmPassword"
+        label={t('common.form.auth.confirmPassword')}
+        type="password"
+        state={state}
+        required
+        autoComplete="new-password"
+      />
       <Notice state={state} />
       <button type="submit" disabled={pending} className={BUTTON}>
         {pending ? t('common.form.saving') : t('common.form.auth.setPassword')}

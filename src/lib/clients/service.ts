@@ -546,6 +546,7 @@ async function generatedLoginOnlyFor(
     where: { clientId },
     select: {
       status: true,
+      setupCompletedAt: true,
       loginId: true,
       user: {
         select: {
@@ -560,7 +561,9 @@ async function generatedLoginOnlyFor(
   });
   if (!access) return null;
   const { user } = access;
-  if (access.status === 'SETUP_COMPLETE') return null;
+  // Set up = the owner chose their own password, whatever the status says
+  // now: an older version could mark a set-up login DISABLED afterwards.
+  if (access.status === 'SETUP_COMPLETE' || access.setupCompletedAt !== null) return null;
   if (user.email.toLowerCase() !== access.loginId.toLowerCase()) return null;
   if (user.isPlatformAdmin || user.memberships.length > 0) return null;
   return { userId: user.id, authProviderId: user.authProviderId };

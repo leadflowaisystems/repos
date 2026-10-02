@@ -158,3 +158,16 @@ export const AUTH_CALLBACK = '/auth/callback';
 export function callbackFor(next: string): string {
   return `${AUTH_CALLBACK}?next=${encodeURIComponent(next)}`;
 }
+
+/**
+ * The callback for a "confirm your new email address" link. Marked as such,
+ * because Supabase changes the address the moment the link is opened — before
+ * the callback runs — so even when this browser cannot be signed in by it
+ * (opened on another device), the callback can say truthfully that the new
+ * address is confirmed rather than that the link failed.
+ */
+export const EMAIL_CONFIRM_KIND = 'email';
+
+export function emailConfirmCallback(next: string): string {
+  return `${callbackFor(next)}&kind=${EMAIL_CONFIRM_KIND}`;
+}

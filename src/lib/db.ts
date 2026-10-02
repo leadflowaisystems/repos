@@ -69,18 +69,43 @@ const base =
  * the policies show nothing.
  */
 export const currentAuthUserId = cache(async (): Promise<string | null> => {
-  try {
-    if (!supabaseConfig().ok) return null;
-    const supabase = await supabaseServerClient();
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) return null;
-    return data.user.id;
-  } catch {
-    // Outside a request context (module init, a script) there is no session to
-    // read. No identity is the safe answer, not an exception.
-    return null;
-  }
+  return (await currentAuthIdentity())?.id ?? null;
 });
+
+/**
+ * The same verified identity, with what the Account page shows: the address
+ * this person signs in with, and an address change they asked for. Pending
+ * only while its link is live — Supabase keeps the requested address but
+ * drops the link whenever the password changes (`email_change_sent_at` goes
+ * back to null), so "check your email" would otherwise point at a dead link.
+ * One `getUser()` per request serves both this and `currentAuthUserId`.
+ */
+export const currentAuthIdentity = cache(
+  async (): Promise<{
+    id: string;
+    email: string;
+    pendingEmail: string | null;
+    requestedEmail: string | null;
+  } | null> => {
+    try {
+      if (!supabaseConfig().ok) return null;
+      const supabase = await supabaseServerClient();
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data.user) return null;
+      const requested = data.user.new_email ? data.user.new_email.toLowerCase() : null;
+      return {
+        id: data.user.id,
+        email: (data.user.email ?? '').toLowerCase(),
+        pendingEmail: requested && data.user.email_change_sent_at ? requested : null,
+        requestedEmail: requested,
+      };
+    } catch {
+      // Outside a request context (module init, a script) there is no session to
+      // read. No identity is the safe answer, not an exception.
+      return null;
+    }
+  },
+);
 
 /**
  * Which mechanism resolves the UUID, decided once per process.

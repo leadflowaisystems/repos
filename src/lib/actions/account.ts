@@ -12,6 +12,8 @@ import {
   loadActor,
   provisionUser,
 } from '@/lib/tenancy/service';
+import { isTemporaryEmail } from '@/lib/account-access/state';
+import { isRecoverySession } from '@/lib/auth/recovery';
 import { failure, str, type ActionState } from './shared';
 
 /**
@@ -186,6 +188,10 @@ export async function requestPasswordResetAction(
 
   const email = str(form, 'email').trim().toLowerCase();
   if (email.length === 0) return sent;
+  // A temporary address can receive nothing: asking Supabase to mail it would
+  // spend the project's email allowance on a guaranteed bounce. The answer is
+  // the same sentence, so this says nothing about whether it exists.
+  if (isTemporaryEmail(email)) return sent;
 
   // Deliberately NOT the origin the form posted: a value from the browser
   // decides where a password-reset email points, which is the last place to
@@ -195,9 +201,19 @@ export async function requestPasswordResetAction(
   // a recovery link carries a code, and the form cannot set a password without
   // a session. That was the second half of the same bug.
   const supabase = await supabaseServerClient();
-  await supabase.auth.resetPasswordForEmail(email, {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: await authRedirectUrl(callbackFor('/reset-password')),
   });
+  // Still the same sentence on screen — anything else would say whether the
+  // address has an account — but a refusal (a rate limit, the mail provider)
+  // is logged, so "the reset email never came" can be diagnosed. No address.
+  if (error) {
+    console.error('requestPasswordResetAction: Supabase did not send a reset email', {
+      code: error.code,
+      status: error.status,
+      message: error.message,
+    });
+  }
   return sent;
 }
 
@@ -215,10 +231,20 @@ export async function updatePasswordAction(
   if (password.length < 8) {
     return failure('That password is too short.', { password: 'Use at least 8 characters.' });
   }
+  if (password.length > 72) {
+    return failure('That password is too long.', { password: 'Use 72 characters or fewer.' });
+  }
+  if (password !== str(form, 'confirmPassword')) {
+    return failure('These two passwords do not match.', {
+      confirmPassword: 'These two passwords do not match.',
+    });
+  }
 
   const supabase = await supabaseServerClient();
   const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) return failure('That reset link is no longer valid. Ask for a new one.');
+  if (!userData.user || !(await isRecoverySession(supabase))) {
+    return failure('That reset link is no longer valid. Ask for a new one.');
+  }
 
   // ORDER MATTERS, AND IT IS THE OPPOSITE OF THE OBVIOUS ONE.
   //
@@ -252,9 +278,25 @@ export async function updatePasswordAction(
   // password is the last thing to move, so nothing that fails before it has
   // changed how this person signs in.
   const { error } = await supabase.auth.updateUser({ password });
-  if (error) return failure('That password could not be set. Your old password still works.');
+  if (error) {
+    if (error.code === 'weak_password') {
+      return failure('Choose a stronger password. Your old password still works.', {
+        password: error.message || 'Choose a longer, less predictable password.',
+      });
+    }
+    if (error.code === 'same_password') {
+      return failure('Choose a new password. Your old password still works.', {
+        password: 'That is your current password. Choose a different one.',
+      });
+    }
+    return failure('That password could not be set. Your old password still works.');
+  }
 
-  redirect('/login');
+  // Supabase has already ended every other session this account had. This
+  // one goes too, so the next thing the person does is sign in with the
+  // password they just chose — which is also how they know it worked.
+  await supabase.auth.signOut({ scope: 'local' });
+  redirect('/login?reset=done');
 }
 
 /** Creates the business, its owner membership and its M19 feedback gateway. */

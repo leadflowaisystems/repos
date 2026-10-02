@@ -174,6 +174,26 @@ export const common = {
     hi: 'पासवर्ड सेट करें',
     mr: 'पासवर्ड सेट करा',
   },
+  'common.form.auth.confirmPassword': {
+    en: 'Confirm new password',
+    hi: 'नया पासवर्ड दोबारा लिखें',
+    mr: 'नवीन पासवर्ड पुन्हा लिहा',
+  },
+  'common.form.auth.currentPassword': {
+    en: 'Current password',
+    hi: 'मौजूदा पासवर्ड',
+    mr: 'सध्याचा पासवर्ड',
+  },
+  'common.form.auth.changePassword': {
+    en: 'Change password',
+    hi: 'पासवर्ड बदलें',
+    mr: 'पासवर्ड बदला',
+  },
+  'common.form.auth.changing': {
+    en: 'Changing…',
+    hi: 'बदला जा रहा है…',
+    mr: 'बदलत आहे…',
+  },
 
   // --- setting the business up ----------------------------------------------
   'common.form.setup.businessName': {

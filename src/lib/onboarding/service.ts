@@ -239,8 +239,16 @@ async function createOwnedClientDirect(
 export function landingPathFor(actor: {
   isPlatformAdmin: boolean;
   memberships: Array<{ clientId: string; status: string }>;
+  setupPendingClientId?: string | null;
 }): string {
   if (actor.isPlatformAdmin) return '/';
+  // Signed in with temporary access that has not been set up yet: straight to
+  // the one page that finishes it, rather than leaving the owner to find
+  // Account behind "More".
+  const pending = actor.setupPendingClientId;
+  if (pending && actor.memberships.some((m) => m.clientId === pending && m.status === 'ACTIVE')) {
+    return `/workspace/${pending}/account`;
+  }
   const active = actor.memberships.find((m) => m.status === 'ACTIVE');
   if (!active) return '/onboarding';
   return `/workspace/${active.clientId}`;

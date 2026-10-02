@@ -23,6 +23,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * So these tests are about ordering and about what is reported, which is the
  * whole of the fix. The database half — that the bump actually succeeds as
  * `repos_app` — is proven in `tests/m20.runtime-role.test.ts`.
+ *
+ * M52 added three things. The session must have come from an emailed link,
+ * recently (Supabase's own rule for a recovery session: an `otp`, `magiclink`
+ * or `recovery` sign-in) — otherwise any signed-in browser could set a new
+ * password here without knowing the current one. The new password is typed
+ * twice. And once it is set, this browser is signed out too, so the next step
+ * is signing in with it, on a page that says it changed.
  */
 
 /** Every externally visible step, in the order it happened. */
@@ -31,7 +38,10 @@ let calls: string[] = [];
 let sessionUser: { id: string } | null = null;
 let internalUserId: string | null = null;
 let bumpFails = false;
-let updateUserFails = false;
+let updateUserFails: false | { code?: string; message: string } = false;
+/** How this session was opened, as the access token's `amr` claim says. */
+let amr: Array<{ method: string; timestamp: number }> = [];
+const now = () => Math.floor(Date.now() / 1000);
 
 vi.mock('next/navigation', () => ({
   redirect: (to: string) => {
@@ -53,11 +63,15 @@ vi.mock('@/lib/auth/supabase', () => ({
   supabaseServerClient: async () => ({
     auth: {
       getUser: async () => ({ data: { user: sessionUser }, error: null }),
+      getClaims: async () => ({ data: sessionUser ? { claims: { sub: sessionUser.id, amr } } : null, error: null }),
       updateUser: async () => {
         calls.push('supabase.updateUser');
-        return updateUserFails ? { error: { message: 'nope' } } : { error: null };
+        return updateUserFails ? { error: updateUserFails } : { error: null };
       },
-      signOut: async () => ({ error: null }),
+      signOut: async (options?: { scope?: string }) => {
+        calls.push(`supabase.signOut:${options?.scope ?? 'global'}`);
+        return { error: null };
+      },
     },
   }),
 }));
@@ -85,18 +99,19 @@ vi.mock('@/lib/tenancy/service', () => ({
 
 const { updatePasswordAction } = await import('@/lib/actions/account');
 
-function form(password: string): FormData {
+function form(password: string, confirmPassword = password): FormData {
   const data = new FormData();
   data.set('password', password);
+  data.set('confirmPassword', confirmPassword);
   return data;
 }
 
 const IDLE = { ok: false, message: '', errors: {} };
 
 /** Runs the action, turning the redirect throw into an observable outcome. */
-async function run(password: string) {
+async function run(password: string, confirmPassword = password) {
   try {
-    return await updatePasswordAction(IDLE, form(password));
+    return await updatePasswordAction(IDLE, form(password, confirmPassword));
   } catch (error) {
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') return 'redirected' as const;
     throw error;
@@ -109,13 +124,25 @@ beforeEach(() => {
   internalUserId = 'u_owner';
   bumpFails = false;
   updateUserFails = false;
+  amr = [{ method: 'otp', timestamp: now() - 60 }];
 });
 
 describe('a reset that works', () => {
   it('invalidates sessions BEFORE changing the password, then sends them to sign in', async () => {
     expect(await run('a-good-password')).toBe('redirected');
 
-    expect(calls).toEqual(['bumpSessionVersion', 'supabase.updateUser', 'redirect:/login']);
+    expect(calls).toEqual([
+      'bumpSessionVersion',
+      'supabase.updateUser',
+      'supabase.signOut:local',
+      'redirect:/login?reset=done',
+    ]);
+  });
+
+  it('accepts the older PKCE recovery link too', async () => {
+    amr = [{ method: 'recovery', timestamp: now() - 30 }];
+    expect(await run('a-good-password')).toBe('redirected');
+    expect(calls).toContain('supabase.updateUser');
   });
 
   it('still sets the password when there is no internal row to invalidate', async () => {
@@ -125,7 +152,7 @@ describe('a reset that works', () => {
     internalUserId = null;
 
     expect(await run('a-good-password')).toBe('redirected');
-    expect(calls).toEqual(['supabase.updateUser', 'redirect:/login']);
+    expect(calls).toEqual(['supabase.updateUser', 'supabase.signOut:local', 'redirect:/login?reset=done']);
   });
 });
 
@@ -147,7 +174,7 @@ describe('the failure path that mattered', () => {
   });
 
   it('reports failure when Supabase refuses, leaving only the safe residue', async () => {
-    updateUserFails = true;
+    updateUserFails = { message: 'nope' };
 
     const result = await run('a-good-password');
 
@@ -180,5 +207,39 @@ describe('nothing about authentication got weaker', () => {
       message: 'That reset link is no longer valid. Ask for a new one.',
     });
     expect(calls).toEqual([]);
+  });
+
+  it('refuses an ordinary signed-in session: setting a password here needs an emailed link', async () => {
+    amr = [{ method: 'password', timestamp: now() - 10 }];
+
+    const result = await run('a-good-password');
+
+    expect(result).toMatchObject({ ok: false, message: 'That reset link is no longer valid. Ask for a new one.' });
+    expect(calls).toEqual([]);
+  });
+
+  it('refuses a link-opened session that is more than an hour old', async () => {
+    amr = [{ method: 'otp', timestamp: now() - 2 * 60 * 60 }];
+
+    const result = await run('a-good-password');
+
+    expect(result).toMatchObject({ ok: false, message: 'That reset link is no longer valid. Ask for a new one.' });
+    expect(calls).toEqual([]);
+  });
+
+  it('refuses two passwords that do not match, without touching either system', async () => {
+    const result = await run('a-good-password', 'a-good-passw0rd');
+
+    expect(result).toMatchObject({ ok: false, errors: { confirmPassword: 'These two passwords do not match.' } });
+    expect(calls).toEqual([]);
+  });
+
+  it("puts Supabase's password policy on the password field", async () => {
+    updateUserFails = { code: 'weak_password', message: 'Password should be at least 10 characters.' };
+
+    const result = await run('a-good-password');
+
+    expect(result).toMatchObject({ ok: false, errors: { password: 'Password should be at least 10 characters.' } });
+    expect(calls).not.toContain('supabase.signOut:local');
   });
 });

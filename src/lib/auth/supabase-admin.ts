@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL_VAR } from '@/lib/auth/supabase';
 
@@ -6,18 +7,25 @@ import { SUPABASE_URL_VAR } from '@/lib/auth/supabase';
  *
  * Every other identity operation in RepOS goes through the anon-key client in
  * `@/lib/auth/supabase.ts`, which can only ever act as whoever the request's
- * own session belongs to. That is not enough for exactly one operation: the
- * pilot's temporary-credential flow needs to create a Supabase identity that
- * is USABLE IMMEDIATELY, with no confirmation email, because the address it
- * is issued under is synthetic and nobody can click a link sent to it. Only
- * the Auth admin API can pre-confirm an identity at creation time, and only
- * the service-role key can call it.
+ * own session belongs to. That is not enough for the handful of operations
+ * here: the temporary-access flow needs to create a Supabase identity that is
+ * USABLE IMMEDIATELY, with no confirmation email, because the address it is
+ * issued under is synthetic and nobody can click a link sent to it. Only the
+ * Auth admin API can pre-confirm an identity at creation time, and only the
+ * service-role key can call it.
  *
  * SO THIS KEY NEVER TOUCHES POSTGRES. Every call in this file goes through
  * `supabase.auth.admin.*` — the identity provider's own admin surface, not a
  * database connection. It cannot read or write a single application row and
  * has no relationship to Row Level Security at all; RepOS's tenant isolation
  * is exactly as strong with this file present as without it.
+ *
+ * NOTHING HERE SENDS AN EMAIL. `createUser`, `updateUserById`, `getUserById`
+ * and `deleteUser` never mail anyone, which is the point: handing over
+ * temporary access costs the project's email allowance nothing. The one email
+ * in the handover — confirming the owner's real address — is asked for by the
+ * owner's own session, never from here, because an admin "confirm" would
+ * trust an address nobody has proved they can read.
  *
  * `SUPABASE_SERVICE_ROLE_KEY` is read only here, only on the server, and only
  * for the narrow operations below. The compliance suite already
@@ -58,6 +66,23 @@ export function isAccountAccessConfigured(): boolean {
   return adminConfig().ok;
 }
 
+/** "That identity is not there" — already deleted, or never existed. */
+function isNotFound(error: { status?: number; code?: string; message: string }): boolean {
+  return error.status === 404 || error.code === 'user_not_found' || /not.?found/i.test(error.message);
+}
+
+/**
+ * A password nobody is ever given, that passes ANY password policy the
+ * project could be configured with: upper and lower case, a digit and a
+ * symbol are guaranteed by the prefix, and the random tail is 40 characters
+ * of base64url. Supabase refuses a password that misses a configured
+ * character class (GoTrue v2.197 checks it on admin writes too), and a
+ * refusal here would leave a "disabled" login still holding its old password.
+ */
+function unguessablePassword(): string {
+  return `Aa1-${randomBytes(30).toString('base64url')}`;
+}
+
 /**
  * Mints a new Supabase Auth identity, already confirmed.
  *
@@ -65,7 +90,8 @@ export function isAccountAccessConfigured(): boolean {
  * synthetic address that can receive no mail would leave the identity
  * permanently unconfirmed, and password sign-in refuses an unconfirmed
  * account on this project. The email is never a real person's address — see
- * `src/lib/account-access/service.ts` for how it is generated.
+ * `src/lib/account-access/service.ts` for how it is generated. No email is
+ * sent: the admin API never mails anyone.
  */
 export async function createTempIdentity(
   email: string,
@@ -78,124 +104,125 @@ export async function createTempIdentity(
     email_confirm: true,
   });
   if (error || !data.user) {
+    // Message/code/status only — never the password this call was asked to set.
+    console.error('createTempIdentity: Supabase Auth admin create failed', {
+      code: error?.code,
+      status: error?.status,
+      message: error?.message,
+    });
     throw new Error(error?.message ?? 'Could not create the temporary identity.');
   }
   return { authUserId: data.user.id };
 }
 
+export type PasswordFailure = 'WEAK_PASSWORD' | 'NOT_FOUND' | 'NOT_CONFIGURED' | 'UNKNOWN';
+
+export type SetPasswordResult =
+  | { ok: true }
+  | { ok: false; reason: PasswordFailure; message: string };
+
+/**
+ * Sets an identity's password through the admin API.
+ *
+ * Two things this does that the owner's own `updateUser` would not, and both
+ * are why it is used where it is:
+ *
+ *   - it sends nothing — no "your password changed" notice to an address
+ *     that, for a temporary login, cannot receive one;
+ *   - Supabase ends EVERY session that identity holds (GoTrue's
+ *     `UpdatePassword(tx, nil)`), so whoever was signed in with the old
+ *     password — on any device — is signed out by the same call.
+ *
+ * Returns a classified refusal rather than throwing: a password the project's
+ * policy rejects is a normal form error, not a server error.
+ */
+export async function setIdentityPassword(
+  authUserId: string,
+  password: string,
+): Promise<SetPasswordResult> {
+  const config = adminConfig();
+  if (!config.ok) {
+    console.error('setIdentityPassword: admin API not configured', { reason: config.reason });
+    return { ok: false, reason: 'NOT_CONFIGURED', message: config.reason };
+  }
+  const supabase = adminClient();
+  const { error } = await supabase.auth.admin.updateUserById(authUserId, { password });
+  if (!error) return { ok: true };
+  console.error('setIdentityPassword: Supabase Auth admin update failed', {
+    authUserId,
+    code: error.code,
+    status: error.status,
+    message: error.message,
+  });
+  if (isNotFound(error)) return { ok: false, reason: 'NOT_FOUND', message: error.message };
+  if (error.code === 'weak_password' || /password/i.test(error.message)) {
+    return { ok: false, reason: 'WEAK_PASSWORD', message: error.message };
+  }
+  return { ok: false, reason: 'UNKNOWN', message: error.message };
+}
+
 /**
  * Overwrites an identity's password with a fresh, discarded random value.
  *
- * Used only when an admin disables temporary access BEFORE the owner has
- * replaced it with their own — at that point the temporary password is
- * still the only credential that works, and flipping `AccountAccess.status`
- * alone would not stop it authenticating through the ordinary login page.
- * The generated value is never returned to any caller; nobody needs it, and
- * nobody sees it. After setup is complete this call is unnecessary: the
- * owner already overwrote the temporary password themselves.
+ * Used when an admin disables temporary access BEFORE the owner has replaced
+ * it. The generated value is never returned to any caller; nobody needs it,
+ * and nobody sees it. Supabase also ends every session the identity holds
+ * (see `setIdentityPassword`), so a browser that is already signed in with
+ * the temporary password is signed out too, not just the next sign-in.
+ *
+ * An identity that is already gone counts as revoked: there is nothing left
+ * that could sign in.
  */
 export async function randomizeIdentityPassword(authUserId: string): Promise<void> {
-  const supabase = adminClient();
-  const random = crypto.randomUUID() + crypto.randomUUID();
-  const { error } = await supabase.auth.admin.updateUserById(authUserId, { password: random });
-  if (error) throw new Error(error.message);
+  const result = await setIdentityPassword(authUserId, unguessablePassword());
+  if (result.ok || result.reason === 'NOT_FOUND') return;
+  throw new Error(result.message);
 }
 
-export type CredentialFailure = 'EMAIL_TAKEN' | 'WEAK_PASSWORD' | 'NOT_CONFIGURED' | 'UNKNOWN';
-
-export type SetCredentialsResult =
-  | { ok: true }
-  | { ok: false; reason: CredentialFailure; message: string };
-
-/**
- * Which of Supabase's refusals this was, in RepOS's own terms.
- *
- * Both named cases are things the person filling in the form can fix
- * themselves, which is the whole reason for telling them apart: "try again"
- * is false advice for either one, because retrying the same email or the same
- * password can never succeed. Matched on `code` first — the stable signal —
- * with a message match behind it, because GoTrue has not always sent a code
- * for these, and a version that stops doing so should degrade to the right
- * answer rather than to UNKNOWN.
- */
-function classify(code: string | undefined, message: string): CredentialFailure {
-  const text = message.toLowerCase();
-  if (code === 'email_exists') return 'EMAIL_TAKEN';
-  if (code === 'weak_password') return 'WEAK_PASSWORD';
-  if (text.includes('already been registered') || text.includes('already registered')) {
-    return 'EMAIL_TAKEN';
-  }
-  if (text.includes('password')) return 'WEAK_PASSWORD';
-  return 'UNKNOWN';
-}
+/** What Supabase itself currently says about one identity. Never a secret. */
+export type IdentitySnapshot = {
+  email: string;
+  /**
+   * An address the person asked to move to, with a live link waiting in its
+   * inbox. Null once the link is gone (a password change drops it).
+   */
+  pendingEmail: string | null;
+  lastSignInAt: string | null;
+};
 
 /**
- * Finishing setup: the owner's own password, and their own login email when
- * they gave one, on the SAME identity `createTempIdentity` minted.
- *
- * The anon-key `supabase.auth.updateUser({ email })` a signed-in session can
- * call itself was deliberately not used for the email half: this project
- * requires confirming an email change before it takes effect, which would
- * leave the owner's newly-typed address pending a link on an inbox nobody
- * checks mid-handover — the same reliability problem the temporary identity
- * exists to route around in the first place. `email_confirm: true` is safe
- * here for the same reason it is on `createTempIdentity`: this identity is
- * already bound, by the AccountAccess row that gated this call, to the one
- * Membership the person completing the form has been signed in as all
- * along — there is no other claimant's ownership this is bypassing.
- *
- * Returns a classified refusal rather than throwing on failure: the expected
- * cases (the address is already some other Supabase identity's, the password
- * is weaker than this project's own policy) are normal form rejections, not
- * server errors, and the caller turns each into the field error that lets the
- * owner actually fix it.
+ * The live sign-in email of one identity, and any change still waiting for
+ * the owner to click the link — read from Supabase, which is the only place
+ * that knows it, so the admin panel can never disagree with what actually
+ * signs in. Null when the admin API is not configured or the read fails; the
+ * caller falls back to RepOS's own record.
  */
-export async function setPermanentCredentials(
-  authUserId: string,
-  password: string,
-  email?: string,
-): Promise<SetCredentialsResult> {
-  // This used to throw straight out of the server action when the project was
-  // unconfigured, which reached the owner as a blank framework error with the
-  // reason visible only in a log. It is a refusal like any other.
-  const config = adminConfig();
-  if (!config.ok) {
-    console.error('setPermanentCredentials: admin API not configured', { reason: config.reason });
-    return { ok: false, reason: 'NOT_CONFIGURED', message: config.reason };
+export async function getIdentitySnapshot(authUserId: string): Promise<IdentitySnapshot | null> {
+  if (!adminConfig().ok) return null;
+  try {
+    const supabase = adminClient();
+    const { data, error } = await supabase.auth.admin.getUserById(authUserId);
+    if (error || !data.user) return null;
+    return {
+      email: (data.user.email ?? '').toLowerCase(),
+      pendingEmail:
+        data.user.new_email && data.user.email_change_sent_at ? data.user.new_email.toLowerCase() : null,
+      lastSignInAt: data.user.last_sign_in_at ?? null,
+    };
+  } catch {
+    return null;
   }
-
-  const supabase = adminClient();
-  const { error } = await supabase.auth.admin.updateUserById(authUserId, {
-    password,
-    ...(email ? { email, email_confirm: true } : {}),
-  });
-  if (error) {
-    // Never swallowed: this is the ONE signal that says why a real Supabase
-    // rejection happened (an email already claimed elsewhere, a password
-    // policy this project enforces server-side that RepOS's own zod schema
-    // does not know about, and so on). Message/code/status only — never the
-    // key, never the password, never anything this call was asked to set.
-    console.error('setPermanentCredentials: Supabase Auth admin update failed', {
-      authUserId,
-      hadEmail: Boolean(email),
-      code: error.code,
-      status: error.status,
-      message: error.message,
-    });
-    return { ok: false, reason: classify(error.code, error.message), message: error.message };
-  }
-  return { ok: true };
 }
 
 /**
  * Removes a Headway-generated identity for good, and SAYS whether it did.
  *
- * The fourth narrow operation, used by exactly one caller: permanently
- * deleting an archived business (`purgeClient`). A temporary login that
- * Headway minted for that business and nobody ever claimed is the business's
- * own data, and it has to stop working before the business disappears —
- * sign-in re-provisions a RepOS user for any identity Supabase accepts, so a
- * surviving one would open onto a blank new account.
+ * Used by exactly one caller: permanently deleting an archived business
+ * (`purgeClient`). A temporary login that Headway minted for that business
+ * and nobody ever claimed is the business's own data, and it has to stop
+ * working before the business disappears — sign-in re-provisions a RepOS
+ * user for any identity Supabase accepts, so a surviving one would open onto
+ * a blank new account.
  *
  * Unlike `deleteIdentity` below, this reports failure rather than swallowing
  * it, because here the caller must NOT go on to delete anything when the
@@ -214,7 +241,7 @@ export async function removeGeneratedIdentity(
   const supabase = adminClient();
   const { error } = await supabase.auth.admin.deleteUser(authUserId);
   if (!error) return { ok: true };
-  if (error.status === 404 || /not.?found/i.test(error.message)) return { ok: true };
+  if (isNotFound(error)) return { ok: true };
   console.error('removeGeneratedIdentity: Supabase Auth admin delete failed', {
     authUserId,
     code: error.code,
@@ -227,16 +254,25 @@ export async function removeGeneratedIdentity(
 /**
  * Best-effort cleanup for a temporary identity that was created but whose
  * accompanying User/Membership/AccountAccess rows then failed to write.
- * Deliberately swallows its own failure: the caller is already on an error
- * path reporting a different problem to the admin, and an orphaned,
- * unreferenced Supabase identity that nothing in RepOS ever reads is a much
- * smaller issue than masking the real failure with a cleanup failure.
+ * Swallows its own failure — the caller is already on an error path
+ * reporting a different problem to the admin — but logs it, so an orphaned
+ * identity is at least findable.
  */
 export async function deleteIdentity(authUserId: string): Promise<void> {
   try {
     const supabase = adminClient();
-    await supabase.auth.admin.deleteUser(authUserId);
-  } catch {
-    // Best-effort only — see the comment above.
+    const { error } = await supabase.auth.admin.deleteUser(authUserId);
+    if (error && !isNotFound(error)) {
+      console.error('deleteIdentity: orphaned temporary identity could not be removed', {
+        authUserId,
+        code: error.code,
+        message: error.message,
+      });
+    }
+  } catch (error) {
+    console.error('deleteIdentity: orphaned temporary identity could not be removed', {
+      authUserId,
+      message: error instanceof Error ? error.message : String(error),
+    });
   }
 }

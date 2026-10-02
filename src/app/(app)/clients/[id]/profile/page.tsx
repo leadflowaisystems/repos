@@ -6,7 +6,7 @@ import {
   VoiceForm,
 } from '@/components/forms/profile-forms';
 import { AccountAccessPanel } from '@/components/forms/account-access-panel';
-import { getAccountAccess } from '@/lib/account-access/service';
+import { getAdminAccessView } from '@/lib/account-access/service';
 import { prisma } from '@/lib/db';
 import { getPackOrFallback } from '@/lib/packs';
 import { toDateInputValue } from '@/lib/format';
@@ -28,7 +28,7 @@ export default async function ClientProfilePage({
         competitors: { orderBy: { sortIndex: 'asc' } },
       },
     }),
-    getAccountAccess(prisma, id),
+    getAdminAccessView(prisma, id),
   ]);
   if (!client) notFound();
 
@@ -40,11 +40,11 @@ export default async function ClientProfilePage({
     <div className="space-y-6">
       <Card>
         <CardHeader
-          title="Account access"
-          description="For the pilot: a temporary login the owner can use immediately, without an email invite. Hand it over with the physical kit."
+          title="Temporary access"
+          description="A temporary email and password the owner can sign in with straight away. No email is sent; hand them over with the kit."
         />
         <CardBody>
-          <AccountAccessPanel clientId={client.id} access={accountAccess} />
+          <AccountAccessPanel clientId={client.id} view={accountAccess} />
         </CardBody>
       </Card>
 

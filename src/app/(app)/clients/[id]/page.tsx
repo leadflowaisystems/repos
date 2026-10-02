@@ -26,7 +26,7 @@ import { ImprovementActionsPanel } from "@/components/forms/improvement-actions"
 import { evidenceLine } from "@/lib/improve/model";
 import { OwnerHandoverPanel } from "@/components/forms/owner-handover";
 import { AccountAccessPanel } from "@/components/forms/account-access-panel";
-import { getAccountAccess } from "@/lib/account-access/service";
+import { getAdminAccessView } from "@/lib/account-access/service";
 import { CommercialPanel } from "@/components/forms/commercial-panel";
 import { TrialSettingsForm } from "@/components/forms/trial-settings";
 import {
@@ -86,7 +86,7 @@ export default async function ClientOverviewPage({
       // operator is looking at somebody else's account.
       getLifecycle(prisma, id, { viewerIsPlatformAdmin: false }),
       pendingRequestFor(prisma, id),
-      getAccountAccess(prisma, id),
+      getAdminAccessView(prisma, id),
     ]);
 
   // How long this trial currently runs, in whole days, so the operator's days
@@ -435,11 +435,11 @@ export default async function ClientOverviewPage({
 
       <Card>
         <CardHeader
-          title="Account access"
-          description="For the pilot: a temporary login the owner can use immediately, without an email invite. Hand it over with the physical kit."
+          title="Temporary access"
+          description="A temporary email and password the owner can sign in with straight away. No email is sent; hand them over with the kit."
         />
         <CardBody>
-          <AccountAccessPanel clientId={client.id} access={accountAccess} />
+          <AccountAccessPanel clientId={client.id} view={accountAccess} />
         </CardBody>
       </Card>
 

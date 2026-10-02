@@ -1,44 +1,39 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Mock } from 'vitest';
 
 /**
- * completeAccountSetupAction ORDERS THE ONE STEP THAT CANNOT BE UNDONE FIRST
- * (M39 follow-up).
+ * completeAccountSetupAction: THE ORDER OF THE THREE STEPS (M39, M52).
  *
- * The bug this guards against: the database used to commit
- * AccountAccess = SETUP_COMPLETE BEFORE the action ever asked Supabase to
- * accept the new password and email — so a rejection from Supabase (an
- * email already claimed, a password policy this project enforces server-side
- * that RepOS's own zod schema does not check) landed on a database that
- * already claimed setup had finished, with the temporary password still the
- * only one that actually worked. `validateAccountSetup` now only validates
- * and writes nothing; `finalizeAccountSetup` is the commit. This file proves
- * the ACTION calls them in the right order: Supabase first, and
- * `finalizeAccountSetup` only when that succeeds — never on the failure
- * path, and never before it.
+ *   1. the new password, on the owner's OWN Supabase session — nothing in
+ *      RepOS has moved yet, so a refusal here changes nothing;
+ *   2. RepOS's record (`finalizeAccountSetup`), only once Supabase accepted
+ *      the password — tried twice, and never described as "nothing changed"
+ *      after the password is already set;
+ *   3. the real email, last, through the owner's session's own
+ *      `updateUser({ email })` — the one email in the handover, a link the
+ *      owner must open before the address counts. A problem sending it never
+ *      undoes the password: it is reported on Account, where it can be asked
+ *      for again.
  *
- * Every collaborator is mocked, the same way `tests/m20.password-reset.test.ts`
- * tests `updatePasswordAction`'s own ordering: this file is about wiring, not
- * about the database or a real Supabase project.
+ * Nothing here may use the admin API to set the email (that would trust an
+ * address nobody has proved they read), and no password may ever come back
+ * to the browser. Every collaborator is mocked: this file is about wiring.
  */
 
-const {
-  setPermanentCredentialsMock,
-  validateAccountSetupMock,
-  finalizeAccountSetupMock,
-  findUniqueMock,
-} = vi.hoisted(() => ({
-  setPermanentCredentialsMock: vi.fn(),
-  validateAccountSetupMock: vi.fn(),
-  finalizeAccountSetupMock: vi.fn(),
-  findUniqueMock: vi.fn(),
+const h = vi.hoisted(() => ({
+  calls: [] as string[],
+  validateAccountSetup: vi.fn(),
+  finalizeAccountSetup: vi.fn(),
+  findUnique: vi.fn(),
+  accessFindUnique: vi.fn(),
+  clientUpdate: vi.fn(),
+  getUser: vi.fn(),
+  updateUser: vi.fn(),
+  setIdentityPassword: vi.fn(),
 }));
-
-let calls: string[] = [];
 
 vi.mock('next/navigation', () => ({
   redirect: (to: string) => {
-    calls.push(`redirect:${to}`);
+    h.calls.push(`redirect:${to}`);
     // The real one throws to unwind the action; code under test must not be
     // written in a way that swallows it.
     throw new Error('NEXT_REDIRECT');
@@ -51,7 +46,13 @@ vi.mock('next/navigation', () => ({
 vi.mock('next/cache', () => ({ revalidatePath: () => {}, revalidateTag: () => {} }));
 
 vi.mock('@/lib/db', () => ({
-  prisma: { user: { findUnique: findUniqueMock } },
+  prisma: {
+    user: { findUnique: h.findUnique },
+    accountAccess: { findUnique: h.accessFindUnique },
+    client: { update: h.clientUpdate },
+  },
+  currentAuthIdentity: vi.fn(),
+  withRlsContext: vi.fn(),
 }));
 
 vi.mock('@/lib/auth/guard', () => ({
@@ -64,15 +65,30 @@ vi.mock('@/lib/auth/guard', () => ({
   })),
 }));
 
-vi.mock('@/lib/account-access/service', () => ({
-  validateAccountSetup: validateAccountSetupMock,
-  finalizeAccountSetup: finalizeAccountSetupMock,
-  disableTempAccess: vi.fn(),
-  generateTempAccess: vi.fn(),
+vi.mock('@/lib/auth/supabase', () => ({
+  supabaseConfig: () => ({ ok: true, config: { url: 'https://x.supabase.co', anonKey: 'anon' } }),
+  supabaseServerClient: async () => ({ auth: { getUser: h.getUser, updateUser: h.updateUser } }),
+  detachedAuthClient: vi.fn(),
+  SUPABASE_URL_VAR: 'SUPABASE_URL',
+}));
+
+vi.mock('@/lib/auth/redirect', () => ({
+  authRedirectUrl: async (path: string) => `https://headway.test${path}`,
+  emailConfirmCallback: (next: string) => `/auth/callback?next=${encodeURIComponent(next)}&kind=email`,
 }));
 
 vi.mock('@/lib/auth/supabase-admin', () => ({
-  setPermanentCredentials: setPermanentCredentialsMock,
+  setIdentityPassword: h.setIdentityPassword,
+  createTempIdentity: vi.fn(),
+  deleteIdentity: vi.fn(),
+  getIdentitySnapshot: vi.fn(),
+  randomizeIdentityPassword: vi.fn(),
+}));
+
+vi.mock('@/lib/account-access/service', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/account-access/service')>()),
+  validateAccountSetup: h.validateAccountSetup,
+  finalizeAccountSetup: h.finalizeAccountSetup,
 }));
 
 function form(fields: Record<string, string>): FormData {
@@ -81,215 +97,242 @@ function form(fields: Record<string, string>): FormData {
   return data;
 }
 
+type State = { ok: boolean; message: string; errors: Record<string, string>; data?: Record<string, string> };
+
 /** Runs the action, turning the redirect throw into an observable outcome. */
-async function run(fields: Record<string, string>) {
+async function run(fields: Record<string, string> = {}): Promise<State | 'redirected'> {
   const { completeAccountSetupAction } = await import('@/lib/actions/account-access');
   const { IDLE } = await import('@/lib/actions/shared');
   try {
-    return await completeAccountSetupAction(IDLE, form({ clientId: 'client1', ...fields }));
+    return await completeAccountSetupAction(
+      IDLE,
+      form({
+        clientId: 'client1',
+        name: 'Priya',
+        phone: '98765',
+        email: 'New-Owner@Example.com',
+        password: 'a-new-password',
+        confirmPassword: 'a-new-password',
+        ...fields,
+      }),
+    );
   } catch (error) {
-    if (error instanceof Error && error.message === 'NEXT_REDIRECT') return 'redirected' as const;
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') return 'redirected';
     throw error;
   }
 }
 
-const VALID = { clientId: 'client1', name: '', phone: '', email: 'new-owner@example.com' };
+const VALID = { clientId: 'client1', name: 'Priya', phone: '98765', email: 'new-owner@example.com' };
+
+/** updateUser is called twice on the happy path: password first, then email. */
+function supabaseAccepts(emailError: unknown = null) {
+  h.updateUser.mockImplementation(async (attributes: { password?: string; email?: string }) => {
+    if (attributes.password) {
+      h.calls.push('password');
+      expect(h.finalizeAccountSetup).not.toHaveBeenCalled();
+      return { data: {}, error: null };
+    }
+    h.calls.push('email');
+    expect(h.finalizeAccountSetup).toHaveBeenCalled();
+    return { data: {}, error: emailError };
+  });
+}
 
 beforeEach(() => {
-  calls = [];
-  setPermanentCredentialsMock.mockReset();
-  validateAccountSetupMock.mockReset();
-  finalizeAccountSetupMock.mockReset();
-  findUniqueMock.mockReset();
-  findUniqueMock.mockResolvedValue({ authProviderId: 'auth-owner-1' });
+  h.calls.length = 0;
+  for (const mock of [h.validateAccountSetup, h.finalizeAccountSetup, h.findUnique, h.accessFindUnique, h.clientUpdate, h.getUser, h.updateUser, h.setIdentityPassword]) {
+    mock.mockReset();
+  }
+  h.findUnique.mockResolvedValue({ authProviderId: 'auth-owner-1' });
+  h.clientUpdate.mockResolvedValue({});
+  h.getUser.mockResolvedValue({ data: { user: { id: 'auth-owner-1', email: 'xyz12345@access.headway.local' } }, error: null });
+  h.finalizeAccountSetup.mockImplementation(async () => {
+    h.calls.push('finalize');
+    return true;
+  });
+  vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
-describe('completeAccountSetupAction', () => {
-  it('calls Supabase BEFORE finalizing, and finalizes only once Supabase has accepted it', async () => {
-    validateAccountSetupMock.mockResolvedValueOnce({ ok: true, data: VALID });
-    setPermanentCredentialsMock.mockImplementationOnce(async () => {
-      // Proves the order at the moment it matters, not just after the fact:
-      // finalize must not have run yet when Supabase is still being asked.
-      expect(finalizeAccountSetupMock).not.toHaveBeenCalled();
-      return { ok: true };
-    });
+describe('completeAccountSetupAction — the happy path', () => {
+  it('sets the password, then commits, then asks Supabase to confirm the email — in that order', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: VALID });
+    supabaseAccepts();
 
-    const outcome = await run({
-      email: 'New-Owner@Example.com',
-      password: 'a-new-password',
-      confirmPassword: 'a-new-password',
-    });
+    const outcome = await run();
 
     expect(outcome).toBe('redirected');
-    expect(setPermanentCredentialsMock).toHaveBeenCalledWith('auth-owner-1', 'a-new-password', 'new-owner@example.com');
-    expect(finalizeAccountSetupMock).toHaveBeenCalledWith(expect.anything(), 'owner1', VALID);
-    // Lands on sign-in carrying the flag for the confirmation, never the
-    // sentence and never anything the owner typed.
-    expect(calls).toEqual(['redirect:/login?setup=complete']);
+    expect(h.calls).toEqual(['password', 'finalize', 'email', 'redirect:/workspace/client1/account?setup=sent']);
+    expect(h.updateUser).toHaveBeenNthCalledWith(1, { password: 'a-new-password' });
+    expect(h.updateUser).toHaveBeenNthCalledWith(2, { email: 'new-owner@example.com' }, {
+      emailRedirectTo:
+        'https://headway.test/auth/callback?next=%2Fworkspace%2Fclient1%2Faccount%3Femail%3Dconfirmed&kind=email',
+    });
+    expect(h.finalizeAccountSetup).toHaveBeenCalledWith(expect.anything(), 'owner1', VALID);
+    // The business's contact email follows an address Supabase accepted.
+    expect(h.clientUpdate).toHaveBeenCalledWith({ where: { id: 'client1' }, data: { ownerEmail: 'new-owner@example.com' } });
   });
 
-  it('never finalizes, and reports a clean failure, when Supabase rejects the update', async () => {
-    validateAccountSetupMock.mockResolvedValueOnce({ ok: true, data: VALID });
-    setPermanentCredentialsMock.mockResolvedValueOnce({
-      ok: false,
-      reason: 'UNKNOWN',
-      message: 'something nobody has a mapping for',
-    });
-
-    const outcome = await run({
-      email: 'New-Owner@Example.com',
-      password: 'a-new-password',
-      confirmPassword: 'a-new-password',
-    });
-
-    expect((outcome as { ok: boolean }).ok).toBe(false);
-    expect(finalizeAccountSetupMock).not.toHaveBeenCalled();
-    expect(calls).toEqual([]);
-    // The whole point of the fix: this is not "saved but password failed" —
-    // nothing was written, so the message must not claim otherwise.
-    expect((outcome as { message: string }).message).not.toMatch(/saved/i);
+  it('never uses the admin API: the email is not trusted until the owner opens the link', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: VALID });
+    supabaseAccepts();
+    await run();
+    expect(h.setIdentityPassword).not.toHaveBeenCalled();
   });
 
-  /**
-   * THE DEAD END THIS EXISTS TO CLOSE.
-   *
-   * Both refusals below used to arrive as one sentence ending "try again",
-   * which is advice that cannot work: the same address is still taken and the
-   * same password is still too weak on the next attempt. Each now lands on
-   * the field that is actually wrong, so the form can be completed instead of
-   * looped. Neither may finalize, and neither may redirect.
-   */
-  describe('a refusal the owner can act on reaches the field that is wrong', () => {
-    it('puts an already-registered address on the email field', async () => {
-      validateAccountSetupMock.mockResolvedValueOnce({ ok: true, data: VALID });
-      setPermanentCredentialsMock.mockResolvedValueOnce({
-        ok: false,
-        reason: 'EMAIL_TAKEN',
-        message: 'A user with this email address has already been registered',
-      });
+  it('treats "same password" on a resubmission as already set, and finishes', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: VALID });
+    h.updateUser
+      .mockResolvedValueOnce({ data: {}, error: { code: 'same_password', status: 422, message: 'New password should be different from the old password.' } })
+      .mockResolvedValueOnce({ data: {}, error: null });
 
-      const outcome = (await run({
-        email: 'New-Owner@Example.com',
-        password: 'a-new-password',
-        confirmPassword: 'a-new-password',
-      })) as { ok: boolean; errors: Record<string, string> };
-
-      expect(outcome.ok).toBe(false);
-      expect(outcome.errors.email).toBeTruthy();
-      expect(outcome.errors.password).toBeUndefined();
-      expect(finalizeAccountSetupMock).not.toHaveBeenCalled();
-      expect(calls).toEqual([]);
-    });
-
-    it("puts a weak password on the password field, in Supabase's own wording", async () => {
-      validateAccountSetupMock.mockResolvedValueOnce({ ok: true, data: VALID });
-      setPermanentCredentialsMock.mockResolvedValueOnce({
-        ok: false,
-        reason: 'WEAK_PASSWORD',
-        message: 'Password should be at least 10 characters',
-      });
-
-      const outcome = (await run({
-        email: 'New-Owner@Example.com',
-        password: 'a-new-password',
-        confirmPassword: 'a-new-password',
-      })) as { ok: boolean; errors: Record<string, string> };
-
-      expect(outcome.ok).toBe(false);
-      // The requirement itself has to survive: RepOS's own schema stops at
-      // min(8) and cannot state the policy this project actually enforces.
-      expect(outcome.errors.password).toBe('Password should be at least 10 characters');
-      expect(outcome.errors.email).toBeUndefined();
-      expect(finalizeAccountSetupMock).not.toHaveBeenCalled();
-    });
-
-    it('reports an unconfigured admin API as an installation fault, not a form error', async () => {
-      validateAccountSetupMock.mockResolvedValueOnce({ ok: true, data: VALID });
-      setPermanentCredentialsMock.mockResolvedValueOnce({
-        ok: false,
-        reason: 'NOT_CONFIGURED',
-        message: 'Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to generate temporary credentials.',
-      });
-
-      const outcome = (await run({
-        password: 'a-new-password',
-        confirmPassword: 'a-new-password',
-      })) as { ok: boolean; message: string; errors: Record<string, string> };
-
-      expect(outcome.ok).toBe(false);
-      expect(outcome.errors.email).toBeUndefined();
-      expect(outcome.errors.password).toBeUndefined();
-      // Never the variable names, never the reason string itself.
-      expect(outcome.message).not.toMatch(/SUPABASE/i);
-      expect(finalizeAccountSetupMock).not.toHaveBeenCalled();
-    });
+    expect(await run()).toBe('redirected');
+    expect(h.finalizeAccountSetup).toHaveBeenCalledTimes(1);
+    expect(h.calls.at(-1)).toBe('redirect:/workspace/client1/account?setup=sent');
   });
+});
 
-  it('passes undefined, not the blank string, when validation says no email was set', async () => {
-    validateAccountSetupMock.mockResolvedValueOnce({ ok: true, data: { ...VALID, email: null } });
-    setPermanentCredentialsMock.mockResolvedValueOnce({ ok: true });
+describe('completeAccountSetupAction — the email step', () => {
+  it.each([
+    [{ code: 'email_exists', status: 422, message: 'A user with this email address has already been registered' }, 'taken'],
+    [{ code: 'over_email_send_rate_limit', status: 429, message: 'email rate limit exceeded' }, 'wait'],
+    [{ code: 'email_address_invalid', status: 400, message: 'Email address "xyz12345@access.headway.local" is invalid' }, 'failed'],
+    [{ code: 'unexpected_failure', status: 500, message: 'Error sending email change email' }, 'failed'],
+  ])('reports %o on Account as setup=%s, with the password kept', async (error, flag) => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: VALID });
+    supabaseAccepts(error);
 
-    await run({ password: 'a-new-password', confirmPassword: 'a-new-password' });
-
-    expect(setPermanentCredentialsMock).toHaveBeenCalledWith('auth-owner-1', 'a-new-password', undefined);
-    // The login id was kept, so the confirmation must not tell them to use a
-    // "new email" they never set.
-    expect(calls).toEqual(['redirect:/login?setup=password']);
+    expect(await run()).toBe('redirected');
+    expect(h.finalizeAccountSetup).toHaveBeenCalledTimes(1);
+    expect(h.calls.at(-1)).toBe(`redirect:/workspace/client1/account?setup=${flag}`);
+    // A refused address — above all a taken one — never becomes the business's contact.
+    expect(h.clientUpdate).not.toHaveBeenCalled();
   });
+});
 
-  it('never calls Supabase or finalize when validation itself already refused', async () => {
-    validateAccountSetupMock.mockResolvedValueOnce({
+describe('completeAccountSetupAction — refusals change nothing', () => {
+  it('never calls Supabase or finalize when validation refused, and keeps what was typed', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({
       ok: false,
       message: 'Some fields need attention.',
       errors: { email: 'That email is already in use by another account.' },
     });
 
-    const outcome = await run({ email: 'taken@example.com', password: 'x', confirmPassword: 'x' });
+    const outcome = (await run({ email: 'taken@example.com' })) as State;
 
-    expect((outcome as { ok: boolean }).ok).toBe(false);
-    expect(setPermanentCredentialsMock).not.toHaveBeenCalled();
-    expect(finalizeAccountSetupMock).not.toHaveBeenCalled();
-    expect(calls).toEqual([]);
+    expect(outcome.ok).toBe(false);
+    expect(outcome.errors.email).toBeTruthy();
+    expect(outcome.data).toEqual({ name: 'Priya', phone: '98765', email: 'taken@example.com' });
+    expect(JSON.stringify(outcome)).not.toContain('a-new-password');
+    expect(h.updateUser).not.toHaveBeenCalled();
+    expect(h.finalizeAccountSetup).not.toHaveBeenCalled();
   });
 
-  it("does not call Supabase or finalize if the actor's own authProviderId cannot be read", async () => {
-    validateAccountSetupMock.mockResolvedValueOnce({ ok: true, data: VALID });
-    (findUniqueMock as Mock).mockResolvedValueOnce(null);
+  it("puts a weak password on the password field, in Supabase's own wording", async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: VALID });
+    h.updateUser.mockResolvedValueOnce({
+      data: {},
+      error: { code: 'weak_password', status: 422, message: 'Password should be at least 10 characters.' },
+    });
 
-    const outcome = await run({ password: 'a-new-password', confirmPassword: 'a-new-password' });
+    const outcome = (await run()) as State;
 
-    expect((outcome as { ok: boolean }).ok).toBe(false);
-    expect(setPermanentCredentialsMock).not.toHaveBeenCalled();
-    expect(finalizeAccountSetupMock).not.toHaveBeenCalled();
+    expect(outcome.ok).toBe(false);
+    expect(outcome.errors.password).toBe('Password should be at least 10 characters.');
+    expect(h.finalizeAccountSetup).not.toHaveBeenCalled();
+    expect(h.updateUser).toHaveBeenCalledTimes(1);
+    expect(h.calls).toEqual([]);
+  });
+
+  it('asks for a fresh sign-in when Supabase wants reauthentication', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: VALID });
+    h.updateUser.mockResolvedValueOnce({
+      data: {},
+      error: { code: 'reauthentication_needed', status: 400, message: 'Password update requires reauthentication' },
+    });
+
+    const outcome = (await run()) as State;
+    expect(outcome.ok).toBe(false);
+    expect(outcome.message).toMatch(/sign in again/);
+    expect(h.finalizeAccountSetup).not.toHaveBeenCalled();
+  });
+
+  it('says nothing was changed when Supabase refuses for any other reason', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: VALID });
+    h.updateUser.mockResolvedValueOnce({ data: {}, error: { code: 'unexpected_failure', status: 500, message: 'x' } });
+
+    const outcome = (await run()) as State;
+    expect(outcome.ok).toBe(false);
+    expect(outcome.message).toMatch(/Nothing was changed/);
+    expect(h.finalizeAccountSetup).not.toHaveBeenCalled();
+  });
+
+  it('refuses when the browser session is not the identity this owner row names', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: VALID });
+    h.getUser.mockResolvedValueOnce({ data: { user: { id: 'somebody-else' } }, error: null });
+
+    const outcome = (await run()) as State;
+    expect(outcome.ok).toBe(false);
+    expect(h.updateUser).not.toHaveBeenCalled();
+  });
+
+  it('refuses when there is no session at all', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: VALID });
+    h.getUser.mockResolvedValueOnce({ data: { user: null }, error: { message: 'no session' } });
+
+    const outcome = (await run()) as State;
+    expect(outcome.ok).toBe(false);
+    expect(h.updateUser).not.toHaveBeenCalled();
+  });
+
+  it('stops — and sends no email — when an admin disabled the access first', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: VALID });
+    supabaseAccepts();
+    h.finalizeAccountSetup.mockResolvedValueOnce(false);
+    h.accessFindUnique.mockResolvedValueOnce({ status: 'DISABLED' });
+
+    const outcome = (await run()) as State;
+    expect(outcome.ok).toBe(false);
+    expect(outcome.message).toMatch(/turned off/);
+    expect(h.calls).not.toContain('email');
   });
 });
 
 describe('completeAccountSetupAction when the database drops after Supabase accepted', () => {
-  it('tries the commit once more, and finishes normally when that works', async () => {
-    validateAccountSetupMock.mockResolvedValueOnce({ ok: true, data: VALID });
-    setPermanentCredentialsMock.mockResolvedValueOnce({ ok: true });
-    finalizeAccountSetupMock.mockRejectedValueOnce(new Error('Can’t reach database server')).mockResolvedValueOnce(undefined);
+  it('a first commit whose reply was lost is still a finished setup, not "turned off"', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: VALID });
+    supabaseAccepts();
+    h.finalizeAccountSetup
+      .mockRejectedValueOnce(new Error('Connection terminated unexpectedly'))
+      .mockResolvedValueOnce(false);
+    h.accessFindUnique.mockResolvedValueOnce({ status: 'SETUP_COMPLETE' });
 
-    const outcome = await run({ email: VALID.email, password: 'a-new-password', confirmPassword: 'a-new-password' });
-    expect(outcome).toBe('redirected');
-    expect(finalizeAccountSetupMock).toHaveBeenCalledTimes(2);
-    expect(setPermanentCredentialsMock).toHaveBeenCalledTimes(1);
+    expect(await run()).toBe('redirected');
+    expect(h.calls).toContain('email');
+    expect(h.calls.at(-1)).toBe('redirect:/workspace/client1/account?setup=sent');
+  });
+
+  it('tries the commit once more, and finishes normally when that works', async () => {
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: VALID });
+    supabaseAccepts();
+    h.finalizeAccountSetup.mockRejectedValueOnce(new Error('Can’t reach database server'));
+
+    expect(await run()).toBe('redirected');
+    expect(h.finalizeAccountSetup).toHaveBeenCalledTimes(2);
+    expect(h.calls).toContain('email');
   });
 
   it('never says "nothing changed" once Supabase has the new password, and asks for one more submit', async () => {
-    validateAccountSetupMock.mockResolvedValueOnce({ ok: true, data: VALID });
-    setPermanentCredentialsMock.mockResolvedValueOnce({ ok: true });
-    finalizeAccountSetupMock.mockRejectedValue(new Error('Can’t reach database server'));
-    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: VALID });
+    supabaseAccepts();
+    h.finalizeAccountSetup.mockRejectedValue(new Error('Can’t reach database server'));
 
-    const outcome = await run({ email: VALID.email, password: 'a-new-password', confirmPassword: 'a-new-password' });
-    quiet.mockRestore();
-    expect(outcome).not.toBe('redirected');
-    if (outcome === 'redirected') return;
+    const outcome = (await run()) as State;
     expect(outcome.ok).toBe(false);
-    expect(outcome.message).toContain('Your new password is already saved');
+    expect(outcome.message).toContain('Your new password is saved');
     expect(outcome.message).toContain('submit this form once more');
     expect(outcome.message).not.toContain('Nothing was changed');
-    expect(finalizeAccountSetupMock).toHaveBeenCalledTimes(2);
+    expect(h.finalizeAccountSetup).toHaveBeenCalledTimes(2);
+    // No email for a setup RepOS has not recorded yet.
+    expect(h.calls).not.toContain('email');
   });
 });

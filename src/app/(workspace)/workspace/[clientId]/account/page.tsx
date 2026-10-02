@@ -16,7 +16,10 @@ import { ExtendAccessForm } from '@/components/forms/extend-access-form';
 import { ContinueWithHeadwayForm } from '@/components/forms/continue-form';
 import { LanguageForm } from '@/components/forms/language-form';
 import { AccountSetupForm } from '@/components/forms/account-setup-form';
+import { ChangePasswordForm, SignInEmailForm } from '@/components/forms/account-signin-forms';
 import { getAccountAccessForUser } from '@/lib/account-access/service';
+import { isTemporaryEmail } from '@/lib/account-access/state';
+import { currentAuthIdentity } from '@/lib/db';
 import { getLocale, getTranslator } from '@/lib/i18n/request';
 
 export const dynamic = 'force-dynamic';
@@ -201,6 +204,86 @@ function Reach({ account }: { account: AccountState }) {
   return <span>{bits.join(' · ')}</span>;
 }
 
+/**
+ * The one sentence a redirect may ask this page to show, chosen here from a
+ * fixed set — never words from the URL. `setup` comes back from finishing
+ * setup (how the confirmation email went); `email=confirmed` from the link.
+ */
+function signInNotice(
+  query: Record<string, string | string[] | undefined>,
+  t: T,
+): { tone: 'good' | 'warn'; text: string } | null {
+  if (query.email === 'confirmed') return { tone: 'good', text: t('account.signin.emailConfirmed') };
+  switch (query.setup) {
+    case 'sent':
+      return { tone: 'good', text: t('account.setup.done') };
+    case 'taken':
+      return { tone: 'warn', text: t('account.signin.emailTaken') };
+    case 'wait':
+      return { tone: 'warn', text: t('account.signin.emailWait') };
+    case 'failed':
+      return { tone: 'warn', text: t('account.signin.emailFailed') };
+    default:
+      return null;
+  }
+}
+
+/**
+ * Signing in: the email this person signs in with, a new address still
+ * waiting for its confirmation link, and changing the password. For members
+ * of this business only — a Headway admin looking at the workspace is not
+ * the person whose sign-in this describes.
+ */
+function SignInSection({
+  clientId,
+  identity,
+  suggestedEmail,
+  notice,
+  t,
+}: {
+  clientId: string;
+  identity: { email: string; pendingEmail: string | null };
+  suggestedEmail: string;
+  notice: { tone: 'good' | 'warn'; text: string } | null;
+  t: T;
+}) {
+  const temporary = isTemporaryEmail(identity.email);
+  return (
+    <Section eyebrow={t('account.signin.eyebrow')}>
+      {notice ? (
+        <div className="mb-4">
+          <Callout tone={notice.tone}>{notice.text}</Callout>
+        </div>
+      ) : null}
+      <Facts facts={[{ label: t('account.signin.email'), value: identity.email }]} />
+      {identity.pendingEmail ? (
+        <div className="mt-4">
+          <p className="text-[15px] leading-relaxed text-ink-700">
+            {t('account.signin.checkEmail', { email: identity.pendingEmail })}
+          </p>
+          {temporary ? (
+            <p className="mt-2 text-[14px] leading-relaxed text-ink-600">
+              {t('account.signin.untilConfirmed', { current: identity.email })}
+            </p>
+          ) : null}
+          {temporary ? (
+            <SignInEmailForm clientId={clientId} defaultEmail={identity.pendingEmail} again />
+          ) : null}
+        </div>
+      ) : temporary ? (
+        <div className="mt-4">
+          <p className="text-[15px] leading-relaxed text-ink-700">{t('account.signin.addEmail')}</p>
+          <SignInEmailForm clientId={clientId} defaultEmail={suggestedEmail} again={false} />
+        </div>
+      ) : null}
+      <h3 className="mt-8 mb-3 text-[15px] font-semibold text-ink-900">
+        {t('account.signin.password')}
+      </h3>
+      <ChangePasswordForm clientId={clientId} />
+    </Section>
+  );
+}
+
 /** Plain text, never a link: RepOS builds no mailto, tel or messaging deep link. */
 function HeadwayContact({ t }: { t: T }) {
   const contact = siteContact();
@@ -223,10 +306,12 @@ function HeadwayContact({ t }: { t: T }) {
 
 export default async function WorkspaceAccountPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ clientId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { clientId } = await params;
+  const [{ clientId }, query] = await Promise.all([params, searchParams]);
 
   // Account is the ONE workspace page that does not require an open workspace,
   // because it is where a closed one is explained and reopened.
@@ -242,11 +327,12 @@ export default async function WorkspaceAccountPage({
   // not being handed one, so "Headway is active" stayed English above a page
   // that had otherwise switched to Hindi.
   const [locale, t] = await Promise.all([getLocale(), getTranslator()]);
-  const [account, bundle, pending, accountAccess] = await Promise.all([
+  const [account, bundle, pending, accountAccess, identity] = await Promise.all([
     getAccountState(prisma, clientId, { t }),
     getResponsibility(prisma, clientId, { t }),
     pendingRequestFor(prisma, clientId),
     getAccountAccessForUser(prisma, access.actor.userId),
+    currentAuthIdentity(),
   ]);
   if (!account) notFound();
 
@@ -281,18 +367,31 @@ export default async function WorkspaceAccountPage({
         </>
       )}
 
-      {/* Temporary access, first — before even the lock message, because
-          finishing setup is not a commercial concern and should never wait
-          on one. Gone for good the moment status moves past
-          TEMPORARY_ACTIVE; nothing here ever runs twice. */}
-      {accountAccess?.status === 'TEMPORARY_ACTIVE' ? (
+      {/* Signing in, first — before even the lock message, because finishing
+          setup is not a commercial matter and should never wait on one.
+          While the owner is still on temporary access this is the setup form;
+          afterwards, their sign-in email and a way to change the password. */}
+      {accountAccess?.status === 'TEMPORARY_ACTIVE' && accountAccess.clientId === clientId ? (
         <Section eyebrow={t('account.setup.eyebrow')}>
-          <AccountSetupForm clientId={clientId} />
+          <AccountSetupForm
+            clientId={clientId}
+            initial={{
+              name: account.owner.name,
+              phone: account.owner.phone,
+              email: isTemporaryEmail(account.owner.email) ? '' : account.owner.email,
+            }}
+          />
         </Section>
-      ) : accountAccess?.status === 'SETUP_COMPLETE' ? (
-        <div className="mb-8">
-          <Quiet>{t('account.setup.done')}</Quiet>
-        </div>
+      ) : role !== null && identity ? (
+        <SignInSection
+          clientId={clientId}
+          identity={identity}
+          suggestedEmail={
+            identity.requestedEmail ?? (isTemporaryEmail(account.owner.email) ? '' : account.owner.email)
+          }
+          notice={signInNotice(query, t)}
+          t={t}
+        />
       ) : null}
 
       {/* The lock, said once, where it can be acted on. */}

@@ -1,6 +1,13 @@
 import * as React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { loginAfterSetup, SETUP_NOTICE_PARAM, setupNotice } from '@/lib/auth/setup-notice';
+import {
+  EMAIL_NOTICE_PARAM,
+  emailNotice,
+  RESET_LINK_PARAM,
+  RESET_NOTICE_PARAM,
+  resetLinkNotice,
+  resetNotice,
+} from '@/lib/auth/setup-notice';
 
 // Vitest compiles .tsx with the classic JSX transform, which calls a free
 // `React.createElement`; Next's own build does not need this. Kept local to
@@ -8,20 +15,16 @@ import { loginAfterSetup, SETUP_NOTICE_PARAM, setupNotice } from '@/lib/auth/set
 (globalThis as { React?: typeof React }).React = React;
 
 /**
- * THE CONFIRMATION AFTER ACCOUNT SETUP ACTUALLY REACHES THE OWNER (M39).
+ * THE FIXED SENTENCES ON THE SIGN-IN PAGE (M39, M52).
  *
- * Setup used to end in a bare redirect to /login. Two things made that a dead
- * end rather than a confirmation: the page had nothing to say, and — the part
- * a unit test on the action alone would miss — the owner is STILL SIGNED IN
- * when they arrive (the credential change goes through the admin API, which
- * leaves the session valid), so /login sent them straight back to their
- * workspace before rendering anything.
- *
- * So this runs the real page against mocked collaborators and checks what it
- * returns for a signed-in owner: the notice is shown and the auto-redirect is
- * skipped only for the two fixed flags, and for anything else the page
- * behaves exactly as it always did — including never echoing a value someone
- * put in the query string.
+ * Two redirects end on /login with something to say: a finished password
+ * reset (the session is ended on purpose, so the next step is signing in with
+ * the new password), and a "confirm your new email" link opened in a browser
+ * that was not signed in. Both are fixed flags mapped to fixed sentences, so
+ * this runs the real page against mocked collaborators and checks what it
+ * returns: the notice is shown and the auto-redirect is skipped only for the
+ * exact flags, and for anything else the page behaves exactly as it always
+ * did — including never echoing a value someone put in the query string.
  */
 
 const { redirectCalls, currentActorMock } = vi.hoisted(() => ({
@@ -72,34 +75,38 @@ async function open(query: Record<string, string | string[]>) {
 beforeEach(() => {
   redirectCalls.length = 0;
   currentActorMock.mockReset();
-  currentActorMock.mockResolvedValue(SIGNED_IN);
+  currentActorMock.mockResolvedValue(null);
 });
 
-describe('the login page after account setup', () => {
-  it('shows the confirmation to an owner who is still signed in, instead of bouncing them', async () => {
-    const page = await open({ setup: 'complete' });
+describe('the login page after a password reset', () => {
+  it('says the password changed and asks for the new one', async () => {
+    const page = await open({ reset: 'done' });
 
     expect(page.redirected).toBe(false);
-    expect(redirectCalls).toEqual([]);
-    expect(page.text).toContain('Your account is set up. Sign in with your new email and password.');
-    // Still the ordinary sign-in page underneath.
+    expect(page.text).toContain('Your password has been changed. Sign in with your new password.');
     expect(page.text).toContain('Sign in');
   });
 
-  it('tells a password-only owner to use their login ID, not a new email', async () => {
-    const page = await open({ setup: 'password' });
-
+  it('shows the sentence even to someone still signed in, without consulting the session', async () => {
+    currentActorMock.mockResolvedValue(SIGNED_IN);
+    const page = await open({ reset: 'done' });
     expect(page.redirected).toBe(false);
-    expect(page.text).toContain('Sign in with your login ID and your new password.');
-    expect(page.text).not.toContain('new email');
-  });
-
-  it('never consults the session when it is showing the confirmation', async () => {
-    await open({ setup: 'complete' });
     expect(currentActorMock).not.toHaveBeenCalled();
   });
+});
 
+describe('the login page after a confirmed new email', () => {
+  it('says the new address is confirmed and to sign in with it', async () => {
+    const page = await open({ email: 'confirmed' });
+
+    expect(page.redirected).toBe(false);
+    expect(page.text).toContain('Your new email address is confirmed. Sign in with it and your password.');
+  });
+});
+
+describe('any other value', () => {
   it('still sends a signed-in person onward when there is no flag at all', async () => {
+    currentActorMock.mockResolvedValue(SIGNED_IN);
     const page = await open({});
 
     expect(page.redirected).toBe(true);
@@ -107,52 +114,68 @@ describe('the login page after account setup', () => {
   });
 
   it('treats any other value as no flag, and never puts it on the page', async () => {
+    currentActorMock.mockResolvedValue(SIGNED_IN);
     const injected = 'Your account was suspended. Call +1-555-0100 now';
-    for (const value of [injected, 'COMPLETE', '', '__proto__', 'toString']) {
+    for (const [key, value] of [
+      ['reset', injected],
+      ['reset', 'DONE'],
+      ['reset', ''],
+      ['email', '__proto__'],
+      ['email', 'toString'],
+      ['email', injected],
+      ['setup', 'complete'],
+    ] as const) {
       redirectCalls.length = 0;
-      const page = await open({ setup: value });
-      expect(page.redirected, value).toBe(true);
+      const page = await open({ [key]: value });
+      expect(page.redirected, `${key}=${value}`).toBe(true);
       expect(page.text).not.toContain(injected);
     }
   });
 
   it('ignores a repeated parameter rather than picking one of its values', async () => {
-    const page = await open({ setup: ['complete', 'password'] });
+    currentActorMock.mockResolvedValue(SIGNED_IN);
+    const page = await open({ reset: ['done', 'done'] });
     expect(page.redirected).toBe(true);
   });
 
-  it('shows no confirmation on an ordinary visit by someone signed out', async () => {
-    currentActorMock.mockResolvedValue(null);
+  it('shows no notice on an ordinary visit by someone signed out', async () => {
     const page = await open({});
-
     expect(page.redirected).toBe(false);
-    expect(page.text).not.toContain('Your account is set up');
+    expect(page.text).not.toContain('Your password has been changed');
+    expect(page.text).not.toContain('is confirmed');
   });
 });
 
-describe('setupNotice / loginAfterSetup', () => {
-  it('maps exactly two flags, and nothing else, to a sentence', () => {
-    expect(setupNotice('complete')).toMatch(/new email and password/);
-    expect(setupNotice('password')).toMatch(/login ID and your new password/);
-    for (const value of ['', 'Complete', 'constructor', '__proto__', null, undefined, 1, ['complete'], {}]) {
-      expect(setupNotice(value), String(value)).toBeNull();
+describe('resetNotice / emailNotice / resetLinkNotice', () => {
+  it('map exactly their own flags, and nothing else, to a sentence', () => {
+    expect(resetNotice('done')).toMatch(/password has been changed/);
+    expect(emailNotice('confirmed')).toMatch(/new email address is confirmed/);
+    expect(emailNotice('incomplete')).toMatch(/could not finish confirming/);
+    expect(emailNotice('expired')).toMatch(/send a new one from Account/);
+    expect(resetLinkNotice('expired')).toMatch(/expired or was already used/);
+    expect(resetLinkNotice('other-browser')).toMatch(/same browser/);
+    for (const value of ['', 'Done', 'constructor', '__proto__', null, undefined, 1, ['done'], {}]) {
+      expect(resetNotice(value), String(value)).toBeNull();
+      expect(emailNotice(value), String(value)).toBeNull();
+      expect(resetLinkNotice(value), String(value)).toBeNull();
     }
   });
 
-  it('builds a redirect whose flag the login page will recognise', () => {
-    for (const emailChanged of [true, false]) {
-      const url = new URL(loginAfterSetup(emailChanged), 'https://repos.invalid');
-      expect(url.pathname).toBe('/login');
-      expect(setupNotice(url.searchParams.get(SETUP_NOTICE_PARAM))).not.toBeNull();
-    }
+  it('name the parameters the callback and the reset action actually send', () => {
+    expect(RESET_NOTICE_PARAM).toBe('reset');
+    expect(EMAIL_NOTICE_PARAM).toBe('email');
+    expect(RESET_LINK_PARAM).toBe('link');
   });
 
-  it('carries nothing sensitive in either the redirect or the sentence', () => {
-    for (const emailChanged of [true, false]) {
-      const path = loginAfterSetup(emailChanged);
-      // A fixed flag and nothing else: no address, no password, no id.
-      expect(path).toMatch(/^\/login\?setup=(complete|password)$/);
-      const sentence = setupNotice(new URL(path, 'https://repos.invalid').searchParams.get('setup'));
+  it('carry nothing sensitive in the sentence', () => {
+    for (const sentence of [
+      resetNotice('done'),
+      emailNotice('confirmed'),
+      emailNotice('incomplete'),
+      emailNotice('expired'),
+      resetLinkNotice('expired'),
+      resetLinkNotice('other-browser'),
+    ]) {
       expect(sentence).not.toMatch(/@|\{|\}/);
     }
   });
@@ -160,15 +183,13 @@ describe('setupNotice / loginAfterSetup', () => {
 
 describe('the login page after a link the callback could not use', () => {
   it('tells a signed-out person their link expired or was used, and where to get a new one', async () => {
-    currentActorMock.mockResolvedValue(null);
     const page = await open({ expired: '1' });
     expect(page.redirected).toBe(false);
     expect(page.text).toContain('That link has expired or was already used.');
-    expect(page.text).toContain('Forgot your password?');
+    expect(page.text).toContain('Forgot password?');
   });
 
   it('shows nothing for any other value, and never puts it on the page', async () => {
-    currentActorMock.mockResolvedValue(null);
     const injected = 'Your account was suspended. Call +1-555-0100 now';
     for (const value of [injected, '0', 'true', '']) {
       const page = await open({ expired: value });
@@ -178,6 +199,7 @@ describe('the login page after a link the callback could not use', () => {
   });
 
   it('still sends someone already signed in straight to their workspace', async () => {
+    currentActorMock.mockResolvedValue(SIGNED_IN);
     const page = await open({ expired: '1' });
     expect(page.redirected).toBe(true);
     expect(redirectCalls).toEqual(['/workspace/client1']);

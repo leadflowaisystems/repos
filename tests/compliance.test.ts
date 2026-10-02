@@ -1241,6 +1241,12 @@ describe('V1 hard rules — nothing acts without an operator behind it (M16)', (
     generateTempAccessAction: 'ADMIN',
     disableTempAccessAction: 'ADMIN',
     completeAccountSetupAction: 'OWNER',
+    // M52 - after setup. Asking Supabase to confirm a real sign-in email is
+    // the bound owner's own (it also updates the business's contact address,
+    // an OWNER-level write). Changing your own password is any member's own
+    // business — and it still needs the current password, checked inside.
+    requestEmailChangeAction: 'OWNER',
+    changePasswordAction: 'MEMBER',
     // M21/M23 - the commercial side. Every state change is the platform's, so
     // all of them are ADMIN; the two exceptions are the owner's own: asking to
     // continue with Headway, and keeping their contact details right. Each

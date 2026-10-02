@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
 /**
@@ -85,5 +86,23 @@ export async function supabaseServerClient() {
         }
       },
     },
+  });
+}
+
+/**
+ * A client that never reads or writes this request's cookies.
+ *
+ * For exactly one job: checking that someone who is already signed in knows
+ * their CURRENT password before they choose a new one. Signing in again on
+ * the request's own client would replace the session cookie with whatever
+ * that attempt produced — including nothing, on a wrong guess. This one
+ * keeps its session in memory and drops it with the request; the caller
+ * signs it out again straight away.
+ */
+export function detachedAuthClient() {
+  const config = supabaseConfig();
+  if (!config.ok) throw new Error(config.reason);
+  return createClient(config.config.url, config.config.anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
 }
