@@ -28,7 +28,7 @@ const EMAIL_INCOMPLETE =
   'We could not finish confirming your new email address. Sign in with your current email and password, and contact Headway.';
 
 const EMAIL_LINK_EXPIRED =
-  'That confirmation link has expired or was already used. Try signing in with your email and password. If that does not work, sign in with the temporary email and password from Headway and fill in “Set up your account” again for a new link — or contact Headway.';
+  'That confirmation link has expired or was already used. If you have a password, sign in with your email and that password. If not, use “Forgot password?” below with the same email: its link confirms your address and lets you choose one.';
 
 export function emailNotice(value: unknown): string | null {
   if (value === 'confirmed') return EMAIL_CONFIRMED;

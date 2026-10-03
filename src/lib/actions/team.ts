@@ -16,7 +16,18 @@ import { failure, str, success, type ActionState } from './shared';
  * gets in. The one exception is accepting an invitation, which is authorized
  * by the token and the matching email rather than by an existing membership —
  * the person is not on the team yet, which is the whole point.
+ *
+ * NOT FROM A TEMPORARY LOGIN (M53). Whoever holds a handover sheet can act as
+ * the owner inside the business, and that is all: deciding who else gets in
+ * would let them invite an address of their own — as an owner, even — and
+ * keep the business after Headway switches the temporary login off. Inviting,
+ * revoking and changing a member are done from the owner's own login. (The
+ * team page is not shown to owners in the pilot; this holds for a direct call
+ * to the action as well.)
  */
+
+const TEMPORARY_TEAM_REFUSAL =
+  'You are signed in with temporary access. Sign in with your own email to manage your team.';
 
 function revalidateTeam(clientId: string) {
   revalidatePath(`/workspace/${clientId}/team`);
@@ -29,6 +40,7 @@ export async function inviteMemberAction(
 ): Promise<ActionState> {
   const gate = await tenantGate(form, 'OWNER');
   if (!gate.ok) return gate.state;
+  if (gate.actor.temporaryAccessClientId) return failure(TEMPORARY_TEAM_REFUSAL);
   const { clientId } = gate;
 
   const result = await inviteMember(prisma, clientId, {
@@ -79,6 +91,7 @@ export async function revokeInviteAction(
 ): Promise<ActionState> {
   const gate = await tenantGate(form, 'OWNER');
   if (!gate.ok) return gate.state;
+  if (gate.actor.temporaryAccessClientId) return failure(TEMPORARY_TEAM_REFUSAL);
   const { clientId } = gate;
 
   const result = await revokeInvite(prisma, clientId, str(form, 'inviteId'));
@@ -94,6 +107,7 @@ export async function setMembershipAction(
 ): Promise<ActionState> {
   const gate = await tenantGate(form, 'OWNER');
   if (!gate.ok) return gate.state;
+  if (gate.actor.temporaryAccessClientId) return failure(TEMPORARY_TEAM_REFUSAL);
   const { clientId } = gate;
 
   const role = str(form, 'role');

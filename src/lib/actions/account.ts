@@ -12,7 +12,7 @@ import {
   loadActor,
   provisionUser,
 } from '@/lib/tenancy/service';
-import { isTemporaryEmail } from '@/lib/account-access/state';
+import { isTemporaryEmail, looksLikeTemporaryPassword, TEMPORARY_PASSWORD_REFUSED } from '@/lib/account-access/state';
 import { isRecoverySession } from '@/lib/auth/recovery';
 import { failure, str, type ActionState } from './shared';
 
@@ -98,6 +98,16 @@ export async function signUpAction(_prev: ActionState, form: FormData): Promise<
     return { ok: true, message: SIGN_UP_CHECK_EMAIL, errors: {} };
   }
 
+  // A project that requires email confirmation returns a user with no session.
+  // Saying so is safe: the person is holding the address in question. No
+  // RepOS user yet (M53): nobody has proved this address, and the confirmation
+  // link provisions one when it is opened (the auth callback). Provisioning
+  // here wrote an unproven address onto whatever login Supabase answered with
+  // — for an address Headway had reserved for a business owner, that owner's.
+  if (!data.session) {
+    return { ok: true, message: SIGN_UP_CHECK_EMAIL, errors: {} };
+  }
+
   // The RepOS user is created from the identity Supabase just verified, never
   // from the form. Nothing here can set isPlatformAdmin — provisionUser does
   // not write that column at all, and the database will not let it.
@@ -112,12 +122,6 @@ export async function signUpAction(_prev: ActionState, form: FormData): Promise<
   } catch (error) {
     if (error instanceof IdentityConflictError) return failure(SIGN_UP_FAILED);
     throw error;
-  }
-
-  // A project that requires email confirmation returns a user with no session.
-  // Saying so is safe: the person is holding the address in question.
-  if (!data.session) {
-    return { ok: true, message: SIGN_UP_CHECK_EMAIL, errors: {} };
   }
   redirect('/onboarding');
 }
@@ -238,6 +242,12 @@ export async function updatePasswordAction(
     return failure('These two passwords do not match.', {
       confirmPassword: 'These two passwords do not match.',
     });
+  }
+  // A handed-over owner chooses their first password here (M53). The one on
+  // the handover sheet has been seen by the admin and by whoever carried the
+  // sheet — chosen here, it would be the takeover M53 closes.
+  if (looksLikeTemporaryPassword(password)) {
+    return failure(TEMPORARY_PASSWORD_REFUSED, { password: TEMPORARY_PASSWORD_REFUSED });
   }
 
   const supabase = await supabaseServerClient();

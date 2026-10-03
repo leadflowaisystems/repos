@@ -1,37 +1,113 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
- * completeAccountSetupAction: THE ORDER OF THE THREE STEPS (M39, M52).
+ * SETTING UP THE OWNER'S OWN LOGIN, AFTER M53: THE TEMPORARY SESSION ONLY ASKS.
  *
- *   1. Supabase creates the owner's OWN login — real email, own password —
- *      unconfirmed. Nothing in RepOS has moved yet, so a refusal here changes
- *      nothing.
- *   2. RepOS records it on the same owner User (`finalizeAccountSetup`). If
- *      that cannot be written, the new login is removed again: nothing
- *      half-made is left — unless the write did land and only its
- *      acknowledgement was lost, which is read back before anything goes.
- *   3. The owner's own session asks Supabase for the confirmation email — the
- *      one email in the handover. The login works only once that link is
- *      opened; a problem sending it never undoes steps 1–2.
+ * Before M53 the owner's "Set up your account" form, used while signed in
+ * with the TEMPORARY login (`…@access.headway.local` + a generated password),
+ * took an email AND a password and made the owner's permanent login from
+ * them. Whoever held the handover sheet could therefore type an address of
+ * their own and keep the business. That form and its action are gone.
  *
- * The temporary login is never touched here. No password ever comes back to
- * the browser. Every collaborator is mocked: this file is about wiring.
+ * Now the split is:
+ *
+ *   ADMIN (Headway staff, adminGate)
+ *     generateTempAccessAction  types the owner's email; the service makes the
+ *                               owner's own login, pending (unconfirmed, no
+ *                               password anybody knows, no email sent), plus
+ *                               the temporary login.
+ *     setOwnerEmailAction       adds or corrects that address while the owner
+ *                               has not proved it.
+ *
+ *   TEMPORARY SESSION (OWNER gate, this business's temporary login switched on)
+ *     requestOwnerPasswordLinkAction
+ *                               presses one button. Supabase emails the
+ *                               ordinary set-your-password link to the
+ *                               address HEADWAY recorded — read from the own
+ *                               login's live Supabase record by
+ *                               `passwordLinkTarget`, never from the form.
+ *                               Nothing is created, changed or deleted: no
+ *                               login, no password, no RepOS row.
+ *
+ *   TEAM ACTIONS               refuse a temporary session outright: inviting
+ *                               your own address as an owner would be the
+ *                               same hole by another door.
+ *
+ * So nothing a temporary session types ever becomes anyone's login or
+ * password. Every collaborator is mocked; this file is about wiring — which
+ * values reach which collaborator, which never do, and what comes back.
  */
 
-const h = vi.hoisted(() => ({
-  calls: [] as string[],
-  validateAccountSetup: vi.fn(),
-  finalizeAccountSetup: vi.fn(),
-  currentAuthIdentity: vi.fn(),
-  createOwnerIdentity: vi.fn(),
-  deleteIdentity: vi.fn(),
-  getIdentitySnapshot: vi.fn(),
-  setIdentityPassword: vi.fn(),
-  recordedOwnLogin: vi.fn(),
-  restoreOwnLogin: vi.fn(),
-  detachedSignIn: vi.fn(),
-  signUp: vi.fn(),
-}));
+const TEMP_AUTH = '0d7c9a52-5b1e-4c7a-9f0e-1a2b3c4d5e01';
+const OWN_AUTH = '0d7c9a52-5b1e-4c7a-9f0e-1a2b3c4d5e02';
+const TEMP_EMAIL = 'k7m2q9xd@access.headway.local';
+const OWNER_EMAIL = 'owner@example.com';
+const HOSTILE = 'attacker@evil.example';
+
+const h = vi.hoisted(() => {
+  const db: string[] = [];
+  const dbReplies: Record<string, unknown> = {};
+  /**
+   * A database that records every call made on it (`model.method`) and
+   * answers from `dbReplies` (null when nothing is set). Lets a test say
+   * "nothing was written" — or "nothing was touched at all" — without
+   * listing every Prisma method by hand.
+   */
+  const prisma = new Proxy(
+    {},
+    {
+      get(_target, model) {
+        if (typeof model !== 'string') return undefined;
+        return new Proxy(
+          {},
+          {
+            get(_m, method) {
+              if (typeof method !== 'string') return undefined;
+              return async () => {
+                db.push(`${model}.${method}`);
+                return dbReplies[`${model}.${method}`] ?? null;
+              };
+            },
+          },
+        );
+      },
+    },
+  );
+  return {
+    calls: [] as string[],
+    db,
+    dbReplies,
+    prisma,
+    withRlsContext: vi.fn(),
+    currentAuthIdentity: vi.fn(),
+    adminGate: vi.fn(),
+    tenantGate: vi.fn(),
+    currentActor: vi.fn(),
+    supabaseConfig: vi.fn(),
+    resetPasswordForEmail: vi.fn(),
+    authRedirectUrl: vi.fn(),
+    // Supabase admin: every one of these makes, changes or removes a login.
+    createPendingOwnerIdentity: vi.fn(),
+    createTempIdentity: vi.fn(),
+    setIdentityPassword: vi.fn(),
+    randomizeIdentityPassword: vi.fn(),
+    deleteIdentity: vi.fn(),
+    removeGeneratedIdentity: vi.fn(),
+    getIdentitySnapshot: vi.fn(),
+    // The account-access service.
+    generateTempAccess: vi.fn(),
+    setOwnerEmail: vi.fn(),
+    disableTempAccess: vi.fn(),
+    passwordLinkTarget: vi.fn(),
+    // The team service and the invitation email.
+    inviteMember: vi.fn(),
+    revokeInvite: vi.fn(),
+    setMembership: vi.fn(),
+    acceptInviteViaResolver: vi.fn(),
+    deliverInvitation: vi.fn(),
+    invitationLink: vi.fn(),
+  };
+});
 
 vi.mock('next/navigation', () => ({
   redirect: (to: string) => {
@@ -45,54 +121,73 @@ vi.mock('next/navigation', () => ({
   },
 }));
 
-vi.mock('next/cache', () => ({ revalidatePath: () => {}, revalidateTag: () => {} }));
+vi.mock('next/cache', () => ({
+  revalidatePath: (path: string) => {
+    h.calls.push(`revalidate:${path}`);
+  },
+  revalidateTag: () => {},
+}));
 
 vi.mock('@/lib/db', () => ({
-  prisma: {},
+  prisma: h.prisma,
   currentAuthIdentity: h.currentAuthIdentity,
-  withRlsContext: vi.fn(),
+  withRlsContext: h.withRlsContext,
   isMissingDbFunction: () => false,
 }));
 
-vi.mock('@/lib/auth/guard', () => ({
-  adminGate: vi.fn(),
-  tenantGate: vi.fn(async () => ({
-    ok: true,
-    actor: { userId: 'owner1', email: 'xyz12345@access.headway.local', isPlatformAdmin: false, status: 'ACTIVE', memberships: [], temporaryAccessClientId: 'client1' },
-    clientId: 'client1',
-    role: 'BUSINESS_OWNER',
-  })),
-}));
+vi.mock('@/lib/auth/guard', () => ({ adminGate: h.adminGate, tenantGate: h.tenantGate }));
+
+vi.mock('@/lib/auth/authorize', () => ({ currentActor: h.currentActor }));
 
 vi.mock('@/lib/auth/supabase', () => ({
-  supabaseConfig: () => ({ ok: true, config: { url: 'https://x.supabase.co', anonKey: 'anon' } }),
-  supabaseServerClient: async () => ({ auth: { signUp: h.signUp } }),
-  detachedAuthClient: () => ({ auth: { signInWithPassword: h.detachedSignIn, signOut: async () => ({ error: null }) } }),
+  supabaseConfig: h.supabaseConfig,
+  supabaseServerClient: async () => ({ auth: { resetPasswordForEmail: h.resetPasswordForEmail } }),
+  detachedAuthClient: () => ({ auth: {} }),
   SUPABASE_URL_VAR: 'SUPABASE_URL',
 }));
 
 vi.mock('@/lib/auth/redirect', () => ({
-  authRedirectUrl: async (path: string) => `https://headway.test${path}`,
+  authRedirectUrl: h.authRedirectUrl,
+  // As the real one: the one route that turns an emailed code into a session.
+  callbackFor: (next: string) => `/auth/callback?next=${encodeURIComponent(next)}`,
   emailConfirmCallback: (next: string) => `/auth/callback?next=${encodeURIComponent(next)}&kind=email`,
 }));
 
 vi.mock('@/lib/auth/supabase-admin', () => ({
-  createOwnerIdentity: h.createOwnerIdentity,
+  createPendingOwnerIdentity: h.createPendingOwnerIdentity,
+  createTempIdentity: h.createTempIdentity,
+  setIdentityPassword: h.setIdentityPassword,
+  randomizeIdentityPassword: h.randomizeIdentityPassword,
   deleteIdentity: h.deleteIdentity,
+  removeGeneratedIdentity: h.removeGeneratedIdentity,
   getIdentitySnapshot: h.getIdentitySnapshot,
   IDENTITY_MISSING: 'missing',
-  setIdentityPassword: h.setIdentityPassword,
-  createTempIdentity: vi.fn(),
-  randomizeIdentityPassword: vi.fn(),
 }));
 
 vi.mock('@/lib/account-access/service', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/account-access/service')>()),
-  validateAccountSetup: h.validateAccountSetup,
-  finalizeAccountSetup: h.finalizeAccountSetup,
-  recordedOwnLogin: h.recordedOwnLogin,
-  restoreOwnLogin: h.restoreOwnLogin,
+  generateTempAccess: h.generateTempAccess,
+  setOwnerEmail: h.setOwnerEmail,
+  disableTempAccess: h.disableTempAccess,
+  passwordLinkTarget: h.passwordLinkTarget,
 }));
+
+vi.mock('@/lib/team/service', () => ({
+  inviteMember: h.inviteMember,
+  revokeInvite: h.revokeInvite,
+  setMembership: h.setMembership,
+  acceptInviteViaResolver: h.acceptInviteViaResolver,
+}));
+
+vi.mock('@/lib/invite/email', () => ({
+  deliverInvitation: h.deliverInvitation,
+  invitationLink: h.invitationLink,
+  roleLabel: (role: string) => (role === 'BUSINESS_OWNER' ? 'an owner' : 'a team member'),
+}));
+
+type State = { ok: boolean; message: string; errors: Record<string, string>; data?: Record<string, string> };
+
+const IDLE: State = { ok: false, message: '', errors: {} };
 
 function form(fields: Record<string, string>): FormData {
   const data = new FormData();
@@ -100,386 +195,585 @@ function form(fields: Record<string, string>): FormData {
   return data;
 }
 
-type State = { ok: boolean; message: string; errors: Record<string, string>; data?: Record<string, string> };
-
-/** Runs the action, turning the redirect throw into an observable outcome. */
-async function run(fields: Record<string, string> = {}): Promise<State | 'redirected'> {
-  const { completeAccountSetupAction } = await import('@/lib/actions/account-access');
-  const { IDLE } = await import('@/lib/actions/shared');
+/** Runs an action, turning the redirect throw into an observable outcome. */
+async function outcome(action: Promise<State>): Promise<State | 'redirected'> {
   try {
-    return await completeAccountSetupAction(
-      IDLE,
-      form({
-        clientId: 'client1',
-        name: 'Priya',
-        phone: '98765',
-        email: 'New-Owner@Example.com',
-        password: 'a-new-password',
-        confirmPassword: 'a-new-password',
-        ...fields,
-      }),
-    );
+    return await action;
   } catch (error) {
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') return 'redirected';
     throw error;
   }
 }
 
-const VALID = { clientId: 'client1', name: 'Priya', phone: '98765', email: 'new-owner@example.com', previousOwnAuthId: null };
+const ADMIN = { userId: 'admin1', email: 'staff@headway.example', isPlatformAdmin: true, status: 'ACTIVE', memberships: [] };
+
+/** Signed in with this business's TEMPORARY login. */
+const TEMPORARY_OWNER = {
+  userId: 'owner1',
+  email: TEMP_EMAIL,
+  isPlatformAdmin: false,
+  status: 'ACTIVE',
+  memberships: [],
+  temporaryAccessClientId: 'client1',
+  setupPendingClientId: 'client1',
+};
+
+/** The same owner, signed in with their own login. */
+const OWN_LOGIN_OWNER = { ...TEMPORARY_OWNER, email: OWNER_EMAIL, temporaryAccessClientId: null, setupPendingClientId: null };
+
+const REFUSED: State = { ok: false, message: 'You do not have access to that.', errors: {} };
+
+/** Every Supabase admin call that makes, changes or removes a login. */
+const IDENTITY_WRITERS = [
+  'createPendingOwnerIdentity',
+  'createTempIdentity',
+  'setIdentityPassword',
+  'randomizeIdentityPassword',
+  'deleteIdentity',
+  'removeGeneratedIdentity',
+] as const;
+
+function expectNoIdentityChanged() {
+  for (const name of IDENTITY_WRITERS) expect(h[name], name).not.toHaveBeenCalled();
+}
+
+const DB_WRITE = /\.(create|createMany|update|updateMany|upsert|delete|deleteMany|\$executeRaw|\$executeRawUnsafe|\$transaction)$/;
+
+function expectNoDbWrite() {
+  expect(h.db.filter((call) => DB_WRITE.test(call))).toEqual([]);
+  expect(h.withRlsContext).not.toHaveBeenCalled();
+}
 
 beforeEach(() => {
   h.calls.length = 0;
-  for (const mock of Object.values(h)) if (typeof mock === 'function') mock.mockReset();
-  h.currentAuthIdentity.mockResolvedValue({ id: 'auth-temp', email: 'xyz12345@access.headway.local' });
-  h.validateAccountSetup.mockResolvedValue({ ok: true, data: VALID });
-  h.createOwnerIdentity.mockImplementation(async () => {
-    h.calls.push('create');
-    return { ok: true, authUserId: 'auth-own' };
-  });
-  h.finalizeAccountSetup.mockImplementation(async () => {
-    h.calls.push('finalize');
-    return 'recorded';
-  });
-  h.setIdentityPassword.mockImplementation(async () => {
-    h.calls.push('password');
-    return { ok: true };
-  });
-  h.deleteIdentity.mockImplementation(async (id: string) => {
-    h.calls.push(`delete:${id}`);
-  });
-  h.restoreOwnLogin.mockImplementation(async () => {
-    h.calls.push('restore');
-    return true;
-  });
-  h.signUp.mockImplementation(async () => {
-    h.calls.push('email');
-    return { data: { user: { id: 'auth-own' }, session: null }, error: null };
+  h.db.length = 0;
+  for (const key of Object.keys(h.dbReplies)) delete h.dbReplies[key];
+  for (const mock of Object.values(h)) {
+    if (typeof mock === 'function' && 'mockReset' in mock) (mock as ReturnType<typeof vi.fn>).mockReset();
+  }
+
+  h.adminGate.mockResolvedValue({ ok: true, actor: ADMIN });
+  h.tenantGate.mockResolvedValue({ ok: true, actor: TEMPORARY_OWNER, clientId: 'client1', role: 'BUSINESS_OWNER' });
+  h.supabaseConfig.mockReturnValue({ ok: true, config: { url: 'https://x.supabase.co', anonKey: 'anon' } });
+  h.currentAuthIdentity.mockResolvedValue({ id: TEMP_AUTH, email: TEMP_EMAIL });
+  h.authRedirectUrl.mockImplementation(async (path: string) => `https://headway.test${path}`);
+  h.passwordLinkTarget.mockResolvedValue({ ok: true, email: OWNER_EMAIL });
+  h.resetPasswordForEmail.mockImplementation(async () => {
+    h.calls.push('link');
+    return { data: {}, error: null };
   });
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
-describe('completeAccountSetupAction — the happy path', () => {
-  it('creates the own login, records it, then asks for the confirmation email — in that order', async () => {
-    expect(await run()).toBe('redirected');
+// ---------------------------------------------------------------------------
+// The temporary session: one button, one link, to Headway's address
+// ---------------------------------------------------------------------------
 
-    expect(h.calls).toEqual(['create', 'finalize', 'email', 'redirect:/workspace/client1/account?setup=sent']);
-    expect(h.validateAccountSetup).toHaveBeenCalledWith(expect.anything(), 'owner1', 'client1', 'auth-temp', {
-      name: 'Priya',
-      phone: '98765',
-      email: 'New-Owner@Example.com',
-      password: 'a-new-password',
-      confirmPassword: 'a-new-password',
+async function requestLink(fields: Record<string, string> = {}) {
+  const { requestOwnerPasswordLinkAction } = await import('@/lib/actions/account-access');
+  return outcome(requestOwnerPasswordLinkAction(IDLE, form({ clientId: 'client1', ...fields })));
+}
+
+describe('requestOwnerPasswordLinkAction — the happy path', () => {
+  it('asks Supabase for the set-your-password link to the recorded address, then lands on Account with link=sent', async () => {
+    expect(await requestLink()).toBe('redirected');
+
+    // OWNER gate, and it must still work for a business whose trial has ended.
+    expect(h.tenantGate).toHaveBeenCalledWith(expect.any(FormData), 'OWNER', 'clientId', { allowLocked: true });
+    expect(h.passwordLinkTarget).toHaveBeenCalledWith(h.prisma, 'client1', 'owner1', TEMP_AUTH);
+    expect(h.resetPasswordForEmail).toHaveBeenCalledTimes(1);
+    expect(h.resetPasswordForEmail).toHaveBeenCalledWith(OWNER_EMAIL, {
+      redirectTo: 'https://headway.test/auth/callback?next=%2Freset-password',
     });
-    expect(h.createOwnerIdentity).toHaveBeenCalledWith('new-owner@example.com', 'a-new-password');
-    expect(h.finalizeAccountSetup).toHaveBeenCalledWith(expect.anything(), 'owner1', 'auth-temp', VALID, 'auth-own');
-    // The one email, through the owner's own session, back to Account.
-    expect(h.signUp).toHaveBeenCalledWith({
-      email: 'new-owner@example.com',
-      password: 'a-new-password',
-      options: {
-        emailRedirectTo:
-          'https://headway.test/auth/callback?next=%2Fworkspace%2Fclient1%2Faccount%3Femail%3Dconfirmed&kind=email',
-      },
-    });
-    expect(h.deleteIdentity).not.toHaveBeenCalled();
-  });
-
-  const PENDING = (email: string) => ({ email, confirmed: false, confirmationSent: true, lastSignInAt: null });
-  const CONFIRMED = (email: string) => ({ email, confirmed: true, confirmationSent: true, lastSignInAt: null });
-
-  it('a redo with a corrected address makes a new login, and only then removes the unconfirmed one', async () => {
-    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
-    h.getIdentitySnapshot.mockResolvedValue(PENDING('typo@example.com'));
-
-    expect(await run()).toBe('redirected');
     expect(h.calls).toEqual([
-      'create',
-      'finalize',
-      'delete:auth-own-old',
-      'email',
-      'redirect:/workspace/client1/account?setup=sent',
+      'link',
+      'revalidate:/workspace/client1/account',
+      'redirect:/workspace/client1/account?link=sent',
     ]);
   });
 
-  it('a redo with the SAME address and the same password sends a fresh link — and changes no password', async () => {
-    // Supabase refuses a second login for an address one already holds, and a
-    // temporary session never overwrites the pending one's password: it only
-    // proves it knows it (right password on an unconfirmed login answers
-    // "Email not confirmed"), then Supabase re-sends.
-    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
-    h.getIdentitySnapshot.mockResolvedValue(PENDING('new-owner@example.com'));
-    h.detachedSignIn.mockResolvedValueOnce({
-      data: { user: null, session: null },
-      error: { code: 'email_not_confirmed', status: 400, message: 'Email not confirmed' },
-    });
-    h.signUp.mockImplementationOnce(async () => {
-      h.calls.push('email');
-      return { data: { user: { id: 'auth-own-old' }, session: null }, error: null };
-    });
+  it('ignores every address the form carries: the link goes only where passwordLinkTarget says', async () => {
+    expect(
+      await requestLink({
+        email: HOSTILE,
+        ownerEmail: HOSTILE,
+        password: 'chosen-by-whoever-holds-the-sheet',
+        redirectTo: 'https://evil.example/steal',
+      }),
+    ).toBe('redirected');
 
-    expect(await run()).toBe('redirected');
-    expect(h.detachedSignIn).toHaveBeenCalledWith({ email: 'new-owner@example.com', password: 'a-new-password' });
-    expect(h.calls).toEqual(['finalize', 'email', 'redirect:/workspace/client1/account?setup=sent']);
-    expect(h.setIdentityPassword).not.toHaveBeenCalled();
-    expect(h.createOwnerIdentity).not.toHaveBeenCalled();
-    expect(h.finalizeAccountSetup).toHaveBeenCalledWith(
-      expect.anything(),
-      'owner1',
-      'auth-temp',
-      { ...VALID, previousOwnAuthId: 'auth-own-old' },
-      'auth-own-old',
-    );
-    expect(h.deleteIdentity).not.toHaveBeenCalled();
-  });
-
-  it('…refuses a different password for that address, and points to “Forgot password?”', async () => {
-    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
-    h.getIdentitySnapshot.mockResolvedValue(PENDING('new-owner@example.com'));
-    h.detachedSignIn.mockResolvedValueOnce({
-      data: { user: null, session: null },
-      error: { code: 'invalid_credentials', status: 400, message: 'Invalid login credentials' },
-    });
-
-    const outcome = (await run()) as State;
-    expect(outcome.ok).toBe(false);
-    expect(outcome.errors.password).toMatch(/password chosen the first time/);
-    expect(outcome.errors.password).toMatch(/Forgot password/);
-    expect(h.setIdentityPassword).not.toHaveBeenCalled();
-    expect(h.finalizeAccountSetup).not.toHaveBeenCalled();
-    expect(h.signUp).not.toHaveBeenCalled();
-    expect(h.deleteIdentity).not.toHaveBeenCalled();
-  });
-
-  it('…and treats that address as already set up if it was confirmed meanwhile', async () => {
-    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
-    h.getIdentitySnapshot.mockResolvedValue(PENDING('new-owner@example.com'));
-    h.detachedSignIn.mockResolvedValueOnce({
-      data: { user: { id: 'auth-own-old' }, session: { access_token: 't' } },
-      error: null,
-    });
-
-    const outcome = (await run()) as State;
-    expect(outcome.message).toMatch(/already set up/);
-    expect(h.finalizeAccountSetup).not.toHaveBeenCalled();
-  });
-
-  it('replaces a Headway-made own login (set up before M52, real email never arrived) even though it is confirmed', async () => {
-    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-legacy' } });
-    h.getIdentitySnapshot.mockResolvedValue(CONFIRMED('z02brkuq@access.headway.local'));
-
-    expect(await run()).toBe('redirected');
-    expect(h.calls).toEqual([
-      'create',
-      'finalize',
-      'delete:auth-legacy',
-      'email',
-      'redirect:/workspace/client1/account?setup=sent',
+    expect(h.resetPasswordForEmail).toHaveBeenCalledTimes(1);
+    const [email, options] = h.resetPasswordForEmail.mock.calls[0]!;
+    expect(email).toBe(OWNER_EMAIL);
+    expect(options.redirectTo).toMatch(/\/auth\/callback\?next=%2Freset-password$/);
+    expect(options.redirectTo.startsWith('https://headway.test/')).toBe(true);
+    // Nothing from the form reached any collaborator.
+    const everything = JSON.stringify([
+      h.resetPasswordForEmail.mock.calls,
+      h.passwordLinkTarget.mock.calls.map((call) => call.slice(1)),
+      h.authRedirectUrl.mock.calls,
     ]);
+    expect(everything).not.toContain('evil.example');
+    expect(everything).not.toContain('chosen-by-whoever');
   });
 
-  it('treats an own login Supabase no longer has as nothing to keep', async () => {
-    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-gone' } });
-    h.getIdentitySnapshot.mockResolvedValue('missing');
+  it('makes, changes and deletes no login, and writes nothing to the database', async () => {
+    expect(await requestLink({ email: HOSTILE, password: 'new-password-123' })).toBe('redirected');
 
-    expect(await run()).toBe('redirected');
-    expect(h.createOwnerIdentity).toHaveBeenCalledTimes(1);
-    expect(h.calls.at(-1)).toBe('redirect:/workspace/client1/account?setup=sent');
-  });
-
-  it('changes nothing when Supabase cannot say whether the own login is confirmed', async () => {
-    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
-    h.getIdentitySnapshot.mockResolvedValueOnce(null);
-
-    const outcome = (await run()) as State;
-    expect(outcome.ok).toBe(false);
-    expect(outcome.message).toMatch(/could not check/);
-    expect(h.createOwnerIdentity).not.toHaveBeenCalled();
-    expect(h.setIdentityPassword).not.toHaveBeenCalled();
-    expect(h.deleteIdentity).not.toHaveBeenCalled();
-  });
-
-  it('never redoes a setup whose own login is already confirmed', async () => {
-    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
-    h.getIdentitySnapshot.mockResolvedValue(CONFIRMED('owner@example.com'));
-
-    const outcome = (await run()) as State;
-    expect(outcome.ok).toBe(false);
-    expect(outcome.message).toMatch(/already set up/);
-    expect(h.createOwnerIdentity).not.toHaveBeenCalled();
-    expect(h.setIdentityPassword).not.toHaveBeenCalled();
-    expect(h.deleteIdentity).not.toHaveBeenCalled();
-  });
-
-  it('keeps a login confirmed while setup ran (before the swap): the one made here goes', async () => {
-    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
-    h.getIdentitySnapshot
-      .mockResolvedValueOnce(PENDING('typo@example.com'))
-      .mockResolvedValueOnce(CONFIRMED('typo@example.com'));
-
-    const outcome = (await run()) as State;
-    expect(outcome.message).toMatch(/just confirmed/);
-    expect(h.calls).toEqual(['create', 'delete:auth-own']);
-    expect(h.finalizeAccountSetup).not.toHaveBeenCalled();
-  });
-
-  it('…and puts it back if it was confirmed in the last moment (after the swap)', async () => {
-    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
-    h.getIdentitySnapshot
-      .mockResolvedValueOnce(PENDING('typo@example.com'))
-      .mockResolvedValueOnce(PENDING('typo@example.com'))
-      .mockResolvedValueOnce(CONFIRMED('typo@example.com'));
-
-    const outcome = (await run()) as State;
-    expect(outcome.message).toMatch(/just confirmed/);
-    expect(h.restoreOwnLogin).toHaveBeenCalledWith(expect.anything(), 'owner1', 'auth-own', 'auth-own-old');
-    expect(h.calls).toEqual(['create', 'finalize', 'restore', 'delete:auth-own']);
-    expect(h.signUp).not.toHaveBeenCalled();
-  });
-
-  it('keeps the replaced login when Supabase cannot be asked about it after the swap', async () => {
-    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
-    h.getIdentitySnapshot
-      .mockResolvedValueOnce(PENDING('typo@example.com'))
-      .mockResolvedValueOnce(PENDING('typo@example.com'))
-      .mockResolvedValueOnce(null);
-
-    expect(await run()).toBe('redirected');
-    expect(h.deleteIdentity).not.toHaveBeenCalled();
-    expect(h.calls.at(-1)).toBe('redirect:/workspace/client1/account?setup=sent');
+    expectNoIdentityChanged();
+    expectNoDbWrite();
+    // passwordLinkTarget (mocked here) is the only reader; the action itself
+    // never touches the database.
+    expect(h.db).toEqual([]);
   });
 });
 
-describe('completeAccountSetupAction — the email step', () => {
+describe('requestOwnerPasswordLinkAction — what Supabase answers', () => {
   it.each([
-    [{ code: 'over_email_send_rate_limit', status: 429, message: 'email rate limit exceeded' }, 'wait'],
-    [{ code: 'unexpected_failure', status: 500, message: 'Error sending confirmation email' }, 'failed'],
-  ])('reports %o on Account as setup=%s, with the login recorded', async (error, flag) => {
-    h.signUp.mockResolvedValueOnce({ data: { user: null, session: null }, error });
+    ['a 429', { code: undefined, status: 429, message: 'Too Many Requests' }],
+    ['over_email_send_rate_limit', { code: 'over_email_send_rate_limit', status: 400, message: 'email rate limit exceeded' }],
+  ])('treats %s as "wait a little" (link=wait)', async (_label, error) => {
+    h.resetPasswordForEmail.mockResolvedValueOnce({ data: {}, error });
 
-    expect(await run()).toBe('redirected');
-    expect(h.finalizeAccountSetup).toHaveBeenCalledTimes(1);
-    expect(h.calls.at(-1)).toBe(`redirect:/workspace/client1/account?setup=${flag}`);
+    expect(await requestLink()).toBe('redirected');
+    expect(h.calls.at(-1)).toBe('redirect:/workspace/client1/account?link=wait');
+    expectNoIdentityChanged();
+    expectNoDbWrite();
   });
 
-  it('treats a confirmation for any other login than the one just made as not sent', async () => {
-    h.signUp.mockResolvedValueOnce({ data: { user: { id: 'someone-else' }, session: null }, error: null });
-    expect(await run()).toBe('redirected');
-    expect(h.calls.at(-1)).toBe('redirect:/workspace/client1/account?setup=failed');
+  it('reports any other refusal as link=failed, and logs it without the address', async () => {
+    h.resetPasswordForEmail.mockResolvedValueOnce({
+      data: {},
+      error: { code: 'unexpected_failure', status: 500, message: 'Error sending recovery email' },
+    });
+
+    expect(await requestLink()).toBe('redirected');
+    expect(h.calls.at(-1)).toBe('redirect:/workspace/client1/account?link=failed');
+
+    expect(console.error).toHaveBeenCalledTimes(1);
+    const logged = JSON.stringify(vi.mocked(console.error).mock.calls);
+    expect(logged).toContain('unexpected_failure');
+    expect(logged).toContain('client1');
+    expect(logged).not.toContain(OWNER_EMAIL);
+    expect(logged).not.toContain(TEMP_EMAIL);
+    expectNoIdentityChanged();
+    expectNoDbWrite();
+  });
+
+  it('logs nothing when the link went out', async () => {
+    await requestLink();
+    expect(console.error).not.toHaveBeenCalled();
   });
 });
 
-describe('completeAccountSetupAction — refusals leave nothing behind', () => {
-  it('never calls Supabase when validation refused, and keeps what was typed (never the password)', async () => {
-    h.validateAccountSetup.mockResolvedValueOnce({
+describe('requestOwnerPasswordLinkAction — refusals send nothing', () => {
+  it("passes the gate's refusal straight through", async () => {
+    h.tenantGate.mockResolvedValueOnce({ ok: false, state: REFUSED });
+
+    expect(await requestLink()).toBe(REFUSED);
+    expect(h.currentAuthIdentity).not.toHaveBeenCalled();
+    expect(h.passwordLinkTarget).not.toHaveBeenCalled();
+    expect(h.resetPasswordForEmail).not.toHaveBeenCalled();
+    expect(h.calls).toEqual([]);
+  });
+
+  it('says it is unavailable when Supabase is not configured', async () => {
+    h.supabaseConfig.mockReturnValueOnce({ ok: false, reason: 'Set SUPABASE_URL and SUPABASE_ANON_KEY in .env.local.' });
+
+    const state = (await requestLink()) as State;
+    expect(state.ok).toBe(false);
+    expect(state.message).toBe('This is unavailable right now. Please contact Headway.');
+    // The configuration detail is for the operator, not the owner.
+    expect(state.message).not.toContain('SUPABASE');
+    expect(h.passwordLinkTarget).not.toHaveBeenCalled();
+    expect(h.resetPasswordForEmail).not.toHaveBeenCalled();
+  });
+
+  it('asks to sign in again when there is no session behind the request', async () => {
+    h.currentAuthIdentity.mockResolvedValueOnce(null);
+
+    const state = (await requestLink()) as State;
+    expect(state.ok).toBe(false);
+    expect(state.message).toBe('Please sign in again, then try once more.');
+    expect(h.passwordLinkTarget).not.toHaveBeenCalled();
+    expect(h.resetPasswordForEmail).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['NOT_TEMPORARY', 'Sign in with the temporary email and password Headway gave you to do this.'],
+    ['NO_OWN_LOGIN', 'Headway has not added your email address yet. Please contact Headway.'],
+    ['UNKNOWN', 'We could not check your sign-in just now. Try again in a minute.'],
+  ])('%s gets its own message and never calls Supabase', async (reason, message) => {
+    h.passwordLinkTarget.mockResolvedValueOnce({ ok: false, reason });
+
+    const state = (await requestLink({ email: HOSTILE })) as State;
+    expect(state).toEqual({ ok: false, message, errors: {} });
+    expect(h.resetPasswordForEmail).not.toHaveBeenCalled();
+    expect(h.calls).toEqual([]);
+    expectNoIdentityChanged();
+    expectNoDbWrite();
+  });
+
+  it('the three refusals say three different things', async () => {
+    const messages = new Set<string>();
+    for (const reason of ['NOT_TEMPORARY', 'NO_OWN_LOGIN', 'UNKNOWN']) {
+      h.passwordLinkTarget.mockResolvedValueOnce({ ok: false, reason });
+      messages.add(((await requestLink()) as State).message);
+    }
+    expect(messages.size).toBe(3);
+  });
+});
+
+describe('requestOwnerPasswordLinkAction — with the real passwordLinkTarget', () => {
+  const LIVE = { email: OWNER_EMAIL, confirmed: false, confirmationSent: false, recoverySent: false, lastSignInAt: null };
+  const ROW = {
+    userId: 'owner1',
+    status: 'TEMPORARY_ACTIVE',
+    tempAuthId: TEMP_AUTH,
+    user: { authProviderId: OWN_AUTH },
+  };
+
+  beforeEach(async () => {
+    const actual = await vi.importActual<typeof import('@/lib/account-access/service')>('@/lib/account-access/service');
+    h.passwordLinkTarget.mockImplementation(actual.passwordLinkTarget);
+    h.getIdentitySnapshot.mockResolvedValue(LIVE);
+  });
+
+  it("sends to the own login's live address, reading one row and writing none", async () => {
+    h.dbReplies['accountAccess.findUnique'] = ROW;
+
+    expect(await requestLink({ email: HOSTILE })).toBe('redirected');
+    expect(h.getIdentitySnapshot).toHaveBeenCalledWith(OWN_AUTH);
+    expect(h.resetPasswordForEmail).toHaveBeenCalledWith(OWNER_EMAIL, expect.anything());
+    expect(h.db).toEqual(['accountAccess.findUnique']);
+    expectNoIdentityChanged();
+    expectNoDbWrite();
+  });
+
+  it('refuses the owner signed in with their own login (they use "Forgot password?")', async () => {
+    h.dbReplies['accountAccess.findUnique'] = ROW;
+    h.tenantGate.mockResolvedValueOnce({ ok: true, actor: OWN_LOGIN_OWNER, clientId: 'client1', role: 'BUSINESS_OWNER' });
+    h.currentAuthIdentity.mockResolvedValueOnce({ id: OWN_AUTH, email: OWNER_EMAIL });
+
+    const state = (await requestLink()) as State;
+    expect(state.message).toMatch(/temporary email and password/);
+    expect(h.resetPasswordForEmail).not.toHaveBeenCalled();
+  });
+
+  it('refuses once Headway has switched the temporary login off', async () => {
+    h.dbReplies['accountAccess.findUnique'] = { ...ROW, status: 'DISABLED' };
+
+    const state = (await requestLink()) as State;
+    expect(state.message).toMatch(/temporary email and password/);
+    expect(h.resetPasswordForEmail).not.toHaveBeenCalled();
+  });
+
+  it('never sends to a Headway-made address on the own login', async () => {
+    h.dbReplies['accountAccess.findUnique'] = ROW;
+    h.getIdentitySnapshot.mockResolvedValue({ ...LIVE, email: 'z02brkuq@access.headway.local' });
+
+    const state = (await requestLink()) as State;
+    expect(state.message).toMatch(/has not added your email address/);
+    expect(h.resetPasswordForEmail).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The admin's side: the owner's email is typed by Headway
+// ---------------------------------------------------------------------------
+
+async function setEmail(fields: Record<string, string>) {
+  const { setOwnerEmailAction } = await import('@/lib/actions/account-access');
+  return (await outcome(setOwnerEmailAction(IDLE, form(fields)))) as State;
+}
+
+describe('setOwnerEmailAction', () => {
+  it("passes the admin gate's refusal straight through, and changes nothing", async () => {
+    h.adminGate.mockResolvedValueOnce({ ok: false, state: REFUSED });
+
+    expect(await setEmail({ clientId: 'client1', ownerEmail: OWNER_EMAIL })).toBe(REFUSED);
+    expect(h.setOwnerEmail).not.toHaveBeenCalled();
+    expect(h.tenantGate).not.toHaveBeenCalled();
+  });
+
+  it('refuses without a client id', async () => {
+    const state = await setEmail({ ownerEmail: OWNER_EMAIL });
+    expect(state).toEqual({ ok: false, message: 'Missing client id.', errors: {} });
+    expect(h.setOwnerEmail).not.toHaveBeenCalled();
+  });
+
+  it("passes the form's ownerEmail (trimmed) to setOwnerEmail", async () => {
+    h.setOwnerEmail.mockResolvedValueOnce({ ok: true, data: { email: OWNER_EMAIL, changed: true } });
+
+    await setEmail({ clientId: 'client1', ownerEmail: '  Owner@Example.com ' });
+    expect(h.setOwnerEmail).toHaveBeenCalledWith(h.prisma, 'client1', 'Owner@Example.com');
+  });
+
+  it('a refusal returns its message and field errors, and keeps the typed address in the field', async () => {
+    h.setOwnerEmail.mockResolvedValueOnce({
       ok: false,
       message: 'Some fields need attention.',
-      errors: { email: 'That email is already in use by another account.' },
+      errors: { ownerEmail: 'This email already has a Headway sign-in.' },
     });
 
-    const outcome = (await run({ email: 'taken@example.com' })) as State;
-
-    expect(outcome.ok).toBe(false);
-    expect(outcome.data).toEqual({ name: 'Priya', phone: '98765', email: 'taken@example.com' });
-    expect(JSON.stringify(outcome)).not.toContain('a-new-password');
-    expect(h.createOwnerIdentity).not.toHaveBeenCalled();
-    expect(h.finalizeAccountSetup).not.toHaveBeenCalled();
-  });
-
-  it('puts a taken address on the email field, with nothing written', async () => {
-    h.createOwnerIdentity.mockResolvedValueOnce({ ok: false, reason: 'EMAIL_TAKEN', message: 'already been registered' });
-    const outcome = (await run()) as State;
-    expect(outcome.errors.email).toMatch(/already in use/);
-    expect(h.finalizeAccountSetup).not.toHaveBeenCalled();
-    expect(h.signUp).not.toHaveBeenCalled();
-  });
-
-  it("puts Supabase's password policy on the password field", async () => {
-    h.createOwnerIdentity.mockResolvedValueOnce({
+    const state = await setEmail({ clientId: 'client1', ownerEmail: 'taken@example.com' });
+    expect(state).toEqual({
       ok: false,
-      reason: 'WEAK_PASSWORD',
-      message: 'Password should be at least 10 characters.',
+      message: 'Some fields need attention.',
+      errors: { ownerEmail: 'This email already has a Headway sign-in.' },
+      data: { ownerEmail: 'taken@example.com' },
     });
-    const outcome = (await run()) as State;
-    expect(outcome.errors.password).toBe('Password should be at least 10 characters.');
-    expect(h.finalizeAccountSetup).not.toHaveBeenCalled();
+    expect(h.calls).toEqual([]);
   });
 
-  it('removes the new login again when RepOS did not record it', async () => {
-    h.finalizeAccountSetup.mockRejectedValueOnce(new Error('Can’t reach database server'));
-    h.recordedOwnLogin.mockResolvedValueOnce(null);
-    const outcome = (await run()) as State;
-    expect(outcome.ok).toBe(false);
-    expect(outcome.message).toMatch(/Nothing was changed/);
-    expect(h.recordedOwnLogin).toHaveBeenCalledWith(expect.anything(), 'owner1');
-    expect(h.deleteIdentity).toHaveBeenCalledWith('auth-own');
-    expect(h.signUp).not.toHaveBeenCalled();
+  it('a change says where the sign-in now is, and that earlier links stopped working', async () => {
+    h.setOwnerEmail.mockResolvedValueOnce({ ok: true, data: { email: 'fixed@example.com', changed: true } });
+
+    const state = await setEmail({ clientId: 'client1', ownerEmail: 'fixed@example.com' });
+    expect(state.ok).toBe(true);
+    expect(state.message).toBe(
+      "Saved. The owner's own sign-in is now fixed@example.com. Links sent to any earlier address no longer work.",
+    );
+    expect(h.calls).toContain('revalidate:/clients/client1');
   });
 
-  it('keeps the new login, and carries on, when the write landed and only its acknowledgement was lost', async () => {
-    h.finalizeAccountSetup.mockRejectedValueOnce(new Error('Connection terminated unexpectedly'));
-    h.recordedOwnLogin.mockResolvedValueOnce('auth-own');
-    expect(await run()).toBe('redirected');
-    expect(h.deleteIdentity).not.toHaveBeenCalled();
-    expect(h.calls.at(-1)).toBe('redirect:/workspace/client1/account?setup=sent');
+  it('the same address again says it already is the owner’s email', async () => {
+    h.setOwnerEmail.mockResolvedValueOnce({ ok: true, data: { email: OWNER_EMAIL, changed: false } });
+
+    const state = await setEmail({ clientId: 'client1', ownerEmail: OWNER_EMAIL });
+    expect(state.ok).toBe(true);
+    expect(state.message).toBe(`${OWNER_EMAIL} is already the owner's email.`);
   });
 
-  it('asks the database again over a short blip before deciding', async () => {
-    h.finalizeAccountSetup.mockRejectedValueOnce(new Error('Connection terminated unexpectedly'));
-    h.recordedOwnLogin.mockRejectedValueOnce(new Error('Can’t reach database server')).mockResolvedValueOnce('auth-own');
-    expect(await run()).toBe('redirected');
-    expect(h.recordedOwnLogin).toHaveBeenCalledTimes(2);
-    expect(h.deleteIdentity).not.toHaveBeenCalled();
+  it('sends no email of any kind', async () => {
+    h.setOwnerEmail.mockResolvedValueOnce({ ok: true, data: { email: OWNER_EMAIL, changed: true } });
+    await setEmail({ clientId: 'client1', ownerEmail: OWNER_EMAIL });
+    expect(h.resetPasswordForEmail).not.toHaveBeenCalled();
+  });
+});
+
+async function generate(fields: Record<string, string>) {
+  const { generateTempAccessAction } = await import('@/lib/actions/account-access');
+  return (await outcome(generateTempAccessAction(IDLE, form(fields)))) as State;
+}
+
+describe('generateTempAccessAction', () => {
+  it("passes the admin gate's refusal straight through", async () => {
+    h.adminGate.mockResolvedValueOnce({ ok: false, state: REFUSED });
+
+    expect(await generate({ clientId: 'client1', ownerEmail: OWNER_EMAIL })).toBe(REFUSED);
+    expect(h.generateTempAccess).not.toHaveBeenCalled();
   });
 
-  it('removes the new login when the database never says whether it landed — no unrecorded login is left holding the address', async () => {
-    h.finalizeAccountSetup.mockRejectedValueOnce(new Error('Connection terminated unexpectedly'));
-    h.recordedOwnLogin.mockRejectedValue(new Error('Can’t reach database server'));
-    const outcome = (await run()) as State;
-    expect(outcome.ok).toBe(false);
-    expect(outcome.message).toMatch(/Reload the page and try again/);
-    expect(h.recordedOwnLogin).toHaveBeenCalledTimes(3);
-    expect(h.deleteIdentity).toHaveBeenCalledWith('auth-own');
-    expect(h.signUp).not.toHaveBeenCalled();
+  it('refuses without a client id', async () => {
+    const state = await generate({ ownerEmail: OWNER_EMAIL });
+    expect(state.message).toBe('Missing client id.');
+    expect(h.generateTempAccess).not.toHaveBeenCalled();
   });
 
-  it('removes the new login and stops when an admin switched temporary access off first', async () => {
-    h.finalizeAccountSetup.mockResolvedValueOnce('access-off');
-    const outcome = (await run()) as State;
-    expect(outcome.message).toMatch(/turned off/);
-    expect(h.deleteIdentity).toHaveBeenCalledWith('auth-own');
-    expect(h.signUp).not.toHaveBeenCalled();
+  it("passes the owner's email through to generateTempAccess, with the admin as the actor", async () => {
+    h.generateTempAccess.mockResolvedValueOnce({ ok: true, data: { email: TEMP_EMAIL, password: 'Kq7m-x3pa-9fne-t2wd' } });
+
+    await generate({ clientId: 'client1', ownerEmail: ' owner@example.com ' });
+    expect(h.generateTempAccess).toHaveBeenCalledWith(h.prisma, 'client1', 'admin1', { ownerEmail: OWNER_EMAIL });
   });
 
-  it('removes the new login and stops when another setup (a second tab) landed first', async () => {
-    h.finalizeAccountSetup.mockResolvedValueOnce('raced');
-    const outcome = (await run()) as State;
-    expect(outcome.message).toMatch(/another window/);
-    expect(h.deleteIdentity).toHaveBeenCalledWith('auth-own');
-    expect(h.signUp).not.toHaveBeenCalled();
+  it('switching access back on (no email field) passes an empty address and lets the service decide', async () => {
+    h.generateTempAccess.mockResolvedValueOnce({ ok: true, data: { email: TEMP_EMAIL, password: 'Kq7m-x3pa-9fne-t2wd' } });
+
+    await generate({ clientId: 'client1' });
+    expect(h.generateTempAccess).toHaveBeenCalledWith(h.prisma, 'client1', 'admin1', { ownerEmail: '' });
   });
 
-  it("never removes the owner's own pending login when setup does not land", async () => {
-    h.validateAccountSetup.mockResolvedValueOnce({ ok: true, data: { ...VALID, previousOwnAuthId: 'auth-own-old' } });
-    h.getIdentitySnapshot.mockResolvedValue({
-      email: 'new-owner@example.com',
-      confirmed: false,
-      confirmationSent: true,
-      lastSignInAt: null,
+  it('a refusal keeps the typed address in the field, and hands back no credentials', async () => {
+    h.generateTempAccess.mockResolvedValueOnce({
+      ok: false,
+      message: 'Some fields need attention.',
+      errors: { ownerEmail: 'Enter the owner’s own email address, not a temporary one.' },
     });
-    h.detachedSignIn.mockResolvedValueOnce({
-      data: { user: null, session: null },
-      error: { code: 'email_not_confirmed', status: 400, message: 'Email not confirmed' },
+
+    const state = await generate({ clientId: 'client1', ownerEmail: 'x@access.headway.local' });
+    expect(state).toEqual({
+      ok: false,
+      message: 'Some fields need attention.',
+      errors: { ownerEmail: 'Enter the owner’s own email address, not a temporary one.' },
+      data: { ownerEmail: 'x@access.headway.local' },
     });
-    h.finalizeAccountSetup.mockResolvedValueOnce('access-off');
-    const outcome = (await run()) as State;
-    expect(outcome.message).toMatch(/turned off/);
-    expect(h.deleteIdentity).not.toHaveBeenCalled();
+    expect(h.calls).toEqual([]);
   });
 
-  it('refuses when there is no session at all', async () => {
-    h.currentAuthIdentity.mockResolvedValueOnce(null);
-    const outcome = (await run()) as State;
-    expect(outcome.ok).toBe(false);
-    expect(h.validateAccountSetup).not.toHaveBeenCalled();
+  it('success returns the client id, the temporary email, the password (once) and the sign-in URL', async () => {
+    h.generateTempAccess.mockResolvedValueOnce({ ok: true, data: { email: TEMP_EMAIL, password: 'Kq7m-x3pa-9fne-t2wd' } });
+
+    const state = await generate({ clientId: 'client1', ownerEmail: OWNER_EMAIL });
+    expect(state.ok).toBe(true);
+    expect(state.message).toMatch(/Copy the password now/);
+    expect(state.data).toEqual({
+      clientId: 'client1',
+      email: TEMP_EMAIL,
+      password: 'Kq7m-x3pa-9fne-t2wd',
+      signInUrl: 'https://headway.test/login',
+    });
+    expect(h.calls).toContain('revalidate:/clients/client1');
+    // Headway records the address; nobody is emailed by generating access.
+    expect(h.resetPasswordForEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe('disableTempAccessAction', () => {
+  it("passes the admin gate's refusal straight through", async () => {
+    h.adminGate.mockResolvedValueOnce({ ok: false, state: REFUSED });
+    const { disableTempAccessAction } = await import('@/lib/actions/account-access');
+
+    expect(await disableTempAccessAction(IDLE, form({ clientId: 'client1' }))).toBe(REFUSED);
+    expect(h.disableTempAccess).not.toHaveBeenCalled();
+  });
+
+  it('switches the temporary login off for this client, as the admin', async () => {
+    h.disableTempAccess.mockResolvedValueOnce({ ok: true, data: {} });
+    const { disableTempAccessAction } = await import('@/lib/actions/account-access');
+
+    const state = await disableTempAccessAction(IDLE, form({ clientId: 'client1' }));
+    expect(state.ok).toBe(true);
+    expect(h.disableTempAccess).toHaveBeenCalledWith(h.prisma, 'client1', 'admin1');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The team: not from a temporary login
+// ---------------------------------------------------------------------------
+
+describe('team actions — a temporary session decides nothing about who gets in', () => {
+  const asTemporary = () =>
+    h.tenantGate.mockResolvedValue({ ok: true, actor: TEMPORARY_OWNER, clientId: 'client1', role: 'BUSINESS_OWNER' });
+  const asOwnLogin = () =>
+    h.tenantGate.mockResolvedValue({ ok: true, actor: OWN_LOGIN_OWNER, clientId: 'client1', role: 'BUSINESS_OWNER' });
+
+  function expectTeamUntouched() {
+    expect(h.inviteMember).not.toHaveBeenCalled();
+    expect(h.revokeInvite).not.toHaveBeenCalled();
+    expect(h.setMembership).not.toHaveBeenCalled();
+    expect(h.acceptInviteViaResolver).not.toHaveBeenCalled();
+    expect(h.deliverInvitation).not.toHaveBeenCalled();
+    expect(h.db).toEqual([]);
+  }
+
+  it('inviteMemberAction refuses a temporary session — even inviting its own address as an owner', async () => {
+    asTemporary();
+    const { inviteMemberAction } = await import('@/lib/actions/team');
+
+    const state = await inviteMemberAction(
+      IDLE,
+      form({ clientId: 'client1', email: HOSTILE, role: 'BUSINESS_OWNER' }),
+    );
+    expect(state.ok).toBe(false);
+    expect(state.message).toMatch(/temporary access/);
+    expect(state.message).toMatch(/your own email/);
+    expect(state.data).toBeUndefined();
+    expectTeamUntouched();
+  });
+
+  it('revokeInviteAction refuses a temporary session', async () => {
+    asTemporary();
+    const { revokeInviteAction } = await import('@/lib/actions/team');
+
+    const state = await revokeInviteAction(IDLE, form({ clientId: 'client1', inviteId: 'invite1' }));
+    expect(state.ok).toBe(false);
+    expect(state.message).toMatch(/temporary access/);
+    expectTeamUntouched();
+  });
+
+  it('setMembershipAction refuses a temporary session', async () => {
+    asTemporary();
+    const { setMembershipAction } = await import('@/lib/actions/team');
+
+    const state = await setMembershipAction(
+      IDLE,
+      form({ clientId: 'client1', membershipId: 'membership1', role: 'BUSINESS_OWNER', status: 'ACTIVE' }),
+    );
+    expect(state.ok).toBe(false);
+    expect(state.message).toMatch(/temporary access/);
+    expectTeamUntouched();
+  });
+
+  it('acceptInviteAction refuses a temporary session too', async () => {
+    h.currentActor.mockResolvedValueOnce(TEMPORARY_OWNER);
+    const { acceptInviteAction } = await import('@/lib/actions/team');
+
+    const state = await acceptInviteAction(IDLE, form({ token: 'some-token' }));
+    expect(state.ok).toBe(false);
+    expect(state.message).toMatch(/temporary access/);
+    expectTeamUntouched();
+  });
+
+  it("passes the gate's refusal straight through", async () => {
+    h.tenantGate.mockResolvedValue({ ok: false, state: REFUSED });
+    const { inviteMemberAction } = await import('@/lib/actions/team');
+
+    expect(await inviteMemberAction(IDLE, form({ clientId: 'client1', email: HOSTILE, role: 'BUSINESS_OWNER' }))).toBe(
+      REFUSED,
+    );
+    expectTeamUntouched();
+  });
+
+  it('the owner on their own login CAN invite someone as an owner', async () => {
+    asOwnLogin();
+    h.inviteMember.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        inviteId: 'invite1',
+        token: 'tok_fake_0001',
+        email: 'partner@example.com',
+        role: 'BUSINESS_OWNER',
+        expiresAt: new Date('2026-10-09T00:00:00Z'),
+      },
+    });
+    h.dbReplies['client.findUnique'] = { businessName: 'Headway QA Café (test)' };
+    h.deliverInvitation.mockResolvedValueOnce({ sent: true, email: 'partner@example.com' });
+    h.invitationLink.mockResolvedValueOnce('https://headway.test/invite/tok_fake_0001');
+    const { inviteMemberAction } = await import('@/lib/actions/team');
+
+    const state = await inviteMemberAction(
+      IDLE,
+      form({ clientId: 'client1', email: 'partner@example.com', role: 'BUSINESS_OWNER' }),
+    );
+    expect(h.tenantGate).toHaveBeenCalledWith(expect.any(FormData), 'OWNER');
+    expect(h.inviteMember).toHaveBeenCalledWith(h.prisma, 'client1', {
+      email: 'partner@example.com',
+      role: 'BUSINESS_OWNER',
+      invitedById: 'owner1',
+    });
+    expect(state.ok).toBe(true);
+    expect(state.data).toEqual({
+      link: 'https://headway.test/invite/tok_fake_0001',
+      email: 'partner@example.com',
+      sent: 'yes',
+    });
+  });
+
+  it('the owner on their own login CAN revoke an invitation', async () => {
+    asOwnLogin();
+    h.revokeInvite.mockResolvedValueOnce({ ok: true, data: { inviteId: 'invite1' } });
+    const { revokeInviteAction } = await import('@/lib/actions/team');
+
+    const state = await revokeInviteAction(IDLE, form({ clientId: 'client1', inviteId: 'invite1' }));
+    expect(h.revokeInvite).toHaveBeenCalledWith(h.prisma, 'client1', 'invite1');
+    expect(state).toEqual({ ok: true, message: 'That invitation no longer works.', errors: {} });
+  });
+
+  it('the owner on their own login CAN change a member', async () => {
+    asOwnLogin();
+    h.setMembership.mockResolvedValueOnce({ ok: true, data: { membershipId: 'membership1' } });
+    const { setMembershipAction } = await import('@/lib/actions/team');
+
+    const state = await setMembershipAction(
+      IDLE,
+      form({ clientId: 'client1', membershipId: 'membership1', role: 'BUSINESS_OWNER' }),
+    );
+    expect(h.setMembership).toHaveBeenCalledWith(h.prisma, 'client1', 'membership1', {
+      role: 'BUSINESS_OWNER',
+      status: undefined,
+    });
+    expect(state).toEqual({ ok: true, message: 'Saved.', errors: {} });
   });
 });

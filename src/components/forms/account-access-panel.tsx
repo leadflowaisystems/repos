@@ -1,7 +1,11 @@
 'use client';
 
 import { useActionState } from 'react';
-import { disableTempAccessAction, generateTempAccessAction } from '@/lib/actions/account-access';
+import {
+  disableTempAccessAction,
+  generateTempAccessAction,
+  setOwnerEmailAction,
+} from '@/lib/actions/account-access';
 import { IDLE, type ActionState } from '@/lib/actions/shared';
 import type { AdminAccessView } from '@/lib/account-access/service';
 import { CopyButton } from '@/components/copy-button';
@@ -13,7 +17,12 @@ import { SubmitButton } from '@/components/forms/submit-button';
  * Two separate things, never shown as one:
  *
  *   Permanent account  the owner's OWN login — their real email and their own
- *                      password, made at setup. This panel never changes it.
+ *                      password. Made when temporary access is generated, on
+ *                      the email the admin types (M53), pending until the
+ *                      owner opens the link sent there and chooses their
+ *                      password. The admin can correct the email until then;
+ *                      once the owner has confirmed it, this panel never
+ *                      changes it.
  *   Temporary access   a Headway-made email and password the admin hands
  *                      over. Generate / Disable / Enable at any time; the
  *                      permanent account is unaffected either way.
@@ -59,20 +68,72 @@ function DisableForm({ clientId }: { clientId: string }) {
   );
 }
 
+const INPUT =
+  'mt-1 w-full max-w-sm rounded-lg border bg-white px-3 py-2 text-[14px] text-ink-900 placeholder:text-ink-400';
+
+/** The owner's email, as the admin types it. The field keeps what was typed when the server refuses it. */
+function OwnerEmailField({ state, initial }: { state: ActionState; initial: string }) {
+  const error = state.errors.ownerEmail;
+  return (
+    <div className="mb-3">
+      <label htmlFor="owner-email" className="block text-[13px] font-medium text-ink-700">
+        Owner’s email
+      </label>
+      <input
+        id="owner-email"
+        name="ownerEmail"
+        type="email"
+        required
+        autoComplete="off"
+        defaultValue={state.data?.ownerEmail ?? initial}
+        aria-invalid={error ? true : undefined}
+        className={`${INPUT} ${error ? 'border-bad-600' : 'border-ink-300'}`}
+      />
+      {error ? (
+        <p className="mt-1 text-[12px] text-bad-700">{error}</p>
+      ) : (
+        <p className="mt-1 text-[12px] text-ink-500">
+          Their own sign-in is made on this address. Only someone who can read this inbox can finish it — check
+          it with the owner.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Adds the owner's email, or corrects it while the owner has not confirmed it. */
+function OwnerEmailForm({ clientId, adding }: { clientId: string; adding: boolean }) {
+  const [state, action] = useActionState(setOwnerEmailAction, IDLE);
+  return (
+    <form action={action} className="mt-3">
+      <input type="hidden" name="clientId" value={clientId} />
+      <OwnerEmailField state={state} initial="" />
+      <SubmitButton variant="secondary" pendingLabel="Saving…">
+        {adding ? 'Add the owner’s email' : 'Correct the owner’s email'}
+      </SubmitButton>
+      <Notice state={state} />
+    </form>
+  );
+}
+
 function GenerateForm({
   clientId,
   state,
   action,
   label,
+  ownerEmail,
 }: {
   clientId: string;
   state: ActionState;
   action: (formData: FormData) => void;
   label: string;
+  /** Present when the owner has no login of their own yet: the address to make it on. */
+  ownerEmail: { initial: string } | null;
 }) {
   return (
     <form action={action} className="mt-3">
       <input type="hidden" name="clientId" value={clientId} />
+      {ownerEmail ? <OwnerEmailField state={state} initial={ownerEmail.initial} /> : null}
       <SubmitButton variant="primary" pendingLabel="Working…">
         {label}
       </SubmitButton>
@@ -85,8 +146,10 @@ function GenerateForm({
 
 /**
  * The note under the permanent account, true for the temporary access it sits
- * beside: an owner whose own login is not confirmed can only get a new link
- * through "Set up your account", which only the temporary login reaches.
+ * beside. The owner proves their address and chooses their password from one
+ * link: asked for on Account with the temporary access, or with "Forgot
+ * password?" on the sign-in page, which works whether temporary access is on
+ * or off.
  */
 function permanentNote(view: AdminAccessView): string | null {
   const own = view.ownLogin;
@@ -98,15 +161,11 @@ function permanentNote(view: AdminAccessView): string | null {
       : 'Could not check this sign-in with Supabase just now. Reload the page.';
   }
   if (temporaryOn) {
-    return own.confirmationSent
-      ? 'Waiting for the owner to open the confirmation email. Until then they cannot sign in with it.'
-      : 'No confirmation email has gone out yet. Signed in with the temporary access, the owner can fill in "Set up your account" again to send one. Until then they cannot sign in with it.';
+    return own.linkSent
+      ? 'Waiting for the owner to open the link we emailed and choose their password. Until then they cannot sign in with it.'
+      : 'Not set up yet. Signed in with the temporary access, the owner presses “Email me a link to set my password” on Account; the link goes to this address only.';
   }
-  // With temporary access off, "Forgot password?" is the owner's way in: a
-  // reset link to that address confirms it too.
-  return own.confirmationSent
-    ? 'Not confirmed yet, and the temporary access is off. The owner can open the confirmation email, or use "Forgot password?" on the sign-in page with this address — that confirms it too.'
-    : 'Not confirmed, and no confirmation email has gone out. With the temporary access off, the owner can use "Forgot password?" on the sign-in page with this address — that confirms it too.';
+  return 'Not set up yet, and the temporary access is off. The owner can use “Forgot password?” on the sign-in page with this address: the link confirms it and sets their password.';
 }
 
 function PermanentAccount({ view }: { view: AdminAccessView }) {
@@ -116,11 +175,13 @@ function PermanentAccount({ view }: { view: AdminAccessView }) {
     <Row label="Permanent account">
       {own ? (
         <>
-          {own.email ?? <span className="font-normal text-ink-600">Set up, address not known yet</span>}
+          {own.email ?? <span className="font-normal text-ink-600">Could not check with Supabase just now</span>}
           {note ? <span className="mt-0.5 block text-[13px] font-normal text-ink-600">{note}</span> : null}
         </>
       ) : (
-        <span className="font-normal text-ink-600">Not set up yet</span>
+        <span className="font-normal text-ink-600">
+          {view.temporary === 'NONE' ? 'Not set up yet' : 'Not set up yet — add the owner’s email below'}
+        </span>
       )}
     </Row>
   );
@@ -184,6 +245,26 @@ function GeneratedCredentials({
   );
 }
 
+/** Straight after generating: the one-time password, plus a way to fix a mistyped owner email. */
+function JustGenerated({
+  clientId,
+  data,
+  state,
+  view,
+}: {
+  clientId: string;
+  data: Record<string, string>;
+  state: ActionState;
+  view: AdminAccessView;
+}) {
+  return (
+    <>
+      <GeneratedCredentials clientId={clientId} data={data} state={state} />
+      {view.canSetOwnerEmail ? <OwnerEmailForm clientId={clientId} adding={view.ownLogin === null} /> : null}
+    </>
+  );
+}
+
 export function AccountAccessPanel({ clientId, view }: { clientId: string; view: AdminAccessView }) {
   const [generateState, generateAction] = useActionState(generateTempAccessAction, IDLE);
 
@@ -224,7 +305,7 @@ export function AccountAccessPanel({ clientId, view }: { clientId: string; view:
       </dl>
 
       {justGenerated ? (
-        <GeneratedCredentials clientId={clientId} data={generated!} state={generateState} />
+        <JustGenerated clientId={clientId} data={generated!} state={generateState} view={view} />
       ) : view.temporaryBlocked ? (
         <div className="mt-3">
           <p className="text-[13px] leading-relaxed text-ink-600">
@@ -239,10 +320,11 @@ export function AccountAccessPanel({ clientId, view }: { clientId: string; view:
         <div className="mt-3">
           <p className="text-[13px] leading-relaxed text-ink-600">
             {view.ownLogin?.confirmed === true
-              ? 'The owner has their own sign-in now. Disable temporary access when they no longer need it; their own email and password keep working.'
+              ? 'The owner’s email is confirmed. Once they have signed in with their own email and password, disable temporary access — their own sign-in keeps working.'
               : 'The password was shown once, when it was generated. If it is lost, disable temporary access and enable it again for a new one.'}
           </p>
           <DisableForm clientId={clientId} />
+          {view.canSetOwnerEmail ? <OwnerEmailForm clientId={clientId} adding={view.ownLogin === null} /> : null}
         </div>
       ) : (
         <div className="mt-3">
@@ -257,7 +339,11 @@ export function AccountAccessPanel({ clientId, view }: { clientId: string; view:
             state={generateState}
             action={generateAction}
             label={view.temporary === 'DISABLED' ? 'Enable temporary access' : 'Generate temporary access'}
+            ownerEmail={view.needsOwnerEmail ? { initial: view.ownerEmailSuggestion ?? '' } : null}
           />
+          {view.temporary === 'DISABLED' && view.canSetOwnerEmail ? (
+            <OwnerEmailForm clientId={clientId} adding={view.ownLogin === null} />
+          ) : null}
         </div>
       )}
     </div>

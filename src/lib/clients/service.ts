@@ -3,7 +3,7 @@ import { newPublicToken } from '@/lib/tokens';
 import { isMissingDbFunction, withRlsContext } from '@/lib/db';
 import { createClientRow, setClientCommercials } from '@/lib/tenancy/service';
 import { getTrialDefaultDays, trialWindowFrom } from '@/lib/commercial/service';
-import { removeGeneratedIdentity } from '@/lib/auth/supabase-admin';
+import { getIdentitySnapshot, IDENTITY_MISSING, removeGeneratedIdentity } from '@/lib/auth/supabase-admin';
 import {
   clientInputSchema,
   normaliseBusinessName,
@@ -512,20 +512,36 @@ export async function restoreClient(
 export type PurgeDeps = {
   /** Revokes a Headway-generated sign-in identity. Already-gone counts as done. */
   removeIdentity: (authUserId: string) => Promise<{ ok: true } | { ok: false; message: string }>;
+  /**
+   * What Supabase says about an owner's own login (M53). Headway makes it,
+   * pending, when it generates temporary access; while nobody has confirmed
+   * it, it is still the business's own and goes with it. Left out, every own
+   * login counts as somebody's (`confirmed`) and stays.
+   */
+  ownLoginState?: (authUserId: string) => Promise<'unconfirmed' | 'confirmed' | 'missing' | 'unknown'>;
 };
 
 // Looked up when a delete actually runs, not when this module loads: nothing
 // that merely imports the client service should need the service-role module.
-const DEFAULT_PURGE_DEPS: PurgeDeps = { removeIdentity: (authUserId) => removeGeneratedIdentity(authUserId) };
+const DEFAULT_PURGE_DEPS: PurgeDeps = {
+  removeIdentity: (authUserId) => removeGeneratedIdentity(authUserId),
+  ownLoginState: async (authUserId) => {
+    const live = await getIdentitySnapshot(authUserId);
+    if (live === null) return 'unknown';
+    if (live === IDENTITY_MISSING) return 'missing';
+    return live.confirmed ? 'confirmed' : 'unconfirmed';
+  },
+};
 
 /**
  * What a business's temporary access leaves behind when the business goes.
  *
  * The TEMPORARY login (`AccountAccess.tempAuthId`) is always Headway's own,
  * made for this business alone, so it always goes. The owner User goes with
- * it only when it is nobody's account yet — it never got a login of its own
- * (setup never happened), is not Headway staff, and belongs to no other
- * business.
+ * it only when it is nobody's account yet — it has no login of its own that
+ * anybody has proved (none at all, one Supabase no longer has, or the pending
+ * one Headway made at generation (M53) that nobody confirmed — which goes
+ * too), is not Headway staff, and belongs to no other business.
  *
  * Everyone else — an owner who set up their own login, an owner who signed up
  * themselves, a colleague who was invited — keeps their account. Deleting a
@@ -536,7 +552,19 @@ const DEFAULT_PURGE_DEPS: PurgeDeps = { removeIdentity: (authUserId) => removeGe
 async function generatedLoginOnlyFor(
   db: PrismaClient,
   clientId: string,
-): Promise<{ tempAuthId: string | null; userId: string | null } | null> {
+  deps: PurgeDeps,
+): Promise<
+  | {
+      tempAuthId: string | null;
+      pendingOwnAuthId: string | null;
+      userId: string | null;
+      /** The login the User names, when the User goes: none, a pending one, or one Supabase no longer has. */
+      userLogin: string | null;
+      unknown?: false;
+    }
+  | { unknown: true }
+  | null
+> {
   const access = await db.accountAccess.findUnique({
     where: { clientId },
     select: {
@@ -553,11 +581,28 @@ async function generatedLoginOnlyFor(
   });
   if (!access) return null;
   const { user } = access;
-  const nobodysAccount = user.authProviderId === null && !user.isPlatformAdmin && user.memberships.length === 0;
+  const onlyHere = !user.isPlatformAdmin && user.memberships.length === 0;
   // Never the owner's own login, even if a row were ever left naming it as
   // the temporary one: a person's own sign-in is not the business's to take.
   const tempAuthId = access.tempAuthId !== user.authProviderId ? access.tempAuthId : null;
-  return { tempAuthId, userId: nobodysAccount ? user.id : null };
+
+  // The owner's own login: theirs once anybody has confirmed it; until then
+  // (M53), the pending one Headway made, which goes with the business.
+  let pendingOwnAuthId: string | null = null;
+  let ownGone = user.authProviderId === null;
+  if (user.authProviderId && user.authProviderId !== access.tempAuthId && onlyHere && deps.ownLoginState) {
+    const state = await deps.ownLoginState(user.authProviderId);
+    if (state === 'unknown') return { unknown: true };
+    if (state === 'unconfirmed') pendingOwnAuthId = user.authProviderId;
+    if (state === 'missing') ownGone = true;
+  }
+  const nobodysAccount = onlyHere && (ownGone || pendingOwnAuthId !== null);
+  return {
+    tempAuthId,
+    pendingOwnAuthId,
+    userId: nobodysAccount ? user.id : null,
+    userLogin: nobodysAccount ? user.authProviderId : null,
+  };
 }
 
 /**
@@ -615,23 +660,32 @@ export async function purgeClient(
     });
   }
 
-  const generated = await generatedLoginOnlyFor(db, id);
-  if (generated?.tempAuthId) {
-    const revoked = await deps.removeIdentity(generated.tempAuthId);
-    if (!revoked.ok) {
-      return err(
-        `Nothing was deleted. The temporary login Headway generated for this business could not be removed: ${revoked.message}`,
-      );
-    }
+  const generated = await generatedLoginOnlyFor(db, id, deps);
+  if (generated?.unknown) {
+    return err('Nothing was deleted. The owner’s sign-in could not be checked with Supabase just now. Try again in a minute.');
+  }
+  for (const [authUserId, what] of [
+    [generated?.tempAuthId, 'The temporary login Headway generated for this business'],
+    [generated?.pendingOwnAuthId, 'The owner sign-in Headway made for this business (never confirmed)'],
+  ] as const) {
+    if (!authUserId) continue;
+    const revoked = await deps.removeIdentity(authUserId);
+    if (!revoked.ok) return err(`Nothing was deleted. ${what} could not be removed: ${revoked.message}`);
   }
 
   await withRlsContext(db, async (tx) => {
     await tx.client.delete({ where: { id } });
     if (generated?.userId) {
       // Guarded again inside the transaction: only if, with this business
-      // gone, the row belongs to nothing at all, has no login, and is not staff.
+      // gone, the row belongs to nothing at all, has no login anybody proved,
+      // and is not staff.
       await tx.user.deleteMany({
-        where: { id: generated.userId, authProviderId: null, isPlatformAdmin: false, memberships: { none: {} } },
+        where: {
+          id: generated.userId,
+          isPlatformAdmin: false,
+          memberships: { none: {} },
+          OR: [{ authProviderId: null }, ...(generated.userLogin ? [{ authProviderId: generated.userLogin }] : [])],
+        },
       });
     }
   });

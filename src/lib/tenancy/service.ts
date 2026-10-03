@@ -67,9 +67,10 @@ export type Actor = {
    */
   temporaryAccessClientId?: string | null;
   /**
-   * The business whose temporary access this person is signed in with while
-   * its owner has no login of their own yet. Sign-in sends them straight to
-   * that business's Account page, where setup lives.
+   * The business whose temporary access this person is signed in with.
+   * Sign-in sends them straight to that business's Account page, where the
+   * owner's own sign-in is set up (M53: whether or not Headway has made it
+   * yet — a temporary sign-in exists for exactly that).
    */
   setupPendingClientId?: string | null;
 };
@@ -150,9 +151,9 @@ function toActor(
     status: user.status,
     memberships: user.memberships,
     temporaryAccessClientId: temporaryClientId,
-    // Signed in with temporary access to a business whose owner has no login
-    // of their own yet: sign-in goes straight to setup.
-    setupPendingClientId: temporaryClientId && user.authProviderId === null ? temporaryClientId : null,
+    // Signed in with temporary access: sign-in goes straight to Account,
+    // where the owner's own sign-in is set up.
+    setupPendingClientId: temporaryClientId,
   };
 }
 

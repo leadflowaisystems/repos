@@ -1231,16 +1231,20 @@ describe('V1 hard rules — nothing acts without an operator behind it (M16)', (
     completeOnboardingAction: 'MEMBER',
     // M39 - the pilot's temporary-credential handover. Generating and
     // disabling are the platform's decision, like every other
-    // whole-installation action, so both are ADMIN. Completing setup is
-    // OWNER: by the time it is reachable the actor already holds a real,
-    // ACTIVE BUSINESS_OWNER membership on this client (created eagerly by
-    // generateTempAccess), and the finer-grained "is this actually the bound
-    // temporary-access user, and is it still TEMPORARY_ACTIVE" check is the
-    // action's own, layered on top the same way setMembershipAction layers
-    // its "last owner" rule on top of its own OWNER gate.
+    // whole-installation action, so both are ADMIN — and so, since M53, is
+    // recording the owner's email, which makes their own login (pending).
+    // Asking for the owner's set-your-password link is OWNER: by the time it
+    // is reachable the actor already holds a real, ACTIVE BUSINESS_OWNER
+    // membership on this client (created eagerly by generateTempAccess), and
+    // the finer-grained "is this actually the bound temporary-access user,
+    // and is it still TEMPORARY_ACTIVE" check is the action's own, layered on
+    // top the same way setMembershipAction layers its "last owner" rule on
+    // top of its own OWNER gate. It changes nothing; the link goes only to
+    // the address Headway recorded.
     generateTempAccessAction: 'ADMIN',
     disableTempAccessAction: 'ADMIN',
-    completeAccountSetupAction: 'OWNER',
+    setOwnerEmailAction: 'ADMIN',
+    requestOwnerPasswordLinkAction: 'OWNER',
     // M52 - changing your own password is any member's own business, from
     // their own login — and it still needs the current password, checked inside.
     changePasswordAction: 'MEMBER',

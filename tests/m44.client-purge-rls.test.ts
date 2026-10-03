@@ -42,6 +42,12 @@ import { resetDb, validClientInput } from './helpers/test-db';
 let session: { id: string } | null = null;
 const removed: string[] = [];
 let removeOutcome: { ok: true } | { ok: false; message: string } = { ok: true };
+/**
+ * What Supabase says about each owner's own login, by id (M53). Absent:
+ * Supabase has no such login. `unreachable`: it cannot be asked.
+ */
+const ownLogins = new Map<string, { email: string; confirmed: boolean }>();
+let supabaseUnreachable = false;
 
 vi.mock('@/lib/auth/supabase', () => ({
   SUPABASE_URL_VAR: 'SUPABASE_URL',
@@ -72,6 +78,12 @@ vi.mock('@/lib/auth/supabase-admin', () => ({
   randomizeIdentityPassword: async () => {},
   setPermanentCredentials: async () => ({ ok: true }),
   deleteIdentity: async () => {},
+  IDENTITY_MISSING: 'missing',
+  getIdentitySnapshot: async (authUserId: string) => {
+    if (supabaseUnreachable) return null;
+    const own = ownLogins.get(authUserId);
+    return own ? { ...own, confirmationSent: false, recoverySent: false, lastSignInAt: null } : 'missing';
+  },
 }));
 
 vi.mock('next/cache', () => ({ revalidatePath: () => {}, revalidateTag: () => {} }));
@@ -194,6 +206,8 @@ beforeEach(async () => {
   session = null;
   removed.length = 0;
   removeOutcome = { ok: true };
+  ownLogins.clear();
+  supabaseUnreachable = false;
   await resetDb(owner);
   await owner.user.deleteMany();
 
@@ -382,6 +396,8 @@ describe('archive → permanent delete, by Headway staff', () => {
       where: { id: ids.generated },
       data: { authProviderId: '77777777-7777-4777-8777-777777777777', email: 'real@owner.test' },
     });
+    // Confirmed: the owner proved the address. It is theirs, not the business's.
+    ownLogins.set('77777777-7777-4777-8777-777777777777', { email: 'real@owner.test', confirmed: true });
     await owner.accountAccess.update({ where: { clientId: ids.alpha }, data: { setupCompletedAt: new Date() } });
     await archive(ids.alpha);
     session = { id: AUTH.admin };
@@ -390,6 +406,50 @@ describe('archive → permanent delete, by Headway staff', () => {
 
     // Headway's temporary login is revoked; the person's own account stays.
     expect(removed).toEqual([AUTH.generated]);
+    expect(await owner.user.findUnique({ where: { id: ids.generated } })).not.toBeNull();
+  });
+
+  it('removes the owner sign-in Headway made, pending and never confirmed, with the business (M53)', async () => {
+    // Since M53 the owner's own login is made at generation, on the address
+    // Headway recorded, unconfirmed. Nobody proved it: it is the business's
+    // own, and left behind it would hold the owner's address for good.
+    const { purgeClient } = await import('@/lib/clients/service');
+    const pending = '88888888-8888-4888-8888-888888888888';
+    await owner.user.update({ where: { id: ids.generated }, data: { authProviderId: pending } });
+    ownLogins.set(pending, { email: 'owner@alpha.test', confirmed: false });
+    await archive(ids.alpha);
+    session = { id: AUTH.admin };
+    expect(await purgeClient(app, ids.alpha, 'Alpha Salon')).toEqual({
+      ok: true,
+      data: { id: ids.alpha, removedLogin: true },
+    });
+    // Both Supabase logins revoked — the temporary one first — and the User gone.
+    expect(removed).toEqual([AUTH.generated, pending]);
+    expect(await owner.user.findUnique({ where: { id: ids.generated } })).toBeNull();
+  });
+
+  it('removes the owner User whose own login Supabase no longer has, revoking nothing more', async () => {
+    const { purgeClient } = await import('@/lib/clients/service');
+    await owner.user.update({ where: { id: ids.generated }, data: { authProviderId: '99999999-9999-4999-8999-999999999999' } });
+    await archive(ids.alpha);
+    session = { id: AUTH.admin };
+    expect((await purgeClient(app, ids.alpha, 'Alpha Salon')).ok).toBe(true);
+    expect(removed).toEqual([AUTH.generated]);
+    expect(await owner.user.findUnique({ where: { id: ids.generated } })).toBeNull();
+  });
+
+  it('deletes nothing when Supabase cannot say whether the owner’s own login is confirmed', async () => {
+    const { purgeClient } = await import('@/lib/clients/service');
+    await owner.user.update({ where: { id: ids.generated }, data: { authProviderId: '88888888-8888-4888-8888-888888888888' } });
+    supabaseUnreachable = true;
+    await archive(ids.alpha);
+    const before = await rowsFor(ids.alpha);
+    session = { id: AUTH.admin };
+    const result = await purgeClient(app, ids.alpha, 'Alpha Salon');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.message).toMatch(/^Nothing was deleted/);
+    expect(removed).toEqual([]);
+    expect(await rowsFor(ids.alpha)).toEqual(before);
     expect(await owner.user.findUnique({ where: { id: ids.generated } })).not.toBeNull();
   });
 

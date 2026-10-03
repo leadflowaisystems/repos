@@ -76,6 +76,16 @@ const nextConfig: NextConfig = {
           { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
         ],
       },
+      {
+        // The one page with a plain HTML form (M53): under `no-referrer` a
+        // browser sends a form POST with `Origin: null`, and the auth
+        // callback takes that POST only from this site. `same-origin` sends
+        // the real Origin to this site and nothing at all to any other — the
+        // token in this page's address still never leaves Headway. Listed
+        // after the rule above, so for this path it is the one that applies.
+        source: '/auth/confirm',
+        headers: [{ key: 'Referrer-Policy', value: 'same-origin' }],
+      },
     ];
   },
 };

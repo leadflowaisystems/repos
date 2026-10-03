@@ -1176,34 +1176,11 @@ END $fn$;
 REVOKE ALL ON FUNCTION app.rebind_temp_access(text, text, text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION app.rebind_temp_access(text, text, text, text) TO repos_app;
 
--- Setting up the owner's own login asks whether ANOTHER RepOS account already
--- has the address typed. Under RLS a temporary login sees only its own
--- business's people, so it could not tell; Supabase can only tell for an
--- address a Supabase login still holds. This answers it — and only for the
--- owner of a business whose temporary access is switched on, the one time
--- setup can run; for anyone else it says false, and so tells them nothing
--- about who has an account.
-CREATE OR REPLACE FUNCTION app.owner_email_taken(p_email text)
-  RETURNS boolean
-  LANGUAGE sql
-  STABLE
-  SECURITY DEFINER
-  SET search_path = pg_catalog, public
-AS $fn$
-  SELECT EXISTS (
-           SELECT 1 FROM public."AccountAccess" a
-            WHERE a."userId" = app.current_user_id()
-              AND a.status = 'TEMPORARY_ACTIVE'
-         )
-     AND EXISTS (
-           SELECT 1 FROM public."User" u
-            WHERE lower(u.email) = lower(btrim(p_email))
-              AND u.id <> app.current_user_id()
-         )
-$fn$;
-
-REVOKE ALL ON FUNCTION app.owner_email_taken(text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION app.owner_email_taken(text) TO repos_app;
+-- M53: setup no longer runs from the temporary login, so it no longer asks
+-- whether an address is taken (that answered only for a temporary login, and
+-- is one less thing such a session can learn). Headway records the owner's
+-- address, and platform staff read every User directly.
+DROP FUNCTION IF EXISTS app.owner_email_taken(text);
 
 -- Switching temporary access on and off is the platform's alone. The bound
 -- owner's update policy above shares the column grant with platform staff, so
@@ -1235,3 +1212,42 @@ DROP TRIGGER IF EXISTS account_access_switch_guard ON public."AccountAccess";
 CREATE TRIGGER account_access_switch_guard
   BEFORE UPDATE ON public."AccountAccess"
   FOR EACH ROW EXECUTE FUNCTION app.guard_account_access_switch();
+
+-- ---------------------------------------------------------------------------
+-- M53 — a handed-over owner's own login is Headway's to point at.
+--
+-- Since M53 the owner's own login (`User."authProviderId"`) is made by
+-- platform staff when temporary access is generated — on the address the
+-- admin records, unconfirmed, with no password anybody knows — and replaced
+-- only by staff, only while nobody has confirmed it. Whoever holds the
+-- temporary login signs in AS that owner User, so `user_self_or_admin` and
+-- the column grant above would let that session's connection re-point
+-- "authProviderId" (the login that opens the account) at an identity of its
+-- choosing, or rewrite "email" (what invitations are matched on). No
+-- application path does either from an owner's session any more; this makes
+-- sure none can. The owner's address is written once they prove it, by
+-- `app.provision_user` — a definer function, which runs as the owner role
+-- and is not affected — and staff are not affected either.
+CREATE OR REPLACE FUNCTION app.guard_handover_owner_login()
+  RETURNS trigger
+  LANGUAGE plpgsql
+  SET search_path = pg_catalog, public
+AS $fn$
+BEGIN
+  IF current_user = 'repos_app'
+     AND NOT app.is_platform_admin()
+     AND (NEW."authProviderId" IS DISTINCT FROM OLD."authProviderId"
+          OR NEW.email IS DISTINCT FROM OLD.email)
+     AND EXISTS (SELECT 1 FROM public."AccountAccess" a WHERE a."userId" = OLD.id) THEN
+    RAISE EXCEPTION 'only platform staff can change a handed-over owner''s login'
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+  RETURN NEW;
+END $fn$;
+
+REVOKE ALL ON FUNCTION app.guard_handover_owner_login() FROM PUBLIC;
+
+DROP TRIGGER IF EXISTS user_handover_login_guard ON public."User";
+CREATE TRIGGER user_handover_login_guard
+  BEFORE UPDATE ON public."User"
+  FOR EACH ROW EXECUTE FUNCTION app.guard_handover_owner_login();

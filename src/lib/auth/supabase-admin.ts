@@ -23,9 +23,10 @@ import { SUPABASE_URL_VAR } from '@/lib/auth/supabase';
  * NOTHING HERE SENDS AN EMAIL. `createUser`, `updateUserById`, `getUserById`
  * and `deleteUser` never mail anyone, which is the point: handing over
  * temporary access costs the project's email allowance nothing. The one email
- * in the handover — confirming the owner's real address — is asked for by the
- * owner's own session, never from here, because an admin "confirm" would
- * trust an address nobody has proved they can read.
+ * in the handover — the link with which the owner proves their address and
+ * chooses their password — is an ordinary password-reset email, asked for
+ * from Account, never from here: an admin "confirm" would trust an address
+ * nobody has proved they can read.
  *
  * `SUPABASE_SERVICE_ROLE_KEY` is read only here, only on the server, and only
  * for the narrow operations below. The compliance suite already
@@ -201,6 +202,8 @@ export type IdentitySnapshot = {
    * password clears it, along with the old link).
    */
   confirmationSent: boolean;
+  /** A password-reset link has gone out to this login (how an owner proves their address since M53). */
+  recoverySent: boolean;
   lastSignInAt: string | null;
 };
 
@@ -238,6 +241,7 @@ export async function getIdentitySnapshot(
       email: (data.user.email ?? '').toLowerCase(),
       confirmed: Boolean(data.user.email_confirmed_at),
       confirmationSent: Boolean(data.user.confirmation_sent_at),
+      recoverySent: Boolean(data.user.recovery_sent_at),
       lastSignInAt: data.user.last_sign_in_at ?? null,
     };
   } catch (error) {
@@ -248,43 +252,59 @@ export async function getIdentitySnapshot(
   }
 }
 
-export type OwnerIdentityFailure = 'EMAIL_TAKEN' | 'WEAK_PASSWORD' | 'NOT_CONFIGURED' | 'UNKNOWN';
+export type OwnerIdentityFailure = 'EMAIL_TAKEN' | 'EMAIL_REFUSED' | 'NOT_CONFIGURED' | 'UNKNOWN';
 
 export type OwnerIdentityResult =
   | { ok: true; authUserId: string }
   | { ok: false; reason: OwnerIdentityFailure; message: string };
 
 /**
- * THE OWNER'S OWN LOGIN (M52): their real email and the password they chose,
- * as a NEW Supabase identity — deliberately NOT confirmed. Nothing can sign in
- * with it until the owner opens the confirmation link Supabase emails to that
- * address (the caller asks for that email through the owner's own session), so
- * a mistyped or somebody else's address never becomes a working login or a
- * password-reset address. This call itself sends no email.
+ * THE OWNER'S OWN LOGIN, MADE BY HEADWAY (M53): a new Supabase identity on the
+ * address Headway recorded for the owner — NOT confirmed, and with no
+ * password anybody knows (none is passed, so Supabase makes a long random one
+ * itself). Nothing can sign in with it. It starts working only when the owner
+ * opens a link Supabase emails to that address and chooses a password there:
+ * whoever holds the temporary login can ask for that link, but it only ever
+ * goes to this address, so only the person who reads that inbox can finish it.
+ * This call itself sends no email.
  *
  * The admin API refuses an address ANY identity already holds, confirmed or
  * not, so the identity returned is always a brand-new one, never somebody
- * else's.
+ * else's. `id`, when given, is the id it is made with: a caller that never
+ * hears back can then look it up rather than leave it unaccounted for.
  */
-export async function createOwnerIdentity(email: string, password: string): Promise<OwnerIdentityResult> {
+export async function createPendingOwnerIdentity(email: string, id?: string): Promise<OwnerIdentityResult> {
   const config = adminConfig();
   if (!config.ok) return { ok: false, reason: 'NOT_CONFIGURED', message: config.reason };
-  const supabase = adminClient();
-  const { data, error } = await supabase.auth.admin.createUser({ email, password, email_confirm: false });
-  if (!error && data.user) return { ok: true, authUserId: data.user.id };
-  console.error('createOwnerIdentity: Supabase Auth admin create failed', {
-    code: error?.code,
-    status: error?.status,
-    message: error?.message,
-  });
-  const message = error?.message ?? 'Could not create the login.';
-  if (error?.code === 'email_exists' || /already been registered|already registered/i.test(message)) {
-    return { ok: false, reason: 'EMAIL_TAKEN', message };
+  try {
+    const supabase = adminClient();
+    const { data, error } = await supabase.auth.admin.createUser({
+      ...(id ? { id } : {}),
+      email,
+      email_confirm: false,
+      // Says, in Supabase itself, what this login is: should a failure ever
+      // leave one behind, it can be found and told apart from a person's own.
+      app_metadata: { headway_pending_owner: true },
+    });
+    if (!error && data.user) return { ok: true, authUserId: data.user.id };
+    console.error('createPendingOwnerIdentity: Supabase Auth admin create failed', {
+      code: error?.code,
+      status: error?.status,
+      message: error?.message,
+    });
+    const message = error?.message ?? 'Could not create the login.';
+    if (error?.code === 'email_exists' || /already been registered|already registered/i.test(message)) {
+      return { ok: false, reason: 'EMAIL_TAKEN', message };
+    }
+    if (error?.code === 'email_address_invalid' || error?.code === 'validation_failed') {
+      return { ok: false, reason: 'EMAIL_REFUSED', message };
+    }
+    return { ok: false, reason: 'UNKNOWN', message };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('createPendingOwnerIdentity: Supabase Auth admin create threw', { message });
+    return { ok: false, reason: 'UNKNOWN', message };
   }
-  if (error?.code === 'weak_password' || /password/i.test(message)) {
-    return { ok: false, reason: 'WEAK_PASSWORD', message };
-  }
-  return { ok: false, reason: 'UNKNOWN', message };
 }
 
 /**

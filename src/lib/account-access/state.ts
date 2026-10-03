@@ -25,10 +25,29 @@ export function isTemporaryEmail(email: string | null | undefined): boolean {
 }
 
 /**
- * The shape of a generated temporary password (`Kq7m-x3pa-9fne-t2wd`). Setup
- * refuses it as the owner's own password: the admin has seen it.
+ * A generated temporary password (`Kq7m-x3pa-9fne-t2wd`) is refused as anyone's
+ * own password — choosing one after a reset link, or changing one — because it
+ * is printed on a handover sheet that the admin and whoever carried the sheet
+ * have seen.
  */
-export const TEMP_PASSWORD_SHAPE = /^[A-Za-z0-9]{4}(-[A-Za-z0-9]{4}){3}$/;
+export const TEMPORARY_PASSWORD_REFUSED = 'Choose your own password, not the temporary one from Headway.';
+
+/**
+ * The sixteen characters a generated temporary password is made of, separators
+ * aside: the token alphabet (no i, l, o or 1 — `@/lib/tokens`, repeated here so
+ * this file stays free of server-only imports).
+ */
+const TEMP_PASSWORD_BODY = /^[abcdefghjkmnpqrstuvwxyz023456789]{16}$/;
+
+/**
+ * A password that is, or is typed from, a handover sheet's temporary password:
+ * the same sixteen characters with or without its hyphens, with spaces, in any
+ * case. Anything with a character the generator never uses (i, l, o, 1, a
+ * symbol) or another length is somebody's own.
+ */
+export function looksLikeTemporaryPassword(password: string): boolean {
+  return TEMP_PASSWORD_BODY.test(password.replace(/[\s-]/g, '').toLowerCase());
+}
 
 /** Whether the temporary login signs in right now. */
 export function temporaryStatusOf(

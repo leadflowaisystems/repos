@@ -227,6 +227,20 @@ describe('nothing about authentication got weaker', () => {
     expect(calls).toEqual([]);
   });
 
+  it('refuses the temporary password from a handover sheet, without touching either system (M53)', async () => {
+    // A handed-over owner chooses their first password here. The sheet's
+    // password has been seen by the admin and by whoever carried the sheet.
+    // As printed, without its hyphens, with spaces, in another case.
+    for (const sheet of ['Kq7m-x3pa-9fne-t2wd', ' Kq7m-x3pa-9fne-t2wd ', 'Kq7mx3pa9fnet2wd', 'kq7m x3pa 9fne t2wd', 'KQ7M-X3PA-9FNE-T2WD']) {
+      const result = await run(sheet);
+      expect(result, sheet).toMatchObject({
+        ok: false,
+        errors: { password: 'Choose your own password, not the temporary one from Headway.' },
+      });
+    }
+    expect(calls).toEqual([]);
+  });
+
   it('refuses two passwords that do not match, without touching either system', async () => {
     const result = await run('a-good-password', 'a-good-passw0rd');
 

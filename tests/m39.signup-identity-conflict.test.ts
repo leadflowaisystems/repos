@@ -19,6 +19,12 @@ import type { Mock } from 'vitest';
  * message an ordinary failure already gets — never a distinct "that email
  * already exists" message, which would let this form be used to ask whether
  * a given address has an account.
+ *
+ * Since M53 a signup is provisioned here only when Supabase hands back a
+ * session (a project that confirms addresses automatically). One still
+ * waiting for its confirmation link gets no RepOS user until that link is
+ * opened — the auth callback provisions then — so the conflict cases below
+ * are the ones with a session.
  */
 
 // `vi.mock` factories are hoisted above every other statement in this file,
@@ -81,7 +87,7 @@ describe('signUpAction', () => {
     // Case 2: Supabase accepts, but provisioning this email conflicts with a
     // different identity — the case that used to crash.
     signUpMock.mockResolvedValueOnce({
-      data: { user: { id: 'auth-user-1' }, session: null },
+      data: { user: { id: 'auth-user-1' }, session: { access_token: 't' } },
       error: null,
     });
     (provisionUser as Mock).mockRejectedValueOnce(new IdentityConflictError());
@@ -100,7 +106,7 @@ describe('signUpAction', () => {
     const { IDLE } = await import('@/lib/actions/shared');
 
     signUpMock.mockResolvedValueOnce({
-      data: { user: { id: 'auth-user-2' }, session: null },
+      data: { user: { id: 'auth-user-2' }, session: { access_token: 't' } },
       error: null,
     });
     (provisionUser as Mock).mockRejectedValueOnce(new IdentityConflictError());
@@ -119,7 +125,7 @@ describe('signUpAction', () => {
     const { IDLE } = await import('@/lib/actions/shared');
 
     signUpMock.mockResolvedValueOnce({
-      data: { user: { id: 'auth-user-3' }, session: null },
+      data: { user: { id: 'auth-user-3' }, session: { access_token: 't' } },
       error: null,
     });
     (provisionUser as Mock).mockRejectedValueOnce(new Error('a genuinely different failure'));
@@ -171,15 +177,15 @@ describe('signUpAction with an address that already has an account', () => {
     const existing = await signUpAction(IDLE, form({ email: 'known@example.com', password: 'password1' }));
     expect(provisionUser).not.toHaveBeenCalled();
 
-    // A genuine new signup awaiting confirmation.
+    // A genuine new signup awaiting confirmation. Nobody has proved the
+    // address yet, so no RepOS user either (M53): the confirmation link
+    // provisions one when it is opened.
     signUpMock.mockResolvedValueOnce({
       data: { user: { id: 'real-id', identities: [{ id: 'i1' }] }, session: null },
       error: null,
     });
-    (provisionUser as Mock).mockResolvedValueOnce({ userId: 'u1', created: true });
     const fresh = await signUpAction(IDLE, form({ email: 'new@example.com', password: 'password1' }));
-    expect(provisionUser).toHaveBeenCalledTimes(1);
-    expect(provisionUser).toHaveBeenCalledWith(expect.anything(), { providerId: 'real-id', email: 'new@example.com' });
+    expect(provisionUser).not.toHaveBeenCalled();
 
     // Indistinguishable to whoever is filling in the form.
     expect(existing).toEqual(fresh);

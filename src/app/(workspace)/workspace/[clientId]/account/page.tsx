@@ -18,7 +18,6 @@ import { LanguageForm } from '@/components/forms/language-form';
 import { AccountSetupForm } from '@/components/forms/account-setup-form';
 import { ChangePasswordForm } from '@/components/forms/account-signin-forms';
 import { getOwnerAccessView, type OwnerAccessView } from '@/lib/account-access/service';
-import { isTemporaryEmail } from '@/lib/account-access/state';
 import { currentAuthIdentity } from '@/lib/db';
 import { getLocale, getTranslator } from '@/lib/i18n/request';
 
@@ -206,21 +205,24 @@ function Reach({ account }: { account: AccountState }) {
 
 /**
  * The one sentence a redirect may ask this page to show, chosen here from a
- * fixed set — never words from the URL. `setup` comes back from finishing
- * setup (how the confirmation email went); `email=confirmed` from the link.
+ * fixed set — never words from the URL. `link` comes back from the
+ * set-your-password button (how sending it went; the address in the
+ * sentence is the owner's own login, never the URL's); `email=confirmed`
+ * from a confirmation link.
  */
 function accountNotice(
   query: Record<string, string | string[] | undefined>,
   t: T,
+  linkEmail: string | null,
 ): { tone: 'good' | 'warn'; text: string } | null {
   if (query.email === 'confirmed') return { tone: 'good', text: t('account.signin.emailConfirmed') };
-  switch (query.setup) {
+  switch (query.link) {
     case 'sent':
-      return { tone: 'good', text: t('account.setup.done') };
+      return linkEmail ? { tone: 'good', text: t('account.setup.linkSent', { email: linkEmail }) } : null;
     case 'wait':
-      return { tone: 'warn', text: t('account.setup.emailWait') };
+      return { tone: 'warn', text: t('account.setup.linkWait') };
     case 'failed':
-      return { tone: 'warn', text: t('account.setup.emailFailed') };
+      return { tone: 'warn', text: t('account.setup.linkFailed') };
     default:
       return null;
   }
@@ -236,49 +238,51 @@ function Notice({ notice }: { notice: { tone: 'good' | 'warn'; text: string } | 
 }
 
 /**
- * SIGNED IN WITH THE TEMPORARY LOGIN: setting up the owner's own.
+ * SIGNED IN WITH THE TEMPORARY LOGIN: the owner's own sign-in (M53).
  *
- *   no own login yet       the setup form
- *   own login, unconfirmed "check your email" (or, when no link has actually
- *                          gone out, "fill this in again to send it"), and
- *                          the form again (a typo, a lost email)
- *   own login, confirmed   "sign out and sign in with it"
- *   Supabase not reachable "reload in a minute" — never "ready" on a guess
+ * The owner's own login is Headway's to make, on the address Headway
+ * recorded; from here the owner only has the link sent there.
+ *
+ *   no own login (no email   "ask Headway to add it" — nothing to press
+ *   recorded yet)
+ *   own login, unconfirmed   the address, and one button that emails the
+ *                            link where they choose their password
+ *   own login, confirmed     "sign out and sign in with it" — and the same
+ *                            button, for a password never chosen or forgotten
+ *   Supabase not reachable   "reload in a minute" — never "ready" on a guess
  */
 function SetupSection({
   clientId,
   view,
-  initial,
   notice,
   t,
 }: {
   clientId: string;
   view: OwnerAccessView;
-  initial: { name: string; phone: string; email: string };
   notice: { tone: 'good' | 'warn'; text: string } | null;
   t: T;
 }) {
   const own = view.ownLogin;
+  const p = 'text-[15px] leading-relaxed text-ink-700';
   return (
     <Section eyebrow={t('account.setup.eyebrow')}>
       <Notice notice={notice} />
-      {!own ? (
-        <AccountSetupForm clientId={clientId} initial={initial} />
-      ) : own.confirmed === null ? (
-        <p className="text-[15px] leading-relaxed text-ink-700">{t('account.setup.unknown')}</p>
-      ) : own.confirmed ? (
-        <p className="text-[15px] leading-relaxed text-ink-700">
-          {t('account.setup.ready', { email: own.email ?? '' })}
-        </p>
+      {own?.confirmed === null ? (
+        <p className={p}>{t('account.setup.unknown')}</p>
+      ) : !own || !own.email ? (
+        <p className={p}>{t('account.setup.noEmail')}</p>
       ) : (
         <>
-          <p className="text-[15px] leading-relaxed text-ink-700">
-            {own.confirmationSent
-              ? t('account.setup.checkEmail', { email: own.email ?? '' })
-              : t('account.setup.notSent', { email: own.email ?? '' })}
+          <p className={p}>
+            {own.confirmed
+              ? t('account.setup.ready', { email: own.email })
+              : t('account.setup.intro', { email: own.email })}
           </p>
-          <p className="mt-2 mb-6 text-[14px] leading-relaxed text-ink-600">{t('account.setup.untilConfirmed')}</p>
-          <AccountSetupForm clientId={clientId} initial={{ ...initial, email: own.email ?? initial.email }} again />
+          {own.confirmed ? null : (
+            <p className="mt-2 text-[14px] leading-relaxed text-ink-600">{t('account.setup.notYours')}</p>
+          )}
+          <AccountSetupForm clientId={clientId} />
+          <p className="mt-3 text-[13px] leading-relaxed text-ink-500">{t('account.setup.newest')}</p>
         </>
       )}
     </Section>
@@ -307,6 +311,7 @@ function SignInSection({
       <Facts facts={[{ label: t('account.signin.email'), value: email }]} />
       <h3 className="mt-8 mb-3 text-[15px] font-semibold text-ink-900">{t('account.signin.password')}</h3>
       <ChangePasswordForm clientId={clientId} />
+      <p className="mt-4 text-[13px] leading-relaxed text-ink-500">{t('account.signin.forgot')}</p>
     </Section>
   );
 }
@@ -365,7 +370,7 @@ export default async function WorkspaceAccountPage({
   const ownerView = identity
     ? await getOwnerAccessView(prisma, clientId, access.actor.userId, identity.id)
     : null;
-  const notice = accountNotice(query, t);
+  const notice = accountNotice(query, t, ownerView?.ownLogin?.email ?? null);
 
   const basePath = `/workspace/${clientId}`;
   const isOwner = role === 'BUSINESS_OWNER';
@@ -403,17 +408,7 @@ export default async function WorkspaceAccountPage({
           Signed in with the temporary login: setting up the owner's own.
           Signed in with one's own email: that email and changing the password. */}
       {ownerView?.viaTemporary ? (
-        <SetupSection
-          clientId={clientId}
-          view={ownerView}
-          initial={{
-            name: account.owner.name,
-            phone: account.owner.phone,
-            email: isTemporaryEmail(account.owner.email) ? '' : account.owner.email,
-          }}
-          notice={notice}
-          t={t}
-        />
+        <SetupSection clientId={clientId} view={ownerView} notice={notice} t={t} />
       ) : role !== null && identity ? (
         <SignInSection clientId={clientId} email={identity.email} notice={notice} t={t} />
       ) : null}

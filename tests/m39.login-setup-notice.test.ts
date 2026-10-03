@@ -151,9 +151,9 @@ describe('resetNotice / emailNotice / resetLinkNotice', () => {
     expect(resetNotice('done')).toMatch(/password has been changed/);
     expect(emailNotice('confirmed')).toMatch(/new email address is confirmed/);
     expect(emailNotice('incomplete')).toMatch(/could not finish confirming/);
-    // No 'send' control exists any more: the way back is setup again, from the temporary login.
-    expect(emailNotice('expired')).toMatch(/temporary email and password from Headway/);
-    expect(emailNotice('expired')).toMatch(/Set up your account/);
+    // M53: a dead confirmation link is replaced by "Forgot password?", which
+    // needs no temporary login and confirms the address too.
+    expect(emailNotice('expired')).toMatch(/Forgot password\?/);
     expect(emailNotice('expired')).not.toMatch(/send a new one from Account/);
     expect(resetLinkNotice('expired')).toMatch(/expired or was already used/);
     expect(resetLinkNotice('other-browser')).toMatch(/same browser/);

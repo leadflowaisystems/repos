@@ -330,82 +330,68 @@ export const account = {
   },
 
   // -------------------------------------------------------------------------
-  // Setting up the owner's own sign-in (M39, M52)
+  // Setting up the owner's own sign-in (M39, M52, M53)
   //
   // Shown to a person signed in with the temporary email and password
-  // Headway handed over. Setup makes their OWN sign-in — real email, own
-  // password — which works once they open the link Supabase emails to it.
-  // The temporary sign-in keeps working until Headway switches it off.
+  // Headway handed over. Their OWN sign-in is on the email Headway recorded
+  // for them; one button emails a link there, and opening it is where they
+  // choose their password. The temporary sign-in keeps working until
+  // Headway switches it off.
   // -------------------------------------------------------------------------
   'account.setup.eyebrow': {
     en: 'Set up your account',
     hi: 'अपना अकाउंट सेट करें',
     mr: 'तुमचं अकाउंट सेट करा',
   },
+  'account.setup.noEmail': {
+    en: 'Headway has not added your email address yet. Ask Headway to add it, then come back here.',
+    hi: 'Headway ने अभी तक आपका ईमेल पता नहीं जोड़ा है। Headway से इसे जोड़ने को कहें, फिर यहाँ वापस आएँ।',
+    mr: 'Headway ने अजून तुमचा ईमेल पत्ता जोडलेला नाही. Headway ला तो जोडायला सांगा, मग इथे परत या.',
+  },
   'account.setup.intro': {
-    en: 'You signed in with temporary access. Choose your own password and add your own email. Once you open the link we email you, you will sign in with your own email.',
-    hi: 'आपने अस्थायी ऐक्सेस से साइन इन किया है। अपना पासवर्ड चुनें और अपना ईमेल जोड़ें। हमारा भेजा लिंक खोलने के बाद आप अपने ईमेल से साइन इन करेंगे।',
-    mr: 'तुम्ही तात्पुरत्या ॲक्सेसने साइन इन केलं आहे. तुमचा पासवर्ड निवडा आणि तुमचा ईमेल जोडा. आम्ही पाठवलेली लिंक उघडल्यावर तुम्ही तुमच्या ईमेलने साइन इन कराल.',
+    en: 'Your own sign-in will use {email}. Press the button and we will email you a link. Open it, press the button on that page, and choose your password. Then sign in with this email and that password.',
+    hi: 'आपका अपना साइन-इन {email} से होगा। बटन दबाएँ, हम आपको एक लिंक ईमेल करेंगे। उसे खोलें, उस पेज पर बटन दबाएँ, और अपना पासवर्ड चुनें। फिर इसी ईमेल और उस पासवर्ड से साइन इन करें।',
+    mr: 'तुमचं स्वतःचं साइन-इन {email} ने होईल. बटण दाबा, आम्ही तुम्हाला एक लिंक ईमेल करू. ती उघडा, त्या पेजवरचं बटण दाबा, आणि तुमचा पासवर्ड निवडा. मग याच ईमेलने आणि त्या पासवर्डने साइन इन करा.',
   },
-  'account.setup.optional': {
-    en: 'Optional',
-    hi: 'ज़रूरी नहीं',
-    mr: 'ऐच्छिक',
+  'account.setup.notYours': {
+    en: 'Not your email address? Tell Headway before you press the button.',
+    hi: 'यह आपका ईमेल पता नहीं है? बटन दबाने से पहले Headway को बताएँ।',
+    mr: 'हा तुमचा ईमेल पत्ता नाही? बटण दाबण्याआधी Headway ला सांगा.',
   },
-  'account.setup.emailHint': {
-    en: 'We will email you a link to confirm it.',
-    hi: 'इसकी पुष्टि के लिए हम आपको एक लिंक ईमेल करेंगे।',
-    mr: 'याची खात्री करण्यासाठी आम्ही तुम्हाला एक लिंक ईमेल करू.',
+  'account.setup.send': {
+    en: 'Email me a link to set my password',
+    hi: 'मुझे पासवर्ड सेट करने का लिंक ईमेल करें',
+    mr: 'पासवर्ड सेट करण्याची लिंक मला ईमेल करा',
   },
-  'account.setup.confirmPassword': {
-    en: 'Confirm password',
-    hi: 'पासवर्ड दोबारा लिखें',
-    mr: 'पासवर्ड पुन्हा लिहा',
+  'account.setup.sending': {
+    en: 'Sending…',
+    hi: 'भेज रहे हैं…',
+    mr: 'पाठवत आहोत…',
   },
-  'account.setup.submit': {
-    en: 'Complete setup',
-    hi: 'सेटअप पूरा करें',
-    mr: 'सेटअप पूर्ण करा',
-  },
-  'account.setup.done': {
-    en: 'Your account is set up.',
-    hi: 'आपका अकाउंट सेट हो गया है।',
-    mr: 'तुमचं अकाउंट सेट झालं आहे.',
-  },
-  'account.setup.checkEmail': {
-    en: 'Check your email to confirm your new email address. We sent a link to {email}.',
-    hi: 'अपने नए ईमेल पते की पुष्टि के लिए अपना ईमेल देखें। हमने {email} पर एक लिंक भेजा है।',
-    mr: 'तुमच्या नवीन ईमेल पत्त्याची खात्री करण्यासाठी तुमचा ईमेल पाहा. आम्ही {email} वर एक लिंक पाठवली आहे.',
-  },
-  'account.setup.untilConfirmed': {
-    en: 'Open the link, then sign in with that email and your new password. Until then, keep using your temporary sign-in.',
-    hi: 'लिंक खोलें, फिर उस ईमेल और अपने नए पासवर्ड से साइन इन करें। तब तक अपने अस्थायी साइन-इन का इस्तेमाल करते रहें।',
-    mr: 'लिंक उघडा, मग त्या ईमेलने आणि तुमच्या नवीन पासवर्डने साइन इन करा. तोपर्यंत तुमचं तात्पुरतं साइन-इन वापरत राहा.',
-  },
-  'account.setup.again': {
-    en: 'No email, or typed the wrong address? Fill this in again.',
-    hi: 'ईमेल नहीं मिला, या पता गलत लिखा? इसे फिर से भरें।',
-    mr: 'ईमेल आला नाही, किंवा पत्ता चुकीचा लिहिला? हे पुन्हा भरा.',
+  'account.setup.newest': {
+    en: 'Only the newest link works. If it has not arrived in a few minutes, check your spam folder.',
+    hi: 'सिर्फ़ सबसे नया लिंक काम करता है। अगर कुछ मिनट में न आए, तो अपना स्पैम फ़ोल्डर देखें।',
+    mr: 'फक्त सगळ्यात नवीन लिंकच चालते. काही मिनिटांत आली नाही, तर तुमचा स्पॅम फोल्डर पाहा.',
   },
   'account.setup.ready': {
-    en: 'Your own sign-in is ready: {email}. Sign out, then sign in with it. Right now you are using temporary access.',
-    hi: 'आपका अपना साइन-इन तैयार है: {email}। साइन आउट करें, फिर उससे साइन इन करें। अभी आप अस्थायी ऐक्सेस इस्तेमाल कर रहे हैं।',
-    mr: 'तुमचं स्वतःचं साइन-इन तयार आहे: {email}. साइन आउट करा, मग त्याने साइन इन करा. सध्या तुम्ही तात्पुरता ॲक्सेस वापरत आहात.',
+    en: 'Your email {email} is confirmed. If you have chosen your password, sign out and sign in with this email and that password. Not chosen one yet, or forgotten it? Get a new link below.',
+    hi: 'आपका ईमेल {email} पुष्ट हो गया है। अगर आपने अपना पासवर्ड चुन लिया है, तो साइन आउट करें और इस ईमेल और उस पासवर्ड से साइन इन करें। अभी पासवर्ड नहीं चुना, या भूल गए? नीचे से नया लिंक लें।',
+    mr: 'तुमचा ईमेल {email} खात्री झाला आहे. तुम्ही तुमचा पासवर्ड निवडला असेल, तर साइन आउट करा आणि या ईमेलने आणि त्या पासवर्डने साइन इन करा. अजून पासवर्ड निवडला नाही, किंवा विसरलात? खालून नवीन लिंक घ्या.',
   },
-  'account.setup.emailWait': {
-    en: 'Your account is set up, but we could not send the email just yet. Wait a minute, then fill in the form below again.',
-    hi: 'आपका अकाउंट सेट हो गया है, पर हम अभी ईमेल नहीं भेज सके। एक मिनट रुकें, फिर नीचे का फ़ॉर्म दोबारा भरें।',
-    mr: 'तुमचं अकाउंट सेट झालं आहे, पण आम्ही आत्ता ईमेल पाठवू शकलो नाही. एक मिनिट थांबा, मग खालचा फॉर्म पुन्हा भरा.',
+  'account.setup.linkSent': {
+    en: 'We emailed a link to {email}. Open it on any device. Only the newest link works.',
+    hi: 'हमने {email} पर एक लिंक ईमेल किया है। उसे किसी भी डिवाइस पर खोलें। सिर्फ़ सबसे नया लिंक काम करता है।',
+    mr: 'आम्ही {email} वर एक लिंक ईमेल केली आहे. ती कोणत्याही डिव्हाइसवर उघडा. फक्त सगळ्यात नवीन लिंकच चालते.',
   },
-  'account.setup.emailFailed': {
-    en: 'Your account is set up, but we could not send the confirmation email. Fill in the form below again, or contact Headway.',
-    hi: 'आपका अकाउंट सेट हो गया है, पर हम पुष्टि वाला ईमेल नहीं भेज सके। नीचे का फ़ॉर्म दोबारा भरें, या Headway से संपर्क करें।',
-    mr: 'तुमचं अकाउंट सेट झालं आहे, पण आम्ही खात्रीचा ईमेल पाठवू शकलो नाही. खालचा फॉर्म पुन्हा भरा, किंवा Headway शी संपर्क करा.',
+  'account.setup.linkWait': {
+    en: 'Too many emails were asked for just now, so this one was not sent. Wait a few minutes, then try again — or use the newest link you already have.',
+    hi: 'अभी बहुत सारे ईमेल माँगे गए, इसलिए यह नहीं भेजा गया। कुछ मिनट रुकें, फिर दोबारा कोशिश करें — या आपके पास जो सबसे नया लिंक है, उसे इस्तेमाल करें।',
+    mr: 'आत्ता खूप ईमेल मागितले गेले, म्हणून हा पाठवला नाही. काही मिनिटं थांबा, मग पुन्हा प्रयत्न करा — किंवा तुमच्याकडे असलेली सगळ्यात नवीन लिंक वापरा.',
   },
-  'account.setup.notSent': {
-    en: 'Your own sign-in is saved as {email}, but no confirmation email has gone out yet. Fill in the form below again to send it.',
-    hi: 'आपका अपना साइन-इन {email} के रूप में सेव है, पर अभी तक पुष्टि वाला ईमेल नहीं गया है। उसे भेजने के लिए नीचे का फ़ॉर्म दोबारा भरें।',
-    mr: 'तुमचं स्वतःचं साइन-इन {email} म्हणून सेव्ह झालं आहे, पण अजून खात्रीचा ईमेल गेलेला नाही. तो पाठवण्यासाठी खालचा फॉर्म पुन्हा भरा.',
+  'account.setup.linkFailed': {
+    en: 'We could not send the email just now. Try again in a few minutes, or contact Headway.',
+    hi: 'हम अभी ईमेल नहीं भेज सके। कुछ मिनट बाद दोबारा कोशिश करें, या Headway से संपर्क करें।',
+    mr: 'आम्ही आत्ता ईमेल पाठवू शकलो नाही. काही मिनिटांनी पुन्हा प्रयत्न करा, किंवा Headway शी संपर्क करा.',
   },
   'account.setup.unknown': {
     en: 'We could not check your own sign-in just now. Reload this page in a minute.',
@@ -425,6 +411,11 @@ export const account = {
     en: 'Sign-in email',
     hi: 'साइन-इन ईमेल',
     mr: 'साइन-इन ईमेल',
+  },
+  'account.signin.forgot': {
+    en: 'Never chose a password, or forgotten it? Sign out, then use “Forgot password?” on the sign-in page.',
+    hi: 'कभी पासवर्ड नहीं चुना, या भूल गए? साइन आउट करें, फिर साइन-इन पेज पर “Forgot password?” इस्तेमाल करें।',
+    mr: 'कधी पासवर्ड निवडला नाही, किंवा विसरलात? साइन आउट करा, मग साइन-इन पेजवर “Forgot password?” वापरा.',
   },
   'account.signin.password': {
     en: 'Password',

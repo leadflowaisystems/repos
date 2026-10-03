@@ -159,6 +159,23 @@ describe('changePasswordAction', () => {
     expect(h.updateUser).not.toHaveBeenCalled();
   });
 
+  it('refuses the temporary password from a handover sheet as the new one (M53)', async () => {
+    const result = await change({ password: 'Kq7m-x3pa-9fne-t2wd', confirmPassword: 'Kq7m-x3pa-9fne-t2wd' });
+    expect(result.errors.password).toBe('Choose your own password, not the temporary one from Headway.');
+    expect(h.detachedSignIn).not.toHaveBeenCalled();
+    expect(h.updateUser).not.toHaveBeenCalled();
+    // Typed without its hyphens, it is still the sheet's.
+    expect((await change({ password: 'Kq7mx3pa9fnet2wd', confirmPassword: 'Kq7mx3pa9fnet2wd' })).errors.password).toBe(
+      'Choose your own password, not the temporary one from Headway.',
+    );
+  });
+
+  it('accepts an own password that merely looks like four groups of four', async () => {
+    for (const own of ['Blue-Fish-Tree-Lamp', 'Ravi-1985-Pune-2024']) {
+      expect(await change({ password: own, confirmPassword: own }), own).toMatchObject({ ok: true });
+    }
+  });
+
   it("puts Supabase's password policy on the new-password field", async () => {
     h.updateUser.mockResolvedValueOnce({ data: {}, error: { code: 'weak_password', message: 'Password should contain at least one character of each: abc, ABC, 123.' } });
     const result = await change();
